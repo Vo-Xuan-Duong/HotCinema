@@ -1,18 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Card, Button, Tag } from 'antd';
+import { Card } from '../ui/card';
+import { Button } from '../ui/button';
+import { Tag } from '../ui/tag';
 import { useNavigate } from 'react-router-dom';
-import {
-    PlayCircleOutlined,
-    CalendarOutlined,
-    ClockCircleOutlined,
-    StarFilled,
-    LeftOutlined,
-    RightOutlined,
-    EyeOutlined
-} from '@ant-design/icons';
-import './MovieCarousel.css';
-
-const { Meta } = Card;
+import { Play, ChevronLeft, ChevronRight, Eye, Star } from 'lucide-react';
 
 const MovieCarousel = ({ movies = [], title = 'Movies', onMovieClick, loading = false }) => {
     const navigate = useNavigate();
@@ -167,15 +158,17 @@ const MovieCarousel = ({ movies = [], title = 'Movies', onMovieClick, loading = 
 
     if (loading) {
         return (
-            <div className="movie-carousel-container">
-                <div className="carousel-header">
-                    <div className="title-section">
-                        <h2 className="carousel-title">{title}</h2>
+            <div className="my-10 px-12 relative max-w-[1200px] mx-auto border-0 outline-none overflow-visible md:px-6 sm:px-4">
+                <div className="flex justify-between items-end mb-6 gap-4">
+                    <div className="flex-1">
+                        <h2 className="text-white text-2xl font-bold m-0 mb-2.5 bg-gradient-to-br from-white to-gray-300 bg-clip-text text-transparent md:text-xl">
+                            {title}
+                        </h2>
                     </div>
                 </div>
-                <div className="loading-placeholder">
+                <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide">
                     {[...Array(5)].map((_, index) => (
-                        <div key={index} className="loading-card" />
+                        <div key={index} className="flex-shrink-0 w-[280px] h-[420px] bg-gray-800 rounded-xl animate-pulse" />
                     ))}
                 </div>
             </div>
@@ -184,13 +177,15 @@ const MovieCarousel = ({ movies = [], title = 'Movies', onMovieClick, loading = 
 
     if (!validMovies.length) {
         return (
-            <div className="movie-carousel-container">
-                <div className="carousel-header">
-                    <div className="title-section">
-                        <h2 className="carousel-title">{title}</h2>
+            <div className="my-10 px-12 relative max-w-[1200px] mx-auto border-0 outline-none overflow-visible md:px-6 sm:px-4">
+                <div className="flex justify-between items-end mb-6 gap-4">
+                    <div className="flex-1">
+                        <h2 className="text-white text-2xl font-bold m-0 mb-2.5 bg-gradient-to-br from-white to-gray-300 bg-clip-text text-transparent md:text-xl">
+                            {title}
+                        </h2>
                     </div>
                 </div>
-                <div className="empty-carousel">
+                <div className="text-center py-12 text-gray-400">
                     <p>Không có phim nào để hiển thị</p>
                 </div>
             </div>
@@ -198,48 +193,49 @@ const MovieCarousel = ({ movies = [], title = 'Movies', onMovieClick, loading = 
     }
 
     return (
-        <div className="movie-carousel-container">
-            <div className="carousel-header">
-                <div className="title-section">
-                    <h2 className="carousel-title">
+        <div className="my-10 px-12 relative max-w-[1200px] mx-auto border-0 outline-none overflow-visible md:px-6 sm:px-4">
+            <div className="flex justify-between items-end mb-6 gap-4">
+                <div className="flex-1">
+                    <h2 className="text-white text-2xl font-bold m-0 mb-2.5 bg-gradient-to-br from-white to-gray-300 bg-clip-text text-transparent md:text-xl">
                         {title}
-                        <span className="movie-count">({validMovies.length})</span>
+                        <span className="text-gray-400 text-lg font-normal ml-2">({validMovies.length})</span>
                     </h2>
                     {scrollProgress > 0 && (
-                        <div className="scroll-progress" role="progressbar" aria-label="Tiến độ cuộn">
+                        <div className="w-full max-w-[200px] h-1 bg-white/10 rounded-sm overflow-hidden mt-2.5" role="progressbar" aria-label="Tiến độ cuộn">
                             <div
-                                className="progress-bar"
+                                className="h-full bg-gradient-to-r from-primary to-[#ff6b35] rounded-sm transition-all duration-300"
                                 style={{ width: `${Math.max(10, scrollProgress)}%` }}
                             />
                         </div>
                     )}
                 </div>
-                <div className="carousel-controls">
+                <div className="flex items-center gap-4">
                     <Button
-                        type="link"
-                        className="view-all-btn"
-                        icon={<EyeOutlined />}
+                        variant="link"
+                        className="text-white hover:text-primary"
                         aria-label="Xem tất cả phim"
                     >
+                        <Eye className="h-4 w-4 mr-2" />
                         Xem tất cả
                     </Button>
                 </div>
             </div>
 
-            <div className="carousel-wrapper-with-nav">
+            <div className="relative flex items-center gap-5 border-0 outline-none">
                 {/* Left Navigation Button */}
                 <Button
-                    type="text"
-                    icon={<LeftOutlined />}
-                    className={`nav-btn nav-btn-left ${!canScrollLeft || isScrolling ? 'disabled' : ''}`}
+                    variant="ghost"
+                    size="icon"
+                    className={`absolute left-0 z-10 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/70 border border-white/15 text-white flex items-center justify-center transition-all duration-300 backdrop-blur-[15px] shadow-[0_4px_15px_rgba(0,0,0,0.3)] visible opacity-100 hover:bg-black/80 hover:scale-110 ${!canScrollLeft || isScrolling ? 'opacity-50 cursor-not-allowed' : ''} md:w-10 md:h-10 sm:w-9 sm:h-9`}
                     onClick={() => scroll('left')}
                     disabled={!canScrollLeft || isScrolling}
-                    size="large"
                     aria-label="Xem phim trước"
-                />
+                >
+                    <ChevronLeft className="h-5 w-5" />
+                </Button>
 
                 <div
-                    className={`movie-carousel-wrapper ${isScrolling ? 'scrolling' : ''}`}
+                    className={`flex gap-6 overflow-x-auto pb-4 scrollbar-hide scroll-smooth ${isScrolling ? 'pointer-events-none' : ''}`}
                     ref={scrollContainerRef}
                     onWheel={handleWheelScroll}
                     onKeyDown={handleKeyDown}
@@ -250,84 +246,74 @@ const MovieCarousel = ({ movies = [], title = 'Movies', onMovieClick, loading = 
                     role="list"
                     aria-label={`Danh sách ${title.toLowerCase()}`}
                 >
-                    <div className="movie-carousel-track">
+                    <div className="flex gap-6">
                         {validMovies.map((movie, index) => (
                             <div
                                 key={movie.id}
-                                className="movie-carousel-item"
+                                className="flex-shrink-0 w-[280px] animate-[fadeInCard_0.5s_ease_forwards]"
                                 style={{
                                     animationDelay: `${index * 0.1}s`
                                 }}
                                 role="listitem"
                             >
                                 <Card
-                                    hoverable
-                                    className="movie-carousel-card"
+                                    className="rounded-xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer"
                                     onClick={() => handleMovieClick(movie)}
-                                    style={{ cursor: 'pointer' }}
-                                    cover={
-                                        <div className="movie-poster-wrapper">
-                                            <img
-                                                alt={`Poster phim ${movie.title}`}
-                                                src={movie.poster}
-                                                className="movie-poster-img"
-                                                loading={index < 4 ? 'eager' : 'lazy'}
-                                                onError={(e) => {
-                                                    e.target.src = 'https://via.placeholder.com/280x420/1a1a1a/666?text=Không+có+poster';
+                                >
+                                    <div className="relative group">
+                                        <img
+                                            alt={`Poster phim ${movie.title}`}
+                                            src={movie.poster}
+                                            className="w-full h-[420px] object-cover transition-transform duration-300 group-hover:scale-105"
+                                            loading={index < 4 ? 'eager' : 'lazy'}
+                                            onError={(e) => {
+                                                e.target.src = 'https://via.placeholder.com/280x420/1a1a1a/666?text=Không+có+poster';
+                                            }}
+                                        />
+                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                            <Button
+                                                size="icon"
+                                                className="bg-primary border-0 w-16 h-16 flex items-center justify-center text-white hover:scale-110 transition-transform duration-300 rounded-full"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onMovieClick?.(movie);
                                                 }}
-                                            />
-                                            <div className="movie-overlay">
-                                                <Button
-                                                    type="primary"
-                                                    shape="circle"
-                                                    size="large"
-                                                    icon={<PlayCircleOutlined />}
-                                                    className="play-btn"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation(); // Prevent card click
-                                                        onMovieClick?.(movie);
-                                                    }}
-                                                    aria-label={`Phát trailer phim ${movie.title}`}
-                                                />
+                                                aria-label={`Phát trailer phim ${movie.title}`}
+                                            >
+                                                <Play className="h-8 w-8" />
+                                            </Button>
+                                        </div>
+                                        {(movie.averageRating || movie.rating) && (
+                                            <div className="absolute top-3 right-3 bg-black/80 text-white px-2 py-1 rounded-lg text-sm font-semibold flex items-center gap-1 backdrop-blur-[10px]">
+                                                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                                <span>{movie.averageRating || movie.rating}</span>
                                             </div>
-                                            {movie.rating && (
-                                                <div className="movie-rating-badge">
-                                                    <StarFilled />
-                                                    <span>{movie.rating}</span>
+                                        )}
+                                    </div>
+                                    <div className="p-4">
+                                        <div className="text-base font-semibold line-clamp-2" title={movie.title}>
+                                            {movie.title}
+                                        </div>
+                                        <div className="mt-2">
+                                            {(movie.genres?.length > 0 || movie.genre) && (
+                                                <div className="flex flex-wrap gap-1">
+                                                    {movie.genres ? (
+                                                        movie.genres.map((genre, index) => (
+                                                            <Tag key={index} color="blue" className="text-xs">
+                                                                {genre}
+                                                            </Tag>
+                                                        ))
+                                                    ) : (
+                                                        movie.genre.split(',').map((genre, index) => (
+                                                            <Tag key={index} color="blue" className="text-xs">
+                                                                {genre.trim()}
+                                                            </Tag>
+                                                        ))
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
-                                    }
-                                >
-                                    <Meta
-                                        title={
-                                            <div className="movie-card-title" title={movie.title}>
-                                                {movie.title}
-                                            </div>
-                                        }
-                                        description={
-                                            <div className="movie-card-info">
-                                                {(movie.genres?.length > 0 || movie.genre) && (
-                                                    <div className="movie-genres">
-                                                        {movie.genres ? (
-                                                            movie.genres.map((genre, index) => (
-                                                                <Tag key={index} size="small" color="blue">
-                                                                    {genre}
-                                                                </Tag>
-                                                            ))
-                                                        ) : (
-                                                            // Xử lý trường hợp genre là chuỗi dài
-                                                            movie.genre.split(',').map((genre, index) => (
-                                                                <Tag key={index} size="small" color="blue">
-                                                                    {genre.trim()}
-                                                                </Tag>
-                                                            ))
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        }
-                                    />
+                                    </div>
                                 </Card>
                             </div>
                         ))}
@@ -336,14 +322,15 @@ const MovieCarousel = ({ movies = [], title = 'Movies', onMovieClick, loading = 
 
                 {/* Right Navigation Button */}
                 <Button
-                    type="text"
-                    icon={<RightOutlined />}
-                    className={`nav-btn nav-btn-right ${!canScrollRight || isScrolling ? 'disabled' : ''}`}
+                    variant="ghost"
+                    size="icon"
+                    className={`absolute right-0 z-10 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/70 border border-white/15 text-white flex items-center justify-center transition-all duration-300 backdrop-blur-[15px] shadow-[0_4px_15px_rgba(0,0,0,0.3)] visible opacity-100 hover:bg-black/80 hover:scale-110 ${!canScrollRight || isScrolling ? 'opacity-50 cursor-not-allowed' : ''} md:w-10 md:h-10 sm:w-9 sm:h-9`}
                     onClick={() => scroll('right')}
                     disabled={!canScrollRight || isScrolling}
-                    size="large"
                     aria-label="Xem phim tiếp theo"
-                />
+                >
+                    <ChevronRight className="h-5 w-5" />
+                </Button>
             </div>
         </div>
     );

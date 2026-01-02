@@ -3,30 +3,20 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
-  // Ưu tiên lấy theme từ localStorage, nếu không có thì mặc định là light mode
-  const getInitialTheme = () => {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const stored = window.localStorage.getItem('theme');
-      if (stored) return stored;
-      // Luôn mặc định light mode thay vì theo hệ điều hành
-      // if (window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
-    }
-    return 'light';
-  };
-
-  const [theme, setTheme] = useState(getInitialTheme);
+  // Luôn sử dụng light mode
+  const theme = 'light';
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    window.localStorage.setItem('theme', theme);
-  }, [theme]);
+    document.documentElement.setAttribute('data-theme', 'light');
+    window.localStorage.setItem('theme', 'light');
+  }, []);
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+    // Không làm gì cả - luôn giữ light mode
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme: () => {}, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -37,22 +37,22 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     /**
      * Find all bookings by status
      */
-    List<Booking> findByBookingStatusOrderByCreatedAtDesc(BookingStatus status);
+    List<Booking> findByStatusOrderByCreatedAtDesc(BookingStatus status);
 
     /**
      * Find all bookings by status with pagination
      */
-    Page<Booking> findByBookingStatusOrderByCreatedAtDesc(BookingStatus status, Pageable pageable);
+    Page<Booking> findByStatusOrderByCreatedAtDesc(BookingStatus status, Pageable pageable);
 
     /**
      * Find bookings by user ID and status
      */
-    List<Booking> findByUserIdAndBookingStatusOrderByCreatedAtDesc(Long userId, BookingStatus status);
+    List<Booking> findByUserIdAndStatusOrderByCreatedAtDesc(Long userId, BookingStatus status);
 
     /**
      * Find bookings by showtime ID and status
      */
-    List<Booking> findByShowtimeIdAndBookingStatusOrderByCreatedAtDesc(Long showtimeId, BookingStatus status);
+    List<Booking> findByShowtimeIdAndStatusOrderByCreatedAtDesc(Long showtimeId, BookingStatus status);
 
     /**
      * Find bookings created between dates
@@ -78,12 +78,12 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     /**
      * Count bookings by status
      */
-    long countByBookingStatus(BookingStatus status);
+    long countByStatus(BookingStatus status);
 
     /**
      * Count bookings by user ID and status
      */
-    long countByUserIdAndBookingStatus(Long userId, BookingStatus status);
+    long countByUserIdAndStatus(Long userId, BookingStatus status);
 
     /**
      * Find bookings with total amount greater than specified value
@@ -102,8 +102,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "COUNT(b) as totalBookings, " +
             "SUM(b.totalAmount) as totalSpent, " +
             "AVG(b.totalAmount) as averageAmount, " +
-            "COUNT(CASE WHEN b.bookingStatus = 'CONFIRMED' THEN 1 END) as confirmedBookings, " +
-            "COUNT(CASE WHEN b.bookingStatus = 'CANCELLED' THEN 1 END) as cancelledBookings " +
+            "COUNT(CASE WHEN b.status = 'CONFIRMED' THEN 1 END) as confirmedBookings, " +
+            "COUNT(CASE WHEN b.status = 'CANCELLED' THEN 1 END) as cancelledBookings " +
             "FROM Booking b WHERE b.user.id = :userId")
     Object[] getBookingStatisticsByUserId(@Param("userId") Long userId);
 
@@ -114,8 +114,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             "COUNT(b) as totalBookings, " +
             "SUM(b.totalAmount) as totalRevenue, " +
             "AVG(b.totalAmount) as averageAmount, " +
-            "COUNT(CASE WHEN b.bookingStatus = 'CONFIRMED' THEN 1 END) as confirmedBookings, " +
-            "COUNT(CASE WHEN b.bookingStatus = 'CANCELLED' THEN 1 END) as cancelledBookings " +
+            "COUNT(CASE WHEN b.status = 'CONFIRMED' THEN 1 END) as confirmedBookings, " +
+            "COUNT(CASE WHEN b.status = 'CANCELLED' THEN 1 END) as cancelledBookings " +
             "FROM Booking b WHERE b.showtime.id = :showtimeId")
     Object[] getBookingStatisticsByShowtimeId(@Param("showtimeId") Long showtimeId);
 
@@ -129,13 +129,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
      */
     @Query("SELECT b FROM Booking b WHERE b.createdAt >= :startDate ORDER BY b.createdAt DESC")
     List<Booking> findRecentBookings(@Param("startDate") LocalDateTime startDate);
-
-    /**
-     * Find bookings with specific voucher codes
-     */
-    @Query("SELECT b FROM Booking b JOIN b.voucher v WHERE v.code = :voucherCode")
-    List<Booking> findByVoucherCode(@Param("voucherCode") String voucherCode);
-
     /**
      * Check if booking code exists
      */
@@ -144,24 +137,24 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     /**
      * Find bookings by multiple statuses
      */
-    List<Booking> findByBookingStatusInOrderByCreatedAtDesc(List<BookingStatus> statuses);
+    List<Booking> findByStatusInOrderByCreatedAtDesc(List<BookingStatus> statuses);
 
     /**
      * Find bookings by user ID and multiple statuses
      */
-    List<Booking> findByUserIdAndBookingStatusInOrderByCreatedAtDesc(Long userId, List<BookingStatus> statuses);
+    List<Booking> findByUserIdAndStatusInOrderByCreatedAtDesc(Long userId, List<BookingStatus> statuses);
 
     /**
      * Get total revenue by date range
      */
-    @Query("SELECT SUM(b.totalAmount) FROM Booking b WHERE b.bookingDate BETWEEN :startDate AND :endDate AND b.bookingStatus = 'CONFIRMED'")
+    @Query("SELECT SUM(b.totalAmount) FROM Booking b WHERE b.bookingDate BETWEEN :startDate AND :endDate AND b.status = 'CONFIRMED'")
     java.math.BigDecimal getTotalRevenueByDateRange(@Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate);
 
     /**
      * Get total revenue by user ID and date range
      */
-    @Query("SELECT SUM(b.totalAmount) FROM Booking b WHERE b.user.id = :userId AND b.bookingDate BETWEEN :startDate AND :endDate AND b.bookingStatus = 'CONFIRMED'")
+    @Query("SELECT SUM(b.totalAmount) FROM Booking b WHERE b.user.id = :userId AND b.bookingDate BETWEEN :startDate AND :endDate AND b.status = 'CONFIRMED'")
     java.math.BigDecimal getTotalRevenueByUserIdAndDateRange(@Param("userId") Long userId,
             @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 
@@ -169,7 +162,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findBookingsByUserId(Long userId);
 
-    List<Booking> findBookingsByBookingStatus(BookingStatus status);
+    List<Booking> findBookingsByStatus(BookingStatus status);
 
     List<Booking> findByShowtimeId(Long showtimeId);
 

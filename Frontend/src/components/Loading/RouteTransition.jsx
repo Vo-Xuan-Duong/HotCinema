@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import PageTransition from './PageTransition';
-import './RouteTransition.css';
+// Migrated to Tailwind CSS
 
 const RouteTransition = ({ children }) => {
   const location = useLocation();
@@ -48,8 +48,8 @@ const RouteTransition = ({ children }) => {
   }, [location.pathname, children]);
 
   return (
-    <div className="route-transition-container">
-      <div className={`page-content ${isTransitioning ? 'transitioning' : 'visible'}`}>
+    <div className="relative w-full min-h-screen">
+      <div className={`w-full min-h-screen transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${isTransitioning ? 'opacity-0 translate-y-2.5 blur-[2px]' : 'opacity-100 translate-y-0 blur-0'}`}>
         {displayChildren}
       </div>
       

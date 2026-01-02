@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 public class RevenueByMovieResponse {
     private Long movieId;
     private String movieTitle;
-    private String posterPath;
+    private String posterUrl;
     private BigDecimal totalRevenue;
     private Long totalBookings;
     private Long totalTickets;

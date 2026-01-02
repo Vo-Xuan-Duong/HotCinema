@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class RefreshTokenResponse {
-    private String id;
+    private Long id;
     private String token;
     private LocalDateTime createdAt;
 }

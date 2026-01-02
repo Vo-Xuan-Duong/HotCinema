@@ -14,10 +14,9 @@ public class SeatMapper {
                 .id(seat.getId())
                 .name(seat.getName())
                 .seatType(seat.getSeatType())
-                .status(seat.getStatus())
+                .status(seat.getSeatStatus())
                 .col(seat.getCol())
                 .row(seat.getRow())
-                .isActive(seat.getIsActive())
                 .build();
     }
 }

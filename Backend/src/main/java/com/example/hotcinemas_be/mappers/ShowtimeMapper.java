@@ -3,6 +3,7 @@ package com.example.hotcinemas_be.mappers;
 import com.example.hotcinemas_be.dtos.showtime.responses.*;
 import com.example.hotcinemas_be.models.Cinema;
 import com.example.hotcinemas_be.models.Showtime;
+import com.example.hotcinemas_be.services.BookingSeatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -13,6 +14,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ShowtimeMapper {
 
+    private final BookingSeatService bookingSeatService;
+
     public ShowtimeResponse mapToResponse(com.example.hotcinemas_be.models.Showtime showtime) {
         if (showtime == null) {
             return null;
@@ -20,17 +23,19 @@ public class ShowtimeMapper {
         return ShowtimeResponse.builder()
                 .id(showtime.getId())
                 .movieTitle(showtime.getMovie().getTitle())
-                .cinemaName(showtime.getRoom().getCinema().getName())
-                .roomName(showtime.getRoom().getName())
-                .showDate(showtime.getDate())
+                .cinemaName(showtime.getTheater().getCinema().getName())
+                .roomName(showtime.getTheater().getName())
+                .showDate(showtime.getShowDate())
                 .startTime(showtime.getStartTime())
                 .endTime(showtime.getEndTime())
-                .price(showtime.getTicketPrice())
-                .movieFormat(showtime.getMovieFormat())
-                .movieFormatLabel(showtime.getMovieFormat() != null ? showtime.getMovieFormat().getLabel() : null)
+                .price(showtime.getBasePrice())
+                .format(showtime.getFormat())
+                .formatLabel(showtime.getFormat() != null ? showtime.getFormat().getValue() : null)
+                .audioType(showtime.getAudioType())
+                .audioTypeLabel(showtime.getAudioType() != null ? showtime.getAudioType().getValue() : null)
                 .status(showtime.getStatus())
-                .totalSeats(showtime.getRoom() != null ? showtime.getRoom().getTotalSeats() : 0)
-                .seatsBooked(showtime.getTickets() != null ? showtime.getTickets().size() : 0)
+                .totalSeats(showtime.getTheater() != null ? showtime.getTheater().getTotalSeats() : 0)
+                .seatsBooked(bookingSeatService.countBookedSeatsByShowtimeId(showtime.getId()))
                 .build();
     }
 
@@ -42,19 +47,19 @@ public class ShowtimeMapper {
                 .showtimeId(showtime.getId())
                 .startTime(showtime.getStartTime())
                 .endTime(showtime.getEndTime())
-                .roomId(showtime.getRoom().getId())
-                .roomName(showtime.getRoom().getName())
-                .price(showtime.getTicketPrice())
+                .theaterId(showtime.getTheater().getId())
+                .theaterName(showtime.getTheater().getName())
+                .price(showtime.getBasePrice())
                 .status(showtime.getStatus())
                 .build();
     }
 
     public List<FormatWithShowtimes> mapFormats(List<Showtime> showtimes){
         return showtimes.stream()
-                .collect(Collectors.groupingBy(Showtime::getMovieFormat))
+                .collect(Collectors.groupingBy(Showtime::getFormat))
                 .entrySet().stream()
                 .map(entry -> {
-                    String formatLabel = entry.getKey() != null ? entry.getKey().getLabel() : "Unknown";
+                    String formatLabel = entry.getKey() != null ? entry.getKey().getValue() : "Unknown";
                     List<ShowtimeInfo> showtimeInfos = entry.getValue().stream()
                             .map(this::mapToShowtimeInfo)
                             .collect(Collectors.toList());
@@ -71,7 +76,7 @@ public class ShowtimeMapper {
         // Group by cinema
         return showtimes.stream()
                 .collect(java.util.stream.Collectors.groupingBy(
-                        s -> s.getRoom().getCinema(),
+                        s -> s.getTheater().getCinema(),
                         java.util.stream.Collectors.toList()
                 ))
                 .entrySet()
@@ -83,8 +88,8 @@ public class ShowtimeMapper {
                             .cinemaId(cinema.getId())
                             .cinemaName(cinema.getName())
                             .address(cinema.getAddress())
-                            .cityId(cinema.getCity() != null ? cinema.getCity().getId() : null)
-                            .cityName(cinema.getCity() != null ? cinema.getCity().getName() : null)
+                            .cityId(cinema.getRegion() != null ? cinema.getRegion().getId() : null)
+                            .cityName(cinema.getRegion() != null ? cinema.getRegion().getName() : null)
                             .latitude(cinema.getLatitude())
                             .longitude(cinema.getLongitude())
                             .formats(mapFormats(listByCinemas))
@@ -109,7 +114,7 @@ public class ShowtimeMapper {
                     return MovieWithShowtimes.builder()
                             .movieId(movie.getId())
                             .movieTitle(movie.getTitle())
-                            .posterPath(movie.getPosterPath())
+                            .posterUrl(movie.getPosterUrl())
                             .formats(mapFormats(listByMovies))
                             .build();
                 })

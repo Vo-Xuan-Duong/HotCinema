@@ -1,70 +1,41 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import {
-    Typography,
-    Button,
-    Row,
-    Col,
-    Tag,
-    Space,
-    Card,
-    Input,
-    message,
-    Rate,
-    Progress,
-    Statistic,
-    Avatar,
-    Divider,
-    Tooltip,
-    Badge,
-    Select,
-    DatePicker,
-    Modal,
-    Empty
-} from 'antd';
-import {
-    HeartOutlined,
-    HeartFilled,
-    StarFilled,
-    PlayCircleOutlined,
-    CarryOutOutlined,
-    ShareAltOutlined,
-    CalendarOutlined,
-    UserOutlined,
-    EnvironmentOutlined,
-    ThunderboltOutlined,
-    FireOutlined,
-    TrophyOutlined,
-    HomeOutlined,
-    RightOutlined,
-    DownOutlined,
-    CloseOutlined,
-    CheckCircleOutlined,
-    TeamOutlined,
-    TagOutlined
-} from '@ant-design/icons';
-import { AimOutlined } from '@ant-design/icons';
+import { Heart, Star, Play, ShoppingCart, Share2, Calendar, Clock, User, MapPin, Zap, Flame, Trophy, Home, ChevronRight, ChevronDown, X, CheckCircle2, Users, Tag as TagIcon, Target, Loader2 } from 'lucide-react';
+import { Button } from '../../../components/ui/button';
+import { Card } from '../../../components/ui/card';
+import { Tag } from '../../../components/ui/tag';
+import { Modal } from '../../../components/ui/modal';
+import { Empty } from '../../../components/ui/empty';
+import { Separator } from '../../../components/ui/separator';
+import { Tooltip } from '../../../components/ui/tooltip';
+import { Avatar } from '../../../components/ui/avatar';
+import { Rate } from '../../../components/ui/rate';
+import { Progress } from '../../../components/ui/progress';
+import { Statistic } from '../../../components/ui/statistic';
 import { useTheme } from '../../../context/ThemeContext';
+import useNotification from '../../../hooks/useNotification';
 import movieService from '../../../services/movieService';
 import showtimeService from '../../../services/showtimeService';
-import cityService from '../../../services/cityService';
+import regionService from '../../../services/regionService';
 import LocationSelectModal from '../../../components/LocationSelectModal';
 import CommentsSection from '../../../components/Comments/CommentsSection';
-import './MovieDetail.css';
+import dayjs from 'dayjs';
+// import './MovieDetail.css'; // Commented out for Tailwind demo - uncomment if needed
 
-const { Title, Text, Paragraph } = Typography;
-const { Option } = Select;
 
 const MovieDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
     const { theme } = useTheme();
+    const notification = useNotification();
     const [movie, setMovie] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isFavorite, setIsFavorite] = useState(false);
     const [userRating, setUserRating] = useState(0);
     const [selectedCity, setSelectedCity] = useState('Tp. Hồ Chí Minh');
+    const [selectedCityId, setSelectedCityId] = useState(null);
+    const [cities, setCities] = useState([]);
     const scheduleTabRef = useRef(null);
     const [selectedDate, setSelectedDate] = useState(null);
     const [expandedCinema, setExpandedCinema] = useState(null);
@@ -82,46 +53,87 @@ const MovieDetail = () => {
     const [cinemas, setCinemas] = useState([]);
     const [schedules, setSchedules] = useState([]);
     const [trailerModalVisible, setTrailerModalVisible] = useState(false);
-    const [cities, setCities] = useState([]);
-    const [selectedCityId, setSelectedCityId] = useState(null);
+    const [regions, setRegions] = useState([]);
+    const [selectedRegionId, setSelectedRegionId] = useState(null);
+    const [selectedRegion, setSelectedRegion] = useState(null);
     const [userLocation, setUserLocation] = useState(null);
     const [currentPage, setCurrentPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
     const [hasMore, setHasMore] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
+    const [nowShowingMovies, setNowShowingMovies] = useState([]);
+    const [loadingNowShowing, setLoadingNowShowing] = useState(false);
+    const [nowShowingPage, setNowShowingPage] = useState(0);
+    const [hasMoreNowShowing, setHasMoreNowShowing] = useState(false);
+    const [loadingMoreNowShowing, setLoadingMoreNowShowing] = useState(false);
+    const [upcomingMovies, setUpcomingMovies] = useState([]);
+    const [loadingUpcoming, setLoadingUpcoming] = useState(false);
+    const [upcomingPage, setUpcomingPage] = useState(0);
+    const [hasMoreUpcoming, setHasMoreUpcoming] = useState(false);
+    const [loadingMoreUpcoming, setLoadingMoreUpcoming] = useState(false);
 
-    // Fetch cities from API
+    // Helper function to check if movie is active (NOW_SHOWING)
+    const isMovieActive = (movie) => {
+        if (!movie) return false;
+        return movie.status === 'NOW_SHOWING' || movie.isActive === true;
+    };
+
+    // Fetch regions from API
     useEffect(() => {
-        const fetchCities = async () => {
+        const fetchRegions = async () => {
             try {
-                const citiesData = await cityService.getCitiesAllNoPage();
-                console.log('Cities data from API:', citiesData);
+                const regionsData = await regionService.getAllRegions();
+                console.log('Regions data from API:', regionsData);
 
                 // Handle if API returns array directly or wrapped in object
-                const citiesArray = Array.isArray(citiesData.data) ? citiesData.data : (citiesData.content || []);
-                console.log('Processed cities array:', citiesArray);
+                const regionsArray = Array.isArray(regionsData.data) ? regionsData.data : (regionsData.content || []);
+                console.log('Processed regions array:', regionsArray);
 
-                setCities(citiesArray);
+                setRegions(regionsArray);
 
-                // Set default city (Ho Chi Minh City)
-                const defaultCity = citiesArray.find(city =>
-                    city.name && (city.name.includes('Hồ Chí Minh') || city.name.includes('Ho Chi Minh'))
+                // Set default region (Ho Chi Minh Region)
+                const defaultRegion = regionsArray.find(region =>
+                    region.name && (region.name.includes('Hồ Chí Minh') || region.name.includes('Ho Chi Minh')) ||
+                    region.slug === 'ho-chi-minh'
                 );
-                if (defaultCity) {
-                    setSelectedCityId(defaultCity.id);
-                    setSelectedCity(defaultCity.name);
-                } else if (citiesArray.length > 0) {
-                    setSelectedCityId(citiesArray[0].id);
-                    setSelectedCity(citiesArray[0].name);
+                if (defaultRegion) {
+                    setSelectedRegionId(defaultRegion.id);
+                    setSelectedRegion(defaultRegion.slug || defaultRegion.name);
+                } else if (regionsArray.length > 0) {
+                    setSelectedRegionId(regionsArray[0].id);
+                    setSelectedRegion(regionsArray[0].slug || regionsArray[0].name);
                 }
             } catch (error) {
-                console.error('Error fetching cities:', error);
-                message.error('Không thể tải danh sách thành phố');
+                console.error('Error fetching regions:', error);
+                notification.error('Không thể tải danh sách khu vực');
             }
         };
 
-        fetchCities();
+        fetchRegions();
     }, []);
+
+    // Use regions as cities (since regions contain city information)
+    useEffect(() => {
+        if (regions.length > 0) {
+            // Convert regions to cities format for LocationSelectModal
+            const citiesFromRegions = regions.map(region => ({
+                id: region.id,
+                name: region.name
+            }));
+            setCities(citiesFromRegions);
+
+            // Set default city if not already set
+            if (!selectedCityId && citiesFromRegions.length > 0) {
+                const defaultCity = citiesFromRegions.find(c =>
+                    c.name && (c.name.includes('Hồ Chí Minh') || c.name.includes('Ho Chi Minh'))
+                ) || citiesFromRegions[0];
+                if (defaultCity) {
+                    setSelectedCity(defaultCity.name);
+                    setSelectedCityId(defaultCity.id);
+                }
+            }
+        }
+    }, [regions]);
 
     // Fetch movie data from API
     useEffect(() => {
@@ -133,12 +145,12 @@ const MovieDetail = () => {
                     console.log('Fetched movie data:', movieData);
                     setMovie(movieData);
                 } else {
-                    message.error('Không tìm thấy phim!');
+                    notification.error('Không tìm thấy phim!');
                     navigate('/movies');
                 }
             } catch (error) {
                 console.error('Error fetching movie:', error);
-                message.error('Có lỗi xảy ra khi tải thông tin phim!');
+                notification.error('Có lỗi xảy ra khi tải thông tin phim!');
                 navigate('/movies');
             } finally {
                 setLoading(false);
@@ -148,11 +160,190 @@ const MovieDetail = () => {
         fetchMovie();
     }, [id, navigate]);
 
+    // Helper function to process movie data
+    const processMovieData = (moviesData) => {
+        return moviesData
+            .filter(m => m.id !== movie?.id) // Exclude current movie
+            .map((m) => {
+                let formattedReleaseDate = '';
+                if (m.releaseDate) {
+                    if (typeof m.releaseDate === 'string') {
+                        const date = new Date(m.releaseDate);
+                        if (!isNaN(date.getTime())) {
+                            formattedReleaseDate = date.toLocaleDateString('vi-VN', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric'
+                            });
+                        } else {
+                            formattedReleaseDate = m.releaseDate;
+                        }
+                    } else if (m.releaseDate.year && m.releaseDate.month && m.releaseDate.day) {
+                        formattedReleaseDate = `${String(m.releaseDate.day).padStart(2, '0')}/${String(m.releaseDate.month).padStart(2, '0')}/${m.releaseDate.year}`;
+                    }
+                }
+
+                return {
+                    ...m,
+                    poster: m.posterUrl || m.posterPath || '/vite.svg',
+                    releaseDate: formattedReleaseDate,
+                    averageRating: m.averageRating ? parseFloat(m.averageRating) : 0,
+                    durationFormatted: m.durationFormatted || (m.durationMinutes ? `${m.durationMinutes}p` : ''),
+                };
+            });
+    };
+
+    // Fetch now showing movies
+    useEffect(() => {
+        const fetchNowShowingMovies = async () => {
+            setLoadingNowShowing(true);
+            setNowShowingPage(0);
+            try {
+                const params = {
+                    page: 0,
+                    size: 7,
+                    status: 'NOW_SHOWING',
+                    sort: 'createdAt,desc'
+                };
+                const response = await movieService.searchPage(params);
+                const actualData = response?.data || response;
+                let moviesData = [];
+
+                if (Array.isArray(actualData)) {
+                    moviesData = actualData;
+                    setHasMoreNowShowing(false); // Can't determine pagination from array
+                } else if (actualData?.content) {
+                    moviesData = actualData.content;
+                    const totalPages = actualData.totalPages || 0;
+                    const currentPageNum = actualData.number || 0;
+                    setHasMoreNowShowing(currentPageNum + 1 < totalPages);
+                }
+
+                const processed = processMovieData(moviesData);
+                setNowShowingMovies(processed);
+            } catch (error) {
+                console.error('Error fetching now showing movies:', error);
+            } finally {
+                setLoadingNowShowing(false);
+            }
+        };
+
+        fetchNowShowingMovies();
+    }, [movie?.id]);
+
+    // Fetch upcoming movies
+    useEffect(() => {
+        const fetchUpcomingMovies = async () => {
+            setLoadingUpcoming(true);
+            setUpcomingPage(0);
+            try {
+                const params = {
+                    page: 0,
+                    size: 7,
+                    sort: 'releaseDate,asc'
+                };
+                const response = await movieService.getComingSoonPage(params);
+                const actualData = response?.data || response;
+                let moviesData = [];
+
+                if (Array.isArray(actualData)) {
+                    moviesData = actualData;
+                    setHasMoreUpcoming(false);
+                } else if (actualData?.content) {
+                    moviesData = actualData.content;
+                    const totalPages = actualData.totalPages || 0;
+                    const currentPageNum = actualData.number || 0;
+                    setHasMoreUpcoming(currentPageNum + 1 < totalPages);
+                }
+
+                const processed = processMovieData(moviesData);
+                setUpcomingMovies(processed);
+            } catch (error) {
+                console.error('Error fetching upcoming movies:', error);
+            } finally {
+                setLoadingUpcoming(false);
+            }
+        };
+
+        fetchUpcomingMovies();
+    }, [movie?.id]);
+
+    // Load more now showing movies
+    const loadMoreNowShowing = async () => {
+        if (!hasMoreNowShowing || loadingMoreNowShowing) return;
+
+        setLoadingMoreNowShowing(true);
+        try {
+            const nextPage = nowShowingPage + 1;
+            const params = {
+                page: nextPage,
+                size: 6,
+                status: 'NOW_SHOWING',
+                sort: 'createdAt,desc'
+            };
+            const response = await movieService.searchPage(params);
+            const actualData = response?.data || response;
+            let moviesData = [];
+
+            if (Array.isArray(actualData)) {
+                moviesData = actualData;
+            } else if (actualData?.content) {
+                moviesData = actualData.content;
+                const totalPages = actualData.totalPages || 0;
+                setHasMoreNowShowing(nextPage + 1 < totalPages);
+            }
+
+            const processed = processMovieData(moviesData);
+            setNowShowingMovies(prev => [...prev, ...processed]);
+            setNowShowingPage(nextPage);
+        } catch (error) {
+            console.error('Error loading more now showing movies:', error);
+            notification.error('Không thể tải thêm phim');
+        } finally {
+            setLoadingMoreNowShowing(false);
+        }
+    };
+
+    // Load more upcoming movies
+    const loadMoreUpcoming = async () => {
+        if (!hasMoreUpcoming || loadingMoreUpcoming) return;
+
+        setLoadingMoreUpcoming(true);
+        try {
+            const nextPage = upcomingPage + 1;
+            const params = {
+                page: nextPage,
+                size: 6,
+                sort: 'releaseDate,asc'
+            };
+            const response = await movieService.getComingSoonPage(params);
+            const actualData = response?.data || response;
+            let moviesData = [];
+
+            if (Array.isArray(actualData)) {
+                moviesData = actualData;
+            } else if (actualData?.content) {
+                moviesData = actualData.content;
+                const totalPages = actualData.totalPages || 0;
+                setHasMoreUpcoming(nextPage + 1 < totalPages);
+            }
+
+            const processed = processMovieData(moviesData);
+            setUpcomingMovies(prev => [...prev, ...processed]);
+            setUpcomingPage(nextPage);
+        } catch (error) {
+            console.error('Error loading more upcoming movies:', error);
+            notification.error('Không thể tải thêm phim');
+        } finally {
+            setLoadingMoreUpcoming(false);
+        }
+    };
+
     // Parse query param ?tab=schedule or hash #schedule to scroll to schedule section
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const tabParam = params.get('tab') || (location.hash ? location.hash.replace('#', '') : null);
-        if (tabParam === 'schedule' && movie?.isActive) {
+        if (tabParam === 'schedule' && isMovieActive(movie)) {
             // scroll after render
             setTimeout(() => {
                 if (scheduleTabRef.current) {
@@ -160,7 +351,7 @@ const MovieDetail = () => {
                 }
             }, 200);
         }
-    }, [location.search, location.hash, movie?.isActive]);
+    }, [location.search, location.hash, movie?.status]);
 
     // Handle wheel zoom
     const handleWheel = useCallback((e) => {
@@ -188,23 +379,25 @@ const MovieDetail = () => {
         }
     }, [seatModalVisible, handleWheel]);
 
-    // -------------------------------------------------------------
-    // Showtime / Cinema chain dynamic data helpers (moved above early return
-    // to keep hook order stable across renders and avoid React hook mismatch)
-    // -------------------------------------------------------------
-
-    // Data-driven locations helper - no need for chain selection
 
     const handleToggleLocation = (locId) => {
         setExpandedLocation(prev => (prev === locId ? null : locId));
     };
 
-    // Utility: format selected date index -> yyyy-mm-dd (demo mapping)
+    // Utility: format selected date index -> yyyy-mm-dd (avoid timezone issues)
     const getSelectedDateISO = () => {
         const base = new Date();
         const offset = selectedDate ?? 0; // if null assume first (today)
-        const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + offset);
-        return d.toISOString().slice(0, 10);
+        // Use local date to avoid timezone issues
+        const year = base.getFullYear();
+        const month = base.getMonth();
+        const day = base.getDate() + offset;
+        const d = new Date(year, month, day);
+        // Format as YYYY-MM-DD using local timezone, not UTC
+        const yearStr = d.getFullYear();
+        const monthStr = String(d.getMonth() + 1).padStart(2, '0');
+        const dayStr = String(d.getDate()).padStart(2, '0');
+        return `${yearStr}-${monthStr}-${dayStr}`;
     };
 
     // Effect to derive chains & locations from showtimes (must be before early return)
@@ -268,10 +461,34 @@ const MovieDetail = () => {
                         cinemaData.formats.forEach(format => {
                             if (format.showtimes && Array.isArray(format.showtimes)) {
                                 format.showtimes.forEach(st => {
+                                    // Format time from API (could be ISO string, HH:mm:ss, or HH:mm)
+                                    const formatTime = (timeStr) => {
+                                        if (!timeStr) return '';
+                                        // If already in HH:mm format, return as is
+                                        if (/^\d{2}:\d{2}$/.test(timeStr)) {
+                                            return timeStr;
+                                        }
+                                        // If in HH:mm:ss format, extract HH:mm
+                                        if (/^\d{2}:\d{2}:\d{2}/.test(timeStr)) {
+                                            return timeStr.substring(0, 5);
+                                        }
+                                        // If ISO string or other format, parse with dayjs
+                                        try {
+                                            const parsed = dayjs(timeStr);
+                                            if (parsed.isValid()) {
+                                                return parsed.format('HH:mm');
+                                            }
+                                        } catch (e) {
+                                            console.warn('Error parsing time:', timeStr, e);
+                                        }
+                                        // Fallback: return as is
+                                        return timeStr;
+                                    };
+
                                     allShowtimes.push({
                                         id: st.showtimeId,
-                                        time: st.startTime,
-                                        endTime: st.endTime,
+                                        time: formatTime(st.startTime),
+                                        endTime: formatTime(st.endTime),
                                         roomId: st.roomId,
                                         roomName: st.roomName,
                                         price: st.price,
@@ -319,7 +536,7 @@ const MovieDetail = () => {
                 }
             } catch (error) {
                 console.error('Error fetching schedules and cinemas:', error);
-                message.error('Không thể tải lịch chiếu');
+                notification.error('Không thể tải lịch chiếu');
             }
         };
 
@@ -426,7 +643,7 @@ const MovieDetail = () => {
             setHasMore(nextPage + 1 < responseData?.totalPages);
         } catch (error) {
             console.error('Error loading more cinemas:', error);
-            message.error('Không thể tải thêm rạp');
+            notification.error('Không thể tải thêm rạp');
         } finally {
             setLoadingMore(false);
         }
@@ -434,7 +651,7 @@ const MovieDetail = () => {
 
     const handleFavorite = () => {
         setIsFavorite(!isFavorite);
-        message.success(isFavorite ? 'Đã bỏ yêu thích' : 'Đã thêm vào yêu thích');
+        notification.success(isFavorite ? 'Đã bỏ yêu thích' : 'Đã thêm vào yêu thích');
     };
 
     const handleBuyTicket = () => {
@@ -455,13 +672,13 @@ const MovieDetail = () => {
             });
         } else {
             navigator.clipboard.writeText(window.location.href);
-            message.success('Đã sao chép link phim!');
+            notification.success('Đã sao chép link phim!');
         }
     };
 
     const handleRating = (value) => {
         setUserRating(value);
-        message.success(`Bạn đã đánh giá ${value} sao!`);
+        notification.success(`Bạn đã đánh giá ${value} sao!`);
     };
 
     const handleCinemaClick = (cinemaIndex) => {
@@ -471,12 +688,12 @@ const MovieDetail = () => {
 
     const handleLocationClick = (location) => {
         setSelectedLocation(location);
-        message.info(`Đã chọn rạp: ${location}`);
+        notification.info(`Đã chọn rạp: ${location}`);
     };
 
     const handleDateClick = (dateInfo, index) => {
         setSelectedDate(index);
-        message.info(`Đã chọn ngày: ${dateInfo.date} ${dateInfo.day}`);
+        notification.info(`Đã chọn ngày: ${dateInfo.date} ${dateInfo.day}`);
     };
 
     const handleShowtimeClick = (time, location) => {
@@ -496,7 +713,7 @@ const MovieDetail = () => {
 
     const handleConfirmBooking = () => {
         if (selectedSeats.length === 0) {
-            message.warning('Vui lòng chọn ít nhất một ghế!');
+            notification.warning('Vui lòng chọn ít nhất một ghế!');
             return;
         }
 
@@ -519,7 +736,7 @@ const MovieDetail = () => {
     };
 
     const handlePaymentComplete = () => {
-        message.success(`Đặt vé thành công! Ghế: ${selectedSeats.join(', ')}`);
+        notification.success(`Đặt vé thành công! Ghế: ${selectedSeats.join(', ')}`);
         setPaymentModalVisible(false);
         setSelectedSeats([]);
         setBookingInfo(null);
@@ -559,19 +776,17 @@ const MovieDetail = () => {
         };
 
         return (
-            <div className="cinema-seat-layout">
+            <div className="text-center p-5">
                 {/* Cinema Screen */}
-                <div className="cinema-screen-simple">
-                    <div className="screen-line"></div>
-                    <div className="screen-text">MÀN HÌNH</div>
+                <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-10 rounded-t-2xl mb-8 flex items-center justify-center shadow-lg relative">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-blue-400 rounded-t-2xl"></div>
+                    <div className="text-white font-bold text-base tracking-widest z-10">MÀN HÌNH</div>
                 </div>
 
                 {/* Draggable Seat Container */}
-                <div
-                    className="seat-container-wrapper"
-                >
+                <div className="overflow-auto max-h-[500px] p-4">
                     <div
-                        className="seat-grid"
+                        className="flex flex-col items-center gap-1"
                         style={{
                             transform: `scale(${zoomLevel})`,
                             transformOrigin: 'center center',
@@ -625,22 +840,30 @@ const MovieDetail = () => {
                         }}
                     >
                         {rows.map((row, rowIndex) => (
-                            <div key={row} className="cinema-seat-row">
+                            <div key={row} className="flex items-center gap-1 mb-1">
+                                <div className="w-6 text-center text-sm font-semibold text-gray-600 mr-2">{row}</div>
                                 {Array.from({ length: seatsPerRow }, (_, seatIndex) => {
                                     const seatId = `${row}${seatIndex + 1}`;
                                     const status = getSeatStatus(rowIndex, seatIndex);
 
+                                    const statusClasses = {
+                                        available: 'bg-green-50 border-green-300 text-green-700 hover:bg-green-100 hover:border-green-500 cursor-pointer',
+                                        occupied: 'bg-gray-300 border-gray-400 text-gray-600 cursor-not-allowed',
+                                        selected: 'bg-pink-200 border-pink-400 text-pink-700 hover:bg-pink-300 cursor-pointer',
+                                        vip: 'bg-yellow-100 border-yellow-400 text-yellow-700 hover:bg-yellow-200 cursor-pointer'
+                                    };
+
                                     return (
                                         <div
                                             key={seatId}
-                                            className={`cinema-seat ${status}`}
+                                            className={`w-8 h-8 rounded-md flex items-center justify-center text-xs font-medium border-2 transition-all ${statusClasses[status] || statusClasses.available}`}
                                             onClick={() => {
                                                 if (status !== seatStatuses.occupied) {
                                                     handleSeatClick(seatId);
                                                 }
                                             }}
                                         >
-                                            {seatId}
+                                            {seatIndex + 1}
                                         </div>
                                     );
                                 })}
@@ -650,33 +873,33 @@ const MovieDetail = () => {
                 </div>
 
                 {/* Legend */}
-                <div className="cinema-legend">
-                    <div className="legend-row">
-                        <div className="legend-item">
-                            <div className="legend-seat occupied"></div>
-                            <span>Đã đặt</span>
+                <div className="flex flex-col justify-center py-5 border-t border-gray-200 mt-5">
+                    <div className="flex justify-center flex-wrap gap-4 mb-3">
+                        <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded border-2 border-gray-400 bg-gray-300"></div>
+                            <span className="text-sm text-gray-700">Đã đặt</span>
                         </div>
-                        <div className="legend-item">
-                            <div className="legend-seat selected"></div>
-                            <span>Ghế bạn chọn</span>
+                        <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded border-2 border-pink-400 bg-pink-200"></div>
+                            <span className="text-sm text-gray-700">Ghế bạn chọn</span>
                         </div>
-                        <div className="legend-item">
-                            <div className="legend-seat available"></div>
-                            <span>Ghế thường</span>
+                        <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded border-2 border-green-300 bg-green-100"></div>
+                            <span className="text-sm text-gray-700">Ghế thường</span>
                         </div>
-                        <div className="legend-item">
-                            <div className="legend-seat center"></div>
-                            <span>Vùng trung tâm</span>
-                        </div>
-                    </div>
-                    <div className="legend-row">
-                        <div className="legend-item">
-                            <div className="legend-seat vip"></div>
-                            <span>Ghế VIP</span>
+                        <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded border-2 border-blue-300 bg-blue-100"></div>
+                            <span className="text-sm text-gray-700">Vùng trung tâm</span>
                         </div>
                     </div>
-                    <div className="legend-note">
-                        <span>Xem chi tiết hình ảnh và thông tin ghế</span>
+                    <div className="flex justify-center mb-3">
+                        <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded border-2 border-yellow-400 bg-yellow-200"></div>
+                            <span className="text-sm text-gray-700">Ghế VIP</span>
+                        </div>
+                    </div>
+                    <div className="text-center">
+                        <span className="text-xs text-gray-500">Xem chi tiết hình ảnh và thông tin ghế</span>
                     </div>
                 </div>
             </div>
@@ -685,11 +908,11 @@ const MovieDetail = () => {
 
     if (loading || !movie) {
         return (
-            <div className="movie-detail-loading">
-                <Card>
-                    <div style={{ textAlign: 'center', padding: '50px' }}>
-                        <div className="loading-spinner"></div>
-                        <Text style={{ marginTop: '16px', display: 'block' }}>Đang tải thông tin phim...</Text>
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
+                <Card className="rounded-lg shadow-lg">
+                    <div className="text-center p-12">
+                        <Loader2 className="w-10 h-10 animate-spin mx-auto text-gray-600" />
+                        <p className="mt-4 block text-gray-600">Đang tải thông tin phim...</p>
                     </div>
                 </Card>
             </div>
@@ -697,407 +920,548 @@ const MovieDetail = () => {
     }
 
     return (
-        <div className="movie-detail-image-layout">
+        <div className=" min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 pt-16">
+            {/* Hero Banner Section - Tailwind Demo */}
+            <div className="relative min-h-[40vh] bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${movie.backdropUrl || movie.backdropPath || movie.posterUrl || movie.posterPath})` }}>
+                <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40 "></div>
+                <div className="relative z-10 py-12 max-w-[1200px] mx-auto px-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+                        {/* Left - Movie Poster */}
+                        <div className="lg:col-span-4">
+                            <div className="text-center animate-fade-in-left">
+                                <img
+                                    src={movie.posterUrl || movie.posterPath || movie.poster}
+                                    alt={movie.title}
+                                    className="w-full max-w-[320px] aspect-[2/3] h-auto rounded-lg shadow-2xl transition-all duration-500 hover:scale-105 hover:shadow-3xl object-cover bg-gray-900 mx-auto"
+                                />
+                            </div>
+                        </div>
 
-            {/* Hero Banner Section */}
-            <div className="hero-banner-section" style={{ backgroundImage: `url(${movie.backdropPath || movie.posterPath})` }}>
-                <div className="hero-overlay"></div>
-                <div className="hero-content">
-                    <div className="container">
-                        <Row gutter={[40, 40]} align="middle">
-                            {/* Left - Movie Poster */}
-                            <Col xs={24} lg={6}>
-                                <div className="movie-poster-container enlarge">
-                                    <img
-                                        src={movie.posterPath || movie.poster}
-                                        alt={movie.title}
-                                        className="movie-poster-main"
-                                    />
+                        {/* Center - Movie Information */}
+                        <div className="lg:col-span-5">
+                            <div className="animate-fade-in-up text-white">
+                                {/* Title */}
+                                <h1 className="text-red-500 mb-2 text-3xl md:text-4xl lg:text-5xl font-bold">
+                                    {movie.title}
+                                </h1>
+
+                                <p className="text-gray-300 text-lg block mb-2">
+                                    {movie.originalTitle || ""}
+                                </p>
+
+                                {/* Genres as Text */}
+                                {movie.genres && movie.genres.length > 0 && (
+                                    <p className="text-gray-400 text-sm block mb-4">
+                                        {movie.genres.map((genre, index) =>
+                                            typeof genre === 'string' ? genre : genre?.name || 'Hành động'
+                                        ).join(', ')}
+                                    </p>
+                                )}
+
+                                {/* Synopsis in Hero Banner */}
+                                <div className="mt-6">
+                                    <p className="text-gray-200 text-base leading-relaxed">
+                                        {movie.description || movie.overview || 'Nội dung phim đang được cập nhật...'}
+                                    </p>
                                 </div>
-                            </Col>
 
-                            {/* Center - Movie Information */}
-                            <Col xs={24} lg={18}>
-                                <div className="movie-info-section">
-                                    {/* Title */}
-                                    <Title level={1} className="movie-title-main">
-                                        {movie.title}
-                                    </Title>
-
-                                    <Text className="movie-subtitle-main">
-                                        {movie.originalTitle || movie.tagline || ""}
-                                    </Text>
-
-                                    {/* Movie Quick Info Tags */}
-                                    <div className="movie-quick-info-tags">
-                                        {/* Duration, Age Rating and Release Date Row */}
-                                        <Space wrap size="small" style={{ marginBottom: '8px' }}>
-                                            <span className="info-tag">
-                                                {movie.releaseDate
-                                                    ? new Date(movie.releaseDate).toLocaleDateString('vi-VN')
-                                                    : 'Đang cập nhật'}
-                                            </span>
-                                            <span className="info-tag">
-                                                {movie.durationMinutes ? `${Math.floor(movie.durationMinutes / 60)} giờ ${movie.durationMinutes % 60} phút` :
-                                                    movie.duration ? `${movie.duration} phút` : '1 giờ 55 phút'}
-                                            </span>
-                                            <span className="info-tag">{movie.ageRating || movie.ageLabel || 'PG-13'}</span>
-                                        </Space>
-                                        {/* Genres Row */}
-                                        {movie.genres && movie.genres.length > 0 && (
-                                            <Space wrap size="small">
-                                                {movie.genres.map((genre, index) => (
-                                                    <span key={index} className="info-tag">
-                                                        {typeof genre === 'string' ? genre : genre?.name || 'Hành động'}
-                                                    </span>
-                                                ))}
-                                            </Space>
-                                        )}
+                                {/* Movie Stats */}
+                                <div className="mt-6 flex flex-wrap gap-6">
+                                    {movie.averageRating && (
+                                        <div className="flex flex-col">
+                                            <span className="text-gray-400 text-xs mb-1">Hài lòng</span>
+                                            <span className="text-white text-lg font-semibold">{Math.round(movie.averageRating * 10)}%</span>
+                                        </div>
+                                    )}
+                                    <div className="flex flex-col">
+                                        <span className="text-gray-400 text-xs mb-1">Khởi chiếu</span>
+                                        <span className="text-white text-lg font-semibold">
+                                            {(() => {
+                                                if (!movie.releaseDate) return 'Đang cập nhật';
+                                                if (typeof movie.releaseDate === 'string') {
+                                                    const date = new Date(movie.releaseDate);
+                                                    if (!isNaN(date.getTime())) {
+                                                        return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                                                    }
+                                                    return movie.releaseDate;
+                                                }
+                                                if (movie.releaseDate.year && movie.releaseDate.month && movie.releaseDate.day) {
+                                                    return `${String(movie.releaseDate.day).padStart(2, '0')}/${String(movie.releaseDate.month).padStart(2, '0')}/${movie.releaseDate.year}`;
+                                                }
+                                                return 'Đang cập nhật';
+                                            })()}
+                                        </span>
                                     </div>
-
-                                    {/* Action Buttons Row */}
-                                    <div className="action-buttons-row">
-                                        <Space wrap size="middle">
-                                            <Button
-                                                type="primary"
-                                                icon={<CarryOutOutlined />}
-                                                className="action-btn-hero buy-ticket-btn-primary"
-                                                onClick={handleBuyTicket}
-                                            >
-                                                Mua vé
-                                            </Button>
-                                            <Button
-                                                icon={<PlayCircleOutlined />}
-                                                className="action-btn-hero trailer-btn-secondary"
-                                                onClick={() => setTrailerModalVisible(true)}
-                                                disabled={!movie.trailerUrl && !movie.trailer}
-                                            >
-                                                Xem Trailer
-                                            </Button>
-                                        </Space>
+                                    <div className="flex flex-col">
+                                        <span className="text-gray-400 text-xs mb-1">Thời lượng</span>
+                                        <span className="text-white text-lg font-semibold">
+                                            {movie.durationMinutes ? `${movie.durationMinutes} phút` :
+                                                movie.durationFormatted || 'Đang cập nhật'}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-gray-400 text-xs mb-1">Giới hạn tuổi</span>
+                                        <span className="text-white text-lg font-semibold">{movie.rating || 'PG-13'}</span>
                                     </div>
                                 </div>
-                            </Col>
 
-                            {/* Cast / Director sidebar removed per request. If needed later, restore this Col block. */}
-                        </Row>
+                                {/* Action Buttons Row - Moved below stats */}
+                                <div className="mt-5 flex flex-wrap gap-2">
+                                    {(movie.trailerUrl || movie.trailer) && (
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-10 px-6 rounded-md bg-white/20 border-white/30 text-white hover:bg-white/30 hover:border-white/50"
+                                            onClick={() => setTrailerModalVisible(true)}
+                                        >
+                                            <Play className="h-4 w-4 mr-2" />
+                                            Trailer
+                                        </Button>
+                                    )}
+                                    {isMovieActive(movie) && (
+                                        <Button
+                                            className="h-10 px-6 rounded-md bg-red-600 hover:bg-red-700 text-white"
+                                            onClick={handleBuyTicket}
+                                        >
+                                            <ShoppingCart className="h-4 w-4 mr-2" />
+                                            Mua vé
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right - Cast & Crew */}
+                        <div className="lg:col-span-3">
+                            <div className="space-y-4">
+                                {/* Director */}
+                                {movie.director && (
+                                    <div>
+                                        <span className="text-gray-400 text-sm block mb-1">Đạo diễn:</span>
+                                        <span className="text-red-400 text-base font-medium">{movie.director}</span>
+                                    </div>
+                                )}
+
+                                {/* Actors */}
+                                {movie.actors && movie.actors.length > 0 && (
+                                    <div>
+                                        <span className="text-gray-400 text-sm block mb-1">Diễn viên:</span>
+                                        <span className="text-red-400 text-base font-medium">
+                                            {movie.actors.join(', ')}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* Fallback for old cast structure */}
+                                {(!movie.actors || movie.actors.length === 0) && movie.cast && movie.cast.length > 0 && (
+                                    <div>
+                                        <span className="text-gray-400 text-sm block mb-1">Diễn viên:</span>
+                                        <span className="text-red-400 text-base font-medium">
+                                            {movie.cast.map(actor => typeof actor === 'string' ? actor : actor.name).join(', ')}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* Producer - if available */}
+                                {movie.producer && (
+                                    <div>
+                                        <span className="text-gray-400 text-sm block mb-1">Nhà sản xuất:</span>
+                                        <span className="text-red-400 text-base font-medium">
+                                            {Array.isArray(movie.producer) ? movie.producer.join(', ') : movie.producer}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Content Section - No Tabs */}
-            <div className="content-section">
-                <div className="container">
-                    <div className="movie-info-tab-content">
-                        <Row gutter={[32, 32]}>
-                            {/* Left Column - Schedule, Cast & Rating */}
-                            <Col xs={24} md={12} lg={14}>
-                                <div className="movie-details-section">
-                                    {/* Schedule Section */}
-                                    {movie.isActive && (
-                                        <div className="schedule-section-modern" ref={scheduleTabRef}>
-                                            <Title level={4} className="section-title">
-                                                <span className="title-icon">📅</span>
-                                                Lịch chiếu
-                                            </Title>
-                                            {/* Filters Inline (Refactored) */}
-                                            <div className="schedule-filters modern-inline">
-                                                <div className="filters-bar">
-                                                    <div className="filter-group city-group">
-                                                        <Text className="schedule-filter-label inline">
-                                                            <EnvironmentOutlined />
-                                                            <span>Thành phố</span>
-                                                        </Text>
-                                                        <div className="schedule-city-selector city-button-group">
-                                                            <Button
-                                                                className="city-select-btn"
-                                                                onClick={() => setLocationModalOpen(true)}
-                                                            >
-                                                                <EnvironmentOutlined />
-                                                                <span>{selectedCity || 'Chọn thành phố'}</span>
-                                                            </Button>
-                                                            <Button
-                                                                className="nearby-btn"
-                                                                onClick={() => {
-                                                                    setSelectedCity('Gần bạn');
-                                                                    setSelectedCityId(null);
+            <div className="max-w-[1200px] mx-auto py-12 px-4">
+                <div>
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                        {/* Left Column - Schedule, Cast & Rating */}
+                        <div className="md:col-span-8">
+                            <div>
+                                {/* Schedule Section */}
+                                {isMovieActive(movie) && (
+                                    <Card className="mb-6 rounded-lg shadow-md p-6" ref={scheduleTabRef}>
+                                        <h4 className="mb-4 text-xl flex items-center gap-2">
+                                            <span>📅</span>
+                                            Lịch chiếu
+                                        </h4>
+                                        {/* Filters Inline (Refactored) */}
+                                        <div className="mb-6">
+                                            <div className="space-y-4">
+                                                <div className="flex flex-col md:flex-row md:items-center gap-4">
+                                                    <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                                                        <MapPin className="h-4 w-4" />
+                                                        <span>Thành phố</span>
+                                                    </span>
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            className="h-9 px-4 rounded-md border-gray-300 hover:border-blue-500"
+                                                            onClick={() => setLocationModalOpen(true)}
+                                                        >
+                                                            <MapPin className="h-4 w-4 mr-2" />
+                                                            <span>{selectedCity || 'Chọn thành phố'}</span>
+                                                        </Button>
+                                                        <Button
+                                                            variant="outline"
+                                                            className="h-9 px-4 rounded-md border-gray-300 hover:border-blue-500"
+                                                            onClick={() => {
+                                                                setSelectedCity('Gần bạn');
+                                                                setSelectedCityId(null);
 
-                                                                    // Get user's current location
-                                                                    if (navigator.geolocation) {
-                                                                        navigator.geolocation.getCurrentPosition(
-                                                                            (position) => {
-                                                                                setUserLocation({
-                                                                                    latitude: position.coords.latitude,
-                                                                                    longitude: position.coords.longitude
-                                                                                });
-                                                                                message.success('Đã lấy vị trí của bạn');
-                                                                            },
-                                                                            (error) => {
-                                                                                console.error('Error getting location:', error);
-                                                                                message.warning('Không thể lấy vị trí. Vui lòng cho phép truy cập vị trí.');
-                                                                            }
-                                                                        );
-                                                                    } else {
-                                                                        message.error('Trình duyệt không hỗ trợ geolocation');
-                                                                    }
-                                                                }}
-                                                            >
-                                                                <AimOutlined />
-                                                                <span>Gần bạn</span>
-                                                            </Button>
-                                                        </div>
+                                                                // Get user's current location
+                                                                if (navigator.geolocation) {
+                                                                    navigator.geolocation.getCurrentPosition(
+                                                                        (position) => {
+                                                                            setUserLocation({
+                                                                                latitude: position.coords.latitude,
+                                                                                longitude: position.coords.longitude
+                                                                            });
+                                                                            notification.success('Đã lấy vị trí của bạn');
+                                                                        },
+                                                                        (error) => {
+                                                                            console.error('Error getting location:', error);
+                                                                            notification.warning('Không thể lấy vị trí. Vui lòng cho phép truy cập vị trí.');
+                                                                        }
+                                                                    );
+                                                                } else {
+                                                                    notification.error('Trình duyệt không hỗ trợ geolocation');
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Target className="h-4 w-4 mr-2" />
+                                                            <span>Gần bạn</span>
+                                                        </Button>
                                                     </div>
-                                                    <div className="filter-group date-group">
-                                                        <Text className="schedule-filter-label inline">
-                                                            <CalendarOutlined />
-                                                            <span>Chọn ngày chiếu</span>
-                                                        </Text>
-                                                        <div className="date-scroll-wrapper">
-                                                            <div className="date-selector-modern compact">
-                                                                {(() => {
-                                                                    const dates = [];
-                                                                    const today = new Date();
-                                                                    const daysOfWeek = ['CN', 'TH 2', 'TH 3', 'TH 4', 'TH 5', 'TH 6', 'TH 7'];
+                                                </div>
+                                                <div className="flex flex-col gap-3">
+                                                    <span className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                                        <Calendar className="h-4 w-4 text-primary" />
+                                                        <span>Chọn ngày chiếu</span>
+                                                    </span>
+                                                    <div className="overflow-x-auto pb-2 scrollbar-hide">
+                                                        <div className="flex gap-2.5 min-w-max">
+                                                            {(() => {
+                                                                const dates = [];
+                                                                const today = new Date();
+                                                                const daysOfWeek = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
-                                                                    for (let i = 0; i < 7; i++) {
-                                                                        const date = new Date(today);
-                                                                        date.setDate(today.getDate() + i);
+                                                                for (let i = 0; i < 7; i++) {
+                                                                    const date = new Date(today);
+                                                                    date.setDate(today.getDate() + i);
 
-                                                                        const day = date.getDate();
-                                                                        const month = date.getMonth() + 1;
-                                                                        const dayOfWeek = daysOfWeek[date.getDay()];
+                                                                    const day = date.getDate();
+                                                                    const month = date.getMonth() + 1;
+                                                                    const dayOfWeek = daysOfWeek[date.getDay()];
 
-                                                                        dates.push({
-                                                                            date: `${day}/${month}`,
-                                                                            day: i === 0 ? 'HÔM NAY' : dayOfWeek,
-                                                                            active: i === 0
-                                                                        });
-                                                                    }
+                                                                    dates.push({
+                                                                        date: `${day}/${month}`,
+                                                                        day: i === 0 ? 'Hôm nay' : dayOfWeek,
+                                                                        active: i === 0
+                                                                    });
+                                                                }
 
-                                                                    return dates.map((item, index) => (
-                                                                        <div
+                                                                return dates.map((item, index) => {
+                                                                    const isActive = selectedDate === index || (selectedDate === null && item.active);
+                                                                    return (
+                                                                        <button
                                                                             key={index}
-                                                                            className={`date-card-modern ${selectedDate === index || (selectedDate === null && item.active) ? 'active' : ''}`}
+                                                                            type="button"
+                                                                            className={`rounded-lg border-2 cursor-pointer transition-all duration-300 flex flex-col items-center justify-center ${isActive
+                                                                                ? 'min-w-[70px] p-3 border-primary bg-gradient-to-br from-primary via-red-600 to-orange-500 text-white shadow-lg shadow-primary/30'
+                                                                                : 'min-w-[70px] p-3 border-gray-200 bg-white text-gray-700 hover:border-primary/60 hover:bg-primary/5 hover:shadow-sm'
+                                                                                }`}
                                                                             onClick={() => handleDateClick(item, index)}
                                                                         >
-                                                                            <div className="date-day">{item.day}</div>
-                                                                            <div className="date-number">{item.date}</div>
-                                                                        </div>
-                                                                    ));
-                                                                })()}
-                                                            </div>
+                                                                            <div className={`font-semibold mb-0.5 ${isActive ? 'text-[11px] text-white/90' : 'text-[10px] text-gray-500'}`}>
+                                                                                {item.day}
+                                                                            </div>
+                                                                            <div className={`font-bold ${isActive ? 'text-base text-white' : 'text-sm text-gray-900'}`}>
+                                                                                {item.date}
+                                                                            </div>
+                                                                        </button>
+                                                                    );
+                                                                });
+                                                            })()}
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-
-                                            {/* Cinema Locations List */}
-                                            <div className="cinema-locations-list">
-                                                {(() => {
-                                                    if (!locations.length) {
-                                                        return (
-                                                            <div className="empty-state">
-                                                                <Empty
-                                                                    description="Không có lịch chiếu cho ngày đã chọn"
-                                                                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                                                                />
-                                                            </div>
-                                                        );
-                                                    }
-                                                    return locations.map(loc => {
-                                                        const isExpanded = expandedLocation === loc.id || (loc.id === 'bhd-lvv' && expandedLocation === null);
-                                                        const hasShowtimes = loc.showtimes && loc.showtimes.length > 0;
-                                                        return (
-                                                            <div key={loc.id} className={`cinema-location-item ${isExpanded && hasShowtimes ? 'expanded' : ''}`}>
-                                                                <div className="location-header-info" onClick={() => hasShowtimes && handleToggleLocation(loc.id)}>
-                                                                    <div className={`cinema-brand-icon ${loc.id.startsWith('cgv') ? 'cgv-icon' : ''}`}>
-                                                                        {loc.id.startsWith('cgv') ? 'CGV' : <StarFilled style={{ color: '#722ed1' }} />}
-                                                                    </div>
-                                                                    <div className="location-details">
-                                                                        <Title level={5} className="location-title">{loc.name}</Title>
-                                                                        <Text className="location-address">
-                                                                            {loc.address}
-                                                                        </Text>
-                                                                    </div>
-                                                                    <div className="expand-toggle">
-                                                                        {hasShowtimes ? (
-                                                                            isExpanded ? <DownOutlined className="expand-arrow active" /> : <RightOutlined className="expand-arrow" />
-                                                                        ) : (
-                                                                            <RightOutlined className="expand-arrow" style={{ opacity: 0.3 }} />
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                                {hasShowtimes && isExpanded && (
-                                                                    <div className="showtimes-section">
-                                                                        {(() => {
-                                                                            // Group showtimes by format type
-                                                                            const showtimesByFormat = {};
-                                                                            loc.showtimes.forEach(showtime => {
-                                                                                const format = showtime.formatType || '2D Phụ đề';
-                                                                                if (!showtimesByFormat[format]) {
-                                                                                    showtimesByFormat[format] = [];
-                                                                                }
-                                                                                showtimesByFormat[format].push(showtime);
-                                                                            });
-
-                                                                            return Object.entries(showtimesByFormat).map(([format, showtimes]) => (
-                                                                                <div key={format} style={{ marginBottom: '16px' }}>
-                                                                                    <div className="format-label">
-                                                                                        <Text strong>{format}</Text>
-                                                                                    </div>
-                                                                                    <div className="showtimes-row">
-                                                                                        {showtimes.map(showtime => (
-                                                                                            <Button
-                                                                                                key={showtime.id}
-                                                                                                className="showtime-button"
-                                                                                                onClick={() => navigate(`/booking/seats/${showtime.id}`)}
-                                                                                            >
-                                                                                                {showtime.time}
-                                                                                            </Button>
-                                                                                        ))}
-                                                                                    </div>
-                                                                                </div>
-                                                                            ));
-                                                                        })()}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    });
-                                                })()}
-
-                                                {/* Load More Button */}
-                                                {hasMore && (
-                                                    <div style={{ padding: '16px', textAlign: 'center' }}>
-                                                        <Button
-                                                            type="link"
-                                                            loading={loadingMore}
-                                                            onClick={loadMoreCinemas}
-                                                            style={{
-                                                                fontSize: '14px',
-                                                                fontWeight: 400
-                                                            }}
-                                                        >
-                                                            {loadingMore ? 'Đang tải...' : 'Xem thêm'}
-                                                        </Button>
-                                                    </div>
-                                                )}
-                                            </div>
                                         </div>
-                                    )}
 
-                                    {/* Cast & Crew */}
-                                    <div className="cast-crew-section" style={{ marginTop: movie.isActive ? '48px' : '0' }}>
-                                        <Title level={4} className="section-title">
-                                            <span className="title-icon">🎭</span>
-                                            Diễn viên & Đoàn làm phim
-                                        </Title>
-                                        {/* Cast Members with Photos */}
-                                        <div className="cast-members-grid-enhanced">
-                                            {movie.cast && movie.cast.length > 0 ? (
-                                                movie.cast.slice(0, 4).map((actor, idx) => (
-                                                    <div key={idx} className="cast-member-card">
-                                                        <div className="cast-photo">
-                                                            {actor.profilePath ? (
-                                                                <img src={actor.profilePath} alt={actor.name} />
-                                                            ) : (
-                                                                <div className="cast-photo-placeholder">
-                                                                    <UserOutlined style={{ fontSize: '32px' }} />
+                                        {/* Cinema Locations List */}
+                                        <div className="space-y-3">
+                                            {(() => {
+                                                if (!locations.length) {
+                                                    return (
+                                                        <div className="py-8">
+                                                            <Empty
+                                                                description="Không có lịch chiếu cho ngày đã chọn"
+                                                            />
+                                                        </div>
+                                                    );
+                                                }
+                                                return locations.map(loc => {
+                                                    const isExpanded = expandedLocation === loc.id || (loc.id === 'bhd-lvv' && expandedLocation === null);
+                                                    const hasShowtimes = loc.showtimes && loc.showtimes.length > 0;
+                                                    return (
+                                                        <div key={loc.id} className={`border border-gray-200 rounded-lg overflow-hidden transition-all ${isExpanded && hasShowtimes ? 'shadow-md' : ''}`}>
+                                                            <div
+                                                                className={`flex items-center gap-4 p-4 cursor-pointer hover:bg-gray-50 transition-colors ${hasShowtimes ? '' : 'opacity-60'}`}
+                                                                onClick={() => hasShowtimes && handleToggleLocation(loc.id)}
+                                                            >
+                                                                <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-white ${loc.id.startsWith('cgv') ? 'bg-red-600' : 'bg-purple-600'
+                                                                    }`}>
+                                                                    {loc.id.startsWith('cgv') ? 'CGV' : <Star className="h-6 w-6 fill-white" />}
+                                                                </div>
+                                                                <div className="flex-1">
+                                                                    <h5 className="mb-1 text-base font-semibold">{loc.name}</h5>
+                                                                    <p className="text-sm text-gray-600">
+                                                                        {loc.address}
+                                                                    </p>
+                                                                </div>
+                                                                <div className="text-gray-400">
+                                                                    {hasShowtimes ? (
+                                                                        isExpanded ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />
+                                                                    ) : (
+                                                                        <ChevronRight className="h-5 w-5 opacity-30" />
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            {hasShowtimes && isExpanded && (
+                                                                <div className="px-4 pb-4 bg-gray-50">
+                                                                    {(() => {
+                                                                        // Group showtimes by format type
+                                                                        const showtimesByFormat = {};
+                                                                        loc.showtimes.forEach(showtime => {
+                                                                            const format = showtime.formatType || '2D Phụ đề';
+                                                                            if (!showtimesByFormat[format]) {
+                                                                                showtimesByFormat[format] = [];
+                                                                            }
+                                                                            showtimesByFormat[format].push(showtime);
+                                                                        });
+
+                                                                        return Object.entries(showtimesByFormat).map(([format, showtimes]) => (
+                                                                            <div key={format} className="mb-4">
+                                                                                <div className="mb-2">
+                                                                                    <span className="font-semibold text-gray-700">{format}</span>
+                                                                                </div>
+                                                                                <div className="flex flex-wrap gap-2">
+                                                                                    {showtimes.map(showtime => (
+                                                                                        <Button
+                                                                                            key={showtime.id}
+                                                                                            variant="outline"
+                                                                                            className="h-9 px-4 rounded-md border-gray-300 hover:border-blue-500 hover:text-blue-600"
+                                                                                            onClick={() => navigate(`/booking/seats/${showtime.id}`)}
+                                                                                        >
+                                                                                            {showtime.time}
+                                                                                        </Button>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </div>
+                                                                        ));
+                                                                    })()}
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        <div className="cast-name-card">{actor.name}</div>
-                                                        <div className="cast-character">{actor.character || 'Diễn viên'}</div>
-                                                    </div>
-                                                ))
-                                            ) : movie.casts && movie.casts.length > 0 ? (
-                                                movie.casts.slice(0, 4).map((actor, idx) => (
-                                                    <div key={idx} className="cast-member-card">
-                                                        <div className="cast-photo">
-                                                            <div className="cast-photo-placeholder">
-                                                                <UserOutlined style={{ fontSize: '32px' }} />
-                                                            </div>
-                                                        </div>
-                                                        <div className="cast-name-card">{actor}</div>
-                                                        <div className="cast-character">Diễn viên</div>
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <Text type="secondary">Thông tin diễn viên đang được cập nhật</Text>
+                                                    );
+                                                });
+                                            })()}
+
+                                            {/* Load More Button */}
+                                            {hasMore && (
+                                                <div className="py-4 text-center">
+                                                    <Button
+                                                        variant="link"
+                                                        onClick={loadMoreCinemas}
+                                                        disabled={loadingMore}
+                                                        className="text-base"
+                                                    >
+                                                        {loadingMore ? (
+                                                            <>
+                                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                                Đang tải...
+                                                            </>
+                                                        ) : 'Xem thêm'}
+                                                    </Button>
+                                                </div>
                                             )}
                                         </div>
-                                    </div>
+                                    </Card>
+                                )}
 
-                                    {/* Trailer Section - Only show if trailer exists */}
-                                    {(movie.trailerUrl || movie.trailer) && (
-                                        <div className="trailer-section" style={{ marginTop: '48px' }}>
-                                            <Title level={4} className="section-title">
-                                                <span className="title-icon">🎥</span>
-                                                Trailer chính thức
-                                            </Title>
-                                            <div className="trailer-video-wrapper">
-                                                <div className="trailer-container-embedded">
-                                                    <iframe
-                                                        className="trailer-iframe"
-                                                        src={`https://www.youtube.com/embed/${getYouTubeId(movie.trailerUrl || movie.trailer)}`}
-                                                        title="Movie Trailer"
-                                                        frameBorder="0"
-                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                        allowFullScreen
-                                                    />
-                                                </div>
-                                                <div className="trailer-actions" style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
-                                                    <Button
-                                                        icon={<PlayCircleOutlined />}
-                                                        onClick={() => setTrailerModalVisible(true)}
-                                                        className="trailer-fullscreen-btn"
-                                                    >
-                                                        Xem toàn màn hình
-                                                    </Button>
-                                                    <Button
-                                                        icon={<ShareAltOutlined />}
-                                                        onClick={handleShare}
-                                                        className="trailer-share-btn"
-                                                    >
-                                                        Chia sẻ
-                                                    </Button>
-                                                </div>
+
+                                {/* Trailer Section - Only show if trailer exists */}
+                                {(movie.trailerUrl || movie.trailer) && (
+                                    <Card className="mt-12 rounded-lg shadow-md p-6">
+                                        <h4 className="mb-4 text-xl flex items-center gap-2">
+                                            <span>🎥</span>
+                                            Trailer chính thức
+                                        </h4>
+                                        <div>
+                                            <div className="relative w-full pb-[56.25%] rounded-lg overflow-hidden bg-gray-900">
+                                                <iframe
+                                                    className="absolute top-0 left-0 w-full h-full"
+                                                    src={`https://www.youtube.com/embed/${getYouTubeId(movie.trailerUrl || movie.trailer)}`}
+                                                    title="Movie Trailer"
+                                                    frameBorder="0"
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                    allowFullScreen
+                                                />
+                                            </div>
+                                            <div className="mt-3 flex gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    className="h-9 px-4 rounded-md"
+                                                    onClick={() => setTrailerModalVisible(true)}
+                                                >
+                                                    <Play className="h-4 w-4 mr-2" />
+                                                    Xem toàn màn hình
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    className="h-9 px-4 rounded-md"
+                                                    onClick={handleShare}
+                                                >
+                                                    <Share2 className="h-4 w-4 mr-2" />
+                                                    Chia sẻ
+                                                </Button>
                                             </div>
                                         </div>
-                                    )}
+                                    </Card>
+                                )}
 
-                                    {/* Rating Section - Using CommentsSection Component */}
-                                    {movie.isActive && (
-                                        <div style={{ marginTop: '48px' }}>
-                                            <CommentsSection movieId={movie.id} />
-                                        </div>
-                                    )}
-                                </div>
-                            </Col>
-
-                            {/* Right Column - Synopsis & Additional Info */}
-                            <Col xs={24} md={12} lg={10}>
-                                <div className="movie-sidebar-info">
-                                    {/* Synopsis */}
-                                    <div className="synopsis-section">
-                                        <Title level={4} className="section-title">
-                                            <span className="title-icon">📖</span>
-                                            Tóm tắt
-                                        </Title>
-                                        <div className="synopsis-content">
-                                            <Paragraph className="synopsis-text">
-                                                {movie.overview || movie.description || 'Nội dung phim đang được cập nhật...'}
-                                            </Paragraph>
-                                            {movie.tagline && (
-                                                <Paragraph className="synopsis-text" style={{ fontStyle: 'italic', marginTop: '16px' }}>
-                                                    "{movie.tagline}"
-                                                </Paragraph>
-                                            )}
-                                        </div>
+                                {/* Rating Section - Using CommentsSection Component */}
+                                {isMovieActive(movie) && (
+                                    <div style={{ marginTop: '48px', width: '100%', overflow: 'hidden' }}>
+                                        <CommentsSection movieId={movie.id} />
                                     </div>
-                                </div>
-                            </Col>
-                        </Row>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Right Column - Additional Info */}
+                        <div className="md:col-span-4">
+                            <div>
+                                {/* Now Showing Movies */}
+                                <Card className="rounded-lg shadow-md p-6">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h4 className="mb-0 text-xl flex items-center gap-2">
+                                            <span>🎬</span>
+                                            Đang chiếu
+                                        </h4>
+                                    </div>
+                                    {loadingNowShowing ? (
+                                        <div className="text-center py-10">
+                                            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-gray-600" />
+                                            <p className="text-gray-500">Đang tải phim...</p>
+                                        </div>
+                                    ) : nowShowingMovies.length > 0 ? (
+                                        <>
+                                            <div className="space-y-2.5">
+                                                {nowShowingMovies.map((m) => (
+                                                    <Card
+                                                        key={m.id}
+                                                        className="rounded-lg shadow-sm hover:shadow-md transition-shadow border-0 cursor-pointer"
+                                                        onClick={() => navigate(`/movies/${m.id}`)}
+                                                    >
+                                                        <div className="flex gap-3 p-2.5">
+                                                            {/* Left: Poster */}
+                                                            <div
+                                                                className="relative flex-shrink-0 w-20 h-28 rounded-lg overflow-hidden cursor-pointer group"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    navigate(`/movies/${m.id}`);
+                                                                }}
+                                                            >
+                                                                <img
+                                                                    src={m.poster}
+                                                                    alt={m.title}
+                                                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                                                />
+                                                                <div className="absolute top-1 right-1 bg-yellow-400 text-yellow-900 px-1 py-0.5 rounded text-[9px] font-bold flex items-center gap-0.5">
+                                                                    <Star className="h-2 w-2 fill-yellow-900 text-yellow-900" />
+                                                                    <span>{m.averageRating?.toFixed(1) || '0.0'}</span>
+                                                                </div>
+                                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                    <Play className="text-white text-lg" />
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Right: Content */}
+                                                            <div className="flex-1 min-w-0 flex flex-col justify-between">
+                                                                <div>
+                                                                    <h6 className="text-sm font-semibold mb-1.5 block cursor-pointer hover:text-primary transition-colors line-clamp-2">
+                                                                        {m.title}
+                                                                    </h6>
+                                                                    <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+                                                                        {m.genres && m.genres.length > 0 && (
+                                                                            <Tag className="m-0 text-[10px] px-1.5 py-0.5">
+                                                                                {typeof m.genres[0] === 'string' ? m.genres[0] : m.genres[0]?.name || ''}
+                                                                            </Tag>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 text-[10px] text-gray-500">
+                                                                        {m.durationFormatted && (
+                                                                            <span className="text-[10px] flex items-center gap-1">
+                                                                                <Clock className="h-3 w-3" />
+                                                                                {m.durationFormatted}
+                                                                            </span>
+                                                                        )}
+                                                                        {m.releaseDate && (
+                                                                            <span className="text-[10px] flex items-center gap-1">
+                                                                                <Calendar className="h-3 w-3" />
+                                                                                {m.releaseDate}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </Card>
+                                                ))}
+                                            </div>
+
+                                            {/* Load More Button */}
+                                            {hasMoreNowShowing && (
+                                                <div className="mt-5 text-center">
+                                                    <Button
+                                                        variant="outline"
+                                                        onClick={loadMoreNowShowing}
+                                                        disabled={loadingMoreNowShowing}
+                                                        className="h-9 px-4"
+                                                    >
+                                                        {loadingMoreNowShowing ? (
+                                                            <>
+                                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                                Đang tải...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <ChevronDown className="h-4 w-4 mr-2" />
+                                                                Xem thêm phim
+                                                            </>
+                                                        )}
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className="text-center py-10">
+                                            <Empty
+                                                description={<p className="text-gray-500">Không có phim đang chiếu</p>}
+                                            />
+                                        </div>
+                                    )}
+                                </Card>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1105,35 +1469,23 @@ const MovieDetail = () => {
 
             {/* Cinema Style Seat Selection Modal */}
             <Modal
-                title={null}
                 open={seatModalVisible}
                 onCancel={() => setSeatModalVisible(false)}
                 width="85vw"
-                style={{
-                    maxWidth: '900px',
-                    top: 'calc(5vh)',
-                    height: 'auto',
-                    maxHeight: 'calc(90vh - 10px)'
-                }}
-                bodyStyle={{
-                    padding: '0px',
-                    height: 'auto',
-                    overflow: 'hidden'
-                }}
-                footer={null}
                 className="cinema-seat-modal-compact"
-                closable={false}
+                footer={null}
             >
                 <div className="cinema-modal-content">
                     {/* Header with Back Button */}
-                    <div className="cinema-modal-header">
+                    <div className="cinema-modal-header flex items-center gap-4 p-4 border-b">
                         <Button
-                            type="text"
-                            icon={<RightOutlined />}
+                            variant="ghost"
                             onClick={() => setSeatModalVisible(false)}
                             className="back-button"
-                        />
-                        <h3 className="modal-title">Mua vé xem phim</h3>
+                        >
+                            <ChevronRight className="h-5 w-5" />
+                        </Button>
+                        <h3 className="modal-title text-lg font-semibold">Mua vé xem phim</h3>
                     </div>
 
                     {/* Main Seat Layout Area */}
@@ -1191,7 +1543,6 @@ const MovieDetail = () => {
                             </div>
 
                             <Button
-                                type="primary"
                                 className="buy-ticket-btn"
                                 onClick={handleConfirmBooking}
                                 disabled={selectedSeats.length === 0}
@@ -1210,63 +1561,62 @@ const MovieDetail = () => {
                 width={800}
                 footer={null}
                 className="payment-modal"
-                closable={false}
             >
                 <div className="payment-container">
                     {/* Left Side - Booking Details */}
                     <div className="booking-details">
                         <div className="booking-header-simple">
                             <Tag className="booking-id-yellow">C13</Tag>
-                            <Title level={4} className="booking-title-simple">Mua Đồ</Title>
+                            <h4 className="booking-title-simple text-lg font-semibold">Mua Đồ</h4>
                         </div>
 
                         <div className="booking-form">
                             <div className="form-row">
                                 <div className="form-section">
-                                    <Text className="form-label">THỜI GIAN</Text>
-                                    <Text className="form-value">14:00 ~ 16:04</Text>
+                                    <span className="form-label text-xs font-semibold uppercase">THỜI GIAN</span>
+                                    <span className="form-value">14:00 ~ 16:04</span>
                                 </div>
                                 <div className="form-section">
-                                    <Text className="form-label">NGÀY CHIẾU</Text>
-                                    <Text className="form-value">28/09/2025</Text>
+                                    <span className="form-label text-xs font-semibold uppercase">NGÀY CHIẾU</span>
+                                    <span className="form-value">28/09/2025</span>
                                 </div>
                             </div>
 
                             <div className="form-section">
-                                <Text className="form-label">RẠP</Text>
-                                <Text className="form-value">CGV Hùng Vương Plaza</Text>
-                                <Text className="form-address">
+                                <span className="form-label text-xs font-semibold uppercase">RẠP</span>
+                                <span className="form-value">CGV Hùng Vương Plaza</span>
+                                <span className="form-address text-sm text-gray-600">
                                     Tầng 7 | Hùng Vương Plaza 126 Hùng Vương Quận 5 Tp. Hồ Chí Minh
-                                </Text>
+                                </span>
                             </div>
 
                             <div className="form-row">
                                 <div className="form-section">
-                                    <Text className="form-label">PHÒNG CHIẾU</Text>
-                                    <Text className="form-value">Cine & Suite 9</Text>
+                                    <span className="form-label text-xs font-semibold uppercase">PHÒNG CHIẾU</span>
+                                    <span className="form-value">Cine & Suite 9</span>
                                 </div>
                                 <div className="form-section">
-                                    <Text className="form-label">ĐỊNH DẠNG</Text>
-                                    <Text className="form-value">2D Phụ đề</Text>
+                                    <span className="form-label text-xs font-semibold uppercase">ĐỊNH DẠNG</span>
+                                    <span className="form-value">2D Phụ đề</span>
                                 </div>
                             </div>
 
                             <div className="seat-section-form">
-                                <Text className="form-label">GHẾ</Text>
+                                <span className="form-label text-xs font-semibold uppercase">GHẾ</span>
                                 <div className="seat-price-row">
-                                    <Text className="form-value">E5</Text>
-                                    <Text className="seat-price-form">141.500đ</Text>
+                                    <span className="form-value">E5</span>
+                                    <span className="seat-price-form">141.500đ</span>
                                 </div>
                             </div>
 
                             <div className="total-section-form">
                                 <div className="total-row-form">
-                                    <Text className="total-label-form">Tạm tính</Text>
-                                    <Text className="total-amount-form">141.500đ</Text>
+                                    <span className="total-label-form">Tạm tính</span>
+                                    <span className="total-amount-form">141.500đ</span>
                                 </div>
-                                <Text className="payment-note-form">
+                                <p className="payment-note-form text-xs text-gray-500">
                                     Ưu đãi (nếu có) sẽ được áp dụng ở bước thanh toán.
-                                </Text>
+                                </p>
                             </div>
                         </div>
                     </div>                    {/* Right Side - QR Payment */}
@@ -1282,9 +1632,9 @@ const MovieDetail = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <Title level={4} className="qr-title">
+                                <h4 className="qr-title text-lg font-semibold">
                                     Quét mã QR bằng MoMo để thanh toán
-                                </Title>
+                                </h4>
                             </div>
                         </div>
 
@@ -1342,10 +1692,10 @@ const MovieDetail = () => {
                             </div>
 
                             <div className="qr-instructions-simple">
-                                <Text className="qr-instruction-text-simple">
+                                <p className="qr-instruction-text-simple text-sm text-gray-600 text-center">
                                     Sử dụng App MoMo hoặc<br />
                                     ứng dụng Camera hỗ trợ QR code để quét mã.
-                                </Text>
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -1367,13 +1717,16 @@ const MovieDetail = () => {
 
             {/* Trailer Modal */}
             <Modal
-                title={<span><PlayCircleOutlined /> Trailer - {movie?.title}</span>}
+                title={
+                    <div className="flex items-center gap-2">
+                        <Play className="h-5 w-5" />
+                        <span>Trailer - {movie?.title}</span>
+                    </div>
+                }
                 open={trailerModalVisible}
                 onCancel={() => setTrailerModalVisible(false)}
                 footer={null}
                 width={900}
-                centered
-                destroyOnClose
             >
                 {(movie?.trailerUrl || movie?.trailer) && (
                     <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>

@@ -5,15 +5,15 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ErrorException extends RuntimeException {
+public class AppException extends RuntimeException {
   private ErrorCode errorCode;
 
-  public ErrorException(ErrorCode errorCode) {
+  public AppException(ErrorCode errorCode) {
     super(errorCode.getMessage());
     this.errorCode = errorCode;
   }
 
-  public ErrorException(String message, ErrorCode errorCode) {
+  public AppException(String message, ErrorCode errorCode) {
     super(message);
     this.errorCode = errorCode;
   }

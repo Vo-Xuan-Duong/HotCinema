@@ -1,6 +1,5 @@
 package com.example.hotcinemas_be.models;
 
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -8,12 +7,17 @@ import java.util.List;
 
 import com.example.hotcinemas_be.dtos.seat.SeatSnapshot;
 import com.example.hotcinemas_be.enums.BookingStatus;
-
+import io.lettuce.core.json.JsonType;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.Type;
 import org.hibernate.type.SqlTypes;
 
 @Entity
@@ -38,55 +42,48 @@ public class Booking {
     @JoinColumn(name = "showtime_id", nullable = false)
     private Showtime showtime;
 
-    @Column(name = "booking_code", unique = true, length = 50)
-    private String bookingCode; // Unique code for the booking
-
-    @Builder.Default
-    @Column(name = "booking_date", nullable = false)
-    private LocalDateTime bookingDate = LocalDateTime.now();
-
-    @Column(name = "original_price", nullable = false, precision = 10, scale = 2)
-    private BigDecimal originalPrice; // DECIMAL(10,2) in DB, Double in Java
-
-    @Column(name = "discount_amount", precision = 10, scale = 2)
-    private BigDecimal discountAmount; // DECIMAL(10,2) in DB, Double in Java
+    @Column(name = "booking_code", unique = true, nullable = false, length = 20)
+    private String bookingCode;
 
     @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
-    private BigDecimal totalAmount; // DECIMAL(10,2) in DB, Double in Java
+    private BigDecimal totalAmount;
 
+    @Column(name = "discount_amount", precision = 10, scale = 2)
     @Builder.Default
-    @Enumerated(EnumType.STRING) // Map ENUM to String in DB
-    @Column(name = "booking_status", nullable = false, length = 20) // Use custom type
-    private BookingStatus bookingStatus = BookingStatus.PENDING;
+    private BigDecimal discountAmount = BigDecimal.ZERO;
 
-    @Column(name = "created_at", updatable = false)
-    @CreationTimestamp
-    private LocalDateTime createdAt; // Automatically set to current time
+    @Column(name = "final_amount", nullable = false, precision = 10, scale = 2)
+    private BigDecimal finalAmount;
 
-    @Column(name = "updated_at")
-    @UpdateTimestamp
-    private LocalDateTime updatedAt; // Automatically set to current time
-
-    @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Payment payments;
-
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 20)
     @Builder.Default
-    @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Ticket> tickets = new ArrayList<>();
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "voucher_id")
-    private Voucher voucher;
-
-    @Column(name = "voucher_code", length = 50)
-    private String voucherCode; // Store voucher code for reference
+    private BookingStatus status = BookingStatus.PENDING;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "seat_details_snapshot", columnDefinition = "jsonb")
+    @Column(name = "seat_snapshots", columnDefinition = "json")
     private List<SeatSnapshot> seatSnapshots;
 
-    // Helper methods
-    public Integer getTotalSeats() {
-        return tickets.size();
-    }
+    @Column(name = "booking_date", nullable = false)
+    @Builder.Default
+    private LocalDateTime bookingDate = LocalDateTime.now();
+
+    @Column(name = "expires_at")
+    private LocalDateTime expiresAt;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<BookingSeat> bookingSeats = new ArrayList<>();
+
+    @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<Payment> payments = new ArrayList<>();
+
+    @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<BookingCombo> bookingCombos = new ArrayList<>();
 }

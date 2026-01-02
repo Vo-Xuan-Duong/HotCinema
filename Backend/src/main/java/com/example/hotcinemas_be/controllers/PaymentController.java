@@ -1,8 +1,7 @@
 package com.example.hotcinemas_be.controllers;
 
-import com.example.hotcinemas_be.dtos.common.ResponseData;
+import com.example.hotcinemas_be.dtos.common.DataResponse;
 import com.example.hotcinemas_be.dtos.momo.MomoIpnRequest;
-import com.example.hotcinemas_be.dtos.momo.MomoResponse;
 import com.example.hotcinemas_be.dtos.payment.requests.PaymentRequest;
 import com.example.hotcinemas_be.dtos.payment.responses.PaymentResponse;
 import com.example.hotcinemas_be.enums.PaymentStatus;
@@ -42,49 +41,33 @@ public class PaymentController {
             @ApiResponse(responseCode = "404", description = "Booking not found")
     })
     @PostMapping
-    public ResponseEntity<ResponseData<PaymentResponse>> createPayment(
+    public ResponseEntity<DataResponse<PaymentResponse>> createPayment(
             @Valid @RequestBody PaymentRequest paymentRequest) {
         log.info("Creating new payment for booking ID: {}", paymentRequest.getBookingId());
         PaymentResponse paymentResponse = paymentService.createPayment(paymentRequest);
 
-        ResponseData<PaymentResponse> responseData = ResponseData.<PaymentResponse>builder()
+        DataResponse<PaymentResponse> dataResponse = DataResponse.<PaymentResponse>builder()
                 .status(HttpStatus.CREATED.value())
                 .message("Payment has been successfully created")
                 .data(paymentResponse)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
+        return ResponseEntity.status(HttpStatus.CREATED).body(dataResponse);
     }
 
     @Operation(summary = "Get all payments", description = "This endpoint retrieves all payments with pagination.")
     @GetMapping
-    public ResponseEntity<ResponseData<Page<PaymentResponse>>> getAllPayments(
+    public ResponseEntity<DataResponse<?>> getAllPayments(
             @Parameter(description = "Pagination parameters") Pageable pageable) {
         log.info("Retrieving all payments with pagination");
-        Page<PaymentResponse> payments = paymentService.getAllPayments(pageable);
 
-        ResponseData<Page<PaymentResponse>> responseData = ResponseData.<Page<PaymentResponse>>builder()
+        DataResponse<?> dataResponse = DataResponse.builder()
                 .status(HttpStatus.OK.value())
                 .message("Payments retrieved successfully")
-                .data(payments)
+                .data(paymentService.getAllPayments(pageable))
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
-    }
-
-    @Operation(summary = "Get all payments (no pagination)", description = "This endpoint retrieves all payments without pagination.")
-    @GetMapping("/all-no-page")
-    public ResponseEntity<ResponseData<List<PaymentResponse>>> getAllPaymentsList() {
-        log.info("Retrieving all payments without pagination");
-        List<PaymentResponse> payments = paymentService.getAllPayments();
-
-        ResponseData<List<PaymentResponse>> responseData = ResponseData.<List<PaymentResponse>>builder()
-                .status(HttpStatus.OK.value())
-                .message("Payments retrieved successfully")
-                .data(payments)
-                .timestamp(LocalDateTime.now())
-                .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Get a payment by ID", description = "This endpoint retrieves a payment by its ID.")
@@ -93,50 +76,50 @@ public class PaymentController {
             @ApiResponse(responseCode = "404", description = "Payment not found")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<ResponseData<PaymentResponse>> getPaymentById(
+    public ResponseEntity<DataResponse<PaymentResponse>> getPaymentById(
             @Parameter(description = "Payment ID") @PathVariable Long id) {
         log.info("Retrieving payment with ID: {}", id);
         PaymentResponse payment = paymentService.getPaymentById(id);
 
-        ResponseData<PaymentResponse> responseData = ResponseData.<PaymentResponse>builder()
+        DataResponse<PaymentResponse> dataResponse = DataResponse.<PaymentResponse>builder()
                 .status(HttpStatus.OK.value())
                 .message("Payment retrieved successfully")
                 .data(payment)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Get payments by booking ID", description = "This endpoint retrieves all payments for a specific booking.")
     @GetMapping("/booking/{bookingId}")
-    public ResponseEntity<ResponseData<List<PaymentResponse>>> getPaymentsByBookingId(
+    public ResponseEntity<DataResponse<List<PaymentResponse>>> getPaymentsByBookingId(
             @Parameter(description = "Booking ID") @PathVariable Long bookingId) {
         log.info("Retrieving payments for booking ID: {}", bookingId);
         List<PaymentResponse> payments = paymentService.getPaymentsByBookingId(bookingId);
 
-        ResponseData<List<PaymentResponse>> responseData = ResponseData.<List<PaymentResponse>>builder()
+        DataResponse<List<PaymentResponse>> dataResponse = DataResponse.<List<PaymentResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Payments for booking retrieved successfully")
                 .data(payments)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Get payments by status", description = "This endpoint retrieves all payments with a specific status.")
     @GetMapping("/status/{status}")
-    public ResponseEntity<ResponseData<List<PaymentResponse>>> getPaymentsByStatus(
+    public ResponseEntity<DataResponse<List<PaymentResponse>>> getPaymentsByStatus(
             @Parameter(description = "Payment status") @PathVariable PaymentStatus status) {
         log.info("Retrieving payments with status: {}", status);
         List<PaymentResponse> payments = paymentService.getPaymentsByStatus(status);
 
-        ResponseData<List<PaymentResponse>> responseData = ResponseData.<List<PaymentResponse>>builder()
+        DataResponse<List<PaymentResponse>> dataResponse = DataResponse.<List<PaymentResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Payments with status retrieved successfully")
                 .data(payments)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Update payment status", description = "This endpoint allows updating the status of a payment.")
@@ -145,19 +128,19 @@ public class PaymentController {
             @ApiResponse(responseCode = "404", description = "Payment not found")
     })
     @PatchMapping("/{id}/status")
-    public ResponseEntity<ResponseData<PaymentResponse>> updatePaymentStatus(
+    public ResponseEntity<DataResponse<PaymentResponse>> updatePaymentStatus(
             @Parameter(description = "Payment ID") @PathVariable Long id,
             @RequestBody PaymentStatus status) {
         log.info("Updating payment status for ID {} to {}", id, status);
         PaymentResponse paymentResponse = paymentService.updatePaymentStatus(id, status);
 
-        ResponseData<PaymentResponse> responseData = ResponseData.<PaymentResponse>builder()
+        DataResponse<PaymentResponse> dataResponse = DataResponse.<PaymentResponse>builder()
                 .status(HttpStatus.OK.value())
                 .message("Payment status has been successfully updated")
                 .data(paymentResponse)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Update transaction ID", description = "This endpoint allows updating the transaction ID of a payment.")
@@ -166,19 +149,19 @@ public class PaymentController {
             @ApiResponse(responseCode = "404", description = "Payment not found")
     })
     @PatchMapping("/{id}/transaction-id")
-    public ResponseEntity<ResponseData<PaymentResponse>> updateTransactionId(
+    public ResponseEntity<DataResponse<PaymentResponse>> updateTransactionId(
             @Parameter(description = "Payment ID") @PathVariable Long id,
             @RequestBody String transactionId) {
         log.info("Updating transaction ID for payment ID {} to {}", id, transactionId);
         PaymentResponse paymentResponse = paymentService.updateTransactionId(id, transactionId);
 
-        ResponseData<PaymentResponse> responseData = ResponseData.<PaymentResponse>builder()
+        DataResponse<PaymentResponse> dataResponse = DataResponse.<PaymentResponse>builder()
                 .status(HttpStatus.OK.value())
                 .message("Transaction ID has been successfully updated")
                 .data(paymentResponse)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Delete a payment", description = "This endpoint allows deleting a payment by its ID.")
@@ -187,26 +170,26 @@ public class PaymentController {
             @ApiResponse(responseCode = "404", description = "Payment not found")
     })
     @DeleteMapping("/{id}")
-    public ResponseEntity<ResponseData<Void>> deletePayment(
+    public ResponseEntity<DataResponse<Void>> deletePayment(
             @Parameter(description = "Payment ID") @PathVariable Long id) {
         log.info("Deleting payment with ID: {}", id);
         paymentService.deletePayment(id);
 
-        ResponseData<Void> responseData = ResponseData.<Void>builder()
+        DataResponse<Void> dataResponse = DataResponse.<Void>builder()
                 .status(HttpStatus.OK.value())
                 .message("Payment has been successfully deleted")
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "MoMo IPN callback", description = "Handle MoMo IPN to update payment status")
     @PostMapping("/momo-callback")
-    public ResponseEntity<ResponseData<String>> momoCallBack(@RequestBody MomoIpnRequest ipn) {
+    public ResponseEntity<DataResponse<String>> momoCallBack(@RequestBody MomoIpnRequest ipn) {
         boolean ok = momoService.verifyIpn(ipn);
 
         if (!ok) {
-            ResponseData<String> res = ResponseData.<String>builder()
+            DataResponse<String> res = DataResponse.<String>builder()
                     .status(HttpStatus.BAD_REQUEST.value())
                     .message("Invalid signature")
                     .timestamp(LocalDateTime.now())
@@ -215,9 +198,9 @@ public class PaymentController {
         }
 
         PaymentStatus status = ipn.getResultCode() == 0 ? PaymentStatus.SUCCESS : PaymentStatus.FAILED;
-        paymentService.updateStatusByTransactionId(ipn.getOrderId(), status, ipn.getMessage());
+        paymentService.updateStatusByBookingCode(ipn.getOrderId(), status, ipn.getTransId());
 
-        ResponseData<String> res = ResponseData.<String>builder()
+        DataResponse<String> res = DataResponse.<String>builder()
                 .status(HttpStatus.OK.value())
                 .message("OK")
                 .timestamp(LocalDateTime.now())

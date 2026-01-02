@@ -1,6 +1,6 @@
 package com.example.hotcinemas_be.dtos.showtime.responses;
 
-import com.example.hotcinemas_be.enums.ShowTimeStatus;
+import com.example.hotcinemas_be.enums.ShowtimeStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,9 +17,9 @@ public class ShowtimeInfo {
     private Long showtimeId;
     private LocalTime startTime;
     private LocalTime endTime;
-    private Long roomId;
-    private String roomName;
+    private Long theaterId;
+    private String theaterName;
     private BigDecimal price;
-    private ShowTimeStatus status;
+    private ShowtimeStatus status;
 }
 

@@ -1,9 +1,0 @@
-0:0:0:0:0:0:0:1 - - [14/Oct/2025:12:49:05 +0700] "GET /swagger-ui/index.html HTTP/1.1" 200 734 159331
-0:0:0:0:0:0:0:1 - - [14/Oct/2025:12:49:05 +0700] "GET /swagger-ui/index.css HTTP/1.1" 200 202 10240
-0:0:0:0:0:0:0:1 - - [14/Oct/2025:12:49:05 +0700] "GET /swagger-ui/swagger-ui.css HTTP/1.1" 200 154986 15029
-0:0:0:0:0:0:0:1 - - [14/Oct/2025:12:49:05 +0700] "GET /swagger-ui/swagger-ui-standalone-preset.js HTTP/1.1" 200 229223 15707
-0:0:0:0:0:0:0:1 - - [14/Oct/2025:12:49:05 +0700] "GET /swagger-ui/swagger-ui-bundle.js HTTP/1.1" 200 1468326 28728
-0:0:0:0:0:0:0:1 - - [14/Oct/2025:12:49:05 +0700] "GET /swagger-ui/swagger-initializer.js HTTP/1.1" 200 612 50744
-0:0:0:0:0:0:0:1 - - [14/Oct/2025:12:49:05 +0700] "GET /swagger-ui/favicon-32x32.png HTTP/1.1" 200 628 9377
-0:0:0:0:0:0:0:1 - - [14/Oct/2025:12:49:06 +0700] "GET /api-docs/swagger-config HTTP/1.1" 200 163 88528
-0:0:0:0:0:0:0:1 - - [14/Oct/2025:12:49:09 +0700] "GET /api-docs HTTP/1.1" 200 127008 3543943

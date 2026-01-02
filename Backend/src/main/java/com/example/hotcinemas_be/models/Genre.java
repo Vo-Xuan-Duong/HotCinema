@@ -1,23 +1,14 @@
 package com.example.hotcinemas_be.models;
 
-import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "genres")
@@ -32,13 +23,9 @@ public class Genre {
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "name", unique = true, nullable = false, length = 50)
+    @Column(name = "name", unique = true, nullable = false, length = 100)
     private String name;
 
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    @OneToMany(mappedBy = "genre", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<MovieGenre> movieGenres = new ArrayList<>();
 }

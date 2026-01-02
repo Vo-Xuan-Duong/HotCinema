@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { Modal, Input, Button, Typography } from 'antd';
-
-const { Text } = Typography;
+import { Modal } from './ui/modal';
+import { Input } from './ui/input';
+import { Button } from './ui/button';
 
 export default function LocationSelectModal({ open, onClose, onSelect, value, cities = [] }) {
     const [search, setSearch] = useState('');
@@ -31,13 +31,12 @@ export default function LocationSelectModal({ open, onClose, onSelect, value, ci
             width={780}
             destroyOnClose
             className="location-select-modal"
-            title={<div className="location-modal-header"><Text strong style={{ fontSize: 18 }}>Chọn thành phố</Text></div>}
+            title={<div className="location-modal-header"><span className="font-semibold text-lg">Chọn thành phố</span></div>}
         >
             <div className="location-modal-toolbar">
                 <Input
                     placeholder="Tìm thành phố ..."
                     value={search}
-                    allowClear
                     onChange={e => setSearch(e.target.value)}
                     className="location-search-input"
                 />
@@ -48,7 +47,7 @@ export default function LocationSelectModal({ open, onClose, onSelect, value, ci
                     return (
                         <Button
                             key={city.id}
-                            type={active ? 'primary' : 'text'}
+                            variant={active ? 'default' : 'ghost'}
                             className={`province-item ${active ? 'active' : ''}`}
                             onClick={() => handleSelect(city)}
                         >
@@ -58,12 +57,12 @@ export default function LocationSelectModal({ open, onClose, onSelect, value, ci
                 })}
                 {!filtered.length && (
                     <div className="no-results">
-                        <Text type="secondary">Không tìm thấy thành phố phù hợp.</Text>
+                        <p className="text-gray-500">Không tìm thấy thành phố phù hợp.</p>
                     </div>
                 )}
             </div>
             <div className="location-modal-footer">
-                <Button onClick={onClose} className="close-modal-btn" type="primary">Đóng</Button>
+                <Button onClick={onClose} className="close-modal-btn">Đóng</Button>
             </div>
         </Modal>
     );

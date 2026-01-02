@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
-import { message } from 'antd';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import useNotification from './useNotification';
 
 /**
  * Custom Hook for Seat Booking WebSocket using STOMP
@@ -72,7 +72,8 @@ const useSeatWebSocket = (showtimeId, onSeatUpdate) => {
 
             // Hiển thị thông báo cho ghế booked
             if (status.toUpperCase() === 'BOOKED') {
-                message.info(`Ghế vừa được đặt.`);
+                // Notification will be handled by the component using this hook
+                console.log(`Ghế vừa được đặt.`);
             }
 
         } catch (error) {

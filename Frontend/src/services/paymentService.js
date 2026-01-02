@@ -215,7 +215,8 @@ const paymentService = {
             [PAYMENT_STATUS.PENDING]: 'Đang chờ',
             [PAYMENT_STATUS.SUCCESS]: 'Thành công',
             [PAYMENT_STATUS.FAILED]: 'Thất bại',
-            [PAYMENT_STATUS.CANCELLED]: 'Đã hủy'
+            [PAYMENT_STATUS.CANCELLED]: 'Đã hủy',
+            'REFUNDED': 'Đã hoàn tiền'
         };
         return statusNames[status] || status;
     },
@@ -242,6 +243,13 @@ const paymentService = {
      */
     getPaymentMethodName(method) {
         const methods = {
+            'CASH': 'Tiền mặt',
+            'VNPAY': 'VNPay',
+            'MOMO': 'Ví MoMo',
+            'ZALOPAY': 'ZaloPay',
+            'CREDIT_CARD': 'Thẻ tín dụng',
+            'DEBIT_CARD': 'Thẻ ghi nợ',
+            // Backward compatibility
             'momo': 'Ví MoMo',
             'vnpay': 'VNPay',
             'zalopay': 'ZaloPay',
@@ -249,7 +257,7 @@ const paymentService = {
             'banking': 'Chuyển khoản ngân hàng',
             'cash': 'Tiền mặt'
         };
-        return methods[method?.toLowerCase()] || method;
+        return methods[method] || methods[method?.toUpperCase()] || method;
     },
 
     /**

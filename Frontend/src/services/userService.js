@@ -19,7 +19,7 @@ const userService = {
 
   // 4. Lấy Tất Cả Users (Phân Trang)
   getAllUsers: async (params = {}) => {
-    const { page = 0, size = 10, sortBy = 'userId', sortDir = 'asc' } = params;
+    const { page = 0, size = 10, sortBy = 'id', sortDir = 'asc' } = params;
     return apiClient.get(ENDPOINTS.USERS, {
       params: { page, size, sortBy, sortDir }
     });
@@ -93,6 +93,14 @@ const userService = {
     return apiClient.get(`${ENDPOINTS.USERS}/role/${roleName}`, {
       params: { page, size }
     });
+  },
+
+  getAllStaff: async (params) => {
+    return apiClient.get(`${ENDPOINTS.USERS}/staffs`, {params});
+  },
+
+  getAllCustomers: async (params) => {
+    return apiClient.get(`${ENDPOINTS.USERS}/customers`, {params});
   },
 };
 

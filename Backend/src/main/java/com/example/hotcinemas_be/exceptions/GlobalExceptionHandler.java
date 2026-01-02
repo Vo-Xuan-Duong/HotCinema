@@ -1,17 +1,15 @@
 package com.example.hotcinemas_be.exceptions;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 
+import com.example.hotcinemas_be.dtos.common.ErrorResponse;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import com.example.hotcinemas_be.dtos.common.ResponseData;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -23,18 +21,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> handleValidationExceptions(MethodArgumentNotValidException ex,
             HttpServletRequest request) {
-        Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
-        });
+        log.error("Validation exception at [{} {}] - errors: {}", request.getMethod(), request.getRequestURI(), ex.getMessage());
 
-        log.error("Validation exception at [{} {}] - errors: {}", request.getMethod(), request.getRequestURI(), errors);
-        ResponseData<?> error = ResponseData.builder()
+        String errorMessages = ex.getBindingResult().getAllErrors().stream()
+                .map(DefaultMessageSourceResolvable::getDefaultMessage)
+                .reduce("", (msg1, msg2) -> msg1 + "; " + msg2);
+
+        ErrorResponse error = ErrorResponse.builder()
                 .status(HttpStatus.BAD_REQUEST.value())
-                .message("Validation failed")
-                .data(errors)
+                .error("Validation Failed")
+                .message(errorMessages)
                 .path(request.getRequestURI())
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -46,28 +42,29 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleRuntimeException(RuntimeException ex, HttpServletRequest request) {
         log.error("Runtime exception at [{} {}]: {}", request.getMethod(), request.getRequestURI(), ex.getMessage(),
                 ex);
-        ResponseData<?> error = ResponseData.builder()
-                .status(500)
-                .message("An unexpected error occurred: " + ex.getMessage())
+
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .error("RUNTIME_EXCEPTION")
+                .message(ex.getMessage())
                 .path(request.getRequestURI())
                 .timestamp(LocalDateTime.now())
                 .build();
-        // Return a generic error response
-        return ResponseEntity.status(500).body(error);
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR.value()).body(error);
     }
 
-    @ExceptionHandler(ErrorException.class)
-    public ResponseEntity<?> handleErrorException(ErrorException ex, HttpServletRequest request) {
+    @ExceptionHandler(AppException.class)
+    public ResponseEntity<?> handleErrorException(AppException ex, HttpServletRequest request) {
         ErrorCode errorCode = ex.getErrorCode();
-        log.error("ErrorException at [{} {}] code={} message={}", request.getMethod(), request.getRequestURI(),
-                errorCode.getCode(), ex.getMessage(), ex);
-        ResponseData<?> error = ResponseData.builder()
+        log.error("ErrorException at [{} {}] message={}", request.getMethod(), request.getRequestURI(), ex.getMessage(), ex);
+        ErrorResponse error = ErrorResponse.builder()
                 .status(errorCode.getHttpStatus().value())
-                .message(ex.getMessage() != null ? ex.getMessage() : errorCode.getMessage())
+                .error(errorCode.name())
+                .message(ex.getMessage())
                 .path(request.getRequestURI())
                 .timestamp(LocalDateTime.now())
                 .build();
-        // Return the error response with the specific status code
         return ResponseEntity.status(errorCode.getHttpStatus()).body(error);
     }
 
@@ -75,12 +72,41 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleAnyException(Exception ex, HttpServletRequest request) {
         log.error("Unhandled exception at [{} {}]: {}", request.getMethod(), request.getRequestURI(), ex.getMessage(),
                 ex);
-        ResponseData<?> error = ResponseData.builder()
+        ErrorResponse error = ErrorResponse.builder()
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .error("INTERNAL_SERVER_ERROR")
                 .message("Internal server error")
                 .path(request.getRequestURI())
                 .timestamp(LocalDateTime.now())
                 .build();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<?> handleBadCredentialsException(BadCredentialsException ex, HttpServletRequest request) {
+        log.error("Bad credentials at [{} {}]: {}", request.getMethod(), request.getRequestURI(), ex.getMessage(),
+                ex);
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .error("UNAUTHORIZED")
+                .message("Invalid username or password")
+                .path(request.getRequestURI())
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<?> handleIllegalArgumentException(IllegalArgumentException ex, HttpServletRequest request) {
+        log.error("Illegal argument at [{} {}]: {}", request.getMethod(), request.getRequestURI(), ex.getMessage(),
+                ex);
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("BAD_REQUEST")
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 }

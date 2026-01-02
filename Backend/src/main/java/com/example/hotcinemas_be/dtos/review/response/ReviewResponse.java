@@ -1,4 +1,4 @@
-package com.example.hotcinemas_be.dtos.comment.response;
+package com.example.hotcinemas_be.dtos.review.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
@@ -14,14 +14,14 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class CommentResponse {
+public class ReviewResponse {
     private Long id;
     private String comment;
     private Integer rating;
     private Long userId;
-    private String userName;
-    private String userAvatarUrl;
+    private String fullName;
+    private String avatarUrl;
     private LocalDateTime createdAt;
 
-    private List<CommentResponse> replies;
+    private List<ReviewResponse> replies;
 }

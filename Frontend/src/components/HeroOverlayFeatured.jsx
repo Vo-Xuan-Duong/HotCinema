@@ -1,5 +1,4 @@
 import React from 'react';
-import './HeroOverlayFeatured.css';
 
 const featuredMovies = [
   {
@@ -26,18 +25,30 @@ const featuredMovies = [
 ];
 
 const HeroOverlayFeatured = () => (
-  <div className="hero-overlay">
-    <div className="hero-featured-title">Phim sắp ra mắt đặc sắc</div>
-    <div className="hero-featured-list">
+  <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/75 to-black/[0.98] backdrop-blur-sm backdrop-brightness-95 z-[1] flex flex-col justify-center items-center px-6 py-12 animate-[fadeInOverlay_0.7s_cubic-bezier(0.4,0,0.2,1)]">
+    <h2 className="text-4xl font-bold text-white mb-9 tracking-wide animate-[fadeInTitle_0.8s_cubic-bezier(0.4,0,0.2,1)]"
+      style={{ textShadow: '0 4px 24px rgba(0, 0, 0, 0.7)' }}>
+      Phim sắp ra mắt đặc sắc
+    </h2>
+    <div className="flex gap-10 flex-wrap justify-center">
       {featuredMovies.map((movie, idx) => (
-        <div className="hero-featured-card" key={idx}>
-          <img src={movie.poster} alt={movie.title} className="hero-featured-poster" />
-          <div className="hero-featured-info">
-            <div className="hero-featured-name">{movie.title}</div>
-            <div className="hero-featured-date">Khởi chiếu: {movie.date}</div>
-            <div className="hero-featured-genre">{movie.genre}</div>
-            <div className="hero-featured-desc">{movie.description}</div>
-            <button className="hero-featured-btn">Đặt vé ngay</button>
+        <div
+          className="bg-[rgba(30,30,30,0.92)] rounded-[20px] shadow-[0_12px_40px_rgba(0,0,0,0.45)] p-7 px-5 max-w-[340px] min-w-[240px] text-white flex flex-col items-center transition-all duration-250 hover:shadow-[0_24px_64px_rgba(0,0,0,0.55)] hover:scale-105 animate-[fadeInCard_0.9s_cubic-bezier(0.4,0,0.2,1)]"
+          key={idx}
+        >
+          <img
+            src={movie.poster}
+            alt={movie.title}
+            className="w-[130px] h-[190px] min-w-[180px] object-cover rounded-xl mb-[18px] border-2 border-white/10 transition-shadow duration-200 hover:shadow-[0_12px_32px_rgba(229,9,20,0.18)]"
+          />
+          <div className="text-center min-w-[140px]">
+            <h3 className="text-xl font-bold mb-2.5 tracking-wide">{movie.title}</h3>
+            <p className="text-[1.05rem] text-yellow-400 mb-1.5 font-medium">Khởi chiếu: {movie.date}</p>
+            <p className="text-base text-gray-400 mb-2.5">{movie.genre}</p>
+            <p className="text-base mb-4 text-gray-100 min-h-[44px]">{movie.description}</p>
+            <button className="bg-gradient-to-r from-primary to-red-500 text-white border-none rounded-[10px] py-3 px-8 text-[1.08rem] font-bold cursor-pointer shadow-[0_2px_12px_rgba(229,9,20,0.18)] transition-all duration-200 tracking-wide hover:shadow-[0_4px_16px_rgba(229,9,20,0.3)] hover:scale-105 active:scale-100">
+              Đặt vé ngay
+            </button>
           </div>
         </div>
       ))}

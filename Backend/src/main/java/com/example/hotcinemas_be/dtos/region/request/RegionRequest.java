@@ -1,4 +1,4 @@
-package com.example.hotcinemas_be.dtos.city.request;
+package com.example.hotcinemas_be.dtos.region.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,5 +9,6 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CityRequest {
+public class RegionRequest {
+    private String name;
 }

@@ -1,50 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Card } from '../../../components/ui/card';
+import { Button } from '../../../components/ui/button';
+import { TableWrapper } from '../../../components/ui/table-wrapper';
+import { Pagination } from '../../../components/ui/pagination';
+import { Modal } from '../../../components/ui/modal';
+import { Input } from '../../../components/ui/input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select';
+import { Textarea } from '../../../components/ui/textarea';
+import { Tag } from '../../../components/ui/tag';
+import { Rate } from '../../../components/ui/rate';
+import { Avatar, AvatarImage, AvatarFallback } from '../../../components/ui/avatar';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '../../../components/ui/tooltip';
+import { Badge } from '../../../components/ui/badge-count';
+import { Tabs } from '../../../components/ui/tabs';
+import { Breadcrumb } from '../../../components/ui/breadcrumb';
 import {
-    Card,
-    Button,
-    Table,
-    Modal,
-    Form,
-    Input,
-    Select,
-    Space,
-    Image,
-    Tag,
-    Typography,
-    message,
-    Popconfirm,
-    Rate,
-    Avatar,
-    Tooltip,
-    Badge,
-    Tabs
-} from 'antd';
-import {
-    EyeOutlined,
-    DeleteOutlined,
-    CheckOutlined,
-    CloseOutlined,
-    SearchOutlined,
-    MessageOutlined,
-    LikeOutlined,
-    WarningOutlined,
-    FilterOutlined,
-    UserOutlined
-} from '@ant-design/icons';
-import './Comments.css';
-import commentsData from '../../../data/comments.json';
+    Eye,
+    Trash2,
+    Check,
+    X,
+    Search,
+    MessageSquare,
+    Heart,
+    AlertTriangle,
+    Filter,
+    User,
+    Home,
+    Video,
+    Loader2
+} from 'lucide-react';
 import moviesData from '../../../data/movies.json';
-
-const { Title, Text, Paragraph } = Typography;
-const { TextArea } = Input;
-const { Option } = Select;
-const { TabPane } = Tabs;
+import reviewService from '../../../services/reviewService';
+import movieService from '../../../services/movieService';
+import useNotification from '../../../hooks/useNotification';
 
 const Comments = () => {
     const navigate = useNavigate();
+    const notification = useNotification();
     const [comments, setComments] = useState([]);
     const [filteredComments, setFilteredComments] = useState([]);
+    const [movies, setMovies] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchText, setSearchText] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -52,23 +48,103 @@ const Comments = () => {
     const [selectedComment, setSelectedComment] = useState(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [activeTab, setActiveTab] = useState('all');
+    const [pagination, setPagination] = useState({
+        current: 1,
+        pageSize: 10,
+        total: 0
+    });
 
     useEffect(() => {
-        loadComments();
+        loadComments(1, 10);
     }, []);
 
     useEffect(() => {
         filterComments();
     }, [comments, searchText, statusFilter, movieFilter, activeTab]);
 
-    const loadComments = async () => {
+    // Reset pagination when filters change
+    useEffect(() => {
+        if (pagination.current !== 1) {
+            setPagination(prev => ({ ...prev, current: 1 }));
+        }
+    }, [searchText, statusFilter, movieFilter, activeTab]);
+
+    const loadComments = async (currentPage = pagination.current, pageSize = pagination.pageSize) => {
         try {
             setLoading(true);
-            // Sử dụng dữ liệu mẫu
-            setComments(commentsData);
+
+            // Gọi API để lấy danh sách reviews
+            const response = await reviewService.getAllReviews({
+                page: currentPage - 1, // Backend sử dụng page index từ 0
+                size: pageSize,
+                sort: 'createdAt,desc'
+            });
+
+            // Xử lý response từ API
+            const reviewsData = response?.content || response?.data?.content || response?.data || [];
+            const totalElements = response?.totalElements || response?.data?.totalElements || reviewsData.length;
+
+            // Map dữ liệu từ ReviewResponse sang format hiện tại
+            const mappedComments = reviewsData.map(review => ({
+                id: review.id,
+                comment: review.comment,
+                rating: review.rating,
+                userId: review.userId,
+                fullName: review.fullName,
+                avatarUrl: review.avatarUrl,
+                createdAt: review.createdAt,
+                replies: review.replies || [],
+                // Giữ lại các field cũ để tương thích (nếu API không trả về)
+                userName: review.fullName,
+                userAvatar: review.avatarUrl,
+                movieId: review.movieId || null, // Có thể cần fetch thêm từ movie service
+                movieTitle: review.movieTitle || 'N/A', // Có thể cần fetch thêm từ movie service
+                status: review.status || 'pending', // Có thể cần thêm field status vào ReviewResponse
+                likes: review.likes || 0,
+                reports: review.reports || 0,
+                isReported: (review.reports || 0) > 0,
+                reportReasons: review.reportReasons || []
+            }));
+
+            setComments(mappedComments);
+
+            // Cập nhật pagination
+            setPagination(prev => ({
+                ...prev,
+                total: totalElements,
+                current: currentPage,
+                pageSize: pageSize
+            }));
+
+            // Load movies for filter
+            try {
+                const movieResponse = await movieService.getAllMovies({ page: 0, size: 100 });
+                const movieData = movieResponse?.content || movieResponse?.data?.content || movieResponse?.data || [];
+                setMovies(Array.isArray(movieData) ? movieData : []);
+
+                // Nếu reviews không có movieTitle, map từ movies list
+                if (mappedComments.some(c => !c.movieTitle || c.movieTitle === 'N/A')) {
+                    const commentsWithMovies = mappedComments.map(comment => {
+                        if (!comment.movieTitle || comment.movieTitle === 'N/A') {
+                            const movie = movieData.find(m => m.id === comment.movieId);
+                            return {
+                                ...comment,
+                                movieTitle: movie?.title || 'N/A'
+                            };
+                        }
+                        return comment;
+                    });
+                    setComments(commentsWithMovies);
+                }
+            } catch (err) {
+                console.error('Error loading movies:', err);
+            }
         } catch (error) {
             console.error('Error loading comments:', error);
-            message.error('Lỗi khi tải danh sách bình luận');
+            notification.error('Lỗi khi tải danh sách bình luận');
+            // Fallback to empty array on error
+            setComments([]);
+            setPagination(prev => ({ ...prev, total: 0 }));
         } finally {
             setLoading(false);
         }
@@ -85,9 +161,9 @@ const Comments = () => {
         // Filter by search text
         if (searchText) {
             filtered = filtered.filter(comment =>
-                comment.comment.toLowerCase().includes(searchText.toLowerCase()) ||
-                comment.userName.toLowerCase().includes(searchText.toLowerCase()) ||
-                comment.movieTitle.toLowerCase().includes(searchText.toLowerCase())
+                comment.comment?.toLowerCase().includes(searchText.toLowerCase()) ||
+                (comment.fullName || comment.userName)?.toLowerCase().includes(searchText.toLowerCase()) ||
+                comment.movieTitle?.toLowerCase().includes(searchText.toLowerCase())
             );
         }
 
@@ -102,42 +178,52 @@ const Comments = () => {
         }
 
         setFilteredComments(filtered);
+
+        // Update pagination total based on filtered results
+        // Note: If we want server-side pagination, we should pass filters to loadComments
+        setPagination(prev => ({
+            ...prev,
+            total: filtered.length,
+            current: filtered.length > 0 ? prev.current : 1 // Reset to page 1 if no results
+        }));
     };
 
     const handleApproveComment = async (commentId) => {
         try {
-            const updatedComments = comments.map(comment =>
-                comment.id === commentId ? { ...comment, status: 'approved' } : comment
-            );
-            setComments(updatedComments);
-            message.success('Đã duyệt bình luận');
+            await reviewService.approveReview(commentId);
+
+            // Reload comments to get updated data
+            await loadComments(pagination.current, pagination.pageSize);
+            notification.success('Đã duyệt bình luận');
         } catch (error) {
             console.error('Error approving comment:', error);
-            message.error('Lỗi khi duyệt bình luận');
+            notification.error(error?.response?.data?.message || 'Lỗi khi duyệt bình luận');
         }
     };
 
     const handleRejectComment = async (commentId) => {
         try {
-            const updatedComments = comments.map(comment =>
-                comment.id === commentId ? { ...comment, status: 'rejected' } : comment
-            );
-            setComments(updatedComments);
-            message.success('Đã từ chối bình luận');
+            await reviewService.rejectReview(commentId);
+
+            // Reload comments to get updated data
+            await loadComments(pagination.current, pagination.pageSize);
+            notification.success('Đã từ chối bình luận');
         } catch (error) {
             console.error('Error rejecting comment:', error);
-            message.error('Lỗi khi từ chối bình luận');
+            notification.error(error?.response?.data?.message || 'Lỗi khi từ chối bình luận');
         }
     };
 
     const handleDeleteComment = async (commentId) => {
         try {
-            const updatedComments = comments.filter(comment => comment.id !== commentId);
-            setComments(updatedComments);
-            message.success('Đã xóa bình luận');
+            await reviewService.deleteReview(commentId);
+
+            // Reload comments to get updated data
+            await loadComments(pagination.current, pagination.pageSize);
+            notification.success('Đã xóa bình luận');
         } catch (error) {
             console.error('Error deleting comment:', error);
-            message.error('Lỗi khi xóa bình luận');
+            notification.error(error?.response?.data?.message || 'Lỗi khi xóa bình luận');
         }
     };
 
@@ -146,8 +232,43 @@ const Comments = () => {
         setShowDetailModal(true);
     };
 
+    // Handle table change (pagination)
+    const handleTableChange = (page, pageSize) => {
+        const newPageSize = pageSize || pagination.pageSize;
+        setPagination(prev => ({
+            current: page,
+            pageSize: newPageSize,
+            total: prev.total
+        }));
+        loadComments(page, newPageSize);
+    };
+
+    // Handle page size change
+    const handlePageSizeChange = (current, newPageSize) => {
+        setPagination(prev => ({
+            current: 1,
+            pageSize: newPageSize,
+            total: prev.total
+        }));
+        loadComments(1, newPageSize);
+    };
+
+    // Get paginated comments from filtered results
+    const getPaginatedComments = () => {
+        const start = (pagination.current - 1) * pagination.pageSize;
+        const end = start + pagination.pageSize;
+        return filteredComments.slice(start, end);
+    };
+
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleString('vi-VN');
+        if (!dateString) return 'N/A';
+        try {
+            // Handle both LocalDateTime string and Date object
+            const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+            return date.toLocaleString('vi-VN');
+        } catch (error) {
+            return dateString;
+        }
     };
 
     const getStatusColor = (status) => {
@@ -174,16 +295,21 @@ const Comments = () => {
             key: 'user',
             width: 200,
             render: (_, record) => (
-                <Space>
-                    <Avatar src={record.userAvatar} icon={<UserOutlined />} />
+                <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10">
+                        <AvatarImage src={record.avatarUrl || record.userAvatar} />
+                        <AvatarFallback className="bg-gray-200">
+                            <User className="h-5 w-5 text-gray-500" />
+                        </AvatarFallback>
+                    </Avatar>
                     <div>
-                        <Text strong>{record.userName}</Text>
+                        <span className="font-semibold">{record.fullName || record.userName}</span>
                         <br />
-                        <Text type="secondary" style={{ fontSize: '12px' }}>
+                        <span className="text-gray-500 text-xs">
                             ID: {record.userId}
-                        </Text>
+                        </span>
                     </div>
-                </Space>
+                </div>
             ),
         },
         {
@@ -193,9 +319,9 @@ const Comments = () => {
             width: 150,
             render: (title, record) => (
                 <Button
-                    type="link"
+                    variant="link"
                     onClick={() => navigate(`/admin/movies/${record.movieId}`)}
-                    style={{ padding: 0, height: 'auto' }}
+                    className="p-0 h-auto"
                 >
                     {title}
                 </Button>
@@ -207,10 +333,10 @@ const Comments = () => {
             key: 'rating',
             width: 120,
             render: (rating) => (
-                <Space>
-                    <Rate disabled value={rating} style={{ fontSize: '14px' }} />
-                    <Text>{rating}/10</Text>
-                </Space>
+                <div className="flex items-center gap-2">
+                    <Rate disabled value={rating} max={5} className="text-yellow-400" />
+                    <span className="text-sm text-gray-600">{rating}/5</span>
+                </div>
             ),
         },
         {
@@ -218,12 +344,9 @@ const Comments = () => {
             dataIndex: 'comment',
             key: 'comment',
             render: (comment) => (
-                <Paragraph
-                    ellipsis={{ rows: 2, expandable: false }}
-                    style={{ margin: 0, maxWidth: '300px' }}
-                >
+                <p className="m-0 max-w-[300px] line-clamp-2">
                     {comment}
-                </Paragraph>
+                </p>
             ),
         },
         {
@@ -234,169 +357,206 @@ const Comments = () => {
             render: (date) => formatDate(date),
         },
         {
-            title: 'Trạng thái',
-            dataIndex: 'status',
-            key: 'status',
-            width: 120,
-            render: (status, record) => (
-                <Space direction="vertical" size={4}>
-                    <Tag color={getStatusColor(status)}>
-                        {getStatusText(status)}
-                    </Tag>
-                    {record.isReported && (
-                        <Badge count={record.reports} size="small">
-                            <Tag color="red" icon={<WarningOutlined />}>
-                                Bị báo cáo
-                            </Tag>
-                        </Badge>
-                    )}
-                </Space>
-            ),
-        },
-        {
-            title: 'Tương tác',
-            key: 'interactions',
-            width: 100,
-            render: (_, record) => (
-                <Space direction="vertical" size={4}>
-                    <Text style={{ fontSize: '12px' }}>
-                        <LikeOutlined /> {record.likes}
-                    </Text>
-                    {record.reports > 0 && (
-                        <Text style={{ fontSize: '12px', color: 'red' }}>
-                            <WarningOutlined /> {record.reports}
-                        </Text>
-                    )}
-                </Space>
-            ),
-        },
-        {
             title: 'Thao tác',
             key: 'actions',
-            width: 200,
+            width: 250,
             render: (_, record) => (
-                <Space>
-                    <Tooltip title="Xem chi tiết">
-                        <Button
-                            icon={<EyeOutlined />}
-                            size="small"
-                            onClick={() => handleViewDetail(record)}
-                        />
-                    </Tooltip>
-                    {record.status === 'pending' && (
-                        <>
-                            <Tooltip title="Duyệt bình luận">
+                <TooltipProvider>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
                                 <Button
-                                    icon={<CheckOutlined />}
-                                    size="small"
-                                    type="primary"
-                                    onClick={() => handleApproveComment(record.id)}
-                                />
-                            </Tooltip>
-                            <Tooltip title="Từ chối">
-                                <Button
-                                    icon={<CloseOutlined />}
-                                    size="small"
-                                    danger
-                                    onClick={() => handleRejectComment(record.id)}
-                                />
-                            </Tooltip>
-                        </>
-                    )}
-                    <Popconfirm
-                        title="Xóa bình luận"
-                        description="Bạn có chắc chắn muốn xóa bình luận này?"
-                        onConfirm={() => handleDeleteComment(record.id)}
-                        okText="Có"
-                        cancelText="Không"
-                    >
-                        <Tooltip title="Xóa">
-                            <Button
-                                icon={<DeleteOutlined />}
-                                size="small"
-                                danger
-                            />
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 px-3 border-gray-300 hover:bg-blue-50 hover:border-blue-400 hover:text-blue-600 transition-all"
+                                    onClick={() => handleViewDetail(record)}
+                                >
+                                    <Eye className="h-4 w-4 mr-1.5" />
+                                    <span className="text-xs font-medium">Xem</span>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Xem chi tiết</TooltipContent>
                         </Tooltip>
-                    </Popconfirm>
-                </Space>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="h-8 px-3 bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md transition-all"
+                                    onClick={() => {
+                                        if (window.confirm('Bạn có chắc chắn muốn xóa bình luận này?')) {
+                                            handleDeleteComment(record.id);
+                                        }
+                                    }}
+                                >
+                                    <Trash2 className="h-4 w-4 mr-1.5" />
+                                    <span className="text-xs font-medium">Xóa</span>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Xóa bình luận</TooltipContent>
+                        </Tooltip>
+                    </div>
+                </TooltipProvider>
             ),
         },
     ];
 
     const tabItems = [
-        { key: 'all', label: `Tất cả (${comments.length})`, icon: <MessageOutlined /> },
-        { key: 'pending', label: `Chờ duyệt (${comments.filter(c => c.status === 'pending').length})`, icon: <FilterOutlined /> },
-        { key: 'approved', label: `Đã duyệt (${comments.filter(c => c.status === 'approved').length})`, icon: <CheckOutlined /> },
-        { key: 'rejected', label: `Đã từ chối (${comments.filter(c => c.status === 'rejected').length})`, icon: <CloseOutlined /> }
+        { key: 'all', label: `Tất cả (${comments.length})`, icon: <MessageSquare /> },
+        { key: 'pending', label: `Chờ duyệt (${comments.filter(c => c.status === 'pending').length})`, icon: <Filter /> },
+        { key: 'approved', label: `Đã duyệt (${comments.filter(c => c.status === 'approved').length})`, icon: <Check /> },
+        { key: 'rejected', label: `Đã từ chối (${comments.filter(c => c.status === 'rejected').length})`, icon: <X /> }
     ];
 
     return (
-        <div className="comments-container">
+        <div className="min-h-screen">
+            {/* Breadcrumb */}
+            <Breadcrumb
+                className="mb-6"
+                items={[
+                    {
+                        title: 'Dashboard',
+                        icon: <Home className="h-4 w-4" />,
+                        href: '/admin/dashboard'
+                    },
+                    {
+                        title: 'Quản lý bình luận',
+                        icon: <MessageSquare className="h-4 w-4" />
+                    }
+                ]}
+            />
+
             {/* Header */}
-            <Card className="comments-header">
-                <Title level={2} style={{ margin: 0, marginBottom: '16px' }}>
-                    Quản lý Bình luận
-                </Title>
+            <Card className="mb-6 shadow-lg border-0 bg-white">
+                <div className="p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-3 bg-indigo-100 rounded-lg">
+                            <MessageSquare className="h-6 w-6 text-indigo-600" />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold text-gray-900 m-0">
+                                Quản lý Bình luận
+                            </h2>
+                            <p className="text-gray-500 text-sm m-0 mt-1">
+                                Quản lý và duyệt các bình luận từ người dùng
+                            </p>
+                        </div>
+                    </div>
 
-                {/* Filters */}
-                <Space wrap size="middle">
-                    <Input
-                        placeholder="Tìm kiếm bình luận..."
-                        prefix={<SearchOutlined />}
-                        value={searchText}
-                        onChange={(e) => setSearchText(e.target.value)}
-                        style={{ width: '250px' }}
-                    />
+                    {/* Filters */}
+                    <div className="flex flex-wrap gap-4 items-end bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <div className="flex-1 min-w-[250px]">
+                            <label className="text-sm font-medium text-gray-700 mb-2 block">
+                                Tìm kiếm
+                            </label>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                <Input
+                                    placeholder="Tìm kiếm bình luận, người dùng, phim..."
+                                    value={searchText}
+                                    onChange={(e) => setSearchText(e.target.value)}
+                                    className="pl-10 h-10"
+                                />
+                            </div>
+                        </div>
 
-                    <Select
-                        placeholder="Lọc theo phim"
-                        value={movieFilter}
-                        onChange={setMovieFilter}
-                        style={{ width: '200px' }}
-                    >
-                        <Option value="all">Tất cả phim</Option>
-                        {moviesData.map(movie => (
-                            <Option key={movie.id} value={movie.id.toString()}>
-                                {movie.title}
-                            </Option>
-                        ))}
-                    </Select>
+                        <div className="w-[220px]">
+                            <label className="text-sm font-medium text-gray-700 mb-2 block flex items-center gap-1">
+                                <Video className="h-4 w-4" />
+                                Lọc theo phim
+                            </label>
+                            <div className="relative">
+                                <Select
+                                    value={movieFilter || "all"}
+                                    onValueChange={setMovieFilter}
+                                >
+                                    <SelectTrigger className="h-10 w-full">
+                                        <SelectValue placeholder="Tất cả phim" />
+                                    </SelectTrigger>
+                                    <SelectContent position="popper" className="z-[9999]">
+                                        <SelectItem value="all">Tất cả phim</SelectItem>
+                                        {movies.length > 0 ? movies.map(movie => (
+                                            <SelectItem key={movie.id} value={movie.id.toString()}>
+                                                {movie.title}
+                                            </SelectItem>
+                                        )) : (moviesData && moviesData.length > 0 && moviesData.map(movie => (
+                                            <SelectItem key={movie.id} value={movie.id.toString()}>
+                                                {movie.title}
+                                            </SelectItem>
+                                        )))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
 
-                    <Select
-                        placeholder="Lọc theo trạng thái"
-                        value={statusFilter}
-                        onChange={setStatusFilter}
-                        style={{ width: '150px' }}
-                    >
-                        <Option value="all">Tất cả</Option>
-                        <Option value="pending">Chờ duyệt</Option>
-                        <Option value="approved">Đã duyệt</Option>
-                        <Option value="rejected">Đã từ chối</Option>
-                    </Select>
-                </Space>
+                        <div className="w-[200px]">
+                            <label className="text-sm font-medium text-gray-700 mb-2 block flex items-center gap-1">
+                                <Filter className="h-4 w-4" />
+                                Lọc theo trạng thái
+                            </label>
+                            <div className="relative">
+                                <Select
+                                    value={statusFilter || "all"}
+                                    onValueChange={setStatusFilter}
+                                >
+                                    <SelectTrigger className="h-10 w-full">
+                                        <SelectValue placeholder="Tất cả" />
+                                    </SelectTrigger>
+                                    <SelectContent position="popper" className="z-[9999]">
+                                        <SelectItem value="all">Tất cả</SelectItem>
+                                        <SelectItem value="pending">Chờ duyệt</SelectItem>
+                                        <SelectItem value="approved">Đã duyệt</SelectItem>
+                                        <SelectItem value="rejected">Đã từ chối</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </Card>
 
-            {/* Comments Table with Tabs */}
-            <Card>
-                <Tabs
-                    activeKey={activeTab}
-                    onChange={setActiveTab}
-                    items={tabItems}
-                />
-
-                <Table
-                    columns={columns}
-                    dataSource={filteredComments}
-                    rowKey="id"
-                    loading={loading}
-                    pagination={{
-                        pageSize: 10,
-                        showSizeChanger: true,
-                        showQuickJumper: true,
-                        showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} bình luận`,
-                    }}
-                    scroll={{ x: 1200 }}
-                />
+            {/* Comments Table */}
+            <Card className="shadow-lg border-0 bg-white">
+                <div className="p-6">
+                    {loading ? (
+                        <div className="p-12 text-center">
+                            <Loader2 className="h-10 w-10 text-indigo-600 animate-spin mx-auto mb-4" />
+                            <p className="text-gray-500">Đang tải dữ liệu...</p>
+                        </div>
+                    ) : filteredComments.length === 0 ? (
+                        <div className="text-center py-12">
+                            <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                            <p className="text-gray-500 text-lg font-medium">Không tìm thấy bình luận nào</p>
+                            <p className="text-gray-400 text-sm mt-2">Thử thay đổi bộ lọc để tìm kiếm</p>
+                        </div>
+                    ) : (
+                        <>
+                            <TableWrapper
+                                columns={columns}
+                                data={getPaginatedComments()}
+                                rowKey="id"
+                                pagination={false}
+                                className="overflow-x-auto border border-gray-200 rounded-lg"
+                            />
+                            {pagination.total > 0 && (
+                                <div className="mt-4 flex items-center justify-between flex-wrap gap-4 pt-4 border-t border-gray-200">
+                                    <div className="text-sm text-gray-600">
+                                        Hiển thị {(pagination.current - 1) * pagination.pageSize + 1} - {Math.min(pagination.current * pagination.pageSize, pagination.total)} trong tổng số {pagination.total} bình luận
+                                    </div>
+                                    <Pagination
+                                        current={pagination.current}
+                                        pageSize={pagination.pageSize}
+                                        total={pagination.total}
+                                        showSizeChanger={true}
+                                        showQuickJumper={true}
+                                        onChange={handleTableChange}
+                                        onShowSizeChange={handlePageSizeChange}
+                                    />
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
             </Card>
 
             {/* Comment Detail Modal */}
@@ -413,125 +573,159 @@ const Comments = () => {
                 {selectedComment && (
                     <div>
                         {/* User Info */}
-                        <Card title="Thông tin người dùng" size="small" style={{ marginBottom: '16px' }}>
-                            <Space>
-                                <Avatar src={selectedComment.userAvatar} size={64} icon={<UserOutlined />} />
-                                <div>
-                                    <Title level={4} style={{ margin: 0 }}>{selectedComment.userName}</Title>
-                                    <Text type="secondary">ID: {selectedComment.userId}</Text>
+                        <Card className="mb-4 border border-gray-200 shadow-sm">
+                            <div className="p-4">
+                                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-200">
+                                    <User className="h-5 w-5 text-indigo-600" />
+                                    <h3 className="font-semibold text-gray-900 m-0">Thông tin người dùng</h3>
                                 </div>
-                            </Space>
+                                <div className="flex items-center gap-4">
+                                    <Avatar className="h-16 w-16">
+                                        <AvatarImage src={selectedComment.avatarUrl || selectedComment.userAvatar} />
+                                        <AvatarFallback className="bg-gray-200">
+                                            <User className="h-8 w-8 text-gray-500" />
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <h4 className="text-lg font-semibold m-0 text-gray-900">{selectedComment.fullName || selectedComment.userName}</h4>
+                                        <span className="text-gray-500 text-sm">ID: {selectedComment.userId}</span>
+                                    </div>
+                                </div>
+                            </div>
                         </Card>
 
                         {/* Movie Info */}
-                        <Card title="Thông tin phim" size="small" style={{ marginBottom: '16px' }}>
-                            <Space>
-                                <Text strong>Phim:</Text>
-                                <Button
-                                    type="link"
-                                    onClick={() => {
-                                        setShowDetailModal(false);
-                                        navigate(`/admin/movies/${selectedComment.movieId}`);
-                                    }}
-                                >
-                                    {selectedComment.movieTitle}
-                                </Button>
-                            </Space>
+                        <Card className="mb-4 border border-gray-200 shadow-sm">
+                            <div className="p-4">
+                                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-200">
+                                    <Video className="h-5 w-5 text-indigo-600" />
+                                    <h3 className="font-semibold text-gray-900 m-0">Thông tin phim</h3>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-gray-700">Phim:</span>
+                                    <Button
+                                        variant="link"
+                                        className="p-0 h-auto text-indigo-600 hover:text-indigo-700 font-medium"
+                                        onClick={() => {
+                                            setShowDetailModal(false);
+                                            navigate(`/admin/movies/${selectedComment.movieId}`);
+                                        }}
+                                    >
+                                        {selectedComment.movieTitle}
+                                    </Button>
+                                </div>
+                            </div>
                         </Card>
 
                         {/* Comment Content */}
-                        <Card title="Nội dung bình luận" size="small" style={{ marginBottom: '16px' }}>
-                            <Space direction="vertical" style={{ width: '100%' }}>
-                                <div>
-                                    <Text strong>Đánh giá: </Text>
-                                    <Rate disabled value={selectedComment.rating} />
-                                    <Text style={{ marginLeft: '8px' }}>{selectedComment.rating}/10</Text>
+                        <Card className="mb-4 border border-gray-200 shadow-sm">
+                            <div className="p-4">
+                                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-200">
+                                    <MessageSquare className="h-5 w-5 text-indigo-600" />
+                                    <h3 className="font-semibold text-gray-900 m-0">Nội dung bình luận</h3>
                                 </div>
-                                <div>
-                                    <Text strong>Bình luận:</Text>
-                                    <Paragraph style={{ marginTop: '8px', padding: '12px', background: '#f5f5f5', borderRadius: '6px' }}>
-                                        {selectedComment.comment}
-                                    </Paragraph>
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <span className="font-semibold text-gray-700">Đánh giá:</span>
+                                        <Rate disabled value={selectedComment.rating} max={5} className="text-yellow-400" />
+                                        <span className="ml-2 text-gray-600 font-medium">{selectedComment.rating}/5</span>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold text-gray-700 block mb-2">Bình luận:</span>
+                                        <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-l-4 border-indigo-500">
+                                            <p className="m-0 text-gray-700 leading-relaxed">{selectedComment.comment}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-semibold text-gray-700">Ngày tạo:</span>
+                                        <span className="text-gray-600">{formatDate(selectedComment.createdAt)}</span>
+                                    </div>
                                 </div>
-                                <div>
-                                    <Text strong>Ngày tạo: </Text>
-                                    <Text>{formatDate(selectedComment.createdAt)}</Text>
-                                </div>
-                            </Space>
+                            </div>
                         </Card>
 
                         {/* Status & Stats */}
-                        <Card title="Trạng thái & Thống kê" size="small" style={{ marginBottom: '16px' }}>
-                            <Space direction="vertical" style={{ width: '100%' }}>
-                                <div>
-                                    <Text strong>Trạng thái: </Text>
-                                    <Tag color={getStatusColor(selectedComment.status)}>
-                                        {getStatusText(selectedComment.status)}
-                                    </Tag>
+                        <Card className="mb-4 border border-gray-200 shadow-sm">
+                            <div className="p-4">
+                                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-200">
+                                    <AlertTriangle className="h-5 w-5 text-indigo-600" />
+                                    <h3 className="font-semibold text-gray-900 m-0">Trạng thái & Thống kê</h3>
                                 </div>
-                                <div>
-                                    <Text strong>Lượt thích: </Text>
-                                    <Text>{selectedComment.likes}</Text>
-                                </div>
-                                <div>
-                                    <Text strong>Lượt báo cáo: </Text>
-                                    <Text>{selectedComment.reports}</Text>
-                                </div>
-                                {selectedComment.reportReasons.length > 0 && (
+                                <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <Text strong>Lý do báo cáo: </Text>
-                                        <Space wrap>
+                                        <span className="text-sm text-gray-600 block mb-1">Trạng thái</span>
+                                        <Tag color={getStatusColor(selectedComment.status)}>
+                                            {getStatusText(selectedComment.status)}
+                                        </Tag>
+                                    </div>
+                                    <div>
+                                        <span className="text-sm text-gray-600 block mb-1">Lượt thích</span>
+                                        <div className="flex items-center gap-2">
+                                            <Heart className="h-4 w-4 text-red-500" />
+                                            <span className="font-semibold text-gray-900">{selectedComment.likes}</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span className="text-sm text-gray-600 block mb-1">Lượt báo cáo</span>
+                                        <div className="flex items-center gap-2">
+                                            <AlertTriangle className="h-4 w-4 text-orange-500" />
+                                            <span className="font-semibold text-gray-900">{selectedComment.reports}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                {selectedComment.reportReasons && selectedComment.reportReasons.length > 0 && (
+                                    <div className="mt-4 pt-4 border-t border-gray-200">
+                                        <span className="text-sm text-gray-600 block mb-2">Lý do báo cáo:</span>
+                                        <div className="flex flex-wrap gap-2">
                                             {selectedComment.reportReasons.map((reason, index) => (
                                                 <Tag key={index} color="red">{reason}</Tag>
                                             ))}
-                                        </Space>
+                                        </div>
                                     </div>
                                 )}
-                            </Space>
+                            </div>
                         </Card>
 
                         {/* Actions */}
-                        <div style={{ textAlign: 'right' }}>
-                            <Space>
-                                {selectedComment.status === 'pending' && (
-                                    <>
-                                        <Button
-                                            type="primary"
-                                            icon={<CheckOutlined />}
-                                            onClick={() => {
-                                                handleApproveComment(selectedComment.id);
-                                                setShowDetailModal(false);
-                                            }}
-                                        >
-                                            Duyệt bình luận
-                                        </Button>
-                                        <Button
-                                            danger
-                                            icon={<CloseOutlined />}
-                                            onClick={() => {
-                                                handleRejectComment(selectedComment.id);
-                                                setShowDetailModal(false);
-                                            }}
-                                        >
-                                            Từ chối
-                                        </Button>
-                                    </>
-                                )}
-                                <Popconfirm
-                                    title="Xóa bình luận"
-                                    description="Bạn có chắc chắn muốn xóa bình luận này?"
-                                    onConfirm={() => {
+                        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                            {selectedComment.status === 'pending' && (
+                                <>
+                                    <Button
+                                        className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md hover:shadow-lg transition-all"
+                                        onClick={() => {
+                                            handleApproveComment(selectedComment.id);
+                                            setShowDetailModal(false);
+                                        }}
+                                    >
+                                        <Check className="h-4 w-4 mr-2" />
+                                        Duyệt bình luận
+                                    </Button>
+                                    <Button
+                                        variant="destructive"
+                                        className="shadow-md hover:shadow-lg transition-all"
+                                        onClick={() => {
+                                            handleRejectComment(selectedComment.id);
+                                            setShowDetailModal(false);
+                                        }}
+                                    >
+                                        <X className="h-4 w-4 mr-2" />
+                                        Từ chối
+                                    </Button>
+                                </>
+                            )}
+                            <Button
+                                variant="destructive"
+                                className="shadow-md hover:shadow-lg transition-all"
+                                onClick={() => {
+                                    if (window.confirm('Bạn có chắc chắn muốn xóa bình luận này?')) {
                                         handleDeleteComment(selectedComment.id);
                                         setShowDetailModal(false);
-                                    }}
-                                    okText="Có"
-                                    cancelText="Không"
-                                >
-                                    <Button danger icon={<DeleteOutlined />}>
-                                        Xóa bình luận
-                                    </Button>
-                                </Popconfirm>
-                            </Space>
+                                    }
+                                }}
+                            >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Xóa bình luận
+                            </Button>
                         </div>
                     </div>
                 )}

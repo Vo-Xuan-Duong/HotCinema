@@ -1,65 +1,115 @@
-import axios from 'axios';
+import { apiClient } from '../utils/apiClient';
+import { ENDPOINTS } from '../utils/constants';
 
-const API_URL = 'http://localhost:8080/api/v1/vouchers';
+// Helpers to unwrap backend ResponseData envelope
+const unwrap = (res) => res?.data ?? res;
 
-const voucherService = {
-    // 1. GET /api/v1/vouchers - Lấy tất cả vouchers với phân trang
-    getAllVouchers: async (page = 0, size = 10, sort = '') => {
+const unwrapArray = (res) => {
+    const data = unwrap(res);
+    return Array.isArray(data?.content) ? data.content : (Array.isArray(data) ? data : []);
+};
+
+const base = ENDPOINTS.PROMOTIONS; // '/promotions'
+
+const promotionService = {
+    // 1. GET /api/v1/promotions - Lấy tất cả promotions với phân trang
+    getAllPromotions: async (page = 0, size = 10, sort = '') => {
         const params = { page, size };
         if (sort) params.sort = sort;
-        return axios.get(API_URL, { params });
+        const res = await apiClient.get(base, { params });
+        return unwrap(res);
     },
 
-    // 2. GET /api/v1/vouchers/{id} - Lấy voucher theo ID
-    getVoucherById: async (id) => {
-        return axios.get(`${API_URL}/${id}`);
+    // 2. GET /api/v1/promotions/{id} - Lấy promotion theo ID
+    getPromotionById: async (id) => {
+        const res = await apiClient.get(`${base}/${id}`);
+        return unwrap(res);
     },
 
-    // 3. POST /api/v1/vouchers - Tạo voucher mới (Admin only)
-    createVoucher: async (voucherData) => {
-        return axios.post(API_URL, voucherData);
+    // 3. POST /api/v1/promotions - Tạo promotion mới (Admin only)
+    createPromotion: async (promotionData) => {
+        const res = await apiClient.post(base, promotionData);
+        return unwrap(res);
     },
 
-    // 4. PUT /api/v1/vouchers/{id} - Cập nhật voucher (Admin only)
-    updateVoucher: async (id, voucherData) => {
-        return axios.put(`${API_URL}/${id}`, voucherData);
+    // 4. PUT /api/v1/promotions/{id} - Cập nhật promotion (Admin only)
+    updatePromotion: async (id, promotionData) => {
+        const res = await apiClient.put(`${base}/${id}`, promotionData);
+        return unwrap(res);
     },
 
-    // 5. DELETE /api/v1/vouchers/{id} - Xóa voucher (Admin only)
-    deleteVoucher: async (id) => {
-        return axios.delete(`${API_URL}/${id}`);
+    // 5. DELETE /api/v1/promotions/{id} - Xóa promotion (Admin only)
+    deletePromotion: async (id) => {
+        const res = await apiClient.delete(`${base}/${id}`);
+        return unwrap(res);
     },
 
-    // 6. POST /api/v1/vouchers/{id}/activate - Kích hoạt voucher (Admin only)
-    activateVoucher: async (id) => {
-        return axios.post(`${API_URL}/${id}/activate`);
+    // 6. POST /api/v1/promotions/{id}/activate - Kích hoạt promotion (Admin only)
+    activatePromotion: async (id) => {
+        const res = await apiClient.post(`${base}/${id}/activate`);
+        return unwrap(res);
     },
 
-    // 7. POST /api/v1/vouchers/{id}/deactivate - Vô hiệu hóa voucher (Admin only)
-    deactivateVoucher: async (id) => {
-        return axios.post(`${API_URL}/${id}/deactivate`);
+    // 7. POST /api/v1/promotions/{id}/deactivate - Vô hiệu hóa promotion (Admin only)
+    deactivatePromotion: async (id) => {
+        const res = await apiClient.post(`${base}/${id}/deactivate`);
+        return unwrap(res);
     },
 
-    // 8. GET /api/v1/vouchers/code/{code} - Lấy voucher theo code
-    getVoucherByCode: async (code) => {
-        return axios.get(`${API_URL}/code/${code}`);
+    // 8. GET /api/v1/promotions/code/{code} - Lấy promotion theo code
+    getPromotionByCode: async (code) => {
+        const res = await apiClient.get(`${base}/code/${code}`);
+        return unwrap(res);
     },
 
-    // 9. GET /api/v1/vouchers/active-vouchers - Lấy tất cả vouchers đang active
-    getActiveVouchers: async (page = 0, size = 10, sort = '') => {
+    // 9. GET /api/v1/promotions/active - Lấy tất cả promotions đang active
+    getActivePromotions: async (page = 0, size = 10, sort = '') => {
         const params = { page, size };
         if (sort) params.sort = sort;
-        return axios.get(`${API_URL}/active-vouchers`, { params });
+        const res = await apiClient.get(`${base}/active`, { params });
+        return unwrap(res);
     },
 
-    // Helper: Toggle voucher status (activate/deactivate)
-    toggleVoucherStatus: async (id, currentStatus) => {
+    // Helper: Toggle promotion status (activate/deactivate)
+    togglePromotionStatus: async (id, currentStatus) => {
         if (currentStatus === true || currentStatus === 'active') {
-            return voucherService.deactivateVoucher(id);
+            return promotionService.deactivatePromotion(id);
         } else {
-            return voucherService.activateVoucher(id);
+            return promotionService.activatePromotion(id);
         }
+    },
+
+    // Backward compatibility aliases (deprecated - use new method names instead)
+    getAllVouchers: async (page = 0, size = 10, sort = '') => {
+        return promotionService.getAllPromotions(page, size, sort);
+    },
+    getVoucherById: async (id) => {
+        return promotionService.getPromotionById(id);
+    },
+    createVoucher: async (voucherData) => {
+        return promotionService.createPromotion(voucherData);
+    },
+    updateVoucher: async (id, voucherData) => {
+        return promotionService.updatePromotion(id, voucherData);
+    },
+    deleteVoucher: async (id) => {
+        return promotionService.deletePromotion(id);
+    },
+    activateVoucher: async (id) => {
+        return promotionService.activatePromotion(id);
+    },
+    deactivateVoucher: async (id) => {
+        return promotionService.deactivatePromotion(id);
+    },
+    getVoucherByCode: async (code) => {
+        return promotionService.getPromotionByCode(code);
+    },
+    getActiveVouchers: async (page = 0, size = 10, sort = '') => {
+        return promotionService.getActivePromotions(page, size, sort);
+    },
+    toggleVoucherStatus: async (id, currentStatus) => {
+        return promotionService.togglePromotionStatus(id, currentStatus);
     }
 };
 
-export default voucherService;
+export default promotionService;

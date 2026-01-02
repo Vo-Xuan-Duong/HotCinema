@@ -1,4 +1,8 @@
 package com.example.hotcinemas_be.enums;
 
-public class ProviderType {
+public enum ProviderType {
+    LOCAL,
+    GOOGLE,
+    FACEBOOK,
+    GITHUB
 }

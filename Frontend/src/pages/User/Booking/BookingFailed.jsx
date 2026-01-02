@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { Button, Card, Typography, Spin } from 'antd';
-import { CloseCircleOutlined, ReloadOutlined, HomeOutlined, LoadingOutlined } from '@ant-design/icons';
+import { XCircle, RotateCcw, Home } from 'lucide-react';
+import { Button } from '../../../components/ui/button';
+import { Card } from '../../../components/ui/card';
+import ContentLoader from '../../../components/Loading/ContentLoader';
 import dayjs from 'dayjs';
 import paymentService from '../../../services/paymentService';
 import bookingService from '../../../services/bookingService';
-import './BookingFailed.css';
-
-const { Title, Text } = Typography;
 
 const BookingFailed = () => {
     const navigate = useNavigate();
@@ -16,11 +15,9 @@ const BookingFailed = () => {
     const [loading, setLoading] = useState(true);
     const [errorData, setErrorData] = useState({});
 
-    // Lấy transactionId từ URL params hoặc state
     const transactionId = searchParams.get('transactionId') || location.state?.errorData?.transactionId;
 
     useEffect(() => {
-        // Cuộn lên đầu trang khi load
         window.scrollTo(0, 0);
 
         const fetchBookingDetails = async () => {
@@ -28,13 +25,9 @@ const BookingFailed = () => {
                 setLoading(true);
 
                 if (transactionId) {
-                    // Lấy payment details từ transactionId
                     const paymentData = await paymentService.getPaymentByTransactionId(transactionId);
-
-                    // Lấy booking details từ bookingId trong payment
                     const bookingDetails = await bookingService.getBookingById(paymentData.bookingId);
 
-                    // Kết hợp dữ liệu với error message từ state
                     const combinedData = {
                         errorMessage: location.state?.errorData?.errorMessage || 'Thanh toán không thành công',
                         reason: location.state?.errorData?.reason || 'Lỗi không xác định',
@@ -54,16 +47,12 @@ const BookingFailed = () => {
 
                     setErrorData(combinedData);
                 } else {
-                    // Fallback: Sử dụng dữ liệu từ state hoặc localStorage
                     const fallbackData = location.state?.errorData || JSON.parse(localStorage.getItem('pendingPayment') || '{}');
-
-                    // Nếu có error và reason từ URL params, sử dụng chúng
                     const errorMessage = searchParams.get('error');
                     const reason = searchParams.get('reason');
                     if (errorMessage) fallbackData.errorMessage = decodeURIComponent(errorMessage);
                     if (reason) fallbackData.reason = decodeURIComponent(reason);
 
-                    // Đảm bảo format đúng cho totalAmount
                     if (fallbackData.totalAmount && !fallbackData.totalAmount.includes('đ')) {
                         fallbackData.totalAmount = fallbackData.totalAmount + 'đ';
                     }
@@ -72,7 +61,6 @@ const BookingFailed = () => {
                 }
             } catch (error) {
                 console.error('Error fetching booking details:', error);
-                // Fallback to existing data from state hoặc localStorage
                 const fallbackData = location.state?.errorData || JSON.parse(localStorage.getItem('pendingPayment') || '{}');
                 setErrorData(fallbackData);
             } finally {
@@ -84,7 +72,6 @@ const BookingFailed = () => {
     }, [transactionId, location.state]);
 
     const handleTryAgain = () => {
-        // Chuẩn bị dữ liệu để retry payment
         const retryData = {
             bookingId: errorData.bookingId,
             bookingCode: errorData.bookingCode,
@@ -96,7 +83,7 @@ const BookingFailed = () => {
             selectedSeats: errorData.seatNumbers ? errorData.seatNumbers.split(', ').map((seat, idx) => ({
                 name: seat,
                 seatLabel: seat,
-                price: 0 // Sẽ được tính lại từ backend
+                price: 0
             })) : [],
             showDate: errorData.showDate,
             showTime: errorData.showTime,
@@ -115,13 +102,7 @@ const BookingFailed = () => {
     };
 
     if (loading) {
-        return (
-            <div className="booking-failed-page">
-                <div className="failed-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-                    <Spin indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />} tip="Đang tải thông tin..." />
-                </div>
-            </div>
-        );
+        return <ContentLoader message="Đang tải thông tin..." />;
     }
 
     const {
@@ -137,110 +118,105 @@ const BookingFailed = () => {
     } = errorData;
 
     return (
-        <div className="booking-failed-page">
-            <div className="failed-container">
-                {/* Failed Icon */}
-                <div className="failed-icon-wrapper">
-                    <div className="failed-icon-circle">
-                        <CloseCircleOutlined className="failed-icon" />
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center py-10 px-5">
+            <div className="max-w-[800px] w-full mt-6">
+                {/* <div className="flex justify-center mb-8">
+                    <div className="w-28 h-28 rounded-full bg-red-100 flex items-center justify-center shadow-lg animate-pulse">
+                        <XCircle className="w-16 h-16 text-red-600" />
                     </div>
-                </div>
+                </div> */}
 
-                {/* Title */}
-                <Title level={2} className="failed-title">
+                <h2 className="text-center text-gray-900 mb-4 text-3xl md:text-4xl font-bold">
                     Thanh toán không thành công
-                </Title>
+                </h2>
 
-                {/* Error Message */}
-                <Text className="failed-message">
+                {/* <p className="block text-center text-gray-600 mb-2 text-base md:text-lg max-w-2xl mx-auto">
                     {errorMessage}
-                </Text>
+                </p> */}
+                
+                {reason && reason !== 'Thanh toán không thành công.' && (
+                    <p className="block text-center text-gray-500 mb-8 text-sm">
+                        Lý do: {reason}
+                    </p>
+                )}
 
-                {/* Order Summary Card */}
-                <Card className="failed-summary-card">
-                    <div className="summary-header">
-                        <Text className="summary-title">Tóm tắt đơn hàng</Text>
+                <Card className="bg-white rounded-xl shadow-xl border border-gray-200 mb-6 overflow-hidden">
+                    <div className="bg-gradient-to-r from-primary to-red-600 p-4">
+                        <p className="text-white text-lg font-bold">Tóm tắt đơn hàng</p>
                     </div>
 
-                    <div className="summary-content">
+                    <div className="p-6 space-y-4">
                         {movieTitle && (
-                            <div className="summary-row">
-                                <Text className="summary-label">Phim:</Text>
-                                <Text className="summary-value">{movieTitle}</Text>
+                            <div className="flex justify-between items-start py-2">
+                                <p className="text-gray-600 font-medium text-sm">Phim:</p>
+                                <p className="text-gray-900 font-semibold text-right flex-1 ml-4 text-sm">{movieTitle}</p>
                             </div>
                         )}
 
                         {cinemaName && (
-                            <div className="summary-row">
-                                <Text className="summary-label">Rạp:</Text>
-                                <Text className="summary-value">{cinemaName}</Text>
+                            <div className="flex justify-between items-start py-2">
+                                <p className="text-gray-600 font-medium text-sm">Rạp:</p>
+                                <p className="text-gray-900 font-semibold text-right flex-1 ml-4 text-sm">{cinemaName}</p>
                             </div>
                         )}
 
                         {showTime && (
-                            <div className="summary-row">
-                                <Text className="summary-label">Suất chiếu:</Text>
-                                <Text className="summary-value">
+                            <div className="flex justify-between items-start py-2">
+                                <p className="text-gray-600 font-medium text-sm">Suất chiếu:</p>
+                                <p className="text-gray-900 font-semibold text-right flex-1 ml-4 text-sm">
                                     {showTime} - {showDate ? dayjs(showDate).format('DD/MM/YYYY') : ''}
-                                </Text>
+                                </p>
                             </div>
                         )}
 
                         {seatNumbers && (
-                            <div className="summary-row">
-                                <Text className="summary-label">Số vé:</Text>
-                                <Text className="summary-value">{seatNumbers}</Text>
+                            <div className="flex justify-between items-start py-2">
+                                <p className="text-gray-600 font-medium text-sm">Số vé:</p>
+                                <p className="text-gray-900 font-semibold text-right flex-1 ml-4 text-sm">{seatNumbers}</p>
                             </div>
                         )}
 
-                        <div className="summary-divider"></div>
+                        {bookingCode && (
+                            <div className="flex justify-between items-start py-2">
+                                <p className="text-gray-600 font-medium text-sm">Mã đặt vé:</p>
+                                <p className="text-gray-900 font-semibold text-right flex-1 ml-4 text-sm font-mono">{bookingCode}</p>
+                            </div>
+                        )}
 
-                        <div className="summary-total">
-                            <Text className="total-label">Tổng cộng:</Text>
-                            <Text className="total-value">{totalAmount}</Text>
+                        <div className="border-t border-gray-200 my-4"></div>
+
+                        <div className="flex justify-between items-center pt-2">
+                            <p className="text-gray-900 font-bold text-lg">Tổng cộng:</p>
+                            <p className="text-red-600 font-bold text-xl">{totalAmount}</p>
                         </div>
                     </div>
 
-                    {/* Warning Message */}
-                    <div className="warning-message">
-                        <CloseCircleOutlined className="warning-icon" />
-                        <Text className="warning-text">
-                            Ghế của bạn sẽ được giữ trong <strong>09:15</strong>
-                        </Text>
+                    <div className="mx-6 mb-6 flex items-center gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <XCircle className="text-yellow-600 text-xl flex-shrink-0" />
+                        <p className="text-yellow-800 text-sm">
+                            <strong>Lưu ý:</strong> Ghế của bạn sẽ được giữ trong thời gian nhất định. Vui lòng hoàn tất thanh toán để giữ chỗ.
+                        </p>
                     </div>
                 </Card>
 
-                {/* Action Buttons */}
-                <div className="failed-actions">
+                <div className="flex flex-col gap-3 mb-6">
                     <Button
-                        size="large"
-                        className="choose-method-btn"
                         onClick={handleTryAgain}
+                        className="h-12 rounded-lg font-semibold bg-primary hover:bg-red-700 text-white"
                     >
-                        Chọn phương thức ...
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        Thử lại thanh toán
                     </Button>
                     <Button
-                        type="primary"
-                        size="large"
-                        className="retry-payment-btn"
-                        icon={<ReloadOutlined />}
-                        onClick={handleTryAgain}
+                        onClick={handleBackToHome}
+                        variant="outline"
+                        className="h-12 rounded-lg font-semibold border-2"
                     >
-                        Thử lại thanh toán
+                        <Home className="h-4 w-4 mr-2" />
+                        Về trang chủ
                     </Button>
                 </div>
 
-                {/* Support Link */}
-                <div className="support-link">
-                    <Text className="support-text">Cần trợ giúp? </Text>
-                    <Button
-                        type="link"
-                        onClick={handleContactSupport}
-                        className="support-link-btn"
-                    >
-                        Liên hệ với chúng tôi
-                    </Button>
-                </div>
             </div>
         </div>
     );

@@ -1,88 +1,49 @@
 import React, { useState, useEffect } from 'react';
-import {
-    Card,
-    Row,
-    Col,
-    Button,
-    Form,
-    Input,
-    Select,
-    DatePicker,
-    Upload,
-    Avatar,
-    Typography,
-    Space,
-    Divider,
-    Tag,
-    Progress,
-    Statistic,
-    Badge,
-    Tabs,
-    Table,
-    Rate,
-    Empty,
-    message,
-    Modal,
-    Breadcrumb,
-    BackTop
-} from 'antd';
-import {
-    UserOutlined,
-    EditOutlined,
-    CameraOutlined,
-    SaveOutlined,
-    HistoryOutlined,
-    HeartOutlined,
-    TrophyOutlined,
-    GiftOutlined,
-    SettingOutlined,
-    SecurityScanOutlined,
-    BellOutlined,
-    HomeOutlined,
-    ArrowUpOutlined,
-    StarOutlined,
-    CalendarOutlined,
-    EnvironmentOutlined,
-    PhoneOutlined,
-    MailOutlined
-} from '@ant-design/icons';
-import {
-    User,
-    Edit,
-    Camera,
-    Save,
-    Heart,
-    Trophy,
-    Gift,
-    Settings,
-    Shield,
-    Bell,
-    MapPin,
-    Phone,
-    Mail,
-    Calendar,
-    Star,
-    Ticket,
-    Clock
-} from 'lucide-react';
+import { User, Edit, Camera, Save, Heart, Trophy, Gift, Settings, Shield, Bell, MapPin, Phone, Mail, Calendar, Star, Ticket, Clock, Home, ArrowUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import dayjs from 'dayjs';
+import { Button } from '../../../components/ui/button';
+import { Card } from '../../../components/ui/card';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '../../../components/ui/form';
+import { Input } from '../../../components/ui/input';
+import { Textarea } from '../../../components/ui/textarea';
+import { Select } from '../../../components/ui/select';
+import { DatePicker } from '../../../components/ui/date-picker';
+import { Upload } from '../../../components/ui/upload';
+import { Avatar } from '../../../components/ui/avatar';
+import { Tag } from '../../../components/ui/tag';
+import { Progress } from '../../../components/ui/progress';
+import { StatisticCard } from '../../../components/ui/statistic';
+import { Badge } from '../../../components/ui/badge-count';
+import { Tabs } from '../../../components/ui/tabs';
+import { TableWrapper } from '../../../components/ui/table-wrapper';
+import { Empty } from '../../../components/ui/empty';
+import { Breadcrumb } from '../../../components/ui/breadcrumb';
+import { Separator } from '../../../components/ui/separator';
+import GlobalBackTop from '../../../components/GlobalBackTop/GlobalBackTop';
 import useAuth from '../../../hooks/useAuth';
-import './Profile.css';
-
-const { Title, Text, Paragraph } = Typography;
-const { Option } = Select;
-const { TabPane } = Tabs;
+import useNotification from '../../../hooks/useNotification';
+import { useForm } from 'react-hook-form';
 
 const Profile = () => {
     const { user, updateUser } = useAuth();
-    const [form] = Form.useForm();
+    const notification = useNotification();
+    const form = useForm({
+        defaultValues: {
+            name: '',
+            email: '',
+            phone: '',
+            birthDate: null,
+            gender: '',
+            address: '',
+            city: ''
+        }
+    });
     const [editMode, setEditMode] = useState(false);
     const [loading, setLoading] = useState(false);
     const [avatar, setAvatar] = useState(null);
     const [activeTab, setActiveTab] = useState('info');
 
-    // Mock data for user stats and history
     const [userStats, setUserStats] = useState({
         totalBookings: 25,
         totalSpent: 2500000,
@@ -134,14 +95,14 @@ const Profile = () => {
 
     useEffect(() => {
         if (user) {
-            form.setFieldsValue({
-                name: user.name,
-                email: user.email,
-                phone: user.phone,
+            form.reset({
+                name: user.name || '',
+                email: user.email || '',
+                phone: user.phone || '',
                 birthDate: user.birthDate ? dayjs(user.birthDate) : null,
-                gender: user.gender,
-                address: user.address,
-                city: user.city
+                gender: user.gender || '',
+                address: user.address || '',
+                city: user.city || ''
             });
         }
     }, [user, form]);
@@ -149,31 +110,34 @@ const Profile = () => {
     const handleSave = async (values) => {
         setLoading(true);
         try {
-            // Simulate API call
             await new Promise(resolve => setTimeout(resolve, 1000));
 
             await updateUser({
                 ...values,
-                birthDate: values.birthDate ? values.birthDate.format('YYYY-MM-DD') : null
+                birthDate: values.birthDate ? (dayjs.isDayjs(values.birthDate) ? values.birthDate.format('YYYY-MM-DD') : values.birthDate) : null
             });
 
-            message.success('Cập nhật thông tin thành công!');
+            notification.success('Cập nhật thông tin thành công!');
             setEditMode(false);
         } catch (error) {
-            message.error('Có lỗi xảy ra khi cập nhật thông tin!');
+            notification.error('Có lỗi xảy ra khi cập nhật thông tin!');
         } finally {
             setLoading(false);
         }
     };
 
     const handleAvatarChange = (info) => {
-        if (info.file.status === 'uploading') {
+        if (info.file?.status === 'uploading') {
             setLoading(true);
             return;
         }
-        if (info.file.status === 'done') {
-            setAvatar(info.file.response.url);
-            setLoading(false);
+        if (info.file?.status === 'done' || info.file) {
+            const file = info.file?.originFileObj || info.file;
+            if (file) {
+                const url = URL.createObjectURL(file);
+                setAvatar(url);
+                setLoading(false);
+            }
         }
     };
 
@@ -205,7 +169,7 @@ const Profile = () => {
             title: 'Phim',
             dataIndex: 'movie',
             key: 'movie',
-            render: (text) => <Text strong>{text}</Text>
+            render: (text) => <span className="font-semibold">{text}</span>
         },
         {
             title: 'Rạp',
@@ -217,10 +181,10 @@ const Profile = () => {
             dataIndex: 'date',
             key: 'date',
             render: (date) => (
-                <Space>
-                    <Calendar size={14} />
+                <div className="flex items-center gap-1">
+                    <Calendar className="h-3.5 w-3.5" />
                     {dayjs(date).format('DD/MM/YYYY')}
-                </Space>
+                </div>
             )
         },
         {
@@ -228,10 +192,10 @@ const Profile = () => {
             dataIndex: 'time',
             key: 'time',
             render: (time) => (
-                <Space>
-                    <Clock size={14} />
+                <div className="flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5" />
                     {time}
-                </Space>
+                </div>
             )
         },
         {
@@ -245,9 +209,9 @@ const Profile = () => {
             dataIndex: 'total',
             key: 'total',
             render: (total) => (
-                <Text strong style={{ color: 'var(--accent-red)' }}>
+                <span className="font-semibold text-primary">
                     {total.toLocaleString('vi-VN')}đ
-                </Text>
+                </span>
             )
         },
         {
@@ -255,469 +219,462 @@ const Profile = () => {
             dataIndex: 'status',
             key: 'status',
             render: (status) => (
-                <Tag color={status === 'completed' ? 'success' : 'processing'}>
+                <Tag color={status === 'completed' ? 'green' : 'blue'}>
                     {status === 'completed' ? 'Hoàn thành' : 'Đang xử lý'}
                 </Tag>
             )
         }
     ];
 
-  return (
-        <div className="profile-modern">
-            {/* Breadcrumb */}
-            <div className="breadcrumb-section">
-                <div className="container">
-                    <Breadcrumb>
-                        <Breadcrumb.Item>
-                            <Link to="/">
-                                <HomeOutlined /> Trang chủ
-                            </Link>
-                        </Breadcrumb.Item>
-                        <Breadcrumb.Item>
-                            <UserOutlined /> Hồ sơ cá nhân
-                        </Breadcrumb.Item>
-                    </Breadcrumb>
+    return (
+        <div className="min-h-screen bg-gray-50">
+            <div className="bg-white border-b border-gray-200 py-4">
+                <div className="max-w-[1200px] mx-auto px-4 md:px-6">
+                    <Breadcrumb
+                        items={[
+                            {
+                                title: (
+                                    <>
+                                        <Home className="h-4 w-4 inline mr-1" />
+                                        Trang chủ
+                                    </>
+                                ),
+                                href: '/'
+                            },
+                            {
+                                title: (
+                                    <>
+                                        <User className="h-4 w-4 inline mr-1" />
+                                        Hồ sơ cá nhân
+                                    </>
+                                )
+                            }
+                        ]}
+                    />
                 </div>
             </div>
 
-            <div className="container">
-                {/* Profile Header */}
-                <Card className="profile-header-card">
-                    <Row gutter={[24, 24]} align="middle">
-                        <Col xs={24} sm={8} md={6}>
-                            <div className="avatar-section">
-                                <Badge
-                                    count={
-                                        <Button
-                                            type="primary"
-                                            shape="circle"
-                                            icon={<Camera size={16} />}
-                                            size="small"
-                                            onClick={() => setEditMode(true)}
-                                        />
-                                    }
-                                    offset={[-10, 40]}
+            <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-8">
+                <Card className="bg-white rounded-xl shadow-md border border-gray-200 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-6 items-center">
+                        <div className="flex flex-col items-center">
+                            <Badge
+                                count={
+                                    <Button
+                                        size="icon"
+                                        className="rounded-full h-8 w-8"
+                                        onClick={() => setEditMode(true)}
+                                    >
+                                        <Camera className="h-4 w-4" />
+                                    </Button>
+                                }
+                            >
+                                <Avatar
+                                    className="w-30 h-30 border-4 border-gray-200"
+                                    src={avatar || user?.avatar}
                                 >
-                                    <Avatar
-                                        size={120}
-                                        src={avatar || user?.avatar}
-                                        icon={<User size={40} />}
-                                        className="profile-avatar"
-                                    />
-                                </Badge>
-                                <div className="user-level">
-                                    <Badge
-                                        count={userStats.memberLevel}
-                                        style={{
-                                            backgroundColor: getLevelColor(userStats.memberLevel),
-                                            fontSize: '11px',
-                                            fontWeight: 600
-                                        }}
+                                    <User className="h-10 w-10" />
+                                </Avatar>
+                            </Badge>
+                            <div className="mt-3">
+                                <Tag color="orange" className="px-3 py-1">
+                                    {userStats.memberLevel}
+                                </Tag>
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <div>
+                                <h2 className="m-0 text-gray-900 text-2xl font-bold">
+                                    {user?.name || 'Người dùng'}
+                                </h2>
+                                <p className="text-sm text-gray-600 mt-1">
+                                    Thành viên từ {dayjs(userStats.joinDate).format('DD/MM/YYYY')}
+                                </p>
+                            </div>
+
+                            <div className="flex flex-wrap gap-4 mt-4">
+                                <div className="flex items-center gap-2">
+                                    <Mail className="h-4 w-4 text-gray-500" />
+                                    <span className="text-sm text-gray-700">{user?.email}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Phone className="h-4 w-4 text-gray-500" />
+                                    <span className="text-sm text-gray-700">{user?.phone || '1234567890'}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <MapPin className="h-4 w-4 text-gray-500" />
+                                    <span className="text-sm text-gray-700">{user?.address || 'Localhost'}</span>
+                                </div>
+                            </div>
+
+                            <div className="mt-4">
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-base text-gray-900 font-semibold">
+                                            Điểm tích lũy: {userStats.loyaltyPoints.toLocaleString('vi-VN')}
+                                        </span>
+                                        <span className="text-sm text-gray-600">
+                                            {userStats.memberLevel}
+                                        </span>
+                                    </div>
+                                    <Progress
+                                        percent={getLevelProgress(userStats.loyaltyPoints)}
+                                        strokeColor={getLevelColor(userStats.memberLevel)}
+                                        showInfo={false}
                                     />
                                 </div>
                             </div>
-                        </Col>
-                        <Col xs={24} sm={16} md={18}>
-                            <div className="profile-info">
-                                <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                                    <div className="name-section">
-                                        <Title level={2} style={{ margin: 0 }}>
-                                            {user?.name || 'Người dùng'}
-                                        </Title>
-                                        <Text type="secondary" style={{ fontSize: '14px' }}>
-                                            Thành viên từ {dayjs(userStats.joinDate).format('DD/MM/YYYY')}
-                                        </Text>
-                                    </div>
-
-                                    <Space wrap size={16} style={{ marginTop: '16px' }}>
-                                        <Space size={6}>
-                                            <Mail size={16} color="#6b7280" />
-                                            <Text style={{ fontSize: '14px' }}>{user?.email}</Text>
-                                        </Space>
-                                        <Space size={6}>
-                                            <Phone size={16} color="#6b7280" />
-                                            <Text style={{ fontSize: '14px' }}>{user?.phone || '1234567890'}</Text>
-                                        </Space>
-                                        <Space size={6}>
-                                            <MapPin size={16} color="#6b7280" />
-                                            <Text style={{ fontSize: '14px' }}>{user?.address || 'Localhost'}</Text>
-                                        </Space>
-                                    </Space>
-
-                                    <div className="loyalty-progress">
-                                        <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                                            <Space justify="space-between" style={{ width: '100%' }}>
-                                                <Text strong style={{ fontSize: '15px' }}>
-                                                    Điểm tích lũy: {userStats.loyaltyPoints.toLocaleString('vi-VN')}
-                                                </Text>
-                                                <Text type="secondary" style={{ fontSize: '13px' }}>
-                                                    {userStats.memberLevel}
-                                                </Text>
-                                            </Space>
-                                            <Progress
-                                                percent={getLevelProgress(userStats.loyaltyPoints)}
-                                                strokeColor={getLevelColor(userStats.memberLevel)}
-                                                trailColor="rgba(0,0,0,0.06)"
-                                                strokeWidth={10}
-                                                showInfo={false}
-                                            />
-                                        </Space>
-                                    </div>
-                                </Space>
-                            </div>
-                        </Col>
-                    </Row>
+                        </div>
+                    </div>
                 </Card>
 
-                {/* Stats Cards */}
-                <Row gutter={[16, 16]} className="stats-section">
-                    <Col xs={12} sm={6}>
-                        <Card className="stat-card" bordered={false}>
-                            <Statistic
-                                title="Tổng đặt vé"
-                                value={userStats.totalBookings}
-                                prefix={<Ticket size={20} color="#e50914" />}
-                                valueStyle={{
-                                    color: 'var(--accent-red)',
-                                    fontSize: '28px',
-                                    fontWeight: '700'
-                                }}
-                            />
-                        </Card>
-                    </Col>
-                    <Col xs={12} sm={6}>
-                        <Card className="stat-card" bordered={false}>
-                            <Statistic
-                                title="Tổng chi tiêu"
-                                value={userStats.totalSpent}
-                                prefix={<Gift size={20} color="#10b981" />}
-                                suffix="đ"
-                                valueStyle={{
-                                    color: '#10b981',
-                                    fontSize: '28px',
-                                    fontWeight: '700'
-                                }}
-                                formatter={(value) => value.toLocaleString('vi-VN')}
-                            />
-                        </Card>
-                    </Col>
-                    <Col xs={12} sm={6}>
-                        <Card className="stat-card" bordered={false}>
-                            <Statistic
-                                title="Phim yêu thích"
-                                value={userStats.favoriteMovies}
-                                prefix={<Heart size={20} color="#ef4444" />}
-                                valueStyle={{
-                                    color: '#ef4444',
-                                    fontSize: '28px',
-                                    fontWeight: '700'
-                                }}
-                            />
-                        </Card>
-                    </Col>
-                    <Col xs={12} sm={6}>
-                        <Card className="stat-card" bordered={false}>
-                            <Statistic
-                                title="Điểm tích lũy"
-                                value={userStats.loyaltyPoints}
-                                prefix={<Trophy size={20} color="#faad14" />}
-                                valueStyle={{
-                                    color: '#faad14',
-                                    fontSize: '28px',
-                                    fontWeight: '700'
-                                }}
-                                formatter={(value) => value.toLocaleString('vi-VN')}
-                            />
-                        </Card>
-                    </Col>
-                </Row>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                    <Card className="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
+                        <StatisticCard
+                            title="Tổng đặt vé"
+                            value={userStats.totalBookings}
+                            icon={<Ticket className="h-5 w-5 text-primary" />}
+                            valueStyle={{ color: '#e50914', fontSize: '28px', fontWeight: '700' }}
+                        />
+                    </Card>
+                    <Card className="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
+                        <StatisticCard
+                            title="Tổng chi tiêu"
+                            value={`${userStats.totalSpent.toLocaleString('vi-VN')}đ`}
+                            icon={<Gift className="h-5 w-5 text-green-600" />}
+                            valueStyle={{ color: '#10b981', fontSize: '28px', fontWeight: '700' }}
+                        />
+                    </Card>
+                    <Card className="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
+                        <StatisticCard
+                            title="Phim yêu thích"
+                            value={userStats.favoriteMovies}
+                            icon={<Heart className="h-5 w-5 text-red-500" />}
+                            valueStyle={{ color: '#ef4444', fontSize: '28px', fontWeight: '700' }}
+                        />
+                    </Card>
+                    <Card className="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
+                        <StatisticCard
+                            title="Điểm tích lũy"
+                            value={userStats.loyaltyPoints.toLocaleString('vi-VN')}
+                            icon={<Trophy className="h-5 w-5 text-yellow-500" />}
+                            valueStyle={{ color: '#faad14', fontSize: '28px', fontWeight: '700' }}
+                        />
+                    </Card>
+                </div>
 
-                {/* Main Content Tabs */}
-                <Card className="content-tabs-card">
+                <Card className="bg-white rounded-xl shadow-md border border-gray-200">
                     <Tabs
                         activeKey={activeTab}
                         onChange={setActiveTab}
-                        size="large"
-                        tabBarStyle={{ marginBottom: 24 }}
-                    >
-                        <TabPane
-                            tab={
-                                <Space>
-                                    <User size={16} />
-                                    Thông tin cá nhân
-                                </Space>
-                            }
-                            key="info"
-                        >
-                            <Form
-                                form={form}
-                                layout="vertical"
-                                onFinish={handleSave}
-                                disabled={!editMode}
-                            >
-                                <Row gutter={[24, 16]}>
-                                    <Col xs={24} md={12}>
-                                        <Form.Item
-                                            label="Họ và tên"
-                                            name="name"
-                                            rules={[{ required: true, message: 'Vui lòng nhập họ tên!' }]}
-                                        >
-                                            <Input size="large" prefix={<User size={16} />} />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col xs={24} md={12}>
-                                        <Form.Item
-                                            label="Email"
-                                            name="email"
-                                            rules={[
-                                                { required: true, message: 'Vui lòng nhập email!' },
-                                                { type: 'email', message: 'Email không hợp lệ!' }
-                                            ]}
-                                        >
-                                            <Input size="large" prefix={<Mail size={16} />} />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col xs={24} md={12}>
-                                        <Form.Item
-                                            label="Số điện thoại"
-                                            name="phone"
-                                        >
-                                            <Input size="large" prefix={<Phone size={16} />} />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col xs={24} md={12}>
-                                        <Form.Item
-                                            label="Ngày sinh"
-                                            name="birthDate"
-                                        >
-                                            <DatePicker
-                                                size="large"
-                                                style={{ width: '100%' }}
-                                                format="DD/MM/YYYY"
-                                                placeholder="Chọn ngày sinh"
+                        items={[
+                            {
+                                key: 'info',
+                                label: (
+                                    <span className="flex items-center gap-2">
+                                        <User className="h-4 w-4" />
+                                        Thông tin cá nhân
+                                    </span>
+                                ),
+                                children: (
+                                    <Form {...form}>
+                                        <form onSubmit={form.handleSubmit(handleSave)} className="space-y-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <FormField
+                                                    control={form.control}
+                                                    name="name"
+                                                    rules={{ required: 'Vui lòng nhập họ tên!' }}
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Họ và tên</FormLabel>
+                                                            <FormControl>
+                                                                <Input
+                                                                    {...field}
+                                                                    prefix={<User className="h-4 w-4 text-gray-400" />}
+                                                                    disabled={!editMode}
+                                                                    className="h-10"
+                                                                />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <FormField
+                                                    control={form.control}
+                                                    name="email"
+                                                    rules={[
+                                                        { required: 'Vui lòng nhập email!' },
+                                                        { type: 'email', message: 'Email không hợp lệ!' }
+                                                    ]}
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Email</FormLabel>
+                                                            <FormControl>
+                                                                <Input
+                                                                    {...field}
+                                                                    prefix={<Mail className="h-4 w-4 text-gray-400" />}
+                                                                    disabled={!editMode}
+                                                                    className="h-10"
+                                                                />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <FormField
+                                                    control={form.control}
+                                                    name="phone"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Số điện thoại</FormLabel>
+                                                            <FormControl>
+                                                                <Input
+                                                                    {...field}
+                                                                    prefix={<Phone className="h-4 w-4 text-gray-400" />}
+                                                                    disabled={!editMode}
+                                                                    className="h-10"
+                                                                />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <FormField
+                                                    control={form.control}
+                                                    name="birthDate"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Ngày sinh</FormLabel>
+                                                            <FormControl>
+                                                                <DatePicker
+                                                                    value={field.value}
+                                                                    onChange={field.onChange}
+                                                                    disabled={!editMode}
+                                                                    format="DD/MM/YYYY"
+                                                                    placeholder="Chọn ngày sinh"
+                                                                    className="w-full h-10"
+                                                                />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <FormField
+                                                    control={form.control}
+                                                    name="gender"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Giới tính</FormLabel>
+                                                            <FormControl>
+                                                                <Select
+                                                                    value={field.value}
+                                                                    onValueChange={field.onChange}
+                                                                    disabled={!editMode}
+                                                                    placeholder="Chọn giới tính"
+                                                                >
+                                                                    <option value="male">Nam</option>
+                                                                    <option value="female">Nữ</option>
+                                                                    <option value="other">Khác</option>
+                                                                </Select>
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <FormField
+                                                    control={form.control}
+                                                    name="city"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Thành phố</FormLabel>
+                                                            <FormControl>
+                                                                <Select
+                                                                    value={field.value}
+                                                                    onValueChange={field.onChange}
+                                                                    disabled={!editMode}
+                                                                    placeholder="Chọn thành phố"
+                                                                >
+                                                                    <option value="ho-chi-minh">Thành phố Hồ Chí Minh</option>
+                                                                    <option value="ha-noi">Hà Nội</option>
+                                                                    <option value="da-nang">Đà Nẵng</option>
+                                                                    <option value="can-tho">Cần Thơ</option>
+                                                                </Select>
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </div>
+                                            <FormField
+                                                control={form.control}
+                                                name="address"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Địa chỉ</FormLabel>
+                                                        <FormControl>
+                                                            <Textarea
+                                                                {...field}
+                                                                disabled={!editMode}
+                                                                rows={3}
+                                                                placeholder="Nhập địa chỉ của bạn"
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
                                             />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col xs={24} md={12}>
-                                        <Form.Item
-                                            label="Giới tính"
-                                            name="gender"
-                                        >
-                                            <Select size="large" placeholder="Chọn giới tính">
-                                                <Option value="male">Nam</Option>
-                                                <Option value="female">Nữ</Option>
-                                                <Option value="other">Khác</Option>
-                                            </Select>
-                                        </Form.Item>
-                                    </Col>
-                                    <Col xs={24} md={12}>
-                                        <Form.Item
-                                            label="Thành phố"
-                                            name="city"
-                                        >
-                                            <Select size="large" placeholder="Chọn thành phố">
-                                                <Option value="ho-chi-minh">Thành phố Hồ Chí Minh</Option>
-                                                <Option value="ha-noi">Hà Nội</Option>
-                                                <Option value="da-nang">Đà Nẵng</Option>
-                                                <Option value="can-tho">Cần Thơ</Option>
-                                            </Select>
-                                        </Form.Item>
-                                    </Col>
-                                    <Col xs={24}>
-                                        <Form.Item
-                                            label="Địa chỉ"
-                                            name="address"
-                                        >
-                                            <Input.TextArea
-                                                size="large"
-                                                rows={3}
-                                                placeholder="Nhập địa chỉ của bạn"
-                                            />
-                                        </Form.Item>
-                                    </Col>
-                                </Row>
 
-                                <Divider />
+                                            <Separator />
 
-                                <Space>
-                                    {editMode ? (
-                                        <>
-                                            <Button
-                                                type="primary"
-                                                htmlType="submit"
-                                                loading={loading}
-                                                icon={<Save size={16} />}
-                                                size="large"
-                                            >
-                                                Lưu thay đổi
-                                            </Button>
-                                            <Button
-                                                onClick={() => setEditMode(false)}
-                                                size="large"
-                                            >
-                                                Hủy
-                                            </Button>
-                                        </>
-                                    ) : (
-                                        <Button
-                                            type="primary"
-                                            onClick={() => setEditMode(true)}
-                                            icon={<Edit size={16} />}
-                                            size="large"
-                                        >
-                                            Chỉnh sửa thông tin
-                                        </Button>
-                                    )}
-                                </Space>
-                            </Form>
-                        </TabPane>
-
-                        <TabPane
-                            tab={
-                                <Space>
-                                    <Clock size={16} />
-                                    Lịch sử đặt vé
-                                </Space>
-                            }
-                            key="history"
-                        >
-                            <Table
-                                columns={bookingColumns}
-                                dataSource={bookingHistory}
-                                rowKey="id"
-                                pagination={{ pageSize: 10 }}
-                                scroll={{ x: 800 }}
-                                className="booking-history-table"
-                            />
-                        </TabPane>
-
-                        <TabPane
-                            tab={
-                                <Space>
-                                    <Heart size={16} />
-                                    Phim yêu thích
-                                </Space>
-                            }
-                            key="favorites"
-                        >
-                            {favoriteMovies.length > 0 ? (
-                                <Row gutter={[16, 16]}>
-                                    {favoriteMovies.map(movie => (
-                                        <Col xs={12} sm={8} md={6} lg={4} key={movie.id}>
-                                            <Card
-                                                hoverable
-                                                cover={
+                                            <div className="flex gap-2">
+                                                {editMode ? (
+                                                    <>
+                                                        <Button
+                                                            type="submit"
+                                                            loading={loading}
+                                                            disabled={loading}
+                                                        >
+                                                            <Save className="h-4 w-4 mr-2" />
+                                                            Lưu thay đổi
+                                                        </Button>
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={() => setEditMode(false)}
+                                                        >
+                                                            Hủy
+                                                        </Button>
+                                                    </>
+                                                ) : (
+                                                    <Button
+                                                        onClick={() => setEditMode(true)}
+                                                    >
+                                                        <Edit className="h-4 w-4 mr-2" />
+                                                        Chỉnh sửa thông tin
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </form>
+                                    </Form>
+                                )
+                            },
+                            {
+                                key: 'history',
+                                label: (
+                                    <span className="flex items-center gap-2">
+                                        <Clock className="h-4 w-4" />
+                                        Lịch sử đặt vé
+                                    </span>
+                                ),
+                                children: (
+                                    <TableWrapper
+                                        columns={bookingColumns}
+                                        dataSource={bookingHistory}
+                                        rowKey="id"
+                                        pagination={{ pageSize: 10 }}
+                                    />
+                                )
+                            },
+                            {
+                                key: 'favorites',
+                                label: (
+                                    <span className="flex items-center gap-2">
+                                        <Heart className="h-4 w-4" />
+                                        Phim yêu thích
+                                    </span>
+                                ),
+                                children: (
+                                    favoriteMovies.length > 0 ? (
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                                            {favoriteMovies.map(movie => (
+                                                <Card
+                                                    key={movie.id}
+                                                    className="rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200 overflow-hidden"
+                                                >
                                                     <img
                                                         src={movie.poster}
                                                         alt={movie.title}
-                                                        style={{ height: 200, objectFit: 'cover' }}
+                                                        className="h-[200px] w-full object-cover"
                                                     />
-                                                }
-                                                className="favorite-movie-card"
-                                            >
-                                                <Card.Meta
-                                                    title={
-                                                        <Text ellipsis={{ tooltip: movie.title }}>
+                                                    <div className="p-3">
+                                                        <h4 className="font-semibold text-sm mb-2 line-clamp-1">
                                                             {movie.title}
-                                                        </Text>
-                                                    }
-                                                    description={
-                                                        <Space direction="vertical" size={4}>
-                                                            <Space>
-                                                                <Star size={12} fill="#faad14" color="#faad14" />
-                                                                <Text>{movie.rating}</Text>
-                                                            </Space>
-                                                            <Text type="secondary">{movie.year}</Text>
-                                                        </Space>
-                                                    }
-                                                />
-                                            </Card>
-                                        </Col>
-                                    ))}
-                                </Row>
-                            ) : (
-                                <Empty description="Chưa có phim yêu thích nào" />
-                            )}
-                        </TabPane>
+                                                        </h4>
+                                                        <div className="flex flex-col gap-1">
+                                                            <div className="flex items-center gap-1">
+                                                                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                                                <span className="text-xs">{movie.rating}</span>
+                                                            </div>
+                                                            <span className="text-xs text-gray-500">{movie.year}</span>
+                                                        </div>
+                                                    </div>
+                                                </Card>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <Empty description="Chưa có phim yêu thích nào" />
+                                    )
+                                )
+                            },
+                            {
+                                key: 'settings',
+                                label: (
+                                    <span className="flex items-center gap-2">
+                                        <Settings className="h-4 w-4" />
+                                        Cài đặt
+                                    </span>
+                                ),
+                                children: (
+                                    <div className="space-y-4">
+                                        <Card className="rounded-lg border border-gray-200">
+                                            <h4 className="font-semibold mb-4">Cài đặt thông báo</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex justify-between items-center py-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <Bell className="h-4 w-4" />
+                                                        <span className="text-gray-900">Thông báo email</span>
+                                                    </div>
+                                                    <Button size="sm" className="rounded">Bật</Button>
+                                                </div>
+                                                <div className="flex justify-between items-center py-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <Bell className="h-4 w-4" />
+                                                        <span className="text-gray-900">Thông báo push</span>
+                                                    </div>
+                                                    <Button size="sm" className="rounded">Bật</Button>
+                                                </div>
+                                            </div>
+                                        </Card>
 
-                        <TabPane
-                            tab={
-                                <Space>
-                                    <Settings size={16} />
-                                    Cài đặt
-                                </Space>
+                                        <Card className="rounded-lg border border-gray-200">
+                                            <h4 className="font-semibold mb-4">Bảo mật</h4>
+                                            <div className="space-y-3">
+                                                <div className="flex justify-between items-center py-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <Shield className="h-4 w-4" />
+                                                        <span className="text-gray-900">Đổi mật khẩu</span>
+                                                    </div>
+                                                    <Button size="sm" className="rounded">Đổi</Button>
+                                                </div>
+                                                <div className="flex justify-between items-center py-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <Shield className="h-4 w-4" />
+                                                        <span className="text-gray-900">Xác thực 2 bước</span>
+                                                    </div>
+                                                    <Button size="sm" className="rounded">Bật</Button>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    </div>
+                                )
                             }
-                            key="settings"
-                        >
-                            <Space direction="vertical" size={16} style={{ width: '100%' }}>
-                                <Card title="Cài đặt thông báo" size="small">
-                                    <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                                        <div className="setting-item">
-                                            <Space justify="space-between" style={{ width: '100%' }}>
-                                                <Space>
-                                                    <Bell size={16} />
-                                                    <Text>Thông báo email</Text>
-                                                </Space>
-                                                <Button size="small">Bật</Button>
-                                            </Space>
-                                        </div>
-                                        <div className="setting-item">
-                                            <Space justify="space-between" style={{ width: '100%' }}>
-                                                <Space>
-                                                    <Bell size={16} />
-                                                    <Text>Thông báo push</Text>
-                                                </Space>
-                                                <Button size="small">Bật</Button>
-                                            </Space>
-                                        </div>
-                                    </Space>
-                                </Card>
-
-                                <Card title="Bảo mật" size="small">
-                                    <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                                        <div className="setting-item">
-                                            <Space justify="space-between" style={{ width: '100%' }}>
-                                                <Space>
-                                                    <Shield size={16} />
-                                                    <Text>Đổi mật khẩu</Text>
-                                                </Space>
-                                                <Button size="small" type="primary">Đổi</Button>
-                                            </Space>
-                                        </div>
-                                        <div className="setting-item">
-                                            <Space justify="space-between" style={{ width: '100%' }}>
-                                                <Space>
-                                                    <Shield size={16} />
-                                                    <Text>Xác thực 2 bước</Text>
-                                                </Space>
-                                                <Button size="small">Bật</Button>
-                                            </Space>
-                                        </div>
-                                    </Space>
-                                </Card>
-                            </Space>
-                        </TabPane>
-                    </Tabs>
+                        ]}
+                    />
                 </Card>
             </div>
 
-            {/* Back to Top */}
-            <BackTop
-                style={{
-                    height: 50,
-                    width: 50,
-                    backgroundColor: 'var(--accent-red)',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 4px 12px rgba(229, 9, 20, 0.3)',
-                }}
-            >
-                <ArrowUpOutlined style={{ color: 'white', fontSize: '20px' }} />
-            </BackTop>
-    </div>
-  );
+            <GlobalBackTop />
+        </div>
+    );
 };
 
-export default Profile; 
+export default Profile;

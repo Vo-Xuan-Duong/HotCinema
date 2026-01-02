@@ -1,60 +1,56 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card } from '../../../components/ui/card';
+import { TableWrapper } from '../../../components/ui/table-wrapper';
+import { Button } from '../../../components/ui/button';
+import { Modal } from '../../../components/ui/modal';
+import { Input } from '../../../components/ui/input';
+import { Select } from '../../../components/ui/select';
+import { InputNumber } from '../../../components/ui/input-number';
+import { Rate } from '../../../components/ui/rate';
+import { Tag } from '../../../components/ui/tag';
+import { Tabs } from '../../../components/ui/tabs';
+import { Separator } from '../../../components/ui/separator';
+import { Badge } from '../../../components/ui/badge-count';
+import { Progress } from '../../../components/ui/progress';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '../../../components/ui/tooltip';
+import { Empty } from '../../../components/ui/empty';
+import { Descriptions } from '../../../components/ui/descriptions';
+import { Breadcrumb } from '../../../components/ui/breadcrumb';
 import {
-  Card,
-  Table,
-  Button,
-  Modal,
-  Form,
-  Input,
-  Select,
-  InputNumber,
-  Rate,
-  Image,
-  Upload,
-  Tag,
-  Statistic,
-  Row,
-  Col,
-  Tabs,
-  Alert,
-  Space,
-  Avatar,
-  List,
-  Typography,
-  Divider,
-  Badge,
-  Progress,
-  Tooltip,
-  Popconfirm,
-  Empty,
-  Switch,
-  message,
-  Descriptions
-} from 'antd';
-import {
-  CoffeeOutlined,
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-  UploadOutlined,
-  StarOutlined,
-  FireOutlined,
-  DollarOutlined,
-  ShoppingCartOutlined
-} from '@ant-design/icons';
-import styles from './FoodBeverage.module.css';
-
-const { Title, Text } = Typography;
-const { Option } = Select;
-const { TextArea } = Input;
+  Coffee,
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  Star,
+  Flame,
+  DollarSign,
+  ShoppingCart,
+  Home
+} from 'lucide-react';
+import { SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select';
+import { Textarea } from '../../../components/ui/textarea';
+import { Checkbox } from '../../../components/ui/checkbox';
+import useNotification from '../../../hooks/useNotification';
 
 const FoodBeverage = () => {
+  const navigate = useNavigate();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [form] = Form.useForm();
+  const notification = useNotification();
+  const [formValues, setFormValues] = useState({
+    name: '',
+    category: '',
+    price: '',
+    originalPrice: '',
+    stock: '',
+    description: '',
+    image: '',
+    isPopular: false
+  });
   const [products, setProducts] = useState([
     {
       id: 1,
@@ -98,23 +94,48 @@ const FoodBeverage = () => {
   ]);
 
   const stats = [
-    { title: 'Tổng sản phẩm', value: products.length, icon: <CoffeeOutlined /> },
-    { title: 'Doanh thu tháng', value: '15.2M', icon: <DollarOutlined /> },
-    { title: 'Đơn hàng', value: products.reduce((a, b) => a + b.sales, 0), icon: <ShoppingCartOutlined /> },
-    { title: 'Tỷ lệ bán', value: products.length > 0 ? Math.round(products.filter(p => p.sales > 0).length / products.length * 100) + '%' : '0%', icon: <FireOutlined /> }
+    { title: 'Tổng sản phẩm', value: products.length, icon: <Coffee className="h-6 w-6" /> },
+    { title: 'Doanh thu tháng', value: '15.2M', icon: <DollarSign className="h-6 w-6" /> },
+    { title: 'Đơn hàng', value: products.reduce((a, b) => a + b.sales, 0), icon: <ShoppingCart className="h-6 w-6" /> },
+    {
+      title: 'Tỷ lệ bán',
+      value:
+        products.length > 0
+          ? Math.round((products.filter(p => p.sales > 0).length / products.length) * 100) + '%'
+          : '0%',
+      icon: <Flame className="h-6 w-6" />
+    }
   ];
 
   const handleCreateProduct = () => {
     setIsEditMode(false);
     setSelectedProduct(null);
-    form.resetFields();
+    setFormValues({
+      name: '',
+      category: '',
+      price: '',
+      originalPrice: '',
+      stock: '',
+      description: '',
+      image: '',
+      isPopular: false
+    });
     setIsModalVisible(true);
   };
 
   const handleEditProduct = (record) => {
     setIsEditMode(true);
     setSelectedProduct(record);
-    form.setFieldsValue(record);
+    setFormValues({
+      name: record.name || '',
+      category: record.category || '',
+      price: record.price || '',
+      originalPrice: record.originalPrice || '',
+      stock: record.stock || '',
+      description: record.description || '',
+      image: record.image || '',
+      isPopular: record.isPopular || false
+    });
     setIsModalVisible(true);
   };
 
@@ -125,37 +146,69 @@ const FoodBeverage = () => {
 
   const handleDeleteProduct = (id) => {
     setProducts(products.filter(item => item.id !== id));
-    message.success('Đã xóa sản phẩm!');
+    notification.success('Đã xóa sản phẩm!');
   };
 
-  const handleModalOk = () => {
-    form.validateFields().then((values) => {
-      let imageUrl = values.image;
-      if (Array.isArray(imageUrl) && imageUrl.length > 0 && imageUrl[0].url) {
-        imageUrl = imageUrl[0].url;
-      } else if (Array.isArray(imageUrl) && imageUrl.length > 0 && imageUrl[0].thumbUrl) {
-        imageUrl = imageUrl[0].thumbUrl;
-      } else if (typeof imageUrl !== 'string') {
-        imageUrl = 'https://via.placeholder.com/100x100?text=Image';
-      }
-      const newProduct = {
-        ...values,
-        image: imageUrl,
-        id: isEditMode && selectedProduct ? selectedProduct.id : Date.now(),
-        rating: isEditMode && selectedProduct ? selectedProduct.rating : 4.0,
-        sales: isEditMode && selectedProduct ? selectedProduct.sales : 0
-      };
-      if (isEditMode && selectedProduct) {
-        setProducts(products.map(item => item.id === selectedProduct.id ? newProduct : item));
-        message.success('Cập nhật sản phẩm thành công!');
-      } else {
-        setProducts([newProduct, ...products]);
-        message.success('Thêm sản phẩm thành công!');
-      }
-      setIsModalVisible(false);
-      setSelectedProduct(null);
-      setIsEditMode(false);
-      form.resetFields();
+  const handleModalOk = (e) => {
+    e?.preventDefault();
+    // Validation
+    if (!formValues.name?.trim()) {
+      notification.error('Vui lòng nhập tên sản phẩm!');
+      return;
+    }
+    if (!formValues.category) {
+      notification.error('Vui lòng chọn danh mục!');
+      return;
+    }
+    if (!formValues.price || formValues.price <= 0) {
+      notification.error('Vui lòng nhập giá bán hợp lệ!');
+      return;
+    }
+    if (!formValues.stock || formValues.stock < 0) {
+      notification.error('Vui lòng nhập số lượng tồn kho hợp lệ!');
+      return;
+    }
+
+    let imageUrl = formValues.image;
+    if (Array.isArray(imageUrl) && imageUrl.length > 0 && imageUrl[0].url) {
+      imageUrl = imageUrl[0].url;
+    } else if (Array.isArray(imageUrl) && imageUrl.length > 0 && imageUrl[0].thumbUrl) {
+      imageUrl = imageUrl[0].thumbUrl;
+    } else if (typeof imageUrl !== 'string' || !imageUrl) {
+      imageUrl = 'https://via.placeholder.com/100x100?text=Image';
+    }
+    const newProduct = {
+      name: formValues.name.trim(),
+      category: formValues.category,
+      price: Number(formValues.price),
+      originalPrice: Number(formValues.originalPrice) || Number(formValues.price),
+      stock: Number(formValues.stock),
+      description: formValues.description?.trim() || '',
+      image: imageUrl,
+      isPopular: formValues.isPopular || false,
+      id: isEditMode && selectedProduct ? selectedProduct.id : Date.now(),
+      rating: isEditMode && selectedProduct ? selectedProduct.rating : 4.0,
+      sales: isEditMode && selectedProduct ? selectedProduct.sales : 0
+    };
+    if (isEditMode && selectedProduct) {
+      setProducts(products.map(item => item.id === selectedProduct.id ? newProduct : item));
+      notification.success('Cập nhật sản phẩm thành công!');
+    } else {
+      setProducts([newProduct, ...products]);
+      notification.success('Thêm sản phẩm thành công!');
+    }
+    setIsModalVisible(false);
+    setSelectedProduct(null);
+    setIsEditMode(false);
+    setFormValues({
+      name: '',
+      category: '',
+      price: '',
+      originalPrice: '',
+      stock: '',
+      description: '',
+      image: '',
+      isPopular: false
     });
   };
 
@@ -163,7 +216,16 @@ const FoodBeverage = () => {
     setIsModalVisible(false);
     setSelectedProduct(null);
     setIsEditMode(false);
-    form.resetFields();
+    setFormValues({
+      name: '',
+      category: '',
+      price: '',
+      originalPrice: '',
+      stock: '',
+      description: '',
+      image: '',
+      isPopular: false
+    });
   };
 
   const handleDetailModalCancel = () => {
@@ -177,24 +239,22 @@ const FoodBeverage = () => {
       dataIndex: 'name',
       key: 'name',
       render: (text, record) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Image
-            src={record.image}
+        <div className="flex items-center gap-3">
+          <img
+            src={record.image || 'https://via.placeholder.com/60x60?text=Image'}
             alt={text}
-            width={60}
-            height={60}
-            className={styles['food-beverage-image']}
-            fallback="https://via.placeholder.com/60x60?text=Image"
+            className="w-16 h-16 rounded-lg object-cover"
+            onError={(e) => {
+              e.target.src = 'https://via.placeholder.com/60x60?text=Image';
+            }}
           />
           <div>
-            <div style={{ fontWeight: 600, color: '#262626' }}>{text}</div>
-            <div style={{ color: '#8c8c8c', fontSize: '12px' }}>{record.description}</div>
+            <div className="font-semibold text-gray-800">{text}</div>
+            <div className="text-xs text-gray-500">{record.description}</div>
             {record.isPopular && (
-              <Badge
-                count="Phổ biến"
-                className={styles['popular-badge']}
-                style={{ backgroundColor: '#faad14' }}
-              />
+              <Badge className="bg-yellow-500 text-white text-xs mt-1">
+                Phổ biến
+              </Badge>
             )}
           </div>
         </div>
@@ -206,9 +266,9 @@ const FoodBeverage = () => {
       key: 'category',
       render: (category) => {
         const categoryConfig = {
-          food: { color: 'orange', text: 'Đồ ăn', icon: <CoffeeOutlined /> },
-          drink: { color: 'blue', text: 'Đồ uống', icon: <CoffeeOutlined /> },
-          combo: { color: 'green', text: 'Combo', icon: <FireOutlined /> }
+          food: { color: 'orange', text: 'Đồ ăn', icon: <Coffee className="h-3 w-3" /> },
+          drink: { color: 'blue', text: 'Đồ uống', icon: <Coffee className="h-3 w-3" /> },
+          combo: { color: 'green', text: 'Combo', icon: <Flame className="h-3 w-3" /> }
         };
         const config = categoryConfig[category] || { color: 'default', text: category };
         return (
@@ -222,12 +282,12 @@ const FoodBeverage = () => {
       title: 'Giá',
       key: 'price',
       render: (_, record) => (
-        <div>
-          <div className={styles['price-display']}>
+        <div className="space-y-1">
+          <div className="font-semibold text-red-600">
             {record.price.toLocaleString('vi-VN')}đ
           </div>
           {record.originalPrice > record.price && (
-            <div style={{ textDecoration: 'line-through', color: '#8c8c8c', fontSize: '12px' }}>
+            <div className="line-through text-xs text-gray-500">
               {record.originalPrice.toLocaleString('vi-VN')}đ
             </div>
           )}
@@ -240,11 +300,10 @@ const FoodBeverage = () => {
       key: 'stock',
       render: (stock) => (
         <div>
-          <div style={{ fontWeight: 600, color: '#262626' }}>{stock}</div>
+          <div className="font-semibold text-gray-800">{stock}</div>
           <Progress
-            percent={Math.min((stock / 100) * 100, 100)}
-            size="small"
-            className={styles['food-beverage-progress']}
+            value={Math.min((stock / 100) * 100, 100)}
+            className="mt-1 h-2"
           />
         </div>
       )
@@ -256,11 +315,11 @@ const FoodBeverage = () => {
         <div>
           <Rate
             disabled
-            defaultValue={record.rating}
+            value={record.rating}
             allowHalf
-            className={styles['food-beverage-rate']}
+            className="text-yellow-400"
           />
-          <div style={{ fontSize: '12px', color: '#8c8c8c' }}>
+          <div className="text-xs text-gray-500">
             {record.rating}/5 ({record.sales} đã bán)
           </div>
         </div>
@@ -270,78 +329,115 @@ const FoodBeverage = () => {
       title: 'Thao tác',
       key: 'actions',
       render: (_, record) => (
-        <Space>
-          <Tooltip title="Xem chi tiết">
-            <Button type="text" icon={<EyeOutlined />} size="small" onClick={() => handleViewProduct(record)} />
-          </Tooltip>
-          <Tooltip title="Chỉnh sửa">
-            <Button type="text" icon={<EditOutlined />} size="small" onClick={() => handleEditProduct(record)} />
-          </Tooltip>
-          <Popconfirm
-            title="Bạn có chắc muốn xóa sản phẩm này?"
-            onConfirm={() => handleDeleteProduct(record.id)}
-          >
-            <Tooltip title="Xóa">
-              <Button type="text" icon={<DeleteOutlined />} size="small" danger />
+        <TooltipProvider>
+          <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" onClick={() => handleViewProduct(record)}>
+                  <Eye className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Xem chi tiết</TooltipContent>
             </Tooltip>
-          </Popconfirm>
-        </Space>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" onClick={() => handleEditProduct(record)}>
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Chỉnh sửa</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-red-600"
+                  onClick={() => {
+                    if (window.confirm('Bạn có chắc muốn xóa sản phẩm này?')) {
+                      handleDeleteProduct(record.id);
+                    }
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Xóa</TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
       )
     }
   ];
 
   return (
-    <div className={styles['food-beverage-container']}>
-      <div className={styles['food-beverage-header']}>
-        <Title level={2} className={styles['food-beverage-title']}>
+    <div className="min-h-screen">
+      {/* Breadcrumb */}
+      <Breadcrumb
+        className="mb-6"
+        items={[
+          {
+            title: 'Dashboard',
+            icon: <Home className="h-4 w-4" />,
+            href: '/admin/dashboard'
+          },
+          {
+            title: 'Quản lý đồ ăn & đồ uống',
+            icon: <Coffee className="h-4 w-4" />
+          }
+        ]}
+      />
+
+      <div className="mb-6">
+        <h2 className="m-0 text-2xl font-bold">
           Quản lý đồ ăn & đồ uống
-        </Title>
-        <Text className={styles['food-beverage-subtitle']}>
+        </h2>
+        <p className="text-gray-600 mt-1">
           Quản lý menu, inventory và doanh thu F&B
-        </Text>
+        </p>
       </div>
 
-      <div className={styles['quick-stats']}>
+      {/* Quick stats */}
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 mb-6">
         {stats.map((stat, index) => (
-          <div key={index}>
-            <Card className={styles['stat-card']}>
-              <Statistic
-                title={stat.title}
-                value={stat.value}
-                prefix={stat.icon}
-                valueStyle={{ color: '#262626' }}
-              />
-            </Card>
-          </div>
+          <Card key={index} className="rounded-xl shadow-md border border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-gray-500">{stat.title}</div>
+                <div className="mt-1 text-xl font-semibold text-gray-900">{stat.value}</div>
+              </div>
+              <div className="text-2xl text-red-600">
+                {stat.icon}
+              </div>
+            </div>
+          </Card>
         ))}
       </div>
 
-      <Card className={styles['food-beverage-card']}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <Title level={4} style={{ margin: 0 }}>Danh sách sản phẩm</Title>
+      <Card className="rounded-xl shadow-md border border-gray-200 p-4">
+        <div className="flex justify-between items-center mb-4">
+          <h4 className="m-0 text-lg font-semibold">Danh sách sản phẩm</h4>
           <Button
-            type="primary"
-            icon={<PlusOutlined />}
             onClick={handleCreateProduct}
-            className={styles['food-beverage-button']}
+            className="rounded-lg"
           >
-            + Thêm sản phẩm
+            <Plus className="h-4 w-4 mr-2" />
+            Thêm sản phẩm
           </Button>
         </div>
 
         <Tabs
           defaultActiveKey="all"
-          className={styles['food-beverage-tabs']}
+          className="mt-4"
           items={[
             {
               key: 'all',
               label: 'Tất cả',
               children: (
-                <Table
+                <TableWrapper
                   columns={columns}
-                  dataSource={products}
+                  data={products}
                   rowKey="id"
-                  className={styles['food-beverage-table']}
                   pagination={{
                     total: products.length,
                     pageSize: 10,
@@ -357,11 +453,18 @@ const FoodBeverage = () => {
               key: 'food',
               label: 'Đồ ăn',
               children: (
-                <Table
+                <TableWrapper
                   columns={columns}
-                  dataSource={products.filter(p => p.category === 'food')}
+                  data={products.filter(p => p.category === 'food')}
                   rowKey="id"
-                  className={styles['food-beverage-table']}
+                  pagination={{
+                    total: products.filter(p => p.category === 'food').length,
+                    pageSize: 10,
+                    showSizeChanger: true,
+                    showQuickJumper: true,
+                    showTotal: (total, range) =>
+                      `${range[0]}-${range[1]} của ${total} sản phẩm`
+                  }}
                 />
               )
             },
@@ -369,11 +472,18 @@ const FoodBeverage = () => {
               key: 'drink',
               label: 'Đồ uống',
               children: (
-                <Table
+                <TableWrapper
                   columns={columns}
-                  dataSource={products.filter(p => p.category === 'drink')}
+                  data={products.filter(p => p.category === 'drink')}
                   rowKey="id"
-                  className={styles['food-beverage-table']}
+                  pagination={{
+                    total: products.filter(p => p.category === 'drink').length,
+                    pageSize: 10,
+                    showSizeChanger: true,
+                    showQuickJumper: true,
+                    showTotal: (total, range) =>
+                      `${range[0]}-${range[1]} của ${total} sản phẩm`
+                  }}
                 />
               )
             },
@@ -381,79 +491,19 @@ const FoodBeverage = () => {
               key: 'combo',
               label: 'Combo',
               children: (
-                <Table
+                <TableWrapper
                   columns={columns}
-                  dataSource={products.filter(p => p.category === 'combo')}
+                  data={products.filter(p => p.category === 'combo')}
                   rowKey="id"
-                  className={styles['food-beverage-table']}
+                  pagination={{
+                    total: products.filter(p => p.category === 'combo').length,
+                    pageSize: 10,
+                    showSizeChanger: true,
+                    showQuickJumper: true,
+                    showTotal: (total, range) =>
+                      `${range[0]}-${range[1]} của ${total} sản phẩm`
+                  }}
                 />
-              )
-            },
-            {
-              key: 'analytics',
-              label: 'Phân tích',
-              children: (
-                <div>
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <Card title="Doanh thu theo danh mục" className={styles['food-beverage-card']}>
-                        <List
-                          dataSource={[
-                            { category: 'Đồ ăn', revenue: '8.5M', percentage: 56 },
-                            { category: 'Đồ uống', revenue: '4.2M', percentage: 28 },
-                            { category: 'Combo', revenue: '2.5M', percentage: 16 }
-                          ]}
-                          renderItem={(item) => (
-                            <List.Item>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                                <Text>{item.category}</Text>
-                                <div>
-                                  <Text strong>{item.revenue}</Text>
-                                  <Progress
-                                    percent={item.percentage}
-                                    size="small"
-                                    className={styles['food-beverage-progress']}
-                                    style={{ marginTop: 4 }}
-                                  />
-                                </div>
-                              </div>
-                            </List.Item>
-                          )}
-                        />
-                      </Card>
-                    </Col>
-                    <Col span={12}>
-                      <Card title="Sản phẩm bán chạy" className={styles['food-beverage-card']}>
-                        <List
-                          dataSource={products.sort((a, b) => b.sales - a.sales).slice(0, 5)}
-                          renderItem={(item, index) => (
-                            <List.Item>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <Badge count={index + 1} style={{ backgroundColor: '#e50914' }} />
-                                <Image
-                                  src={item.image}
-                                  alt={item.name}
-                                  width={40}
-                                  height={40}
-                                  className={styles['food-beverage-image']}
-                                />
-                                <div style={{ flex: 1 }}>
-                                  <Text strong>{item.name}</Text>
-                                  <div style={{ fontSize: '12px', color: '#8c8c8c' }}>
-                                    {item.sales} đã bán
-                                  </div>
-                                </div>
-                                <Text strong className={styles['price-display']}>
-                                  {item.price.toLocaleString('vi-VN')}đ
-                                </Text>
-                              </div>
-                            </List.Item>
-                          )}
-                        />
-                      </Card>
-                    </Col>
-                  </Row>
-                </div>
               )
             }
           ]}
@@ -463,120 +513,141 @@ const FoodBeverage = () => {
       <Modal
         title={isEditMode ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'}
         open={isModalVisible}
-        onOk={handleModalOk}
         onCancel={handleModalCancel}
         width={600}
-        className={styles['food-beverage-modal']}
-        okText={isEditMode ? 'Cập nhật' : 'Thêm'}
-        cancelText="Hủy"
+        footer={null}
       >
-        <Form form={form} layout="vertical" className={styles['food-beverage-form']}>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="name"
-                label="Tên sản phẩm"
-                rules={[{ required: true, message: 'Vui lòng nhập tên sản phẩm!' }]}
+        <form onSubmit={handleModalOk} className="space-y-4 p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tên sản phẩm <span className="text-red-500">*</span>
+              </label>
+              <Input
+                placeholder="Nhập tên sản phẩm"
+                value={formValues.name}
+                onChange={(e) => setFormValues(prev => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Danh mục <span className="text-red-500">*</span>
+              </label>
+              <Select
+                value={formValues.category}
+                onValueChange={(value) => setFormValues(prev => ({ ...prev, category: value }))}
               >
-                <Input placeholder="Nhập tên sản phẩm" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="category"
-                label="Danh mục"
-                rules={[{ required: true, message: 'Vui lòng chọn danh mục!' }]}
-              >
-                <Select placeholder="Chọn danh mục" className={styles['food-beverage-select']}>
-                  <Option value="food">Đồ ăn</Option>
-                  <Option value="drink">Đồ uống</Option>
-                  <Option value="combo">Combo</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Chọn danh mục" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="food">Đồ ăn</SelectItem>
+                  <SelectItem value="drink">Đồ uống</SelectItem>
+                  <SelectItem value="combo">Combo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="price"
-                label="Giá bán"
-                rules={[{ required: true, message: 'Vui lòng nhập giá!' }]}
-              >
-                <InputNumber
-                  placeholder="Nhập giá"
-                  formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  parser={value => value.replace(/\$\s?|(,*)/g, '')}
-                  className={styles['food-beverage-number']}
-                  style={{ width: '100%' }}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Giá bán <span className="text-red-500">*</span>
+              </label>
+              <InputNumber
+                placeholder="Nhập giá"
+                value={formValues.price}
+                onChange={(value) => setFormValues(prev => ({ ...prev, price: value || '' }))}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Giá gốc
+              </label>
+              <InputNumber
+                placeholder="Nhập giá gốc"
+                value={formValues.originalPrice}
+                onChange={(value) => setFormValues(prev => ({ ...prev, originalPrice: value || '' }))}
+                className="w-full"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tồn kho <span className="text-red-500">*</span>
+              </label>
+              <InputNumber
+                placeholder="Nhập số lượng"
+                value={formValues.stock}
+                onChange={(value) => setFormValues(prev => ({ ...prev, stock: value || '' }))}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Sản phẩm phổ biến
+              </label>
+              <div className="flex items-center space-x-2 pt-2">
+                <Checkbox
+                  checked={formValues.isPopular}
+                  onCheckedChange={(checked) => setFormValues(prev => ({ ...prev, isPopular: checked }))}
                 />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="originalPrice"
-                label="Giá gốc"
-              >
-                <InputNumber
-                  placeholder="Nhập giá gốc"
-                  formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  parser={value => value.replace(/\$\s?|(,*)/g, '')}
-                  className={styles['food-beverage-number']}
-                  style={{ width: '100%' }}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="stock"
-                label="Tồn kho"
-                rules={[{ required: true, message: 'Vui lòng nhập số lượng!' }]}
-              >
-                <InputNumber
-                  placeholder="Nhập số lượng"
-                  className={styles['food-beverage-number']}
-                  style={{ width: '100%' }}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="isPopular"
-                label="Sản phẩm phổ biến"
-                valuePropName="checked"
-              >
-                <Switch />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Form.Item
-            name="description"
-            label="Mô tả"
-          >
-            <TextArea rows={3} placeholder="Nhập mô tả sản phẩm" />
-          </Form.Item>
-
-          <Form.Item
-            name="image"
-            label="Hình ảnh"
-          >
-            <Upload
-              listType="picture-card"
-              className={styles['food-beverage-upload']}
-              maxCount={1}
-              beforeUpload={() => false}
-            >
-              <div>
-                <UploadOutlined />
-                <div style={{ marginTop: 8 }}>Tải lên</div>
+                <span className="text-sm text-gray-700">Kích hoạt</span>
               </div>
-            </Upload>
-          </Form.Item>
-        </Form>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Mô tả
+            </label>
+            <Textarea
+              rows={3}
+              placeholder="Nhập mô tả sản phẩm"
+              value={formValues.description}
+              onChange={(e) => setFormValues(prev => ({ ...prev, description: e.target.value }))}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Hình ảnh
+            </label>
+            <div className="flex items-center gap-4">
+              <Input
+                placeholder="Nhập URL hình ảnh"
+                value={formValues.image}
+                onChange={(e) => setFormValues(prev => ({ ...prev, image: e.target.value }))}
+              />
+              {formValues.image && (
+                <img
+                  src={formValues.image}
+                  alt="Preview"
+                  className="w-20 h-20 rounded-lg object-cover border border-gray-200"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleModalCancel}
+            >
+              Hủy
+            </Button>
+            <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
+              {isEditMode ? 'Cập nhật' : 'Thêm'}
+            </Button>
+          </div>
+        </form>
       </Modal>
 
       <Modal
@@ -584,45 +655,65 @@ const FoodBeverage = () => {
         open={isDetailModalVisible}
         onCancel={handleDetailModalCancel}
         width={500}
-        footer={[
-          <Button key="close" onClick={handleDetailModalCancel}>Đóng</Button>,
-          <Button key="edit" type="primary" icon={<EditOutlined />} onClick={() => { setIsDetailModalVisible(false); handleEditProduct(selectedProduct); }}>Chỉnh sửa</Button>
-        ]}
-        className={styles['food-beverage-modal']}
+        footer={null}
       >
         {selectedProduct && (
-          <div style={{ textAlign: 'center' }}>
-            <Image
-              src={selectedProduct.image}
+          <div className="text-center p-4">
+            <img
+              src={selectedProduct.image || 'https://via.placeholder.com/100x100?text=Image'}
               alt={selectedProduct.name}
-              width={100}
-              height={100}
-              style={{ marginBottom: 16 }}
-              fallback="https://via.placeholder.com/100x100?text=Image"
+              className="w-24 h-24 rounded-lg object-cover mx-auto mb-4 border border-gray-200"
+              onError={(e) => {
+                e.target.src = 'https://via.placeholder.com/100x100?text=Image';
+              }}
             />
-            <Title level={4}>{selectedProduct.name}</Title>
-            <Text type="secondary">{selectedProduct.description}</Text>
-            <Divider />
-            <Descriptions column={1} bordered size="small">
-              <Descriptions.Item label="Danh mục">
-                {selectedProduct.category === 'food' ? 'Đồ ăn' : selectedProduct.category === 'drink' ? 'Đồ uống' : 'Combo'}
-              </Descriptions.Item>
-              <Descriptions.Item label="Giá bán">
-                {selectedProduct.price.toLocaleString('vi-VN')}đ
-              </Descriptions.Item>
-              <Descriptions.Item label="Giá gốc">
-                {selectedProduct.originalPrice.toLocaleString('vi-VN')}đ
-              </Descriptions.Item>
-              <Descriptions.Item label="Tồn kho">
-                {selectedProduct.stock}
-              </Descriptions.Item>
-              <Descriptions.Item label="Phổ biến">
-                {selectedProduct.isPopular ? 'Có' : 'Không'}
-              </Descriptions.Item>
-              <Descriptions.Item label="Đánh giá">
-                {selectedProduct.rating}/5 ({selectedProduct.sales} đã bán)
-              </Descriptions.Item>
-            </Descriptions>
+            <h4 className="text-xl font-bold text-gray-900 mb-2">{selectedProduct.name}</h4>
+            <p className="text-gray-600 mb-4">{selectedProduct.description}</p>
+            <Separator className="my-4" />
+            <Descriptions
+              column={1}
+              items={[
+                {
+                  label: 'Danh mục',
+                  children: selectedProduct.category === 'food' ? 'Đồ ăn' : selectedProduct.category === 'drink' ? 'Đồ uống' : 'Combo'
+                },
+                {
+                  label: 'Giá bán',
+                  children: `${selectedProduct.price.toLocaleString('vi-VN')}đ`
+                },
+                {
+                  label: 'Giá gốc',
+                  children: `${selectedProduct.originalPrice.toLocaleString('vi-VN')}đ`
+                },
+                {
+                  label: 'Tồn kho',
+                  children: selectedProduct.stock
+                },
+                {
+                  label: 'Phổ biến',
+                  children: selectedProduct.isPopular ? 'Có' : 'Không'
+                },
+                {
+                  label: 'Đánh giá',
+                  children: `${selectedProduct.rating}/5 (${selectedProduct.sales} đã bán)`
+                }
+              ]}
+            />
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={handleDetailModalCancel}>
+                Đóng
+              </Button>
+              <Button
+                className="bg-indigo-600 hover:bg-indigo-700"
+                onClick={() => {
+                  setIsDetailModalVisible(false);
+                  handleEditProduct(selectedProduct);
+                }}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Chỉnh sửa
+              </Button>
+            </div>
           </div>
         )}
       </Modal>

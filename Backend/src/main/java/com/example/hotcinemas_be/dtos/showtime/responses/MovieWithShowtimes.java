@@ -14,6 +14,6 @@ import java.util.List;
 public class MovieWithShowtimes {
     private Long movieId;
     private String movieTitle;
-    private String posterPath;
+    private String posterUrl;
     private List<FormatWithShowtimes> formats;
 }

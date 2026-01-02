@@ -1,6 +1,6 @@
 package com.example.hotcinemas_be.controllers;
 
-import com.example.hotcinemas_be.dtos.common.ResponseData;
+import com.example.hotcinemas_be.dtos.common.DataResponse;
 import com.example.hotcinemas_be.dtos.genre.requests.GenreRequest;
 import com.example.hotcinemas_be.dtos.genre.responses.GenreResponse;
 import com.example.hotcinemas_be.services.GenreService;
@@ -35,18 +35,17 @@ public class GenreController {
             @ApiResponse(responseCode = "409", description = "Genre already exists")
     })
     @PostMapping
-    public ResponseEntity<ResponseData<GenreResponse>> createGenre(@Valid @RequestBody GenreRequest genreRequest) {
+    public ResponseEntity<?> createGenre(@Valid @RequestBody GenreRequest genreRequest) {
         log.info("Creating new genre with name: {}", genreRequest.getName());
-        GenreResponse genreResponse = genreService.createGenre(genreRequest);
 
-        ResponseData<GenreResponse> responseData = ResponseData.<GenreResponse>builder()
+        DataResponse<?> dataResponse = DataResponse.builder()
                 .status(HttpStatus.CREATED.value())
                 .message("Genre created successfully")
-                .data(genreResponse)
+                .data(genreService.createGenre(genreRequest))
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
+        return ResponseEntity.status(HttpStatus.CREATED).body(dataResponse);
     }
 
     @Operation(summary = "Get all genres", description = "Retrieve all available movie genres")
@@ -55,18 +54,17 @@ public class GenreController {
             @ApiResponse(responseCode = "404", description = "No genres found")
     })
     @GetMapping
-    public ResponseEntity<ResponseData<List<GenreResponse>>> getAllGenres() {
+    public ResponseEntity<?> getAllGenres() {
         log.info("Retrieving all genres");
-        List<GenreResponse> genres = genreService.getAllGenre();
 
-        ResponseData<List<GenreResponse>> responseData = ResponseData.<List<GenreResponse>>builder()
+        DataResponse<?> dataResponse = DataResponse.builder()
                 .status(HttpStatus.OK.value())
                 .message("Genres retrieved successfully")
-                .data(genres)
+                .data(genreService.getAllGenre())
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Get genre by ID", description = "Retrieve a specific genre by its ID")
@@ -75,19 +73,18 @@ public class GenreController {
             @ApiResponse(responseCode = "404", description = "Genre not found")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<ResponseData<GenreResponse>> getGenreById(
+    public ResponseEntity<?> getGenreById(
             @Parameter(description = "Genre ID", required = true) @PathVariable Long id) {
         log.info("Retrieving genre with ID: {}", id);
-        GenreResponse genreResponse = genreService.getGenreById(id);
 
-        ResponseData<GenreResponse> responseData = ResponseData.<GenreResponse>builder()
+        DataResponse<?> dataResponse = DataResponse.builder()
                 .status(HttpStatus.OK.value())
                 .message("Genre retrieved successfully")
-                .data(genreResponse)
+                .data(genreService.getGenreById(id))
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Get genre by name", description = "Retrieve a specific genre by its name")
@@ -96,19 +93,18 @@ public class GenreController {
             @ApiResponse(responseCode = "404", description = "Genre not found")
     })
     @GetMapping("/name/{name}")
-    public ResponseEntity<ResponseData<GenreResponse>> getGenreByName(
+    public ResponseEntity<?> getGenreByName(
             @Parameter(description = "Genre name", required = true) @PathVariable String name) {
         log.info("Retrieving genre with name: {}", name);
-        GenreResponse genreResponse = genreService.getGenreByName(name);
 
-        ResponseData<GenreResponse> responseData = ResponseData.<GenreResponse>builder()
+        DataResponse<?> dataResponse = DataResponse.builder()
                 .status(HttpStatus.OK.value())
                 .message("Genre retrieved successfully")
-                .data(genreResponse)
+                .data(genreService.getGenreByName(name))
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Update genre", description = "Update an existing genre")
@@ -118,20 +114,20 @@ public class GenreController {
             @ApiResponse(responseCode = "404", description = "Genre not found")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<ResponseData<GenreResponse>> updateGenre(
+    public ResponseEntity<DataResponse<GenreResponse>> updateGenre(
             @Parameter(description = "Genre ID", required = true) @PathVariable Long id,
             @Valid @RequestBody GenreRequest genreRequest) {
         log.info("Updating genre with ID: {} to name: {}", id, genreRequest.getName());
         GenreResponse genreResponse = genreService.updateGenre(id, genreRequest);
 
-        ResponseData<GenreResponse> responseData = ResponseData.<GenreResponse>builder()
+        DataResponse<GenreResponse> dataResponse = DataResponse.<GenreResponse>builder()
                 .status(HttpStatus.OK.value())
                 .message("Genre updated successfully")
                 .data(genreResponse)
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Delete genre", description = "Delete a genre by its ID")
@@ -140,18 +136,18 @@ public class GenreController {
             @ApiResponse(responseCode = "404", description = "Genre not found")
     })
     @DeleteMapping("/{id}")
-    public ResponseEntity<ResponseData<Void>> deleteGenre(
+    public ResponseEntity<DataResponse<Void>> deleteGenre(
             @Parameter(description = "Genre ID", required = true) @PathVariable Long id) {
         log.info("Deleting genre with ID: {}", id);
         genreService.deleteGenre(id);
 
-        ResponseData<Void> responseData = ResponseData.<Void>builder()
+        DataResponse<Void> dataResponse = DataResponse.<Void>builder()
                 .status(HttpStatus.OK.value())
                 .message("Genre deleted successfully")
                 .data(null)
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 }

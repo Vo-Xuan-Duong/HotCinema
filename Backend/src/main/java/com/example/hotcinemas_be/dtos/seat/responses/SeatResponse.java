@@ -18,5 +18,4 @@ public class SeatResponse {
     private SeatStatus status;
     private Integer col;
     private Integer row;
-    private Boolean isActive;
 }

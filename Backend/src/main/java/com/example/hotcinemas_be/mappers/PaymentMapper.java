@@ -13,12 +13,19 @@ public class PaymentMapper {
         }
 
         return PaymentResponse.builder()
-                .paymentId(payment.getId())
-                .paymentDate(payment.getPaymentDate())
+                .id(payment.getId())
+                .userId(payment.getBooking().getUser().getId())
+                .fullName(payment.getBooking().getUser().getFullName())
+                .email(payment.getBooking().getUser().getEmail())
+                .bookingId(payment.getBooking().getId())
+                .bookingCode(payment.getBooking().getBookingCode())
                 .amount(payment.getAmount())
                 .paymentMethod(payment.getPaymentMethod())
-                .bookingCode(payment.getBookingCode())
-                .status(payment.getStatus())
+                .paymentStatus(payment.getPaymentStatus())
+                .transactionId(payment.getTransactionId())
+                .paymentDetails(payment.getPaymentDetails())
+                .paymentDate(payment.getPaymentDate())
+                .createdAt(payment.getCreatedAt())
                 .build();
     }
 }

@@ -5,16 +5,18 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Builder
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class PermissionResponse {
     private Long id;
-    private String code;
     private String name;
     private String description;
-    private Boolean isActive;
+    private String module;
+    private LocalDateTime createdAt;
 }
 
 

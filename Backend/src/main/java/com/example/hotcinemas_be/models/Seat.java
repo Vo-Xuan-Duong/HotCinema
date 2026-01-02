@@ -1,38 +1,21 @@
 package com.example.hotcinemas_be.models;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 import com.example.hotcinemas_be.enums.SeatStatus;
 import com.example.hotcinemas_be.enums.SeatType;
-
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
-@Table(name = "seats")
+@Table(name = "seats", uniqueConstraints = {
+        @UniqueConstraint(name = "unique_seat", columnNames = { "theater_id", "row", "col" })
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -46,36 +29,29 @@ public class Seat {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "room_id", nullable = false)
-    private Room room;
+    @JoinColumn(name = "theater_id", nullable = false)
+    private Theater theater;
 
-    @Column(name = "name", nullable = false)
+    @Column(name = "name", nullable = false, length = 10)
     private String name;
-
-    @Builder.Default
-    @Enumerated(EnumType.STRING)
-    @Column(name = "seat_type", nullable = false)
-    private SeatType seatType = SeatType.NORMAL;
-
-    @Column(name = "status", nullable = false)
-    @Enumerated(EnumType.STRING)
-    private SeatStatus status;
-
-    @Column(name = "col", nullable = false)
-    private Integer col;
 
     @Column(name = "row", nullable = false)
     private Integer row;
 
+    @Column(name = "col", nullable = false)
+    private Integer col;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "seat_type", length = 20)
     @Builder.Default
-    @Column(name = "is_active", nullable = false)
-    private Boolean isActive = true;
+    private SeatType seatType = SeatType.REGULAR ;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "seat_status", length = 20)
+    @Builder.Default
+    private SeatStatus seatStatus = SeatStatus.AVAILABLE;
+
     @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
 }

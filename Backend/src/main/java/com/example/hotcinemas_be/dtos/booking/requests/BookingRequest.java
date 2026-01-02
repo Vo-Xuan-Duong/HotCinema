@@ -25,5 +25,5 @@ public class BookingRequest {
     @JsonProperty("seatIds")
     private List<Long> seatIds;
 
-    private String voucherCode;
+    private String promotionCode;
 }

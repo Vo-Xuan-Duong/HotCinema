@@ -1,30 +1,11 @@
 import React, { useState } from 'react';
-import {
-  Card,
-  Row,
-  Col,
-  Typography,
-  Button,
-  Space,
-  Avatar,
-  Statistic,
-  Progress,
-  Timeline,
-  Badge,
-  Tabs
-} from 'antd';
-import {
-  TrophyOutlined,
-  FireOutlined,
-  ClockCircleOutlined,
-  CalendarOutlined,
-  StarOutlined,
-  EyeOutlined,
-  HeartOutlined,
-  CommentOutlined,
-  RightOutlined,
-  ThunderboltOutlined
-} from '@ant-design/icons';
+import { Card } from '../ui/card';
+import { Button } from '../ui/button';
+import { Avatar } from '../ui/avatar';
+import { Statistic } from '../ui/statistic';
+import { Progress } from '../ui/progress';
+import { Badge } from '../ui/badge-count';
+import { Tabs } from '../ui/tabs';
 import {
   Trophy,
   Flame,
@@ -37,13 +18,11 @@ import {
   Ticket,
   Award,
   Users,
-  TrendingUp
+  TrendingUp,
+  ChevronRight,
+  Zap
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import './FeaturedContent.css';
-
-const { Title, Text, Paragraph } = Typography;
-const { TabPane } = Tabs;
 
 const FeaturedContent = ({ movies = [] }) => {
   const [activeTab, setActiveTab] = useState('trending');
@@ -118,321 +97,313 @@ const FeaturedContent = ({ movies = [] }) => {
   };
 
   return (
-    <section className="featured-content-antd">
-      <div className="featured-container">
+    <section className="py-8 bg-white">
+      <div className="max-w-[1200px] mx-auto px-8 md:px-6 sm:px-4">
         {/* Section Header */}
-        <div className="section-header">
-          <Space align="center" size="middle">
-            <Avatar
-              size="large"
-              icon={<TrophyOutlined />}
-              style={{ backgroundColor: '#ff6b35' }}
-            />
-            <div>
-              <Title level={2} className="section-title">
-                Nội dung nổi bật
-              </Title>
-              <Text type="secondary" className="section-subtitle">
-                Khám phá những điều thú vị nhất trong thế giới điện ảnh
-              </Text>
-            </div>
-          </Space>
+        <div className="mb-12 text-center flex items-center justify-center gap-4">
+          <Avatar className="h-12 w-12 bg-[#ff6b35] flex items-center justify-center">
+            <Trophy className="h-6 w-6 text-white" />
+          </Avatar>
+          <div>
+            <h2 className="text-gray-800 m-0 font-bold text-2xl">
+              Nội dung nổi bật
+            </h2>
+            <p className="text-gray-600 text-base block mt-2">
+              Khám phá những điều thú vị nhất trong thế giới điện ảnh
+            </p>
+          </div>
         </div>
 
         {/* Content Tabs */}
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          className="featured-tabs"
-          size="large"
-        >
-          {/* Trending Tab */}
-          <TabPane
-            tab={
-              <Space>
-                <Flame size={16} />
-                <span>Đang hot</span>
-              </Space>
-            }
-            key="trending"
-          >
-            <Row gutter={[24, 24]}>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="bg-white rounded-2xl p-8 border border-gray-200 shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
+          <div className="mb-8 bg-gray-50 rounded-xl p-1.5 flex gap-2">
+            <button
+              onClick={() => setActiveTab('trending')}
+              className={`flex items-center gap-2 px-6 py-3 rounded-[10px] transition-all duration-300 text-[15px] font-semibold ${activeTab === 'trending'
+                  ? 'text-white bg-gradient-to-br from-[#ff6b35] to-[#ff8c5a] shadow-[0_4px_12px_rgba(255,107,53,0.3)]'
+                  : 'text-gray-600 hover:text-[#ff6b35] hover:bg-white hover:shadow-[0_2px_8px_rgba(255,107,53,0.15)] hover:-translate-y-0.5'
+                }`}
+            >
+              <Flame className="h-4 w-4" />
+              <span>Đang hot</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('toprated')}
+              className={`flex items-center gap-2 px-6 py-3 rounded-[10px] transition-all duration-300 text-[15px] font-semibold ${activeTab === 'toprated'
+                  ? 'text-white bg-gradient-to-br from-[#ff6b35] to-[#ff8c5a] shadow-[0_4px_12px_rgba(255,107,53,0.3)]'
+                  : 'text-gray-600 hover:text-[#ff6b35] hover:bg-white hover:shadow-[0_2px_8px_rgba(255,107,53,0.15)] hover:-translate-y-0.5'
+                }`}
+            >
+              <Star className="h-4 w-4" />
+              <span>Đánh giá cao</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('news')}
+              className={`flex items-center gap-2 px-6 py-3 rounded-[10px] transition-all duration-300 text-[15px] font-semibold ${activeTab === 'news'
+                  ? 'text-white bg-gradient-to-br from-[#ff6b35] to-[#ff8c5a] shadow-[0_4px_12px_rgba(255,107,53,0.3)]'
+                  : 'text-gray-600 hover:text-[#ff6b35] hover:bg-white hover:shadow-[0_2px_8px_rgba(255,107,53,0.15)] hover:-translate-y-0.5'
+                }`}
+            >
+              <MessageCircle className="h-4 w-4" />
+              <span>Tin tức</span>
+            </button>
+          </div>
+
+          {activeTab === 'trending' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Trending List */}
-              <Col xs={24} lg={14}>
-                <Card
-                  title={
-                    <Space>
-                      <TrendingUp size={20} />
-                      <span>Top phim trending</span>
-                    </Space>
-                  }
-                  className="trending-card"
-                >
-                  <div className="trending-list">
-                    {trendingMovies.map((movie, index) => (
-                      <div key={movie.id} className="trending-item">
-                        <div className="rank-badge">
-                          <Text strong className="rank-number">
-                            #{movie.rank}
-                          </Text>
+              <div className="lg:col-span-7">
+                <Card className="bg-white border border-gray-200 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+                  <div className="border-b border-gray-200 px-5 py-4 mb-0">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5" />
+                      <span className="text-gray-800 text-base font-semibold">Top phim trending</span>
+                    </div>
+                  </div>
+                  <div className="p-5">
+                    <div className="flex flex-col gap-3.5">
+                      {trendingMovies.map((movie, index) => (
+                        <div key={movie.id} className="flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-lg transition-all duration-300 cursor-pointer hover:border-[#ff6b35] hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(229,9,20,0.15)] hover:bg-gray-50">
+                          <div className="w-9 h-9 bg-gradient-to-br from-primary to-[#b20710] rounded-lg flex items-center justify-center flex-shrink-0 shadow-[0_2px_8px_rgba(229,9,20,0.3)]">
+                            <span className="text-white text-sm font-semibold">
+                              #{movie.rank}
+                            </span>
+                          </div>
+
+                          <Avatar className="h-16 w-16 border-2 border-gray-200 flex-shrink-0 shadow-[0_2px_8px_rgba(0,0,0,0.1)]">
+                            <img src={movie.poster} alt={movie.title} className="w-full h-full object-cover" />
+                          </Avatar>
+
+                          <div className="flex-1 min-w-0">
+                            <h5 className="text-gray-800 m-0 mb-1 text-sm font-medium">
+                              {movie.title}
+                            </h5>
+                            <div className="flex gap-4">
+                              <div className="flex items-center gap-1">
+                                <Eye className="h-3.5 w-3.5" />
+                                <span className="text-gray-500 text-xs">
+                                  {formatNumber(movie.views)}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Heart className="h-3.5 w-3.5" />
+                                <span className="text-gray-500 text-xs">
+                                  {formatNumber(movie.likes)}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <MessageCircle className="h-3.5 w-3.5" />
+                                <span className="text-gray-500 text-xs">
+                                  {formatNumber(movie.comments)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex-shrink-0 relative w-[50px] h-[50px]">
+                            <svg className="w-full h-full transform -rotate-90">
+                              <circle
+                                cx="25"
+                                cy="25"
+                                r="20"
+                                stroke="#e5e7eb"
+                                strokeWidth="4"
+                                fill="none"
+                              />
+                              <circle
+                                cx="25"
+                                cy="25"
+                                r="20"
+                                stroke="url(#gradient)"
+                                strokeWidth="4"
+                                fill="none"
+                                strokeDasharray={`${2 * Math.PI * 20}`}
+                                strokeDashoffset={`${2 * Math.PI * 20 * (1 - movie.trendingScore / 100)}`}
+                                strokeLinecap="round"
+                              />
+                              <defs>
+                                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                  <stop offset="0%" stopColor="#ff6b35" />
+                                  <stop offset="100%" stopColor="#e55a28" />
+                                </linearGradient>
+                              </defs>
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className="text-xs font-semibold">{movie.trendingScore}</span>
+                            </div>
+                          </div>
                         </div>
+                      ))}
+                    </div>
+                  </div>
+                </Card>
+              </div>
 
-                        <Avatar
-                          src={movie.poster}
-                          size={64}
-                          className="movie-avatar"
-                        />
+              {/* Quick Stats */}
+              <div className="lg:col-span-5 flex flex-col gap-4">
+                <Card className="bg-white border border-gray-200 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+                  <Statistic
+                    title="Lượt xem hôm nay"
+                    value={2847521}
+                    precision={0}
+                    valueStyle={{ color: '#ff6b35' }}
+                    prefix={<Eye className="h-4 w-4" />}
+                    suffix="views"
+                  />
+                </Card>
+                <Card className="bg-white border border-gray-200 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+                  <Statistic
+                    title="Phim mới tuần này"
+                    value={12}
+                    valueStyle={{ color: '#4285f4' }}
+                    prefix={<Flame className="h-4 w-4" />}
+                    suffix="phim"
+                  />
+                </Card>
+                <Card className="bg-white border border-gray-200 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+                  <Statistic
+                    title="Đánh giá trung bình"
+                    value={8.7}
+                    precision={1}
+                    valueStyle={{ color: '#34d399' }}
+                    prefix={<Star className="h-4 w-4" />}
+                    suffix="/ 10"
+                  />
+                </Card>
+              </div>
+            </div>
+          )}
 
-                        <div className="movie-info">
-                          <Title level={5} className="movie-title">
-                            {movie.title}
-                          </Title>
-                          <Space size="middle">
-                            <Space size={4}>
-                              <Eye size={14} />
-                              <Text type="secondary">
-                                {formatNumber(movie.views)}
-                              </Text>
-                            </Space>
-                            <Space size={4}>
-                              <Heart size={14} />
-                              <Text type="secondary">
-                                {formatNumber(movie.likes)}
-                              </Text>
-                            </Space>
-                            <Space size={4}>
-                              <MessageCircle size={14} />
-                              <Text type="secondary">
-                                {formatNumber(movie.comments)}
-                              </Text>
-                            </Space>
-                          </Space>
+          {activeTab === 'toprated' && (
+            <div className="space-y-6">
+
+              {topRatedMovies.map((movie, index) => (
+                <Card key={movie.id} className="bg-white border border-gray-200 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-lg transition-all duration-300 cursor-pointer">
+                  <div className="grid grid-cols-12 gap-4 items-center">
+                    <div className="col-span-1">
+                      <div className="w-10 h-10 bg-gradient-to-br from-primary to-[#b20710] rounded-full flex items-center justify-center flex-shrink-0 shadow-[0_2px_8px_rgba(229,9,20,0.3)]">
+                        <span className="text-white text-sm font-semibold">
+                          #{movie.rank}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="col-span-2">
+                      <Avatar className="h-20 w-20 border-2 border-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.1)]">
+                        <img src={movie.poster} alt={movie.title} className="w-full h-full object-cover" />
+                      </Avatar>
+                    </div>
+
+                    <div className="col-span-6">
+                      <div className="flex flex-col gap-1">
+                        <h4 className="text-gray-800 m-0 text-base font-medium">
+                          {movie.title}
+                        </h4>
+                        <p className="text-gray-500 text-sm">
+                          {movie.genre} • {movie.releaseDate || '2024'}
+                        </p>
+                        <div className="flex gap-4">
+                          <div className="flex items-center gap-1">
+                            <Award className="h-3.5 w-3.5" />
+                            <span className="text-sm">Critics: {movie.criticsScore}%</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Users className="h-3.5 w-3.5" />
+                            <span className="text-sm">Audience: {movie.audienceScore}%</span>
+                          </div>
                         </div>
+                      </div>
+                    </div>
 
-                        <div className="trending-score">
-                          <Progress
-                            type="circle"
-                            percent={movie.trendingScore}
-                            width={50}
-                            strokeColor={{
-                              '0%': '#ff6b35',
-                              '100%': '#e55a28',
-                            }}
-                            format={() => (
-                              <Text strong style={{ fontSize: '12px' }}>
-                                {movie.trendingScore}
-                              </Text>
-                            )}
-                          />
+                    <div className="col-span-3 flex flex-col items-end gap-2">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-semibold text-[#ff6b35]">
+                          {((movie.criticsScore + movie.audienceScore) / 20).toFixed(1)}
+                        </span>
+                        <span className="text-gray-500">/10</span>
+                      </div>
+                      <p className="text-gray-500 text-sm">
+                        {movie.reviews} đánh giá
+                      </p>
+                      <Button size="sm">
+                        Xem chi tiết
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {activeTab === 'news' && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="lg:col-span-8">
+
+                <div className="space-y-6">
+                  {newsData.map((news, index) => (
+                    <div key={news.id} className="relative pl-8 border-l-2 border-[#ff6b35]">
+                      <div className="absolute -left-[9px] top-0 w-4 h-4 bg-[#ff6b35] rounded-full border-2 border-white" />
+                      <Card className="bg-white border border-gray-200 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-lg transition-all duration-300 cursor-pointer">
+                        <div className="mb-3 flex items-center gap-3">
+                          <Badge className="bg-[#ff6b35] text-white px-2 py-0.5 rounded text-xs">
+                            {news.category}
+                          </Badge>
+                          <span className="text-gray-500 text-sm">{news.time}</span>
+                        </div>
+                        <h4 className="text-gray-800 m-0 mb-2 text-lg font-semibold">
+                          {news.title}
+                        </h4>
+                        <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                          {news.content}
+                        </p>
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-1">
+                            <Eye className="h-3.5 w-3.5" />
+                            <span className="text-gray-500 text-sm">
+                              {formatNumber(news.views)} lượt xem
+                            </span>
+                          </div>
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="text-primary hover:text-[#ff6b35]"
+                          >
+                            <ChevronRight className="h-4 w-4 mr-1" />
+                            Đọc thêm
+                          </Button>
+                        </div>
+                      </Card>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="lg:col-span-4">
+                <Card className="bg-white border border-gray-200 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+                  <div className="border-b border-gray-200 px-5 py-4 mb-0">
+                    <h3 className="text-gray-800 text-base font-semibold m-0">Tin nổi bật</h3>
+                  </div>
+                  <div className="p-5 flex flex-col gap-4">
+                    {newsData.slice(0, 3).map((news, index) => (
+                      <div key={news.id} className="pb-3 border-b border-gray-200 last:border-0 last:pb-0">
+                        <h6 className="text-gray-800 text-sm font-semibold block mb-1">
+                          {news.title}
+                        </h6>
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-500 text-xs">
+                            {news.time}
+                          </span>
+                          <span className="text-gray-500 text-xs">
+                            • {formatNumber(news.views)} views
+                          </span>
                         </div>
                       </div>
                     ))}
                   </div>
                 </Card>
-              </Col>
-
-              {/* Quick Stats */}
-              <Col xs={24} lg={10}>
-                <Row gutter={[16, 16]}>
-                  <Col span={24}>
-                    <Card className="stats-card">
-                      <Statistic
-                        title="Lượt xem hôm nay"
-                        value={2847521}
-                        precision={0}
-                        valueStyle={{ color: '#ff6b35' }}
-                        prefix={<EyeOutlined />}
-                        suffix="views"
-                      />
-                    </Card>
-                  </Col>
-                  <Col span={24}>
-                    <Card className="stats-card">
-                      <Statistic
-                        title="Phim mới tuần này"
-                        value={12}
-                        valueStyle={{ color: '#4285f4' }}
-                        prefix={<FireOutlined />}
-                        suffix="phim"
-                      />
-                    </Card>
-                  </Col>
-                  <Col span={24}>
-                    <Card className="stats-card">
-                      <Statistic
-                        title="Đánh giá trung bình"
-                        value={8.7}
-                        precision={1}
-                        valueStyle={{ color: '#34d399' }}
-                        prefix={<StarOutlined />}
-                        suffix="/ 10"
-                      />
-                    </Card>
-                  </Col>
-                </Row>
-              </Col>
-            </Row>
-          </TabPane>
-
-          {/* Top Rated Tab */}
-          <TabPane
-            tab={
-              <Space>
-                <Star size={16} />
-                <span>Đánh giá cao</span>
-              </Space>
-            }
-            key="toprated"
-          >
-            <Row gutter={[16, 24]}>
-              {topRatedMovies.map((movie, index) => (
-                <Col xs={24} key={movie.id}>
-                  <Card className="toprated-card" hoverable>
-                    <Row gutter={16} align="middle">
-                      <Col xs={4} sm={2}>
-                        <div className="rank-circle">
-                          <Text strong className="rank-text">
-                            #{movie.rank}
-                          </Text>
-                        </div>
-                      </Col>
-
-                      <Col xs={6} sm={4}>
-                        <Avatar
-                          src={movie.poster}
-                          size={80}
-                          className="toprated-avatar"
-                        />
-                      </Col>
-
-                      <Col xs={14} sm={12}>
-                        <Space direction="vertical" size={4}>
-                          <Title level={4} className="toprated-title">
-                            {movie.title}
-                          </Title>
-                          <Text type="secondary">
-                            {movie.genre} • {movie.releaseDate || '2024'}
-                          </Text>
-                          <Space size="large">
-                            <Space size={4}>
-                              <Award size={14} />
-                              <Text>Critics: {movie.criticsScore}%</Text>
-                            </Space>
-                            <Space size={4}>
-                              <Users size={14} />
-                              <Text>Audience: {movie.audienceScore}%</Text>
-                            </Space>
-                          </Space>
-                        </Space>
-                      </Col>
-
-                      <Col xs={24} sm={6}>
-                        <Space direction="vertical" align="end" size={8}>
-                          <div className="score-display">
-                            <Text strong style={{ fontSize: '24px', color: '#ff6b35' }}>
-                              {((movie.criticsScore + movie.audienceScore) / 20).toFixed(1)}
-                            </Text>
-                            <Text type="secondary">/10</Text>
-                          </div>
-                          <Text type="secondary">
-                            {movie.reviews} đánh giá
-                          </Text>
-                          <Button size="small" type="primary">
-                            Xem chi tiết
-                          </Button>
-                        </Space>
-                      </Col>
-                    </Row>
-                  </Card>
-                </Col>
-              ))}
-            </Row>
-          </TabPane>
-
-          {/* News Tab */}
-          <TabPane
-            tab={
-              <Space>
-                <MessageCircle size={16} />
-                <span>Tin tức</span>
-              </Space>
-            }
-            key="news"
-          >
-            <Row gutter={[24, 24]}>
-              <Col xs={24} lg={16}>
-                <Timeline className="news-timeline">
-                  {newsData.map((news, index) => (
-                    <Timeline.Item
-                      key={news.id}
-                      dot={<ThunderboltOutlined style={{ fontSize: '16px' }} />}
-                      color="#ff6b35"
-                    >
-                      <Card className="news-card" hoverable>
-                        <div className="news-header">
-                          <Space>
-                            <Badge
-                              color="#ff6b35"
-                              text={news.category}
-                              className="news-category"
-                            />
-                            <Text type="secondary">{news.time}</Text>
-                          </Space>
-                        </div>
-                        <Title level={4} className="news-title">
-                          {news.title}
-                        </Title>
-                        <Paragraph
-                          type="secondary"
-                          className="news-content"
-                          ellipsis={{ rows: 2 }}
-                        >
-                          {news.content}
-                        </Paragraph>
-                        <div className="news-footer">
-                          <Space>
-                            <Eye size={14} />
-                            <Text type="secondary">
-                              {formatNumber(news.views)} lượt xem
-                            </Text>
-                          </Space>
-                          <Button
-                            type="link"
-                            size="small"
-                            icon={<RightOutlined />}
-                          >
-                            Đọc thêm
-                          </Button>
-                        </div>
-                      </Card>
-                    </Timeline.Item>
-                  ))}
-                </Timeline>
-              </Col>
-
-              <Col xs={24} lg={8}>
-                <Card title="Tin nổi bật" className="trending-news-card">
-                  <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                    {newsData.slice(0, 3).map((news, index) => (
-                      <div key={news.id} className="trending-news-item">
-                        <Text strong className="trending-news-title">
-                          {news.title}
-                        </Text>
-                        <Space>
-                          <Text type="secondary" style={{ fontSize: '12px' }}>
-                            {news.time}
-                          </Text>
-                          <Text type="secondary" style={{ fontSize: '12px' }}>
-                            • {formatNumber(news.views)} views
-                          </Text>
-                        </Space>
-                      </div>
-                    ))}
-                  </Space>
-                </Card>
-              </Col>
-            </Row>
-          </TabPane>
+              </div>
+            </div>
+          )}
         </Tabs>
       </div>
     </section>

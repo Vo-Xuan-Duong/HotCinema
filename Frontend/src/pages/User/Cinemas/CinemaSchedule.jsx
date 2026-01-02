@@ -1,36 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import {
-    Card,
-    Row,
-    Col,
-    Button,
-    Tag,
-    Typography,
-    Breadcrumb,
-    Space,
-    Avatar,
-    Divider,
-    Alert,
-    Image
-} from 'antd';
-import {
-    HomeOutlined,
-    ShopOutlined,
-    EnvironmentOutlined,
-    ClockCircleOutlined,
-    PlayCircleOutlined,
-    InfoCircleOutlined
-} from '@ant-design/icons';
-import './CinemaSchedule.css';
-
-const { Title, Text, Paragraph } = Typography;
+import { Home, Store, MapPin, Clock, Play, Info } from 'lucide-react';
+import { Button } from '../../../components/ui/button';
+import { Card } from '../../../components/ui/card';
+import { Tag } from '../../../components/ui/tag';
+import { Breadcrumb } from '../../../components/ui/breadcrumb';
+import { Avatar } from '../../../components/ui/avatar';
+import { Alert } from '../../../components/ui/alert';
 
 const CinemaSchedule = () => {
     const { cinemaId } = useParams();
     const [selectedDate, setSelectedDate] = useState('16/8');
 
-    // Mock cinema data
     const cinema = {
         id: 1,
         name: 'Đồng Da',
@@ -44,7 +25,6 @@ const CinemaSchedule = () => {
         description: 'Lịch chiếu phim Đồng Da - Lịch chiếu rạp toàn quốc đầy đủ & tiện lợi nhất tại Moveek. Rạp Đồng Da là 1 trong những cụm rạp lâu đời nhất của Sài Gòn. Hiện Đồng Da đã được nâng cấp với tên gọi mới DDcinema với mong muốn mang đến những trải nghiệm điện ảnh tốt hơn với giá vé rất cạnh tranh.'
     };
 
-    // Dates for the week
     const weekDates = [
         { date: '16/8', day: 'Th 7', isSelected: true },
         { date: '17/8', day: 'CN', isSelected: false },
@@ -54,7 +34,6 @@ const CinemaSchedule = () => {
         { date: '21/8', day: 'Th 5', isSelected: false }
     ];
 
-    // Mock movie showtimes data
     const movies = [
         {
             id: 1,
@@ -98,141 +77,6 @@ const CinemaSchedule = () => {
                 { time: '21:55', price: '75K', room: 'Phòng 5' }
             ]
         },
-        {
-            id: 3,
-            title: 'Định Leo',
-            englishTitle: 'Together',
-            rating: 'T18',
-            duration: '1h42\'',
-            genres: ['Horror'],
-            subtitle: '2D Phụ Đề Việt',
-            poster: 'https://via.placeholder.com/150x200/f5222d/ffffff?text=TOGETHER',
-            showtimes: [
-                { time: '09:50', price: '65K', room: 'Phòng 6' },
-                { time: '13:55', price: '65K', room: 'Phòng 6' },
-                { time: '17:55', price: '75K', room: 'Phòng 6' },
-                { time: '19:15', price: '75K', room: 'Phòng 6' },
-                { time: '21:10', price: '75K', room: 'Phòng 6' }
-            ]
-        },
-        {
-            id: 4,
-            title: 'Avengers: Secret Wars',
-            englishTitle: 'Avengers: Secret Wars',
-            rating: 'T13',
-            duration: '2h48\'',
-            genres: ['Action', 'Adventure', 'Sci-Fi'],
-            subtitle: '2D Phụ Đề Việt',
-            poster: 'https://via.placeholder.com/150x200/faad14/ffffff?text=AVENGERS',
-            showtimes: [
-                { time: '08:30', price: '65K', room: 'Phòng VIP 1' },
-                { time: '11:45', price: '75K', room: 'Phòng VIP 1' },
-                { time: '15:00', price: '75K', room: 'Phòng VIP 1' },
-                { time: '18:15', price: '85K', room: 'Phòng VIP 1' },
-                { time: '21:30', price: '85K', room: 'Phòng VIP 1' }
-            ]
-        },
-        {
-            id: 5,
-            title: 'Coco 2: Hành Trình Mới',
-            englishTitle: 'Coco 2: A New Journey',
-            rating: 'K',
-            duration: '1h45\'',
-            genres: ['Animation', 'Family', 'Musical'],
-            subtitle: '2D Lồng Tiếng Việt',
-            poster: 'https://via.placeholder.com/150x200/722ed1/ffffff?text=COCO+2',
-            showtimes: [
-                { time: '09:00', price: '55K', room: 'Phòng 7' },
-                { time: '10:30', price: '55K', room: 'Phòng 8' },
-                { time: '14:15', price: '65K', room: 'Phòng 7' },
-                { time: '16:00', price: '65K', room: 'Phòng 8' },
-                { time: '18:30', price: '75K', room: 'Phòng 7' },
-                { time: '20:15', price: '75K', room: 'Phòng 8' }
-            ]
-        },
-        {
-            id: 6,
-            title: 'Fast & Furious 11',
-            englishTitle: 'Fast & Furious 11: The Final Ride',
-            rating: 'T16',
-            duration: '2h25\'',
-            genres: ['Action', 'Crime', 'Thriller'],
-            subtitle: '2D Phụ Đề Việt',
-            poster: 'https://via.placeholder.com/150x200/1890ff/ffffff?text=FAST+%26+FURIOUS',
-            showtimes: [
-                { time: '10:20', price: '70K', room: 'Phòng IMAX' },
-                { time: '13:10', price: '70K', room: 'Phòng IMAX' },
-                { time: '16:00', price: '80K', room: 'Phòng IMAX' },
-                { time: '18:50', price: '80K', room: 'Phòng IMAX' },
-                { time: '21:40', price: '80K', room: 'Phòng IMAX' }
-            ]
-        },
-        {
-            id: 7,
-            title: 'Hoa Ảo Nguyệt Vô',
-            englishTitle: 'Moonlight Fantasy',
-            rating: 'T18',
-            duration: '2h10\'',
-            genres: ['Romance', 'Drama', 'Fantasy'],
-            subtitle: '2D Phụ Đề Việt',
-            poster: 'https://via.placeholder.com/150x200/eb2f96/ffffff?text=MOONLIGHT',
-            showtimes: [
-                { time: '12:30', price: '65K', room: 'Phòng 9' },
-                { time: '15:20', price: '65K', room: 'Phòng 9' },
-                { time: '18:10', price: '75K', room: 'Phòng 9' },
-                { time: '21:00', price: '75K', room: 'Phòng 9' }
-            ]
-        },
-        {
-            id: 8,
-            title: 'Ma Lai Quái',
-            englishTitle: 'The Conjuring: Last Rites',
-            rating: 'T18',
-            duration: '1h58\'',
-            genres: ['Horror', 'Supernatural', 'Thriller'],
-            subtitle: '2D Phụ Đề Việt',
-            poster: 'https://via.placeholder.com/150x200/262626/ffffff?text=CONJURING',
-            showtimes: [
-                { time: '11:00', price: '65K', room: 'Phòng 10' },
-                { time: '14:30', price: '65K', room: 'Phòng 10' },
-                { time: '17:00', price: '75K', room: 'Phòng 10' },
-                { time: '19:30', price: '75K', room: 'Phòng 10' },
-                { time: '22:00', price: '75K', room: 'Phòng 10' }
-            ]
-        },
-        {
-            id: 9,
-            title: 'Doraemon: Nobita và Vũ Trụ Anh Hùng',
-            englishTitle: 'Doraemon: Nobita\'s Space Heroes',
-            rating: 'K',
-            duration: '1h42\'',
-            genres: ['Animation', 'Adventure', 'Family'],
-            subtitle: '2D Lồng Tiếng Việt',
-            poster: 'https://via.placeholder.com/150x200/13c2c2/ffffff?text=DORAEMON',
-            showtimes: [
-                { time: '08:45', price: '55K', room: 'Phòng 11' },
-                { time: '10:45', price: '55K', room: 'Phòng 11' },
-                { time: '13:00', price: '60K', room: 'Phòng 11' },
-                { time: '15:15', price: '60K', room: 'Phòng 11' },
-                { time: '17:30', price: '70K', room: 'Phòng 11' }
-            ]
-        },
-        {
-            id: 10,
-            title: 'John Wick: Chapter 5',
-            englishTitle: 'John Wick: Chapter 5 - Final Chapter',
-            rating: 'T18',
-            duration: '2h20\'',
-            genres: ['Action', 'Crime', 'Thriller'],
-            subtitle: '2D Phụ Đề Việt',
-            poster: 'https://via.placeholder.com/150x200/000000/ffffff?text=JOHN+WICK',
-            showtimes: [
-                { time: '13:45', price: '70K', room: 'Phòng 4D' },
-                { time: '16:30', price: '80K', room: 'Phòng 4D' },
-                { time: '19:15', price: '80K', room: 'Phòng 4D' },
-                { time: '22:00', price: '80K', room: 'Phòng 4D' }
-            ]
-        }
     ];
 
     const handleDateSelect = (date) => {
@@ -241,85 +85,87 @@ const CinemaSchedule = () => {
 
     const getRatingColor = (rating) => {
         switch (rating) {
-            case 'K': return '#52c41a';
-            case 'T13': return '#faad14';
-            case 'T16': return '#fa8c16';
-            case 'T18': return '#f5222d';
-            default: return '#1890ff';
+            case 'K': return 'green';
+            case 'T13': return 'orange';
+            case 'T16': return 'orange';
+            case 'T18': return 'red';
+            default: return 'blue';
         }
     };
 
     return (
-        <div className="cinema-schedule" style={{ minHeight: '100vh', background: '#f8fafc' }}>
-            {/* Breadcrumb */}
-            <div className="breadcrumb-section" style={{ background: '#ffffff', padding: '16px 0', borderBottom: '1px solid #e5e7eb' }}>
-                <div className="container">
-                    <Breadcrumb>
-                        <Breadcrumb.Item>
-                            <Link to="/">
-                                <HomeOutlined /> Trang chủ
-                            </Link>
-                        </Breadcrumb.Item>
-                        <Breadcrumb.Item>
-                            <Link to="/cinemas">
-                                <ShopOutlined /> Rạp chiếu
-                            </Link>
-                        </Breadcrumb.Item>
-                        <Breadcrumb.Item>
-                            {cinema.name}
-                        </Breadcrumb.Item>
-                    </Breadcrumb>
+        <div className="min-h-screen bg-gray-50">
+            <div className="bg-white py-4 border-b border-gray-200">
+                <div className="max-w-[1200px] mx-auto px-4 md:px-6">
+                    <Breadcrumb
+                        items={[
+                            {
+                                title: (
+                                    <>
+                                        <Home className="h-4 w-4 inline mr-1" />
+                                        Trang chủ
+                                    </>
+                                ),
+                                href: '/'
+                            },
+                            {
+                                title: (
+                                    <>
+                                        <Store className="h-4 w-4 inline mr-1" />
+                                        Rạp chiếu
+                                    </>
+                                ),
+                                href: '/cinemas'
+                            },
+                            {
+                                title: cinema.name
+                            }
+                        ]}
+                    />
                 </div>
             </div>
 
-            {/* Cinema Header */}
-            <div className="cinema-header-section">
-                <div className="container">
-                    <div className="cinema-header-content">
-                        <div className="cinema-logo">
-                            <Avatar
-                                size={80}
-                                className="cinema-avatar"
-                            >
-                                {cinema.logoText}
-                            </Avatar>
-                        </div>
-                        <div className="cinema-info">
-                            <Title level={2} className="cinema-name">
+            <div className="bg-white py-8 border-b border-gray-200">
+                <div className="max-w-[1200px] mx-auto px-4 md:px-6">
+                    <div className="flex gap-6 items-start flex-wrap">
+                        <Avatar className="w-20 h-20 bg-primary text-white text-2xl font-bold">
+                            {cinema.logoText}
+                        </Avatar>
+                        <div className="flex-1">
+                            <h2 className="text-gray-900 mb-3 text-2xl font-bold">
                                 {cinema.name}
-                            </Title>
-                            <div className="cinema-meta">
+                            </h2>
+                            <div className="flex flex-wrap gap-3 items-center">
                                 <Tag color="blue">{cinema.chain}</Tag>
-                                <span className="cinema-location">
-                                    <EnvironmentOutlined /> {cinema.address}
+                                <span className="text-gray-600 flex items-center gap-1">
+                                    <MapPin className="h-4 w-4" /> {cinema.address}
                                 </span>
-                                <span className="cinema-city">
-                                    <EnvironmentOutlined /> {cinema.city}
+                                <span className="text-gray-600 flex items-center gap-1">
+                                    <MapPin className="h-4 w-4" /> {cinema.city}
                                 </span>
                             </div>
                         </div>
                     </div>
 
-                    <Paragraph className="cinema-description">
+                    <p className="text-gray-700 mt-4 mb-0">
                         {cinema.description}
-                    </Paragraph>
+                    </p>
                 </div>
             </div>
 
-            {/* Date Selection */}
-            <div className="date-selection-section">
-                <div className="container">
-                    <div className="date-tabs">
+            <div className="bg-white py-6 border-b border-gray-200">
+                <div className="max-w-[1200px] mx-auto px-4 md:px-6">
+                    <div className="flex gap-3 flex-wrap">
                         {weekDates.map((dateItem) => (
                             <Button
                                 key={dateItem.date}
-                                type={selectedDate === dateItem.date ? 'primary' : 'default'}
-                                className={`date-tab ${selectedDate === dateItem.date ? 'active' : ''}`}
+                                variant={selectedDate === dateItem.date ? "default" : "outline"}
                                 onClick={() => handleDateSelect(dateItem.date)}
+                                className={selectedDate === dateItem.date ? "bg-primary" : ""}
                             >
-                                <div className="date-info">
-                                    <div className="date">{dateItem.date}</div>
-                                    <div className="day">{dateItem.day}</div>
+                                <div className="flex flex-col items-center">
+                                    <div className="text-base font-semibold">{dateItem.date}</div>
+                                    <div className="text-xs">{dateItem.day}</div>
                                 </div>
                             </Button>
                         ))}
@@ -327,100 +173,86 @@ const CinemaSchedule = () => {
                 </div>
             </div>
 
-            {/* Notice */}
-            <div className="container">
+            <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-6">
                 <Alert
                     message="Nhận vào suất chiếu để tiến hành mua vé"
                     type="warning"
                     showIcon
-                    icon={<InfoCircleOutlined />}
-                    style={{ marginBottom: 24 }}
+                    className="mb-6 rounded-lg"
                 />
 
-                {/* Debug info */}
-                <div style={{
-                    background: '#f0f8ff',
-                    padding: '16px',
-                    borderRadius: '8px',
-                    marginBottom: '24px',
-                    border: '2px solid #1890ff'
-                }}>
-                    <Text strong style={{ color: '#1890ff' }}>
+                <div className="bg-blue-50 p-4 rounded-lg mb-6 border-2 border-blue-500">
+                    <p className="text-blue-600 font-semibold">
                         🎬 Đang hiển thị {movies.length} phim cho ngày {selectedDate}
-                    </Text>
+                    </p>
                 </div>
             </div>
 
-            {/* Movie Showtimes */}
-            {/* Movies and Showtimes */}
-            <div className="showtimes-section">
-                <div className="container">
-                    <Row gutter={[24, 24]}>
-                        <Col span={24}>
-                            {movies.map((movie) => (
-                                <Card
-                                    key={movie.id}
-                                    className="movie-showtime-card"
-                                    bordered={false}
-                                >
-                                    <div className="movie-content">
-                                        <div className="movie-poster">
-                                            <Image
-                                                width={120}
-                                                height={160}
-                                                src={movie.poster}
-                                                alt={movie.title}
-                                                preview={false}
-                                            />
+            <div className="max-w-[1200px] mx-auto px-4 md:px-6 pb-8">
+                <div className="space-y-6">
+                    {movies.map((movie) => (
+                        <Card
+                            key={movie.id}
+                            className="bg-white rounded-xl shadow-md border border-gray-200"
+                        >
+                            <div className="flex gap-6 flex-col md:flex-row">
+                                <div className="flex-shrink-0">
+                                    <img
+                                        width={120}
+                                        height={160}
+                                        src={movie.poster}
+                                        alt={movie.title}
+                                        className="rounded-lg"
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    <div className="mb-4">
+                                        <h4 className="text-gray-900 mb-2 text-lg font-bold">
+                                            {movie.title}
+                                        </h4>
+                                        <div className="mb-3">
+                                            <p className="text-gray-500 text-sm block mb-2">
+                                                {movie.englishTitle}
+                                            </p>
+                                            <div className="flex flex-wrap gap-2 items-center">
+                                                <Tag color={getRatingColor(movie.rating)}>
+                                                    {movie.rating}
+                                                </Tag>
+                                                <span className="text-gray-500 text-sm">{movie.duration}</span>
+                                                <Button variant="link" size="sm" className="p-0 h-auto">
+                                                    <Play className="h-4 w-4 mr-1" />
+                                                    Trailer
+                                                </Button>
+                                            </div>
                                         </div>
-                                        <div className="movie-info">
-                                            <div className="movie-header">
-                                                <Title level={4} className="movie-title">
-                                                    {movie.title}
-                                                </Title>
-                                                <div className="movie-meta">
-                                                    <Text type="secondary" className="movie-english-title">
-                                                        {movie.englishTitle}
-                                                    </Text>
-                                                    <Space size="small">
-                                                        <Tag color={getRatingColor(movie.rating)}>
-                                                            {movie.rating}
-                                                        </Tag>
-                                                        <Text type="secondary">{movie.duration}</Text>
-                                                        <Button type="link" size="small">
-                                                            <PlayCircleOutlined /> Trailer
-                                                        </Button>
-                                                    </Space>
-                                                </div>
-                                                <div className="movie-genres">
-                                                    <Text type="secondary">{movie.genres.join(', ')}</Text>
-                                                </div>
-                                                <div className="movie-format">
-                                                    <Text><strong>{movie.subtitle}</strong></Text>
-                                                </div>
-                                            </div>
-
-                                            <div className="showtimes-grid">
-                                                {movie.showtimes.map((showtime, index) => (
-                                                    <Button
-                                                        key={index}
-                                                        className="showtime-btn"
-                                                        title={`${showtime.room} - ${showtime.time} - ${showtime.price}`}
-                                                    >
-                                                        <div className="showtime-info">
-                                                            <div className="showtime-time">{showtime.time}</div>
-                                                            <div className="showtime-price">{showtime.price}</div>
-                                                            <div className="showtime-room">{showtime.room}</div>
-                                                        </div>
-                                                    </Button>
-                                                ))}
-                                            </div>
+                                        <div className="mb-2">
+                                            <p className="text-gray-500 text-sm">{movie.genres.join(', ')}</p>
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-gray-900">{movie.subtitle}</p>
                                         </div>
                                     </div>
-                                </Card>
-                            ))}
-                        </Col>
-                    </Row>
+
+                                    <div className="flex flex-wrap gap-2">
+                                        {movie.showtimes.map((showtime, index) => (
+                                            <Button
+                                                key={index}
+                                                variant="outline"
+                                                className="h-auto py-2 px-4 rounded-lg border-2 border-primary text-primary hover:bg-primary hover:text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                                                title={`${showtime.room} - ${showtime.time} - ${showtime.price}`}
+                                            >
+                                                <div className="flex flex-col items-center">
+                                                    <div className="font-semibold text-base">{showtime.time}</div>
+                                                    <div className="text-xs">{showtime.price}</div>
+                                                    <div className="text-xs opacity-75">{showtime.room}</div>
+                                                </div>
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </Card>
+                    ))}
                 </div>
             </div>
         </div>

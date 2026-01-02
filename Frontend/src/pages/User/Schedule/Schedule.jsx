@@ -1,40 +1,41 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Button, Typography, Spin, notification, message, Pagination } from 'antd';
-import { WarningOutlined } from '@ant-design/icons';
+import { AlertCircle, Search, MapPin, Target } from 'lucide-react';
+import { Button } from '../../../components/ui/button';
+import { Card } from '../../../components/ui/card';
+import { Input } from '../../../components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
+import { Pagination } from '../../../components/ui/pagination';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
-import './Schedule.css';
+import ContentLoader from '../../../components/Loading/ContentLoader';
+import useNotification from '../../../hooks/useNotification';
 import cinemaService from '../../../services/cinemaService';
-import cityService from '../../../services/cityService';
+import regionService from '../../../services/regionService';
 import showtimeService from '../../../services/showtimeService';
-
-const { Title, Text } = Typography;
 
 dayjs.locale('vi');
 
 const Schedule = () => {
     const navigate = useNavigate();
+    const notification = useNotification();
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState(dayjs());
-    const [selectedCity, setSelectedCity] = useState(null);
+    const [selectedCity, setSelectedCity] = useState(null); // Lưu slug của region
     const [selectedCinemaId, setSelectedCinemaId] = useState(null);
 
-    // API Data
     const [cities, setCities] = useState([]);
     const [cinemas, setCinemas] = useState([]);
     const [showtimes, setShowtimes] = useState([]);
     const [availableDates] = useState(getNext7Days());
+    const [cinemaSearchText, setCinemaSearchText] = useState('');
 
-    // Pagination for cinemas
     const [cinemaPage, setCinemaPage] = useState(0);
+    const [cinemaPageSize] = useState(20);
     const [totalCinemas, setTotalCinemas] = useState(0);
-
-    // Pagination for showtimes
     const [showtimePage, setShowtimePage] = useState(0);
     const [totalShowtimes, setTotalShowtimes] = useState(0);
 
-    // Generate dates for next 7 days
     function getNext7Days() {
         const dates = [];
         for (let i = 0; i < 7; i++) {
@@ -51,7 +52,6 @@ const Schedule = () => {
         return dates;
     }
 
-    // Load initial data
     useEffect(() => {
         loadInitialData();
     }, []);
@@ -60,57 +60,43 @@ const Schedule = () => {
         try {
             setLoading(true);
 
-            // Load cities
-            console.log('Loading cities...');
-            const citiesData = await cityService.getCitiesAllNoPage();
-            console.log('Cities response:', citiesData);
+            const regionsData = await regionService.getRegionsAllNoPage();
+            const regionsArray = Array.isArray(regionsData) ? regionsData :
+                (regionsData?.data ? regionsData.data :
+                    (regionsData?.content ? regionsData.content : []));
 
-            // Handle different response structures
-            const citiesArray = Array.isArray(citiesData) ? citiesData :
-                (citiesData?.data ? citiesData.data :
-                    (citiesData?.content ? citiesData.content : []));
+            setCities(regionsArray);
 
-            setCities(citiesArray);
-            console.log('Cities set:', citiesArray);
-
-            // Set default city (first city or Tp. HCM)
-            if (citiesArray && citiesArray.length > 0) {
-                const defaultCity = citiesArray.find(c => c.name.includes('Hồ Chí Minh')) || citiesArray[0];
-                setSelectedCity(defaultCity.id);
-                console.log('Default city selected:', defaultCity);
-
-                // Load cinemas for default city
-                await loadCinemasForCity(defaultCity.id);
+            if (regionsArray && regionsArray.length > 0) {
+                const defaultRegion = regionsArray.find(r => r.name?.includes('Hồ Chí Minh') || r.slug === 'ho-chi-minh') || regionsArray[0];
+                // Sử dụng slug thay vì id
+                setSelectedCity(defaultRegion.slug || defaultRegion.id);
+                await loadCinemasForCity(defaultRegion.slug || defaultRegion.id);
             } else {
-                console.warn('No cities available');
-                message.warning('Không có dữ liệu thành phố. Vui lòng kiểm tra kết nối backend.');
+                notification.warning('Không có dữ liệu khu vực. Vui lòng kiểm tra kết nối backend.');
             }
 
         } catch (error) {
             console.error('Error loading initial data:', error);
-            console.error('Error details:', error.response || error.message);
-            message.error(`Không thể tải dữ liệu: ${error.message}`);
+            notification.error(`Không thể tải dữ liệu: ${error.message}`);
         } finally {
             setLoading(false);
         }
     };
 
-    // Load cinemas when city changes
     useEffect(() => {
         if (selectedCity) {
             loadCinemasForCity(selectedCity);
         }
     }, [selectedCity]);
 
-    const loadCinemasForCity = async (cityId, page = 0) => {
+    const loadCinemasForCity = async (regionSlug, page = 0) => {
         try {
-            console.log('Loading cinemas for city:', cityId, 'page:', page);
+            const cinemasData = await cinemaService.getCinemasByRegion(regionSlug, {
+                page,
+                size: cinemaPageSize
+            });
 
-            // Load all cinemas by city with pagination
-            const cinemasData = await cinemaService.getCinemasByCity(cityId, { page, size: 20 });
-            console.log('Cinemas by city response:', cinemasData);
-
-            // Handle different response structures
             let cinemasArray;
             let totalItems = 0;
 
@@ -118,50 +104,54 @@ const Schedule = () => {
                 cinemasArray = cinemasData;
                 totalItems = cinemasData.length;
             } else if (cinemasData?.data?.content) {
-                // Paginated response: {data: {content: [...], total: 96, last: false}}
                 cinemasArray = cinemasData.data.content;
                 totalItems = cinemasData.data.totalElements || cinemasData.data.total || 0;
             } else if (cinemasData?.data) {
-                // Direct array in data: {data: [...]}
                 cinemasArray = Array.isArray(cinemasData.data) ? cinemasData.data : [];
                 totalItems = cinemasArray.length;
             } else if (cinemasData?.content) {
-                // Direct content: {content: [...]}
                 cinemasArray = cinemasData.content;
                 totalItems = cinemasData.totalElements || cinemasData.total || cinemasArray.length;
             } else {
                 cinemasArray = [];
             }
 
-            // Update pagination state
             setTotalCinemas(totalItems);
             setCinemaPage(page);
-
-            // Replace cinemas for pagination (not append)
             setCinemas(cinemasArray);
 
-            console.log('Cinemas set:', cinemasArray, 'Total:', totalItems, 'Page:', page);
-
-            // Set default cinema (first cinema) only on initial load
+            // Chỉ tự động chọn rạp đầu tiên khi ở trang đầu tiên
             if (page === 0 && cinemasArray && cinemasArray.length > 0) {
                 setSelectedCinemaId(cinemasArray[0].id);
                 await loadShowtimes(cinemasArray[0].id, selectedDate.format('YYYY-MM-DD'));
             } else if (page === 0) {
-                console.warn('No cinemas found for city:', cityId);
                 setSelectedCinemaId(null);
                 setShowtimes([]);
+            } else {
+                // Khi đổi trang, không tự động chọn rạp mới
+                // Giữ nguyên selectedCinemaId nếu rạp đó vẫn còn trong danh sách
+                if (selectedCinemaId && !cinemasArray.find(c => c.id === selectedCinemaId)) {
+                    // Nếu rạp đã chọn không còn trong trang mới, chọn rạp đầu tiên
+                    if (cinemasArray.length > 0) {
+                        setSelectedCinemaId(cinemasArray[0].id);
+                        await loadShowtimes(cinemasArray[0].id, selectedDate.format('YYYY-MM-DD'));
+                    } else {
+                        setSelectedCinemaId(null);
+                        setShowtimes([]);
+                    }
+                }
             }
         } catch (error) {
             console.error('Error loading cinemas:', error);
-            console.error('Error details:', error.response || error.message);
-            message.error(`Không thể tải danh sách rạp: ${error.message}`);
+            notification.error(`Không thể tải danh sách rạp: ${error.message}`);
             if (page === 0) {
                 setCinemas([]);
+                setSelectedCinemaId(null);
+                setShowtimes([]);
             }
         }
     };
 
-    // Load showtimes when cinema or date changes
     useEffect(() => {
         if (selectedCinemaId && selectedDate) {
             setShowtimePage(0);
@@ -171,14 +161,11 @@ const Schedule = () => {
 
     const loadShowtimes = async (cinemaId, date, page = 0) => {
         try {
-            console.log('Loading showtimes for cinema:', cinemaId, 'date:', date, 'page:', page);
             const showtimesData = await showtimeService.getShowtimesByDateAndCinema(date, cinemaId, {
                 page,
                 size: 20
             });
-            console.log('Showtimes response:', showtimesData);
 
-            // Handle different response structures
             let showtimesArray;
             let totalItems = 0;
 
@@ -186,28 +173,22 @@ const Schedule = () => {
                 showtimesArray = showtimesData;
                 totalItems = showtimesData.length;
             } else if (showtimesData?.data?.content) {
-                // Paginated response: {data: {content: [...], total: 96, last: false}}
                 showtimesArray = showtimesData.data.content;
                 totalItems = showtimesData.data.totalElements || showtimesData.data.total || 0;
             } else if (showtimesData?.data) {
-                // Direct array in data: {data: [...]}
                 showtimesArray = Array.isArray(showtimesData.data) ? showtimesData.data : [];
                 totalItems = showtimesArray.length;
             } else if (showtimesData?.content) {
-                // Direct content: {content: [...]}
                 showtimesArray = showtimesData.content;
                 totalItems = showtimesData.totalElements || showtimesData.total || showtimesArray.length;
             } else {
                 showtimesArray = [];
             }
 
-            // Update pagination state
             setTotalShowtimes(totalItems);
             setShowtimePage(page);
 
-            // Transform new API format to component format
             const transformedShowtimes = showtimesArray.map(item => {
-                // Flatten all showtimes from all formats
                 const allShowtimes = [];
                 if (item.formats && Array.isArray(item.formats)) {
                     item.formats.forEach(format => {
@@ -232,7 +213,7 @@ const Schedule = () => {
                     movie: {
                         id: item.movieId,
                         title: item.movieTitle,
-                        poster: item.posterPath || item.poster || item.moviePoster,
+                        posterUrl: item.posterUrl || item.poster || item.moviePoster,
                         duration: item.duration || item.movieDuration,
                         genre: item.genre || item.movieGenre
                     },
@@ -240,38 +221,32 @@ const Schedule = () => {
                 };
             });
 
-            // Replace showtimes for pagination (not append)
             setShowtimes(transformedShowtimes);
-
-            console.log('Showtimes transformed:', transformedShowtimes, 'Total:', totalItems, 'Page:', page);
         } catch (error) {
             console.error('Error loading showtimes:', error);
-            console.error('Error details:', error.response || error.message);
             if (page === 0) {
                 setShowtimes([]);
             }
         }
     };
 
-    const handleCityChange = (cityId) => {
-        setSelectedCity(parseInt(cityId));
+    const handleCityChange = (regionSlug) => {
+        setSelectedCity(regionSlug);
         setSelectedCinemaId(null);
         setShowtimes([]);
         setCinemaPage(0);
+        setCinemaSearchText(''); // Reset search khi đổi khu vực
     };
 
     const handleCinemaSelect = (cinemaId) => {
         setSelectedCinemaId(cinemaId);
     };
 
-
-
     const handleDateChange = (date) => {
         setSelectedDate(date);
     };
 
     const handleBooking = (movieId, showtimeId, showtime) => {
-        // Navigate to booking page with showtime info
         navigate(`/booking/seats/${showtimeId}`, {
             state: {
                 movieId,
@@ -283,216 +258,284 @@ const Schedule = () => {
         });
     };
 
-    // Get selected cinema info
     const selectedCinema = Array.isArray(cinemas) ? cinemas.find(c => c.id === selectedCinemaId) : null;
-    const selectedCityName = Array.isArray(cities) ? (cities.find(c => c.id === selectedCity)?.name || '') : '';
+
+    const filteredCinemas = useMemo(() => {
+        if (!cinemaSearchText.trim()) {
+            return cinemas;
+        }
+        const searchLower = cinemaSearchText.toLowerCase().trim();
+        return cinemas.filter(cinema =>
+            cinema.name?.toLowerCase().includes(searchLower) ||
+            cinema.address?.toLowerCase().includes(searchLower)
+        );
+    }, [cinemas, cinemaSearchText]);
 
     if (loading) {
-        return (
-            <div className="schedule-layout" style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minHeight: '400px'
-            }}>
-                <Spin size="large" />
-            </div>
-        );
+        return <ContentLoader message="Đang tải lịch chiếu..." />;
     }
 
     return (
-        <div className="schedule-layout">
-            <div className="schedule-panel">
-                <div className="panel-inner">
-                    <Title level={2} className="schedule-page-title center-title">Lịch chiếu phim</Title>
+        <div className="min-h-screen bg-gray-50 pt-8 pb-6 overflow-x-hidden">
+            <div className="max-w-[1200px] mx-auto px-6 mb-16 pt-16">
+                <div className="bg-white border border-gray-200 rounded-2xl shadow-lg p-8 md:p-9">
+                    <h2 className="text-center text-3xl font-bold mb-5 text-gray-900">
+                        Lịch chiếu phim
+                    </h2>
 
-                    {/* Filter Bar */}
-                    <div className="filter-bar-wide">
-                        <div className="left-filters">
-                            <label className="filter-label">Vị trí</label>
-                            <select
-                                className="location-select"
-                                value={selectedCity || ''}
-                                onChange={e => handleCityChange(e.target.value)}
-                            >
-                                <option value="">-- Chọn thành phố --</option>
-                                {Array.isArray(cities) && cities.map(city => (
-                                    <option key={city.id} value={city.id}>
-                                        {city.name}
-                                    </option>
-                                ))}
-                            </select>
-                            <button type="button" className="near-me-btn">Gần bạn</button>
-                        </div>
-                    </div>
-
-                    <div className="schedule-two-col">
-                        {/* Cinema List Panel */}
-                        <div className="cinema-list-panel">
-                            <div className="cinema-search-box">
-                                <input placeholder="Tìm theo tên rạp ..." />
+                    <Card className="mb-6 rounded-xl shadow-md border border-gray-200">
+                        <div className="flex justify-between items-center flex-wrap gap-5 p-4">
+                            <div className="flex items-center gap-4 flex-wrap">
+                                <div className="flex flex-col gap-2">
+                                    <p className="text-sm font-semibold text-gray-700 flex items-center">
+                                        <MapPin className="mr-1.5 h-4 w-4" />
+                                        Thành phố
+                                    </p>
+                                    <Select
+                                        value={selectedCity || ''}
+                                        onValueChange={handleCityChange}
+                                    >
+                                        <SelectTrigger className="w-[250px]">
+                                            <SelectValue placeholder="Chọn khu vực" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {Array.isArray(cities) && cities.map(region => (
+                                                <SelectItem key={region.id} value={region.slug || region.id.toString()}>
+                                                    {region.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                        if (navigator.geolocation) {
+                                            navigator.geolocation.getCurrentPosition(
+                                                (position) => {
+                                                    notification.success('Đã lấy vị trí của bạn');
+                                                },
+                                                (error) => {
+                                                    notification.warning('Không thể lấy vị trí. Vui lòng cho phép truy cập vị trí.');
+                                                }
+                                            );
+                                        } else {
+                                            notification.error('Trình duyệt không hỗ trợ geolocation');
+                                        }
+                                    }}
+                                    className="h-10 flex items-center gap-1.5 rounded-lg"
+                                >
+                                    <Target className="h-4 w-4" />
+                                    Gần bạn
+                                </Button>
                             </div>
-                            <div className="cinema-list-scroll">
+                        </div>
+                    </Card>
+
+                    <div className="flex gap-6 items-start flex-col lg:flex-row">
+                        <Card className="w-full lg:w-80 rounded-xl shadow-md border border-gray-200 flex flex-col min-h-[600px]">
+                            <div className="mb-4 p-4">
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                    <Input
+                                        placeholder="Tìm theo tên rạp ..."
+                                        value={cinemaSearchText}
+                                        onChange={(e) => setCinemaSearchText(e.target.value)}
+                                        className="pl-10 h-10 rounded-lg"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex-1 overflow-y-auto flex flex-col gap-1.5 px-4 pb-4">
                                 {!Array.isArray(cinemas) || cinemas.length === 0 ? (
-                                    <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
-                                        Không có rạp nào
+                                    <div className="py-10 text-center text-gray-500">
+                                        <p>Không có rạp nào</p>
+                                    </div>
+                                ) : filteredCinemas.length === 0 ? (
+                                    <div className="py-10 text-center text-gray-500">
+                                        <p>Không tìm thấy rạp phù hợp</p>
                                     </div>
                                 ) : (
-                                    cinemas.map(cinema => (
+                                    filteredCinemas.map(cinema => (
                                         <div
                                             key={cinema.id}
-                                            className={`cinema-list-item ${selectedCinemaId === cinema.id ? 'active' : ''}`}
+                                            className={`flex justify-between items-center p-3 text-sm rounded-lg cursor-pointer transition-all duration-300 mb-2 border ${selectedCinemaId === cinema.id
+                                                ? 'bg-gradient-to-r from-primary to-red-700 text-white border-primary shadow-lg font-semibold'
+                                                : 'bg-gray-50 text-gray-900 border-transparent hover:bg-gray-100 hover:translate-x-1 hover:border-gray-200 hover:shadow-md'
+                                                }`}
                                             onClick={() => handleCinemaSelect(cinema.id)}
                                         >
-                                            <span className="cinema-list-name">{cinema.name}</span>
-                                            <span className="chevron">›</span>
+                                            <div className="flex-1 flex flex-col gap-1 min-w-0">
+                                                <span className="font-semibold overflow-hidden text-ellipsis whitespace-nowrap leading-tight">
+                                                    {cinema.name}
+                                                </span>
+                                                {cinema.address && (
+                                                    <span className={`text-xs overflow-hidden text-ellipsis whitespace-nowrap leading-tight ${selectedCinemaId === cinema.id ? 'text-white/85' : 'text-gray-500'
+                                                        }`}>
+                                                        {cinema.address}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <span className={`ml-2 text-xl ${selectedCinemaId === cinema.id ? 'opacity-100' : 'opacity-40'
+                                                }`}>›</span>
                                         </div>
                                     ))
                                 )}
                             </div>
-                            {totalCinemas > 20 && (
-                                <div className="cinema-list-footer">
+                            {totalCinemas > cinemaPageSize && (
+                                <div className="mt-3 pt-3 border-t border-gray-200 text-center px-4 pb-4">
                                     <Pagination
-                                        simple
                                         current={cinemaPage + 1}
                                         total={totalCinemas}
-                                        pageSize={20}
+                                        pageSize={cinemaPageSize}
                                         onChange={(page) => {
                                             loadCinemasForCity(selectedCity, page - 1);
+                                            // Scroll to top of cinema list
+                                            const cinemaList = document.querySelector('.flex-1.overflow-y-auto');
+                                            if (cinemaList) {
+                                                cinemaList.scrollTo({ top: 0, behavior: 'smooth' });
+                                            }
                                         }}
                                         showSizeChanger={false}
-                                        size="small"
-                                        style={{ textAlign: 'center', marginTop: '12px' }}
+                                        showTotal={(total, range) =>
+                                            `${range[0]}-${range[1]} / ${total} rạp`
+                                        }
                                     />
                                 </div>
                             )}
-                        </div>
+                        </Card>
 
-                        {/* Showtimes Panel */}
-                        <div className="showtimes-panel">
-                            {selectedCinema && (
-                                <div className="selected-cinema-header">
-                                    <div className="cinema-header-line">
-                                        <span className="selected-cinema-name" title={`Lịch chiếu phim ${selectedCinema.name}`}>
-                                            {selectedCinema.name}
-                                        </span>
-                                        <button className="map-link" type="button">
-                                            Bản đồ
-                                        </button>
-                                    </div>
-                                    <div className="cinema-address-line" title={selectedCinema.address || 'Địa chỉ đang cập nhật'}>
-                                        {selectedCinema.address || 'Địa chỉ đang cập nhật'}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Date Strip */}
-                            <div className="date-strip">
-                                {Array.isArray(availableDates) && availableDates.map((d, idx) => {
-                                    const isSelected = selectedDate.format('DD/MM') === d.fullDate.format('DD/MM');
-                                    return (
-                                        <div
-                                            key={idx}
-                                            className={`date-pill ${isSelected ? 'active' : ''}`}
-                                            onClick={() => handleDateChange(d.fullDate)}
-                                        >
-                                            <div className="date-num">{d.dayNumber}</div>
-                                            <div className="date-label">
-                                                {d.isToday ? 'Hôm nay' : d.fullDate.format('dd')}
+                        <Card className="flex-1 min-w-0 rounded-xl shadow-md border border-gray-200">
+                            <div className="p-5">
+                                {selectedCinema && (
+                                    <Card className="mb-5 rounded-lg shadow-sm border border-gray-200">
+                                        <div className="flex items-center gap-3 flex-wrap p-4">
+                                            <div className="flex-1 flex flex-col gap-2">
+                                                <h4 className="m-0 font-bold text-gray-900 text-lg">
+                                                    {selectedCinema.name}
+                                                </h4>
+                                                <p className="text-sm text-gray-500 flex items-center">
+                                                    <MapPin className="mr-1 h-4 w-4" />
+                                                    {selectedCinema.address || 'Địa chỉ đang cập nhật'}
+                                                </p>
                                             </div>
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedCinema.address || '')}`, '_blank')}
+                                                className="h-auto flex items-center gap-1.5 rounded-lg"
+                                            >
+                                                <MapPin className="h-4 w-4 mr-1" />
+                                                Bản đồ
+                                            </Button>
                                         </div>
-                                    );
-                                })}
-                            </div>
+                                    </Card>
+                                )}
 
-                            {/* Movies and Showtimes */}
-                            <div className="movie-rows compact">
-                                {showtimes.length === 0 ? (
-                                    <div style={{
-                                        padding: '40px 20px',
-                                        textAlign: 'center',
-                                        color: '#999'
-                                    }}>
-                                        <p style={{ fontSize: '16px', marginBottom: '8px' }}>
-                                            Không có suất chiếu
-                                        </p>
-                                        <p style={{ fontSize: '14px' }}>
-                                            Vui lòng chọn ngày khác hoặc rạp khác
-                                        </p>
-                                    </div>
-                                ) : (
-                                    Array.isArray(showtimes) && showtimes.map((item, index) => {
-                                        const movie = item.movie;
-                                        if (!movie) return null;
-
+                                <div className="flex gap-2.5 overflow-x-auto pb-4 mb-3 border-b-2 border-gray-200">
+                                    {Array.isArray(availableDates) && availableDates.map((d, idx) => {
+                                        const isSelected = selectedDate.format('DD/MM') === d.fullDate.format('DD/MM');
                                         return (
-                                            <div key={movie.id || index} className="movie-row alt">
-                                                <div className="movie-row-poster">
-                                                    <img
-                                                        src={movie.poster || 'https://via.placeholder.com/150x220?text=No+Image'}
-                                                        alt={movie.title}
-                                                    />
+                                            <div
+                                                key={idx}
+                                                className={`min-w-[60px] rounded-lg p-2 text-center cursor-pointer transition-all duration-300 text-sm leading-tight flex-shrink-0 ${isSelected
+                                                    ? 'bg-gradient-to-br from-primary to-red-700 border-2 border-primary shadow-lg transform -translate-y-0.5 text-white'
+                                                    : 'bg-gray-50 border border-gray-200 text-gray-900 hover:border-primary hover:bg-primary/5 hover:-translate-y-0.5'
+                                                    }`}
+                                                onClick={() => handleDateChange(d.fullDate)}
+                                            >
+                                                <div className={`text-lg font-bold leading-none mb-1 ${isSelected ? 'text-white' : 'text-gray-900'
+                                                    }`}>
+                                                    {d.dayNumber}
                                                 </div>
-                                                <div className="movie-row-body">
-                                                    <div className="movie-row-header">
-                                                        <div className="movie-row-title">{movie.title}</div>
-                                                        <div className="movie-row-sub">
-                                                            {movie.duration || '120 phút'} • {movie.genre || 'Phim'}
-                                                        </div>
-                                                    </div>
-                                                    <div className="showtime-pills wrap">
-                                                        {Array.isArray(item.showtimes) && item.showtimes.map((showtime, idx) => (
-                                                            <button
-                                                                key={showtime.id || idx}
-                                                                className="showtime-pill"
-                                                                onClick={() => handleBooking(
-                                                                    movie.id,
-                                                                    showtime.id,
-                                                                    showtime
-                                                                )}
-                                                                title={`${showtime.roomName} - ${showtime.formatType || ''} - ${showtime.price?.toLocaleString()}đ`}
-                                                            >
-                                                                <div>{showtime.startTime?.substring(0, 5)}</div>
-                                                                {showtime.formatType && (
-                                                                    <div style={{ fontSize: '10px', opacity: 0.8 }}>
-                                                                        {showtime.formatType}
-                                                                    </div>
-                                                                )}
-                                                            </button>
-                                                        ))}
-                                                    </div>
+                                                <div className={`text-xs uppercase font-semibold ${isSelected ? 'text-white font-bold' : 'text-gray-500'
+                                                    }`}>
+                                                    {d.isToday ? 'Hôm nay' : d.fullDate.format('dd')}
                                                 </div>
                                             </div>
                                         );
-                                    })
+                                    })}
+                                </div>
+
+                                <div className="flex flex-col gap-0">
+                                    {showtimes.length === 0 ? (
+                                        <Card className="my-5 rounded-xl text-center border border-gray-200">
+                                            <div className="py-10 px-5 flex flex-col items-center justify-center gap-2">
+                                                <AlertCircle className="h-12 w-12 text-gray-400 mb-4" />
+                                                <h4 className="text-gray-500 text-lg font-semibold">Không có suất chiếu</h4>
+                                                <p className="text-gray-400">Vui lòng chọn ngày khác hoặc rạp khác</p>
+                                            </div>
+                                        </Card>
+                                    ) : (
+                                        Array.isArray(showtimes) && showtimes.map((item, index) => {
+                                            const movie = item.movie;
+                                            if (!movie) return null;
+
+                                            return (
+                                                <div
+                                                    key={movie.id || index}
+                                                    className="flex gap-5 p-4 rounded-xl mb-4 bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5"
+                                                >
+                                                    <div className="w-[140px] h-[200px] rounded-xl overflow-hidden flex-shrink-0 shadow-lg relative transition-all duration-300 hover:scale-[1.02] hover:shadow-xl">
+                                                        <img
+                                                            src={movie.posterUrl || 'https://via.placeholder.com/150x220?text=No+Image'}
+                                                            alt={movie.title}
+                                                            className="w-full h-full object-cover block transition-transform duration-300 hover:scale-105"
+                                                        />
+                                                    </div>
+                                                    <div className="flex-1 flex flex-col gap-4 min-w-0">
+                                                        <div className="flex flex-col gap-2">
+                                                            <div className="text-xl font-bold text-gray-900 leading-tight m-0">
+                                                                {movie.title}
+                                                            </div>
+                                                            <div className="text-sm text-gray-500 font-medium leading-relaxed">
+                                                                {movie.duration || '120 phút'} • {movie.genre || 'Phim'}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex gap-2.5 flex-wrap">
+                                                            {Array.isArray(item.showtimes) && item.showtimes.map((showtime, idx) => (
+                                                                <button
+                                                                    key={showtime.id || idx}
+                                                                    className="bg-white border-2 border-primary text-primary px-3 py-1.5 rounded-lg text-sm cursor-pointer transition-all duration-300 shadow-sm hover:shadow-lg min-w-[75px] text-center flex flex-col items-center justify-center gap-0.5 relative overflow-hidden font-semibold hover:bg-gradient-to-br hover:from-primary hover:to-red-700 hover:text-white hover:-translate-y-1 hover:border-primary active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                    onClick={() => handleBooking(
+                                                                        movie.id,
+                                                                        showtime.id,
+                                                                        showtime
+                                                                    )}
+                                                                    disabled={showtime.status === 'CANCELLED' || showtime.status === 'SOLD_OUT'}
+                                                                    title={`${showtime.roomName || 'Phòng chiếu'} - ${showtime.formatType || '2D'} - ${showtime.price?.toLocaleString('vi-VN') || '0'}đ`}
+                                                                >
+                                                                    <div className="text-sm font-bold leading-tight">
+                                                                        {showtime.startTime?.substring(0, 5) || '--:--'}
+                                                                    </div>
+                                                                    {showtime.formatType && (
+                                                                        <div className="text-[9px] font-medium opacity-75 leading-tight">
+                                                                            {showtime.formatType}
+                                                                        </div>
+                                                                    )}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+
+                                {totalShowtimes > 20 && (
+                                    <div className="flex justify-center items-center mt-8 pb-5 border-t border-gray-200 pt-6">
+                                        <Pagination
+                                            current={showtimePage + 1}
+                                            total={totalShowtimes}
+                                            pageSize={20}
+                                            onChange={(page) => {
+                                                loadShowtimes(selectedCinemaId, selectedDate.format('YYYY-MM-DD'), page - 1);
+                                            }}
+                                            showSizeChanger={false}
+                                        />
+                                    </div>
                                 )}
                             </div>
-
-                            {/* Pagination for Showtimes */}
-                            {totalShowtimes > 20 && (
-                                <div style={{
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    marginTop: '32px',
-                                    paddingBottom: '20px',
-                                    borderTop: '1px solid var(--border-color)',
-                                    paddingTop: '24px'
-                                }}>
-                                    <Pagination
-                                        current={showtimePage + 1}
-                                        total={totalShowtimes}
-                                        pageSize={20}
-                                        onChange={(page) => {
-                                            loadShowtimes(selectedCinemaId, selectedDate.format('YYYY-MM-DD'), page - 1);
-                                        }}
-                                        showSizeChanger={false}
-                                        showTotal={(total, range) => `${range[0]}-${range[1]} của ${total} suất chiếu`}
-                                        size="default"
-                                    />
-                                </div>
-                            )}
-                        </div>
+                        </Card>
                     </div>
                 </div>
             </div>

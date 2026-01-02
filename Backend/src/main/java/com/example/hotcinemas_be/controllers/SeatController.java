@@ -1,8 +1,9 @@
 package com.example.hotcinemas_be.controllers;
 
-import com.example.hotcinemas_be.dtos.common.ResponseData;
+import com.example.hotcinemas_be.dtos.common.DataResponse;
 import com.example.hotcinemas_be.dtos.seat.requests.SeatRequest;
 import com.example.hotcinemas_be.dtos.seat.responses.SeatResponse;
+import com.example.hotcinemas_be.enums.SeatStatus;
 import com.example.hotcinemas_be.enums.SeatType;
 import com.example.hotcinemas_be.services.SeatService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,27 +30,27 @@ public class SeatController {
 
     private final SeatService seatService;
 
-    @Operation(summary = "Create a new seat", description = "This endpoint allows creating a new seat in a room.")
+    @Operation(summary = "Create a new seat", description = "This endpoint allows creating a new seat in a theater.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Seat created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data"),
-            @ApiResponse(responseCode = "404", description = "Room not found"),
+            @ApiResponse(responseCode = "404", description = "theater not found"),
             @ApiResponse(responseCode = "409", description = "Seat already exists at this position")
     })
     @PostMapping
-    public ResponseEntity<ResponseData<SeatResponse>> createSeat(
+    public ResponseEntity<DataResponse<SeatResponse>> createSeat(
             @Valid @RequestBody SeatRequest seatRequest) {
-        log.info("Creating new seat at position {}{} in room {}",
-                seatRequest.getName(), seatRequest.getRoomId());
+        log.info("Creating new seat at position {} in theater {}",
+                seatRequest.getName(), seatRequest.getTheaterId());
         SeatResponse seatResponse = seatService.createSeat(seatRequest);
 
-        ResponseData<SeatResponse> responseData = ResponseData.<SeatResponse>builder()
+        DataResponse<SeatResponse> dataResponse = DataResponse.<SeatResponse>builder()
                 .status(HttpStatus.CREATED.value())
                 .message("Seat has been successfully created")
                 .data(seatResponse)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
+        return ResponseEntity.status(HttpStatus.CREATED).body(dataResponse);
     }
 
     @Operation(summary = "Get a seat by ID", description = "This endpoint retrieves a seat by its ID.")
@@ -58,116 +59,99 @@ public class SeatController {
             @ApiResponse(responseCode = "404", description = "Seat not found")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<ResponseData<SeatResponse>> getSeatById(
+    public ResponseEntity<DataResponse<SeatResponse>> getSeatById(
             @Parameter(description = "Seat ID") @PathVariable Long id) {
         log.info("Retrieving seat with ID: {}", id);
         SeatResponse seat = seatService.getSeatById(id);
 
-        ResponseData<SeatResponse> responseData = ResponseData.<SeatResponse>builder()
+        DataResponse<SeatResponse> dataResponse = DataResponse.<SeatResponse>builder()
                 .status(HttpStatus.OK.value())
                 .message("Seat retrieved successfully")
                 .data(seat)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
-    @Operation(summary = "Get seats by room ID", description = "This endpoint retrieves all seats for a specific room.")
-    @GetMapping("/room/{roomId}")
-    public ResponseEntity<ResponseData<List<SeatResponse>>> getSeatsByRoomId(
-            @Parameter(description = "Room ID") @PathVariable Long roomId) {
-        log.info("Retrieving seats for room ID: {}", roomId);
-        List<SeatResponse> seats = seatService.getSeatsByRoomId(roomId);
+    @Operation(summary = "Get seats by theater ID", description = "This endpoint retrieves all seats for a specific theater.")
+    @GetMapping("/theater/{theaterId}")
+    public ResponseEntity<DataResponse<List<SeatResponse>>> getSeatsByTheaterId(
+            @Parameter(description = "theater ID") @PathVariable Long theaterId) {
+        log.info("Retrieving seats for theater ID: {}", theaterId);
+        List<SeatResponse> seats = seatService.getSeatsByTheaterId(theaterId);
 
-        ResponseData<List<SeatResponse>> responseData = ResponseData.<List<SeatResponse>>builder()
+        DataResponse<List<SeatResponse>> dataResponse = DataResponse.<List<SeatResponse>>builder()
                 .status(HttpStatus.OK.value())
-                .message("Seats for room retrieved successfully")
+                .message("Seats for theater retrieved successfully")
                 .data(seats)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
-    @Operation(summary = "Get active seats by room ID", description = "This endpoint retrieves all active seats for a specific room.")
-    @GetMapping("/room/{roomId}/active")
-    public ResponseEntity<ResponseData<List<SeatResponse>>> getActiveSeatsByRoomId(
-            @Parameter(description = "Room ID") @PathVariable Long roomId) {
-        log.info("Retrieving active seats for room ID: {}", roomId);
-        List<SeatResponse> seats = seatService.getSeatsByRoomIdAndActive(roomId);
+    @Operation(summary = "Get active seats by theater ID", description = "This endpoint retrieves all active seats for a specific theater.")
+    @GetMapping("/theater/{theaterId}/active")
+    public ResponseEntity<DataResponse<List<SeatResponse>>> getActiveSeatsByTheaterId(
+            @Parameter(description = "theater ID") @PathVariable Long theaterId) {
+        log.info("Retrieving active seats for theater ID: {}", theaterId);
+        List<SeatResponse> seats = seatService.getSeatsByTheaterIdAndActive(theaterId);
 
-        ResponseData<List<SeatResponse>> responseData = ResponseData.<List<SeatResponse>>builder()
+        DataResponse<List<SeatResponse>> dataResponse = DataResponse.<List<SeatResponse>>builder()
                 .status(HttpStatus.OK.value())
-                .message("Active seats for room retrieved successfully")
+                .message("Active seats for theater retrieved successfully")
                 .data(seats)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Get seats by seat type", description = "This endpoint retrieves all seats with a specific seat type.")
     @GetMapping("/type/{seatType}")
-    public ResponseEntity<ResponseData<List<SeatResponse>>> getSeatsBySeatType(
+    public ResponseEntity<DataResponse<List<SeatResponse>>> getSeatsBySeatType(
             @Parameter(description = "Seat type") @PathVariable SeatType seatType) {
         log.info("Retrieving seats with type: {}", seatType);
         List<SeatResponse> seats = seatService.getSeatsBySeatType(seatType);
 
-        ResponseData<List<SeatResponse>> responseData = ResponseData.<List<SeatResponse>>builder()
+        DataResponse<List<SeatResponse>> dataResponse = DataResponse.<List<SeatResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Seats with type retrieved successfully")
                 .data(seats)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
-    @Operation(summary = "Get seats by room ID and seat type", description = "This endpoint retrieves seats for a specific room and seat type.")
-    @GetMapping("/room/{roomId}/type/{seatType}")
-    public ResponseEntity<ResponseData<List<SeatResponse>>> getSeatsByRoomIdAndSeatType(
-            @Parameter(description = "Room ID") @PathVariable Long roomId,
+    @Operation(summary = "Get seats by theater ID and seat type", description = "This endpoint retrieves seats for a specific theater and seat type.")
+    @GetMapping("/theater/{theaterId}/type/{seatType}")
+    public ResponseEntity<DataResponse<List<SeatResponse>>> getSeatsByTheaterIdAndSeatType(
+            @Parameter(description = "theater ID") @PathVariable Long theaterId,
             @Parameter(description = "Seat type") @PathVariable SeatType seatType) {
-        log.info("Retrieving seats for room {} with type {}", roomId, seatType);
-        List<SeatResponse> seats = seatService.getSeatsByRoomIdAndSeatType(roomId, seatType);
+        log.info("Retrieving seats for theater {} with type {}", theaterId, seatType);
+        List<SeatResponse> seats = seatService.getSeatsByTheaterIdAndSeatType(theaterId, seatType);
 
-        ResponseData<List<SeatResponse>> responseData = ResponseData.<List<SeatResponse>>builder()
+        DataResponse<List<SeatResponse>> dataResponse = DataResponse.<List<SeatResponse>>builder()
                 .status(HttpStatus.OK.value())
-                .message("Seats for room and type retrieved successfully")
+                .message("Seats for theater and type retrieved successfully")
                 .data(seats)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Get seats by cinema ID", description = "This endpoint retrieves all seats for a specific cinema.")
     @GetMapping("/cinema/{cinemaId}")
-    public ResponseEntity<ResponseData<List<SeatResponse>>> getSeatsByCinemaId(
+    public ResponseEntity<DataResponse<List<SeatResponse>>> getSeatsByCinemaId(
             @Parameter(description = "Cinema ID") @PathVariable Long cinemaId) {
         log.info("Retrieving seats for cinema ID: {}", cinemaId);
         List<SeatResponse> seats = seatService.getSeatsByCinemaId(cinemaId);
 
-        ResponseData<List<SeatResponse>> responseData = ResponseData.<List<SeatResponse>>builder()
+        DataResponse<List<SeatResponse>> dataResponse = DataResponse.<List<SeatResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Seats for cinema retrieved successfully")
                 .data(seats)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
-    }
-
-    @Operation(summary = "Get seat by room and position", description = "This endpoint retrieves a seat by room ID and position.")
-    @GetMapping("/room/{roomId}/position/{name}")
-    public ResponseEntity<ResponseData<SeatResponse>> getSeatByRoomAndPosition(
-            @Parameter(description = "Room ID") @PathVariable Long roomId,
-            @Parameter(description = "Name") @PathVariable String name) {
-        log.info("Retrieving seat at position {} in room {}", name, roomId);
-        SeatResponse seat = seatService.getSeatByRoomAndPosition(roomId, name);
-
-        ResponseData<SeatResponse> responseData = ResponseData.<SeatResponse>builder()
-                .status(HttpStatus.OK.value())
-                .message("Seat retrieved successfully")
-                .data(seat)
-                .timestamp(LocalDateTime.now())
-                .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Update a seat", description = "This endpoint allows updating an existing seat.")
@@ -177,19 +161,19 @@ public class SeatController {
             @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<ResponseData<SeatResponse>> updateSeat(
+    public ResponseEntity<DataResponse<SeatResponse>> updateSeat(
             @Parameter(description = "Seat ID") @PathVariable Long id,
             @Valid @RequestBody SeatRequest seatRequest) {
         log.info("Updating seat with ID: {}", id);
         SeatResponse seatResponse = seatService.updateSeat(id, seatRequest);
 
-        ResponseData<SeatResponse> responseData = ResponseData.<SeatResponse>builder()
+        DataResponse<SeatResponse> dataResponse = DataResponse.<SeatResponse>builder()
                 .status(HttpStatus.OK.value())
                 .message("Seat has been successfully updated")
                 .data(seatResponse)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Partially update a seat", description = "This endpoint allows partially updating an existing seat.")
@@ -199,59 +183,34 @@ public class SeatController {
             @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
     @PatchMapping("/{id}")
-    public ResponseEntity<ResponseData<SeatResponse>> partialUpdateSeat(
+    public ResponseEntity<DataResponse<SeatResponse>> partialUpdateSeat(
             @Parameter(description = "Seat ID") @PathVariable Long id,
             @RequestBody SeatRequest seatRequest) {
         log.info("Partially updating seat with ID: {}", id);
         SeatResponse seatResponse = seatService.updateSeat(id, seatRequest);
 
-        ResponseData<SeatResponse> responseData = ResponseData.<SeatResponse>builder()
+        DataResponse<SeatResponse> dataResponse = DataResponse.<SeatResponse>builder()
                 .status(HttpStatus.OK.value())
                 .message("Seat has been partially updated")
                 .data(seatResponse)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
-    @Operation(summary = "Activate a seat", description = "This endpoint activates a seat.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Seat activated successfully"),
-            @ApiResponse(responseCode = "404", description = "Seat not found")
-    })
-    @PatchMapping("/{id}/activate")
-    public ResponseEntity<ResponseData<SeatResponse>> activateSeat(
-            @Parameter(description = "Seat ID") @PathVariable Long id) {
-        log.info("Activating seat with ID: {}", id);
-        SeatResponse seatResponse = seatService.activateSeat(id);
-
-        ResponseData<SeatResponse> responseData = ResponseData.<SeatResponse>builder()
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<DataResponse<SeatResponse>> updateSeatStatus(
+            @Parameter(description = "Seat ID") @PathVariable Long id,
+            @RequestParam SeatStatus status) {
+        log.info("Updating status of seat with ID: {} to {}", id, status);
+        seatService.changeStatusSeat(id, status);
+        DataResponse<SeatResponse> dataResponse = DataResponse.<SeatResponse>builder()
                 .status(HttpStatus.OK.value())
-                .message("Seat has been successfully activated")
-                .data(seatResponse)
+                .message("Seat status has been successfully updated")
+                .data(null)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
-    }
-
-    @Operation(summary = "Deactivate a seat", description = "This endpoint deactivates a seat.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Seat deactivated successfully"),
-            @ApiResponse(responseCode = "404", description = "Seat not found")
-    })
-    @PatchMapping("/{id}/deactivate")
-    public ResponseEntity<ResponseData<SeatResponse>> deactivateSeat(
-            @Parameter(description = "Seat ID") @PathVariable Long id) {
-        log.info("Deactivating seat with ID: {}", id);
-        SeatResponse seatResponse = seatService.deactivateSeat(id);
-
-        ResponseData<SeatResponse> responseData = ResponseData.<SeatResponse>builder()
-                .status(HttpStatus.OK.value())
-                .message("Seat has been successfully deactivated")
-                .data(seatResponse)
-                .timestamp(LocalDateTime.now())
-                .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Delete a seat", description = "This endpoint allows deleting a seat by its ID.")
@@ -260,49 +219,48 @@ public class SeatController {
             @ApiResponse(responseCode = "404", description = "Seat not found")
     })
     @DeleteMapping("/{id}")
-    public ResponseEntity<ResponseData<Void>> deleteSeat(
+    public ResponseEntity<DataResponse<Void>> deleteSeat(
             @Parameter(description = "Seat ID") @PathVariable Long id) {
         log.info("Deleting seat with ID: {}", id);
         seatService.deleteSeat(id);
 
-        ResponseData<Void> responseData = ResponseData.<Void>builder()
+        DataResponse<Void> dataResponse = DataResponse.<Void>builder()
                 .status(HttpStatus.OK.value())
                 .message("Seat has been successfully deleted")
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
-    @Operation(summary = "Create seats for room", description = "This endpoint creates multiple seats for a room.")
-    @PostMapping("/room/{roomId}/create-bulk")
-    public ResponseEntity<ResponseData<Void>> createSeatsForRoom(
-            @Parameter(description = "Room ID") @PathVariable Long roomId,
+    @Operation(summary = "Create seats for theater", description = "This endpoint creates multiple seats for a theater.")
+    @PostMapping("/theater/{theaterId}/create-bulk")
+    public ResponseEntity<DataResponse<Void>> createSeatsForTheater(
+            @Parameter(description = "theater ID") @PathVariable Long theaterId,
             @RequestParam Integer rowsCount,
-            @RequestParam Integer seatsPerRow,
-            @RequestParam(required = false) List<Long> rowVip) {
-        log.info("Creating {} rows x {} seats for room {}", rowsCount, seatsPerRow, roomId);
-        seatService.createSeatsForRoom(roomId, rowsCount, seatsPerRow, rowVip);
+            @RequestParam Integer seatsPerRow) {
+        log.info("Creating {} rows x {} seats for theater {}", rowsCount, seatsPerRow, theaterId);
+        seatService.createSeatsForTheater(theaterId, rowsCount, seatsPerRow);
 
-        ResponseData<Void> responseData = ResponseData.<Void>builder()
+        DataResponse<Void> dataResponse = DataResponse.<Void>builder()
                 .status(HttpStatus.CREATED.value())
-                .message("Seats have been successfully created for room")
+                .message("Seats have been successfully created for theater")
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
+        return ResponseEntity.status(HttpStatus.CREATED).body(dataResponse);
     }
 
-    @Operation(summary = "Delete all seats by room ID", description = "This endpoint deletes all seats for a specific room.")
-    @DeleteMapping("/room/{roomId}")
-    public ResponseEntity<ResponseData<Void>> deleteSeatsByRoomId(
-            @Parameter(description = "Room ID") @PathVariable Long roomId) {
-        log.info("Deleting all seats for room ID: {}", roomId);
-        seatService.deleteSeatsByRoomId(roomId);
+    @Operation(summary = "Delete all seats by theater ID", description = "This endpoint deletes all seats for a specific theater.")
+    @DeleteMapping("/theater/{theaterId}")
+    public ResponseEntity<DataResponse<Void>> deleteSeatsByTheaterId(
+            @Parameter(description = "theater ID") @PathVariable Long theaterId) {
+        log.info("Deleting all seats for theater ID: {}", theaterId);
+        seatService.deleteSeatsByTheaterId(theaterId);
 
-        ResponseData<Void> responseData = ResponseData.<Void>builder()
+        DataResponse<Void> dataResponse = DataResponse.<Void>builder()
                 .status(HttpStatus.OK.value())
-                .message("All seats for room have been successfully deleted")
+                .message("All seats for theater have been successfully deleted")
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 }

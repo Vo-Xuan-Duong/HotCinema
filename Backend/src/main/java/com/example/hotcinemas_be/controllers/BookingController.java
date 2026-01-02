@@ -1,8 +1,8 @@
 package com.example.hotcinemas_be.controllers;
 
 import com.example.hotcinemas_be.dtos.booking.requests.BookingRequest;
-import com.example.hotcinemas_be.dtos.booking.responses.BookingDetailResponse;
-import com.example.hotcinemas_be.dtos.common.ResponseData;
+import com.example.hotcinemas_be.dtos.booking.responses.BookingResponse;
+import com.example.hotcinemas_be.dtos.common.DataResponse;
 import com.example.hotcinemas_be.enums.BookingStatus;
 import com.example.hotcinemas_be.services.BookingService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,20 +40,20 @@ public class BookingController {
             @ApiResponse(responseCode = "409", description = "Seats already booked")
     })
     @PostMapping
-    public ResponseEntity<ResponseData<BookingDetailResponse>> createBooking(
+    public ResponseEntity<DataResponse<BookingResponse>> createBooking(
             @Valid @RequestBody BookingRequest bookingRequest) {
 
             log.info("Creating new booking for showtime: {} with seats: {}",
                     bookingRequest.getShowtimeId(), bookingRequest.getShowtimeId());
-            BookingDetailResponse bookingDetailResponse = bookingService.createBooking(bookingRequest);
+            BookingResponse bookingResponse = bookingService.createBooking(bookingRequest);
 
-            ResponseData<BookingDetailResponse> responseData = ResponseData.<BookingDetailResponse>builder()
+            DataResponse<BookingResponse> dataResponse = DataResponse.<BookingResponse>builder()
                     .status(HttpStatus.CREATED.value())
                     .message("Booking has been successfully created")
-                    .data(bookingDetailResponse)
+                    .data(bookingResponse)
                     .timestamp(LocalDateTime.now())
                     .build();
-            return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
+            return ResponseEntity.status(HttpStatus.CREATED).body(dataResponse);
 
     }
 
@@ -63,18 +63,18 @@ public class BookingController {
             @ApiResponse(responseCode = "404", description = "Booking not found")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<ResponseData<BookingDetailResponse>> getBookingById(
+    public ResponseEntity<DataResponse<BookingResponse>> getBookingById(
             @Parameter(description = "Booking ID") @PathVariable Long id) {
         log.info("Retrieving booking with ID: {}", id);
-        BookingDetailResponse booking = bookingService.getBookingById(id);
+        BookingResponse booking = bookingService.getBookingById(id);
 
-        ResponseData<BookingDetailResponse> responseData = ResponseData.<BookingDetailResponse>builder()
+        DataResponse<BookingResponse> dataResponse = DataResponse.<BookingResponse>builder()
                 .status(HttpStatus.OK.value())
                 .message("Booking retrieved successfully")
                 .data(booking)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Get booking by booking code", description = "This endpoint retrieves a booking by its booking code.")
@@ -83,82 +83,80 @@ public class BookingController {
             @ApiResponse(responseCode = "404", description = "Booking not found")
     })
     @GetMapping("/code/{bookingCode}")
-    public ResponseEntity<ResponseData<BookingDetailResponse>> getBookingByCode(
+    public ResponseEntity<DataResponse<BookingResponse>> getBookingByCode(
             @Parameter(description = "Booking code") @PathVariable String bookingCode) {
         log.info("Retrieving booking with code: {}", bookingCode);
-        BookingDetailResponse booking = bookingService.getBookingByCode(bookingCode);
+        BookingResponse booking = bookingService.getBookingByCode(bookingCode);
 
-        ResponseData<BookingDetailResponse> responseData = ResponseData.<BookingDetailResponse>builder()
+        DataResponse<BookingResponse> dataResponse = DataResponse.<BookingResponse>builder()
                 .status(HttpStatus.OK.value())
                 .message("Booking retrieved successfully")
                 .data(booking)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Get bookings by user ID", description = "This endpoint retrieves all bookings for a specific user.")
     @GetMapping("/user/{userId}")
-    public ResponseEntity<ResponseData<List<BookingDetailResponse>>> getBookingsByUserId(
+    public ResponseEntity<DataResponse<List<BookingResponse>>> getBookingsByUserId(
             @Parameter(description = "User ID") @PathVariable Long userId) {
         log.info("Retrieving bookings for user ID: {}", userId);
-        List<BookingDetailResponse> bookings = bookingService.getBookingsByUserId(userId);
+        List<BookingResponse> bookings = bookingService.getBookingsByUserId(userId);
 
-        ResponseData<List<BookingDetailResponse>> responseData = ResponseData.<List<BookingDetailResponse>>builder()
+        DataResponse<List<BookingResponse>> dataResponse = DataResponse.<List<BookingResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("User bookings retrieved successfully")
                 .data(bookings)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Get bookings by showtime ID", description = "This endpoint retrieves all bookings for a specific showtime.")
     @GetMapping("/showtime/{showtimeId}")
-    public ResponseEntity<ResponseData<List<BookingDetailResponse>>> getBookingsByShowtimeId(
+    public ResponseEntity<DataResponse<List<BookingResponse>>> getBookingsByShowtimeId(
             @Parameter(description = "Showtime ID") @PathVariable Long showtimeId) {
         log.info("Retrieving bookings for showtime ID: {}", showtimeId);
-        List<BookingDetailResponse> bookings = bookingService.getBookingsByShowtimeId(showtimeId);
+        List<BookingResponse> bookings = bookingService.getBookingsByShowtimeId(showtimeId);
 
-        ResponseData<List<BookingDetailResponse>> responseData = ResponseData.<List<BookingDetailResponse>>builder()
+        DataResponse<List<BookingResponse>> dataResponse = DataResponse.<List<BookingResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Showtime bookings retrieved successfully")
                 .data(bookings)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Get bookings by status", description = "This endpoint retrieves all bookings with a specific status.")
     @GetMapping("/status/{status}")
-    public ResponseEntity<ResponseData<List<BookingDetailResponse>>> getBookingsByStatus(
+    public ResponseEntity<DataResponse<List<BookingResponse>>> getBookingsByStatus(
             @Parameter(description = "Booking status") @PathVariable BookingStatus status) {
         log.info("Retrieving bookings with status: {}", status);
-        List<BookingDetailResponse> bookings = bookingService.getBookingsByStatus(status);
+        List<BookingResponse> bookings = bookingService.getBookingsByStatus(status);
 
-        ResponseData<List<BookingDetailResponse>> responseData = ResponseData.<List<BookingDetailResponse>>builder()
+        DataResponse<List<BookingResponse>> dataResponse = DataResponse.<List<BookingResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Bookings with status retrieved successfully")
                 .data(bookings)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Get all bookings with pagination", description = "This endpoint retrieves all bookings with pagination.")
     @GetMapping
-    public ResponseEntity<ResponseData<Page<?>>> getAllBookings(
+    public ResponseEntity<DataResponse<Page<?>>> getAllBookings(
             @Parameter(description = "Pagination parameters") Pageable pageable) {
         log.info("Retrieving all bookings with pagination");
-        Page<BookingDetailResponse> bookings = bookingService.getAllBookings(pageable);
-
-        ResponseData<Page<?>> responseData = ResponseData.<Page<?>>builder()
+        DataResponse<Page<?>> dataResponse = DataResponse.<Page<?>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Bookings retrieved successfully")
-                .data(bookings)
+                .data(bookingService.getAllBookings(pageable))
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Update booking status", description = "This endpoint allows updating the status of a booking.")
@@ -168,19 +166,19 @@ public class BookingController {
             @ApiResponse(responseCode = "400", description = "Invalid status transition")
     })
     @PatchMapping("/{id}/status")
-    public ResponseEntity<ResponseData<BookingDetailResponse>> updateBookingStatus(
+    public ResponseEntity<DataResponse<BookingResponse>> updateBookingStatus(
             @Parameter(description = "Booking ID") @PathVariable Long id,
             @RequestParam BookingStatus status) {
         log.info("Updating booking {} status to {}", id, status);
-        BookingDetailResponse booking = bookingService.updateBookingStatus(id, status);
+        BookingResponse booking = bookingService.updateBookingStatus(id, status);
 
-        ResponseData<BookingDetailResponse> responseData = ResponseData.<BookingDetailResponse>builder()
+        DataResponse<BookingResponse> dataResponse = DataResponse.<BookingResponse>builder()
                 .status(HttpStatus.OK.value())
                 .message("Booking status updated successfully")
                 .data(booking)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Delete booking", description = "This endpoint allows deleting a booking by its ID.")
@@ -189,30 +187,30 @@ public class BookingController {
             @ApiResponse(responseCode = "404", description = "Booking not found")
     })
     @DeleteMapping("/{id}")
-    public ResponseEntity<ResponseData<Void>> deleteBooking(
+    public ResponseEntity<DataResponse<Void>> deleteBooking(
             @Parameter(description = "Booking ID") @PathVariable Long id) {
         log.info("Deleting booking with ID: {}", id);
         bookingService.deleteBooking(id);
 
-        ResponseData<Void> responseData = ResponseData.<Void>builder()
+        DataResponse<Void> dataResponse = DataResponse.<Void>builder()
                 .status(HttpStatus.OK.value())
                 .message("Booking has been successfully deleted")
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @GetMapping("/history/user/{userId}")
     public ResponseEntity<?> getBookingHistoryByUserId(
             @Parameter(description = "User ID") @PathVariable Long userId, @PageableDefault(size = 5, page = 0) Pageable pageable) {
         log.info("Retrieving booking history for user ID: {}", userId);
-        ResponseData<?> responseData = ResponseData.builder()
+        DataResponse<?> dataResponse = DataResponse.builder()
                 .status(HttpStatus.OK.value())
                 .message("Booking history retrieved successfully")
                 .data(bookingService.getBookingHistoryByUserId(userId, pageable))
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
 }

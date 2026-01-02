@@ -4,7 +4,6 @@ import MovieCard from '../MovieCard/MovieCard';
 import TrailerModal from '../Trailer/TrailerModal';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-import './MovieSliderAdvanced.css';
 
 const MovieSliderAdvanced = ({
     movies,
@@ -102,24 +101,28 @@ const MovieSliderAdvanced = ({
     }
 
     return (
-        <section className="movies-section-advanced">
-            <div className="container">
-                {title && <div className="section-header"><h2>{title}</h2></div>}
-                <div className="movies-slider-wrapper-advanced">
+        <section className="py-12 px-4">
+            <div className="max-w-[1200px] mx-auto">
+                {title && (
+                    <div className="mb-8 text-center">
+                        <h2 className="text-3xl font-bold text-gray-900text-white">{title}</h2>
+                    </div>
+                )}
+                <div className="relative">
                     <button
-                        className="movies-slider-nav prev"
+                        className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-whitebg-gray-800 shadow-lg border border-gray-200border-gray-700 flex items-center justify-center text-gray-700text-gray-300 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${isFirstSlide ? 'opacity-50 cursor-not-allowed' : ''}`}
                         onClick={() => sliderRef.current?.slickPrev()}
                         disabled={isFirstSlide}
                     >
-                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M15.5 19L8.5 12L15.5 5" stroke="#222" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M15.5 19L8.5 12L15.5 5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                     </button>
 
-                    <div className="movies-slider-advanced">
+                    <div className="px-12">
                         <Slider ref={sliderRef} {...sliderSettings}>
                             {movies.map(movie => (
-                                <div key={movie.id} className="slider-item-advanced">
+                                <div key={movie.id} className="px-2">
                                     <MovieCard movie={movie} onTrailerClick={handleTrailerClick} />
                                 </div>
                             ))}
@@ -127,23 +130,27 @@ const MovieSliderAdvanced = ({
                     </div>
 
                     <button
-                        className="movies-slider-nav next"
+                        className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-whitebg-gray-800 shadow-lg border border-gray-200border-gray-700 flex items-center justify-center text-gray-700text-gray-300 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${isLastSlide ? 'opacity-50 cursor-not-allowed' : ''}`}
                         onClick={() => sliderRef.current?.slickNext()}
                         disabled={isLastSlide}
                     >
-                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M8.5 5L15.5 12L8.5 19" stroke="#222" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M8.5 5L15.5 12L8.5 19" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                     </button>
                 </div>
 
                 {/* Custom indicator dots */}
                 {showDots && (
-                    <div className="custom-dots">
+                    <div className="flex justify-center gap-2 mt-6">
                         {Array.from({ length: Math.ceil(movies.length / slidesToShow) }).map((_, index) => (
                             <button
                                 key={index}
-                                className={`custom-dot ${currentSlide === index ? 'active' : ''}`}
+                                className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                                    currentSlide === index 
+                                        ? 'bg-red-600 w-8' 
+                                        : 'bg-gray-300bg-gray-600 hover:bg-gray-400hover:bg-gray-500'
+                                }`}
                                 onClick={() => sliderRef.current?.slickGoTo(index)}
                             />
                         ))}
@@ -151,8 +158,13 @@ const MovieSliderAdvanced = ({
                 )}
 
                 {showMoreButton && (
-                    <div className="movies-show-more-wrapper">
-                        <button className="movies-show-more-btn" onClick={onShowMore}>Xem thêm</button>
+                    <div className="mt-8 text-center">
+                        <button 
+                            className="inline-flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
+                            onClick={onShowMore}
+                        >
+                            Xem thêm
+                        </button>
                     </div>
                 )}
             </div>

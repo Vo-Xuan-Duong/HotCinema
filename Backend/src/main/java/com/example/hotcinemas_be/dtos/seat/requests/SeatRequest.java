@@ -15,21 +15,19 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class SeatRequest {
 
-    @NotNull(message = "Room ID is required")
-    private Long roomId;
+    @NotNull(message = "Theater ID is required")
+    private Long theaterId;
 
     @NotBlank(message = "Seat name is required")
     private String name;
 
     private SeatType seatType;
 
-    private SeatStatus status;
+    private SeatStatus seatStatus;
 
     @NotNull(message = "Column position is required")
     private Integer col;
 
     @NotNull(message = "Row position is required")
     private Integer row;
-
-    private Boolean isActive;
 }

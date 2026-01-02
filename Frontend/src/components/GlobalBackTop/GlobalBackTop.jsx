@@ -1,59 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowUpOutlined } from '@ant-design/icons';
+import { ArrowUp } from 'lucide-react';
+import { Button } from '../ui/button';
+import { cn } from '../../lib/utils';
 
-const GlobalBackTop = () => {
-    const [isVisible, setIsVisible] = useState(false);
+const GlobalBackTop = ({ visibilityHeight = 200 }) => {
+  const [visible, setVisible] = useState(false);
 
-    useEffect(() => {
-        const handleScroll = () => {
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-            setIsVisible(scrollTop > 100);
-        };
-
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
-
-    const scrollToTop = () => {
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        });
+  useEffect(() => {
+    const toggleVisible = () => {
+      const scrolled = document.documentElement.scrollTop;
+      setVisible(scrolled > visibilityHeight);
     };
 
-    if (!isVisible) return null;
+    window.addEventListener('scroll', toggleVisible);
+    return () => window.removeEventListener('scroll', toggleVisible);
+  }, [visibilityHeight]);
 
-    return (
-        <div
-            onClick={scrollToTop}
-            style={{
-                position: 'fixed',
-                right: '24px',
-                bottom: '24px',
-                width: '56px',
-                height: '56px',
-                backgroundColor: '#ff6b35',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                zIndex: 9999,
-                boxShadow: '0 4px 20px rgba(255, 107, 53, 0.4)',
-                transition: 'all 0.3s ease',
-                border: '2px solid rgba(255, 255, 255, 0.3)',
-                backdropFilter: 'blur(10px)'
-            }}
-            title="Về đầu trang"
-        >
-            <ArrowUpOutlined
-                style={{
-                    color: 'white',
-                    fontSize: '20px'
-                }}
-            />
-        </div>
-    );
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
+  if (!visible) return null;
+
+  return (
+    <Button
+      onClick={scrollToTop}
+      size="icon"
+      className={cn(
+        "fixed right-6 bottom-6 h-[50px] w-[50px] rounded-full bg-primary text-white",
+        "border-2 border-white/30 shadow-[0_4px_20px_rgba(229,9,20,0.4)]",
+        "backdrop-blur-[10px] transition-all duration-300",
+        "hover:scale-110 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(229,9,20,0.6)]",
+        "z-50"
+      )}
+      aria-label="Back to top"
+    >
+      <ArrowUp className="h-5 w-5" />
+    </Button>
+  );
 };
 
 export default GlobalBackTop;

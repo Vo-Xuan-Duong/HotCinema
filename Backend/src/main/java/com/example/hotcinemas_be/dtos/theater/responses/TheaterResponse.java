@@ -6,16 +6,19 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Builder
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class RoomResponse {
+public class TheaterResponse {
     private Long id;
     private String name;
-    private String roomType;
-    private BigDecimal price;
-    private Boolean isActive;
+    private String theaterType;
+    private Integer totalSeats;
+    private String screenType;
+    private String soundSystem;
+    private LocalDateTime createdAt;
 }
 

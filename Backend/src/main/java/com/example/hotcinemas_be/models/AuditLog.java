@@ -2,20 +2,13 @@ package com.example.hotcinemas_be.models;
 
 import java.time.LocalDateTime;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Table(name = "audit_logs")
@@ -28,32 +21,38 @@ public class AuditLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "log_id")
-    private Long logId;
+    @Column(name = "id")
+    private Long id;
 
-    @Column(name = "entity_type", nullable = false, length = 50)
-    private String entityType;
-
-    @Column(name = "entity_id", nullable = false)
-    private Long entityId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
 
     @Column(name = "action", nullable = false, length = 50)
     private String action;
 
+    @Column(name = "table_name", nullable = false, length = 50)
+    private String tableName;
+
+    @Column(name = "record_id")
+    private Integer recordId;
+
     @Column(name = "old_value", columnDefinition = "TEXT")
-    private String oldValue; // Stored as JSON string
+    private String oldValue;
 
     @Column(name = "new_value", columnDefinition = "TEXT")
-    private String newValue; // Stored as JSON string
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id") // Nullable if action is not user-driven
-    private User user;
-
-    @Builder.Default
-    @Column(name = "timestamp", nullable = false)
-    private LocalDateTime timestamp = LocalDateTime.now();
+    private String newValue;
 
     @Column(name = "ip_address", length = 45)
     private String ipAddress;
+
+    @Column(name = "user_agent", columnDefinition = "TEXT")
+    private String userAgent;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
 }

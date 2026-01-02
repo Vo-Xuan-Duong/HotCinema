@@ -35,19 +35,49 @@ const cinemaService = {
   },
 
   /**
-   * Lấy rạp theo thành phố
+   * Lấy rạp theo thành phố (deprecated - sử dụng getCinemasByRegion thay thế)
    * @param {number} cityId - ID của thành phố
    * @param {Object} params - Query parameters (page, size)
    * @returns {Promise<Array>} Danh sách rạp trong thành phố
+   * @deprecated Sử dụng getCinemasByRegion với region name thay thế
    */
   getCinemasByCity: async (cityId, params = {}) => {
+    // Tạm thời giữ lại để tương thích ngược, nhưng nên chuyển sang getCinemasByRegion
     return apiClient.get(ENDPOINTS.CINEMAS, {
       params: { cityId, ...params }
     });
   },
 
-  getCinemasByClusterId: async (clusterId) => {
-    return apiClient.get(`${ENDPOINTS.CINEMAS}/cluster/${clusterId}`);
+  /**
+   * Lấy rạp theo region slug (khu vực)
+   * @param {string} slug - Slug của region (ví dụ: "ho-chi-minh", "ha-noi")
+   * @param {Object} params - Query parameters (page, size, sort)
+   * @returns {Promise<Object>} Danh sách rạp trong region với pagination
+   */
+  getCinemasByRegion: async (slug, params = {}) => {
+    return apiClient.get(`${ENDPOINTS.CINEMAS}/region-slug/${encodeURIComponent(slug)}`, {
+      params
+    });
+  },
+
+  /**
+   * Tìm kiếm rạp theo keyword
+   * @param {string} keyword - Từ khóa tìm kiếm
+   * @param {Object} params - Query parameters (page, size, sort)
+   * @returns {Promise<Object>} Danh sách rạp kết quả tìm kiếm với pagination
+   */
+  searchCinemas: async (keyword, params = {}) => {
+    return apiClient.get(`${ENDPOINTS.CINEMAS}/search`, {
+      params: { keyword, ...params }
+    });
+  },
+
+  /**
+   * Lấy tất cả rạp không phân trang
+   * @returns {Promise<Array>} Danh sách tất cả rạp
+   */
+  getAllCinemasNoPagination: async () => {
+    return apiClient.get(`${ENDPOINTS.CINEMAS}/all-no-page`);
   },
 
   /**
@@ -67,6 +97,16 @@ const cinemaService = {
    */
   updateCinema: async (cinemaId, data) => {
     return apiClient.put(`${ENDPOINTS.CINEMAS}/${cinemaId}`, data);
+  },
+
+  /**
+   * Cập nhật một phần thông tin rạp (Admin)
+   * @param {number} cinemaId - ID của rạp
+   * @param {Object} data - Thông tin cập nhật (chỉ các field cần cập nhật)
+   * @returns {Promise<Object>} Rạp đã cập nhật
+   */
+  partialUpdateCinema: async (cinemaId, data) => {
+    return apiClient.patch(`${ENDPOINTS.CINEMAS}/${cinemaId}`, data);
   },
 
   /**

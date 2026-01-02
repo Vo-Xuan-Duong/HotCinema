@@ -1,12 +1,13 @@
 package com.example.hotcinemas_be.models;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.util.HashSet;
-import java.util.Set;
 
+import com.example.hotcinemas_be.enums.MembershipTier;
+import com.example.hotcinemas_be.enums.ProviderType;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,35 +29,56 @@ public class User {
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "username", unique = true, nullable = false)
-    private String username;
-
-    @Column(name = "email", unique = true)
+    @Column(name = "email", unique = true, nullable = false, length = 255)
     private String email;
 
-    @Column(name = "phone", unique = true)
-    private String phone;
+    @Column(name = "password", length = 255)
+    private String password;
 
-    @Column(name = "full_name")
+    @Column(name = "full_name", nullable = false, length = 255)
     private String fullName;
 
-    @Column(name = "avatar_url")
-    private String avatarUrl;
+    @Column(name = "phone", length = 20)
+    private String phone;
 
-    @Column(name = "address")
+    @Column(name = "address", length = 500)
     private String address;
 
-    @Column(name = "password")
-    private String password;
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id")
     private Role role;
 
-    @Column(name = "is_active", nullable = false)
-    private Boolean isActive;
+    @Column(name = "loyalty_points")
+    @Builder.Default
+    private Integer loyaltyPoints = 0;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "membership_tier", length = 20)
+    @Builder.Default
+    private MembershipTier membershipTier = MembershipTier.BRONZE;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "provider_type", length = 20)
+    private ProviderType providerType;
+
+    @Column(name = "is_active")
+    @Builder.Default
+    private Boolean isActive = true;
+
+    @Column(name = "last_login")
+    private LocalDateTime lastLogin;
 
     @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }

@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
@@ -15,9 +16,9 @@ import java.util.Set;
 @NoArgsConstructor
 public class RoleResponse {
     private Long id;
-    private String code;
     private String name;
     private String description;
+    private Instant permissionCount;
     private Boolean isActive;
     private List<PermissionResponse> permissions;
 }

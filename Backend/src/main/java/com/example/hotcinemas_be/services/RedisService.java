@@ -6,6 +6,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -41,11 +42,19 @@ public class RedisService {
         return redisTemplate.opsForHash().get(key, field);
     }
 
+    public void deleteHash(String key, String field) {
+        redisTemplate.opsForHash().delete(key, field);
+    }
+
     public java.util.Set<String> keys(String pattern) {
         return redisTemplate.keys(pattern);
     }
 
     public Long getExpire(String key) {
         return redisTemplate.getExpire(key);
+    }
+
+    public void setExpire(String key, int i, TimeUnit timeUnit) {
+        redisTemplate.expire(key, i, timeUnit);
     }
 }

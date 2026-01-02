@@ -1,0 +1,165 @@
+.notification-modal {
+    z-index: 10000;
+}
+
+/* Tắt animation mặc định của Ant Design Modal */
+.notification-modal .ant-modal-mask {
+    animation: none !important;
+    transition: none !important;
+}
+
+.notification-modal .ant-modal-wrap {
+    animation: none !important;
+    transition: none !important;
+}
+
+.notification-modal .ant-modal {
+    animation: none !important;
+    transition: none !important;
+}
+
+.notification-modal .ant-modal-content {
+    padding: 0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    animation: none !important;
+    transition: none !important;
+}
+
+.notification-modal .ant-modal-body {
+    padding: 0;
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 24px;
+    animation: slideIn 0.25s ease-out;
+    will-change: transform, opacity;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInFromRight {
+    from {
+        opacity: 0;
+        transform: translateX(120%) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes slideOutToRight {
+    from {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(120%) scale(0.95);
+    }
+}
+
+.notification-icon-wrapper {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.notification-icon {
+    font-size: 24px;
+}
+
+.notification-icon.success {
+    color: #52c41a;
+}
+
+.notification-icon.error {
+    color: #ff4d4f;
+}
+
+.notification-icon.warning {
+    color: #faad14;
+}
+
+.notification-icon.info {
+    color: #1890ff;
+}
+
+.notification-content.success .notification-icon-wrapper {
+    background-color: #f6ffed;
+}
+
+.notification-content.error .notification-icon-wrapper {
+    background-color: #fff2f0;
+}
+
+.notification-content.warning .notification-icon-wrapper {
+    background-color: #fffbe6;
+}
+
+.notification-content.info .notification-icon-wrapper {
+    background-color: #e6f7ff;
+}
+
+.notification-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #1f2937;
+}
+
+.notification-message {
+    font-size: 14px;
+    color: #6b7280;
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+/* Animation khi đóng */
+.notification-modal.ant-modal-closing .notification-content {
+    animation: slideOut 0.3s ease-in;
+}
+
+@keyframes slideOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}
+
+/* Animation cho toast notification từ bên phải */
+.notification-slide-in {
+    animation: slideInFromRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.notification-slide-out {
+    animation: slideOutToRight 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+

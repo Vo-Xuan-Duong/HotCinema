@@ -4,11 +4,13 @@ import com.example.hotcinemas_be.dtos.seat.requests.SeatRequest;
 import com.example.hotcinemas_be.dtos.seat.responses.SeatResponse;
 import com.example.hotcinemas_be.enums.SeatStatus;
 import com.example.hotcinemas_be.enums.SeatType;
+import com.example.hotcinemas_be.exceptions.AppException;
+import com.example.hotcinemas_be.exceptions.ErrorCode;
 import com.example.hotcinemas_be.mappers.SeatMapper;
-import com.example.hotcinemas_be.models.Room;
 import com.example.hotcinemas_be.models.Seat;
-import com.example.hotcinemas_be.repositorys.RoomRepository;
+import com.example.hotcinemas_be.models.Theater;
 import com.example.hotcinemas_be.repositorys.SeatRepository;
+import com.example.hotcinemas_be.repositorys.TheaterRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -24,30 +26,28 @@ public class SeatService {
 
     private final SeatRepository seatRepository;
     private final SeatMapper seatMapper;
-    private final RoomRepository roomRepository;
+    private final TheaterRepository theaterRepository;
 
     public SeatResponse createSeat(SeatRequest seatRequest) {
-        // Validate room exists
-        Room room = roomRepository.findById(seatRequest.getRoomId())
-                .orElseThrow(() -> new RuntimeException("Room not found with id: " + seatRequest.getRoomId()));
+        Theater theater = theaterRepository.findById(seatRequest.getTheaterId())
+                .orElseThrow(() -> new AppException("Room not found with id: " + seatRequest.getTheaterId(),
+                        ErrorCode.ROOM_NOT_FOUND));
 
-        // Check if seat already exists at this position
-        seatRepository.findByRoomIdAndName(
-                seatRequest.getRoomId(),
+        seatRepository.findSeatByTheater_IdAndName(
+                seatRequest.getTheaterId(),
                 seatRequest.getName()).ifPresent(seat -> {
-                    throw new RuntimeException("Seat already exists at position " +
+                    throw new AppException("Seat already exists at position " +
                             seatRequest.getName() + " in room "
-                            + seatRequest.getRoomId());
+                            + seatRequest.getTheaterId(), ErrorCode.DUPLICATE_RESOURCE);
                 });
 
         Seat seat = Seat.builder()
-                .room(room)
+                .theater(theater)
                 .name(seatRequest.getName())
-                .seatType(seatRequest.getSeatType() != null ? seatRequest.getSeatType() : SeatType.NORMAL)
-                .status(SeatStatus.AVAILABLE)
-                .col(seatRequest.getCol())
+                .seatType(seatRequest.getSeatType() != null ? seatRequest.getSeatType() : SeatType.REGULAR)
+                .seatStatus(seatRequest.getSeatStatus() != null ? seatRequest.getSeatStatus() : SeatStatus.AVAILABLE)
                 .row(seatRequest.getRow())
-                .isActive(seatRequest.getIsActive() != null ? seatRequest.getIsActive() : true)
+                .col(seatRequest.getCol())
                 .build();
 
         Seat savedSeat = seatRepository.save(seat);
@@ -57,13 +57,15 @@ public class SeatService {
     @Transactional(readOnly = true)
     public SeatResponse getSeatById(Long seatId) {
         Seat seat = seatRepository.findById(seatId)
-                .orElseThrow(() -> new RuntimeException("Seat not found with id: " + seatId));
+                .orElseThrow(() -> new AppException("Seat not found with id: " + seatId,
+                        ErrorCode.SEAT_NOT_FOUND));
         return seatMapper.mapToResponse(seat);
     }
 
     public SeatResponse updateSeat(Long seatId, SeatRequest seatRequest) {
         Seat seat = seatRepository.findById(seatId)
-                .orElseThrow(() -> new RuntimeException("Seat not found with id: " + seatId));
+                .orElseThrow(() -> new AppException("Seat not found with id: " + seatId,
+                        ErrorCode.SEAT_NOT_FOUND));
 
         // Update other fields
         if (seatRequest.getName() != null) {
@@ -72,17 +74,14 @@ public class SeatService {
         if (seatRequest.getSeatType() != null) {
             seat.setSeatType(seatRequest.getSeatType());
         }
-        if (seatRequest.getStatus() != null) {
-            seat.setStatus(seatRequest.getStatus());
+        if (seatRequest.getSeatStatus() != null) {
+            seat.setSeatStatus(seatRequest.getSeatStatus());
         }
         if (seatRequest.getCol() != null) {
             seat.setCol(seatRequest.getCol());
         }
         if (seatRequest.getRow() != null) {
             seat.setRow(seatRequest.getRow());
-        }
-        if (seatRequest.getIsActive() != null) {
-            seat.setIsActive(seatRequest.getIsActive());
         }
 
         Seat updatedSeat = seatRepository.save(seat);
@@ -91,31 +90,32 @@ public class SeatService {
 
     public void deleteSeat(Long seatId) {
         Seat seat = seatRepository.findById(seatId)
-                .orElseThrow(() -> new RuntimeException("Seat not found with id: " + seatId));
+                .orElseThrow(() -> new AppException("Seat not found with id: " + seatId,
+                        ErrorCode.SEAT_NOT_FOUND));
         seatRepository.delete(seat);
     }
 
     @Transactional(readOnly = true)
-    public List<SeatResponse> getSeatsByRoomId(Long roomId) {
-        List<Seat> seats = seatRepository.findByRoomId(roomId);
+    public List<SeatResponse> getSeatsByTheaterId(Long theaterId) {
+        List<Seat> seats = seatRepository.findSeatsByTheater_Id(theaterId);
         return seats.stream().map(seatMapper::mapToResponse).toList();
     }
 
     @Transactional(readOnly = true)
-    public List<SeatResponse> getSeatsByRoomIdAndActive(Long roomId) {
-        List<Seat> seats = seatRepository.findByRoomIdAndIsActiveTrue(roomId);
+    public List<SeatResponse> getSeatsByTheaterIdAndActive(Long theaterId) {
+        List<Seat> seats = seatRepository.findSeatsByTheater_IdAndSeatStatus(theaterId, SeatStatus.AVAILABLE);
         return seats.stream().map(seatMapper::mapToResponse).toList();
     }
 
     @Transactional(readOnly = true)
     public List<SeatResponse> getSeatsBySeatType(SeatType seatType) {
-        List<Seat> seats = seatRepository.findBySeatType(seatType);
+        List<Seat> seats = seatRepository.findSeatsBySeatType(seatType);
         return seats.stream().map(seatMapper::mapToResponse).toList();
     }
 
     @Transactional(readOnly = true)
-    public List<SeatResponse> getSeatsByRoomIdAndSeatType(Long roomId, SeatType seatType) {
-        List<Seat> seats = seatRepository.findByRoomIdAndSeatType(roomId, seatType);
+    public List<SeatResponse> getSeatsByTheaterIdAndSeatType(Long theaterId, SeatType seatType) {
+        List<Seat> seats = seatRepository.findSeatsByTheater_IdAndSeatType(theaterId, seatType);
         return seats.stream().map(seatMapper::mapToResponse).toList();
     }
 
@@ -125,47 +125,35 @@ public class SeatService {
         return seats.stream().map(seatMapper::mapToResponse).toList();
     }
 
-    @Transactional(readOnly = true)
-    public SeatResponse getSeatByRoomAndPosition(Long roomId, String name) {
-        Seat seat = seatRepository.findByRoomIdAndName(roomId, name)
-                .orElseThrow(() -> new RuntimeException(
-                        "Seat not found at position " + name + " in room " + roomId));
-        return seatMapper.mapToResponse(seat);
-    }
-
     @Async
     @Transactional
-    public void createSeatsForRoom(Long roomId, Integer rowsCount, Integer seatsPerRow, List<Long> rowVip) {
-        if (roomId == null) {
+    public void createSeatsForTheater(Long theaterId, Integer rowsCount, Integer seatsPerRow) {
+        if (theaterId == null) {
             throw new IllegalArgumentException("Room ID cannot be null");
         }
         if (rowsCount == null || seatsPerRow == null || rowsCount <= 0 || seatsPerRow <= 0) {
             throw new IllegalArgumentException("Invalid seat configuration");
         }
 
-        Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new RuntimeException("Room not found with id: " + roomId));
+        Theater theater = theaterRepository.findById(theaterId)
+                .orElseThrow(() -> new AppException("Room not found with id: " + theaterId,
+                        ErrorCode.ROOM_NOT_FOUND));
 
         List<Seat> seatsToSave = new ArrayList<>();
 
-        for (int rowIndex = 0; rowIndex < rowsCount; rowIndex++) {
+        for (int rowIndex = 1; rowIndex <= rowsCount; rowIndex++) {
 
-            char rowLetter = (char) ('A' + rowIndex);
+            char rowLetter = (char) ('A' + rowIndex - 1);
             String rowLabel = String.valueOf(rowLetter);
-
-            SeatType seatType = (rowVip != null && rowVip.contains((long) rowIndex))
-                    ? SeatType.VIP
-                    : SeatType.NORMAL;
 
             for (int seatNumber = 1; seatNumber <= seatsPerRow; seatNumber++) {
                 Seat seat = Seat.builder()
-                        .room(room)
+                        .theater(theater)
                         .name(rowLetter + String.valueOf(seatNumber))
-                        .seatType(seatType)
-                        .status(SeatStatus.AVAILABLE)
+                        .seatType(SeatType.REGULAR)
+                        .seatStatus(SeatStatus.AVAILABLE)
                         .col(seatNumber)
                         .row(rowIndex)
-                        .isActive(true)
                         .build();
 
                 seatsToSave.add(seat);
@@ -175,31 +163,20 @@ public class SeatService {
         seatRepository.saveAll(seatsToSave);
     }
 
-
-    public void deleteSeatsByRoomId(Long roomId) {
-        List<Seat> seats = seatRepository.findByRoomId(roomId);
+    public void deleteSeatsByTheaterId(Long theaterId) {
+        List<Seat> seats = seatRepository.findSeatsByTheater_Id(theaterId);
         if (seats.isEmpty()) {
-            throw new RuntimeException("No seats found for room with id: " + roomId);
+            throw new AppException("No seats found for room with id: " + theaterId,
+                    ErrorCode.SEAT_NOT_FOUND);
         }
         seatRepository.deleteAll(seats);
     }
 
-    public SeatResponse activateSeat(Long seatId) {
+    public void changeStatusSeat(Long seatId, SeatStatus seatStatus) {
         Seat seat = seatRepository.findById(seatId)
-                .orElseThrow(() -> new RuntimeException("Seat not found with id: " + seatId));
-        seat.setIsActive(true);
-        Seat updatedSeat = seatRepository.save(seat);
-        return seatMapper.mapToResponse(updatedSeat);
+                .orElseThrow(() -> new AppException("Seat not found with id: " + seatId,
+                        ErrorCode.SEAT_NOT_FOUND));
+        seat.setSeatStatus(seatStatus);
+        seatRepository.save(seat);
     }
-
-    public SeatResponse deactivateSeat(Long seatId) {
-        Seat seat = seatRepository.findById(seatId)
-                .orElseThrow(() -> new RuntimeException("Seat not found with id: " + seatId));
-        seat.setIsActive(false);
-        Seat updatedSeat = seatRepository.save(seat);
-        return seatMapper.mapToResponse(updatedSeat);
-    }
-
-
-
 }

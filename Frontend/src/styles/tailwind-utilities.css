@@ -1,0 +1,180 @@
+/* Global Tailwind utility overrides for existing CSS classes */
+@layer components {
+
+    /* Auth Modal Classes - Replace CSS with Tailwind */
+    .auth-modal-title {
+        @apply text-2xl font-bold text-center;
+    }
+
+    .auth-content {
+        @apply p-0;
+    }
+
+    .form-header {
+        @apply text-center mb-7;
+    }
+
+    .form-header h2 {
+        @apply text-black text-[28px] font-bold m-0 mb-2 bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent;
+    }
+
+    .form-header p {
+        @apply text-black/70 text-sm m-0;
+    }
+
+    /* Custom Input Styling - Tailwind version */
+    .custom-input {
+        @apply bg-white/10 border-white/20 rounded-lg text-black h-12;
+        @apply hover:border-primary/60 hover:bg-white/15;
+        @apply focus:border-primary focus:shadow-[0_0_0_2px_rgba(229, 9, 20, 0.2)] focus:bg-white/15;
+    }
+
+    .custom-input input {
+        @apply bg-transparent border-none text-black;
+    }
+
+    .custom-input input::placeholder {
+        @apply text-white/50;
+    }
+
+    .custom-input .anticon {
+        @apply text-black/60;
+    }
+
+    .custom-input .ant-input-password-icon {
+        @apply text-black/60 hover:text-primary;
+    }
+
+    /* Form Options */
+    .form-options {
+        @apply flex justify-between items-center mb-2;
+    }
+
+    .custom-checkbox {
+        @apply text-white/80;
+    }
+
+    .custom-checkbox .ant-checkbox-inner {
+        @apply bg-white/10 border-white/30;
+    }
+
+    .custom-checkbox:hover .ant-checkbox-inner {
+        @apply border-primary;
+    }
+
+    .custom-checkbox.ant-checkbox-wrapper-checked .ant-checkbox-inner {
+        @apply bg-primary border-primary;
+    }
+
+    .forgot-password {
+        @apply text-white/70 p-0 h-auto text-sm hover:text-primary;
+    }
+
+    /* Buttons */
+    .login-button,
+    .register-button {
+        @apply bg-gradient-to-r from-primary to-red-500 border-none rounded-lg h-12 font-semibold text-base;
+        @apply shadow-[0_4px_12px_rgba(229, 9, 20, 0.3)];
+        @apply hover:from-red-500 hover:to-primary hover:-translate-y-0.5;
+        @apply hover:shadow-[0_6px_16px_rgba(229, 9, 20, 0.4)];
+        @apply active:translate-y-0 transition-all;
+    }
+
+    .cancel-button {
+        @apply bg-white/10 border-white/20 text-white/90 rounded-lg h-12 font-semibold text-base;
+        @apply hover:bg-white/15 hover:border-white/30 hover:text-white transition-all;
+    }
+
+    .social-button {
+        @apply h-12 rounded-lg border-white/20 hover:border-primary/50 hover:text-primary transition-all mb-5;
+    }
+
+    /* Form Footer */
+    .form-footer {
+        @apply text-center text-sm;
+    }
+
+    .form-footer span {
+        @apply text-white/70;
+    }
+
+    .switch-button {
+        @apply text-primary p-0 h-auto hover:text-primary-600 font-medium;
+    }
+
+    /* Divider */
+    .custom-divider {
+        @apply my-5 text-white/50 text-xs;
+    }
+
+    /* Container utilities */
+    .app-container,
+    .container {
+        @apply max-w-[1200px] mx-auto px-8;
+    }
+
+    /* Grid utilities */
+    .app-grid {
+        @apply grid gap-8;
+    }
+
+    .app-grid-2 {
+        @apply grid-cols-1 md:grid-cols-2;
+    }
+
+    .app-grid-3 {
+        @apply grid-cols-1 md:grid-cols-2 lg:grid-cols-3;
+    }
+
+    .app-grid-4 {
+        @apply grid-cols-1 md:grid-cols-2 lg:grid-cols-4;
+    }
+
+    /* Flex utilities */
+    .app-flex {
+        @apply flex;
+    }
+
+    .app-flex-center {
+        @apply flex justify-center items-center;
+    }
+
+    .app-flex-between {
+        @apply flex justify-between items-center;
+    }
+
+    .app-flex-column {
+        @apply flex flex-col;
+    }
+
+    /* Message utilities */
+    .app-error-message,
+    .error-message {
+        @apply bg-gradient-to-br from-red-100 to-red-200 text-red-600 px-6 py-4 rounded-xl my-4 text-center border border-red-300 shadow-[0_4px_12px_rgba(220, 38, 38, 0.15)];
+    }
+
+    .app-success-message,
+    .success-message {
+        @apply bg-gradient-to-br from-green-100 to-green-200 text-green-600 px-6 py-4 rounded-xl my-4 text-center border border-green-300 shadow-[0_4px_12px_rgba(22, 163, 74, 0.15)];
+    }
+
+    .app-warning-message,
+    .warning-message {
+        @apply bg-gradient-to-br from-yellow-100 to-yellow-200 text-yellow-700 px-6 py-4 rounded-xl my-4 text-center border border-yellow-300 shadow-[0_4px_12px_rgba(217, 119, 6, 0.15)];
+    }
+}
+
+/* Responsive overrides */
+@media (max-width: 768px) {
+
+    .app-grid-2,
+    .app-grid-3,
+    .app-grid-4 {
+        @apply grid-cols-1;
+    }
+
+    .app-container,
+    .container {
+        @apply px-4;
+    }
+}

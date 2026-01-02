@@ -5,14 +5,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Table(name = "cinemas")
@@ -31,43 +29,27 @@ public class Cinema {
     @Column(name = "name", nullable = false, length = 255)
     private String name;
 
-    @Column(name = "address", length = 500)
+    @Column(name = "address", nullable = false, length = 500)
     private String address;
 
-    @Column(name = "phone", length = 20)
-    private String phone;
-
-    @Column(name = "email", length = 100)
-    private String email;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "city_id")
-    private City city;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "district_id")
-    private District district;
+    @ManyToOne
+    @JoinColumn(name = "region_id", nullable = false)
+    private Region region;
 
     @Column(name = "latitude")
-    private Double latitude; // Vĩ độ (VD: 10.7769000 for HCM)
+    private Double latitude;
 
     @Column(name = "longitude")
-    private Double longitude; // Kinh độ (VD: 106.7009000 for HCM)
+    private Double longitude;
 
     @Column(name = "is_active", nullable = false)
-    @Builder.Default
-    private Boolean isActive = true;
+    private Boolean isActive;
 
-    @Column(name = "created_at", updatable = false)
     @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
-
-    // Relationships
+    @OneToMany(mappedBy = "cinema", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    @OneToMany(mappedBy = "cinema", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<Room> rooms = new ArrayList<>();
+    private List<Theater> theaters = new ArrayList<>();
 }

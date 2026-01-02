@@ -4,7 +4,6 @@ import MovieCard from '../MovieCard/MovieCard';
 import TrailerModal from '../Trailer/TrailerModal';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-import './MovieSliderEnhanced.css';
 
 const MovieSliderEnhanced = ({
     movies,
@@ -111,13 +110,13 @@ const MovieSliderEnhanced = ({
 
     if (isLoading) {
         return (
-            <section className="movies-section-enhanced">
-                <div className="container">
-                    <div className="loading-skeleton">
-                        <div className="skeleton-title"></div>
-                        <div className="skeleton-slider">
+            <section className="py-12 px-4">
+                <div className="max-w-[1200px] mx-auto">
+                    <div className="animate-pulse">
+                        <div className="h-8 bg-gray-200bg-gray-700 rounded w-64 mb-6"></div>
+                        <div className="flex gap-4">
                             {[...Array(4)].map((_, i) => (
-                                <div key={i} className="skeleton-card"></div>
+                                <div key={i} className="h-96 bg-gray-200bg-gray-700 rounded-lg flex-1"></div>
                             ))}
                         </div>
                     </div>
@@ -127,30 +126,30 @@ const MovieSliderEnhanced = ({
     }
 
     return (
-        <section className="movies-section-enhanced">
-            <div className="container">
+        <section className="py-12 px-4">
+            <div className="max-w-[1200px] mx-auto">
                 {title && (
-                    <div className="section-header-enhanced">
-                        <h2>{title}</h2>
-                        <div className="section-decoration"></div>
+                    <div className="mb-8 text-center">
+                        <h2 className="text-3xl font-bold text-gray-900text-white mb-2">{title}</h2>
+                        <div className="w-24 h-1 bg-red-600 mx-auto rounded"></div>
                     </div>
                 )}
-                <div className={`movies-slider-wrapper-enhanced ${!isSliderReady ? 'loading' : ''}`}>
+                <div className={`relative ${!isSliderReady ? 'opacity-50' : ''}`}>
                     <button
-                        className="movies-slider-nav-enhanced prev"
+                        className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-whitebg-gray-800 shadow-lg border border-gray-200border-gray-700 flex items-center justify-center text-gray-700text-gray-300 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${isFirstSlide ? 'opacity-50 cursor-not-allowed' : ''}`}
                         onClick={() => sliderRef.current?.slickPrev()}
                         disabled={isFirstSlide}
                         aria-label="Previous movies"
                     >
-                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M15.5 19L8.5 12L15.5 5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                     </button>
 
-                    <div className="movies-slider-enhanced">
+                    <div className="px-12">
                         <Slider ref={sliderRef} {...sliderSettings}>
                             {movies.map((movie, index) => (
-                                <div key={movie.id} className="slider-item-enhanced">
+                                <div key={movie.id} className="px-2">
                                     <MovieCard
                                         movie={movie}
                                         onTrailerClick={handleTrailerClick}
@@ -162,21 +161,21 @@ const MovieSliderEnhanced = ({
                     </div>
 
                     <button
-                        className="movies-slider-nav-enhanced next"
+                        className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-whitebg-gray-800 shadow-lg border border-gray-200border-gray-700 flex items-center justify-center text-gray-700text-gray-300 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${isLastSlide ? 'opacity-50 cursor-not-allowed' : ''}`}
                         onClick={() => sliderRef.current?.slickNext()}
                         disabled={isLastSlide}
                         aria-label="Next movies"
                     >
-                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M8.5 5L15.5 12L8.5 19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                     </button>
                 </div>
 
                 {/* Progress indicator */}
-                <div className="slider-progress">
+                <div className="mt-6 h-1 bg-gray-200bg-gray-700 rounded-full overflow-hidden">
                     <div
-                        className="slider-progress-bar"
+                        className="h-full bg-red-600 transition-all duration-300"
                         style={{
                             width: `${((currentSlide + slidesToShow) / movies.length) * 100}%`
                         }}
@@ -184,10 +183,13 @@ const MovieSliderEnhanced = ({
                 </div>
 
                 {showMoreButton && (
-                    <div className="movies-show-more-wrapper-enhanced">
-                        <button className="movies-show-more-btn-enhanced" onClick={onShowMore}>
+                    <div className="mt-8 text-center">
+                        <button 
+                            className="inline-flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
+                            onClick={onShowMore}
+                        >
                             <span>Xem thêm</span>
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         </button>

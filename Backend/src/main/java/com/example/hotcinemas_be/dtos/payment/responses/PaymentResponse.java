@@ -18,11 +18,18 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PaymentResponse {
-    private Long paymentId;
-    private LocalDateTime paymentDate;
+    private Long id;
+    private Long userId;
+    private String fullName;
+    private String email;
+    private Long bookingId;
+    private String bookingCode;
     private BigDecimal amount;
     private PaymentMethod paymentMethod;
-    private String bookingCode; // Unique transaction identifier
-    private PaymentStatus status;
+    private PaymentStatus paymentStatus;
+    private String transactionId;
+    private String paymentDetails;
+    private LocalDateTime paymentDate;
+    private LocalDateTime createdAt;
     private String paymentUrl; // For online payments
 }

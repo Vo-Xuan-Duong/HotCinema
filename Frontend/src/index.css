@@ -1,7 +1,263 @@
+/* Tailwind CSS directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom component classes using @apply */
+@layer components {
+  .app-loading-spinner {
+    @apply inline-block w-5 h-5 border-[3px] border-white/30 rounded-full border-t-white;
+    animation: app-spin 1s ease-in-out infinite;
+  }
+
+  /* Auth Modal Classes - Replace CSS with Tailwind */
+  .auth-modal-title {
+    @apply text-2xl font-bold text-center;
+  }
+
+  .auth-content {
+    @apply p-0;
+  }
+
+  .form-header {
+    @apply text-center mb-7;
+  }
+
+  .form-header h2 {
+    @apply text-black text-[28px] font-bold m-0 mb-2 bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent;
+  }
+
+  .form-header p {
+    @apply text-black/70 text-sm m-0;
+  }
+
+  /* Custom Input Styling - Tailwind version */
+  .custom-input {
+    @apply bg-white/10 border-white/20 rounded-lg text-black h-12;
+    @apply hover:border-primary/60 hover:bg-white/15;
+    @apply focus:border-primary focus:bg-white/15;
+  }
+
+  .custom-input:focus {
+    box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.2);
+  }
+
+  .custom-input input {
+    @apply bg-transparent border-none text-black;
+  }
+
+  .custom-input input::placeholder {
+    @apply text-white/50;
+  }
+
+  .custom-input svg {
+    @apply text-black/60;
+  }
+
+  /* Form Options */
+  .form-options {
+    @apply flex justify-between items-center mb-2;
+  }
+
+  .custom-checkbox {
+    @apply text-white/80;
+  }
+
+  .forgot-password {
+    @apply text-white/70 p-0 h-auto text-sm hover:text-primary;
+  }
+
+  /* Buttons */
+  .login-button,
+  .register-button {
+    @apply bg-gradient-to-r from-primary to-red-500 border-none rounded-lg h-12 font-semibold text-base;
+    @apply hover:from-red-500 hover:to-primary hover:-translate-y-0.5;
+    @apply active:translate-y-0 transition-all;
+    box-shadow: 0 4px 12px rgba(229, 9, 20, 0.3);
+  }
+
+  .login-button:hover,
+  .register-button:hover {
+    box-shadow: 0 6px 16px rgba(229, 9, 20, 0.4);
+  }
+
+  .cancel-button {
+    @apply bg-white/10 border-white/20 text-white/90 rounded-lg h-12 font-semibold text-base;
+    @apply hover:bg-white/15 hover:border-white/30 hover:text-white transition-all;
+  }
+
+  .social-button {
+    @apply h-12 rounded-lg border-white/20 hover:border-primary/50 hover:text-primary transition-all mb-5;
+  }
+
+  /* Form Footer */
+  .form-footer {
+    @apply text-center text-sm;
+  }
+
+  .form-footer span {
+    @apply text-white/70;
+  }
+
+  .switch-button {
+    @apply text-primary p-0 h-auto hover:text-primary-600 font-medium;
+  }
+
+  /* Divider */
+  .custom-divider {
+    @apply my-5 text-white/50 text-xs;
+  }
+
+  /* Container utilities */
+  .app-container,
+  .container {
+    @apply max-w-[1200px] mx-auto px-8;
+  }
+
+  /* Grid utilities */
+  .app-grid {
+    @apply grid gap-8;
+  }
+
+  .app-grid-2 {
+    @apply grid-cols-1 md:grid-cols-2;
+  }
+
+  .app-grid-3 {
+    @apply grid-cols-1 md:grid-cols-2 lg:grid-cols-3;
+  }
+
+  .app-grid-4 {
+    @apply grid-cols-1 md:grid-cols-2 lg:grid-cols-4;
+  }
+
+  /* Flex utilities */
+  .app-flex {
+    @apply flex;
+  }
+
+  .app-flex-center {
+    @apply flex justify-center items-center;
+  }
+
+  .app-flex-between {
+    @apply flex justify-between items-center;
+  }
+
+  .app-flex-column {
+    @apply flex flex-col;
+  }
+
+  /* Message utilities */
+  .app-error-message,
+  .error-message {
+    @apply bg-gradient-to-br from-red-100 to-red-200 text-red-600 px-6 py-4 rounded-xl my-4 text-center border border-red-300;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+  }
+
+  .app-success-message,
+  .success-message {
+    @apply bg-gradient-to-br from-green-100 to-green-200 text-green-600 px-6 py-4 rounded-xl my-4 text-center border border-green-300;
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.15);
+  }
+
+  .app-warning-message,
+  .warning-message {
+    @apply bg-gradient-to-br from-yellow-100 to-yellow-200 text-yellow-700 px-6 py-4 rounded-xl my-4 text-center border border-yellow-300;
+    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.15);
+  }
+}
+
+/* Responsive overrides */
+@media (max-width: 768px) {
+
+  .app-grid-2,
+  .app-grid-3,
+  .app-grid-4 {
+    @apply grid-cols-1;
+  }
+
+  .app-container,
+  .container {
+    @apply px-4;
+  }
+}
+
+@keyframes dotPulse {
+
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.3);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes progressSlide {
+  0% {
+    transform: translateX(-100%);
+    width: 30%;
+  }
+
+  50% {
+    transform: translateX(0%);
+    width: 60%;
+  }
+
+  100% {
+    transform: translateX(100%);
+    width: 30%;
+  }
+}
+
+@keyframes app-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 :root {
   font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   line-height: 1.5;
   font-weight: 400;
+
+  /* Shadcn/ui CSS Variables */
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 0 84.2% 60.2%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 0 84.2% 60.2%;
+  --radius: 0.5rem;
 
   /* Modern light theme color scheme */
   --primary-bg: #ffffff;
@@ -34,28 +290,7 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Dark theme variables */
-[data-theme="dark"] {
-  --primary-bg: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-  --secondary-bg: rgba(0, 0, 0, 0.2);
-  --accent-bg: rgba(0, 0, 0, 0.2);
-  --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.7);
-  --text-muted: rgba(255, 255, 255, 0.5);
-  --accent-red: #e50914;
-  --accent-primary: var(--accent-red);
-  --accent-orange: var(--accent-red);
-  /* Deprecated legacy alias */
-  --accent-blue: #1890ff;
-  --border-color: rgba(255, 255, 255, 0.1);
-  --hover-bg: rgba(255, 255, 255, 0.1);
-  --card-bg: rgba(255, 255, 255, 0.05);
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.5);
-
-  color-scheme: dark;
-}
+/* Dark theme removed - only light mode is used */
 
 a {
   font-weight: 500;
@@ -77,14 +312,40 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* padding-top: 64px; */
+}
+
+/* Remove padding-top for admin layout */
+body:has(.admin-layout-antd),
+body:has([class*="admin-layout"]) {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+@media (max-width: 768px) {
+  body {
+    padding-top: 56px;
+  }
+}
+
+@media (max-width: 576px) {
+  body {
+    padding-top: 52px;
+  }
 }
 
 #root {
   width: 100%;
+  /* Use 100% instead of 100vw to prevent scrollbar from creating white space */
+  max-width: 100%;
   min-height: 100vh;
   display: block;
   background-color: var(--primary-bg);
   overflow-x: hidden;
+  /* Ensure scrollbar is at the edge - no padding/margin */
+  padding-right: 0 !important;
+  margin-right: 0 !important;
+  box-sizing: border-box;
 }
 
 h1 {
@@ -95,7 +356,7 @@ h1 {
 button {
   border-radius: 8px;
   border: 1px solid transparent;
-  padding: 0.6em 1.2em;
+  /* padding: 0.6em 1.2em; */
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
@@ -116,10 +377,24 @@ button:hover {
 html {
   scroll-behavior: smooth;
   overflow-x: hidden;
+  /* Use auto instead of scroll - scrollbar will overlay, not take space */
+  overflow-y: auto;
+  width: 100%;
+  /* Don't use 100vw as it includes scrollbar width, use 100% instead */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 body {
   overflow-x: hidden;
+  /* Use auto instead of scroll - scrollbar will overlay, not take space */
+  overflow-y: auto;
+  width: 100%;
+  /* Don't use 100vw as it includes scrollbar width, use 100% instead */
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 /* Remove all outlines globally */
@@ -141,44 +416,6 @@ select:focus-visible {
   outline: none !important;
 }
 
-/* Remove Ant Design default focus outlines */
-.ant-btn:focus,
-.ant-btn:focus-visible,
-.ant-btn:active,
-.ant-input:focus,
-.ant-input:focus-visible,
-.ant-input-affix-wrapper:focus,
-.ant-input-affix-wrapper:focus-visible,
-.ant-picker:focus,
-.ant-picker:focus-visible,
-.ant-picker-focused,
-.ant-checkbox:focus,
-.ant-checkbox:focus-visible,
-.ant-radio:focus,
-.ant-radio:focus-visible,
-.ant-switch:focus,
-.ant-switch:focus-visible,
-.ant-tabs-tab:focus,
-.ant-tabs-tab:focus-visible,
-.ant-tabs-tab-active,
-.ant-menu-item:focus,
-.ant-menu-item:focus-visible {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-/* Allow Select to work properly - DO NOT remove these */
-.ant-select:focus,
-.ant-select:focus-visible,
-.ant-select-focused,
-.ant-select-open,
-.ant-select-dropdown,
-.ant-select-item,
-.ant-dropdown-menu-item:focus,
-.ant-dropdown-menu-item:focus-visible {
-  outline: none !important;
-}
-
 /* Modern scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
@@ -187,13 +424,137 @@ select:focus-visible {
 
 ::-webkit-scrollbar-track {
   background: var(--secondary-bg);
+  /* Remove any spacing */
+  margin: 0;
+  padding: 0;
+  border: none;
 }
 
 ::-webkit-scrollbar-thumb {
   background: linear-gradient(135deg, var(--accent-orange), #f59e0b);
   border-radius: 4px;
+  /* Remove any spacing */
+  border: none;
+  margin: 0;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(135deg, #e55a2b, #d97706);
+}
+
+/* Custom scrollbar for movie showcase */
+.movie-showcase-scroll::-webkit-scrollbar {
+  height: 10px;
+}
+
+.movie-showcase-scroll::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 5px;
+  margin: 0 10px;
+}
+
+.movie-showcase-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #e50914, #ff6b35);
+  border-radius: 5px;
+  transition: background 0.3s ease;
+}
+
+.movie-showcase-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(90deg, #b8070f, #e55a2b);
+}
+
+/* Hide scrollbar for carousel */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Custom scrollbar for admin sidebar */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+/* Prevent Modal from causing scrollbar flicker */
+/* Use auto instead of scroll - scrollbar will overlay, not take space */
+html {
+  overflow-y: auto !important;
+  padding-right: 0 !important;
+  margin-right: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+body {
+  overflow-y: auto !important;
+  padding-right: 0 !important;
+  margin-right: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Ensure root element doesn't push scrollbar */
+#root {
+  padding-right: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Global fix to prevent horizontal overflow and white space */
+* {
+  box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Prevent any element from exceeding viewport width */
+*:not([class*="max-w"]):not(.container):not(.app-container) {
+  max-width: 100%;
+}
+
+/* Ensure all containers respect viewport width */
+.app-container {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+.container:not([class*="max-w"]) {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* Prevent images and media from causing overflow */
+img,
+video,
+iframe,
+embed,
+object {
+  max-width: 100%;
+  height: auto;
 }

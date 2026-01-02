@@ -1,7 +1,9 @@
 package com.example.hotcinemas_be.dtos.showtime.responses;
 
+import com.example.hotcinemas_be.enums.AudioType;
+import com.example.hotcinemas_be.enums.Format;
 import com.example.hotcinemas_be.enums.MovieFormat;
-import com.example.hotcinemas_be.enums.ShowTimeStatus;
+import com.example.hotcinemas_be.enums.ShowtimeStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,9 +26,11 @@ public class ShowtimeResponse {
     private LocalTime startTime;
     private LocalTime endTime;
     private BigDecimal price;
-    private MovieFormat movieFormat;
-    private String movieFormatLabel;
-    private ShowTimeStatus status;
+    private Format format;
+    private String formatLabel;
+    private AudioType audioType;
+    private String audioTypeLabel;
+    private ShowtimeStatus status;
     private Integer totalSeats;
     private Integer seatsBooked;
     private Boolean isActive ;

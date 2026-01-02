@@ -1,11 +1,10 @@
-package com.example.hotcinemas_be.jwts;
+package com.example.hotcinemas_be.security;
 
 import com.example.hotcinemas_be.exceptions.AppException;
 import com.example.hotcinemas_be.exceptions.ErrorCode;
 import com.example.hotcinemas_be.models.Permission;
 import com.example.hotcinemas_be.models.Role;
 import com.example.hotcinemas_be.models.User;
-import com.example.hotcinemas_be.repositorys.RolePermissionRepository;
 import com.example.hotcinemas_be.repositorys.UserRepository;
 import com.example.hotcinemas_be.services.PermissionService;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +18,6 @@ import org.springframework.stereotype.Service;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -45,7 +43,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getEmail())
-                .password(user.getPassword())
+                .password(user.getPassword() != null ? user.getPassword() : "")
                 .authorities(authorities)
                 .build();
     }

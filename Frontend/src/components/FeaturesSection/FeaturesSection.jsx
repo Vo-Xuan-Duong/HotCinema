@@ -1,8 +1,5 @@
 import React from 'react';
-import { Row, Col, Card, Typography } from 'antd';
-import './FeaturesSection.css';
-
-const { Title, Paragraph } = Typography;
+import { Card } from '../ui/card';
 
 const FeaturesSection = () => {
   const features = [
@@ -29,77 +26,29 @@ const FeaturesSection = () => {
   ];
 
   return (
-    <section className="features-section-modern">
-      <div className="container">
-        <Title
-          level={2}
-          className="features-title"
-          style={{
-            textAlign: 'center',
-            marginBottom: '3rem',
-            color: '#1f2937',
-            fontSize: '2.5rem',
-            fontWeight: 700
-          }}
-        >
+    <section className="bg-white md:py-20 md:mt-10 sm:py-16 sm:mt-10">
+      <div className="max-w-[1200px] mx-auto px-6 md:px-4 sm:px-4">
+        <h2 className="text-center mb-12 bg-gradient-to-br from-gray-800 to-green-600 bg-clip-text text-transparent text-4xl font-bold md:text-3xl sm:text-2xl sm:mb-8">
           Tại sao chọn HotCinemas?
-        </Title>
-        <Row gutter={[24, 24]} justify="center">
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {features.map((feature, index) => (
-            <Col
+            <Card
               key={index}
-              xs={24}
-              sm={12}
-              md={12}
-              lg={6}
-              xl={6}
+              className="transition-all duration-300 rounded-2xl overflow-hidden h-full hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(0,0,0,0.15)] p-8 flex flex-col items-center text-center md:p-6 sm:p-5"
             >
-              <Card
-                className="feature-card-modern"
-                bordered={false}
-                hoverable
-                style={{
-                  height: '100%',
-                  textAlign: 'center',
-                  borderRadius: '16px',
-                  background: 'rgba(255, 255, 255, 0.95)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
-                }}
-              >
-                <div className="feature-icon-modern" style={{
-                  fontSize: '3rem',
-                  marginBottom: '1rem',
-                  display: 'block'
-                }}>
-                  {feature.icon}
-                </div>
-                <Title
-                  level={4}
-                  style={{
-                    color: '#1f2937',
-                    marginBottom: '1rem',
-                    fontSize: '1.3rem',
-                    fontWeight: 600
-                  }}
-                >
-                  {feature.title}
-                </Title>
-                <Paragraph
-                  style={{
-                    color: '#6b7280',
-                    lineHeight: 1.6,
-                    fontSize: '14px',
-                    margin: 0
-                  }}
-                >
-                  {feature.description}
-                </Paragraph>
-              </Card>
-            </Col>
+              <div className="text-5xl mb-4 block animate-[iconFloat_3s_ease-in-out_infinite] drop-shadow-[0_4px_8px_rgba(0,0,0,0.1)] md:text-4xl sm:text-4xl">
+                {feature.icon}
+              </div>
+              <h4 className="text-gray-800 mb-4 text-xl font-semibold">
+                {feature.title}
+              </h4>
+              <p className="text-gray-600 leading-relaxed text-sm m-0">
+                {feature.description}
+              </p>
+            </Card>
           ))}
-        </Row>
+        </div>
       </div>
     </section>
   );

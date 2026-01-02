@@ -1,5 +1,6 @@
 package com.example.hotcinemas_be.dtos.showtime.requests;
 
+import com.example.hotcinemas_be.enums.Format;
 import com.example.hotcinemas_be.enums.MovieFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,5 +19,5 @@ public class ShowtimeFilterRequest {
     private String cinemaCity;
     private Long cinemaId;
     private LocalDate showDate;
-    private MovieFormat movieFormat;
+    private Format format;
 }

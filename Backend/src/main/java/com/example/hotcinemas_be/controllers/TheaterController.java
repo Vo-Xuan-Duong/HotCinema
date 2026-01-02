@@ -2,7 +2,7 @@ package com.example.hotcinemas_be.controllers;
 
 import com.example.hotcinemas_be.dtos.common.DataResponse;
 import com.example.hotcinemas_be.dtos.theater.requests.TheaterRequest;
-import com.example.hotcinemas_be.services.RoomService;
+import com.example.hotcinemas_be.services.TheaterService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Pageable;
@@ -12,12 +12,12 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/rooms")
 @Tag(name = "Room Management", description = "APIs for managing rooms in the cinema system")
-public class RoomController {
+public class TheaterController {
 
-    private final RoomService roomService;
+    private final TheaterService theaterService;
 
-    public RoomController(RoomService roomService) {
-        this.roomService = roomService;
+    public TheaterController(TheaterService theaterService) {
+        this.theaterService = theaterService;
     }
 
     @Operation(summary = "Get all rooms", description = "Retrieve a list of all rooms in the cinema system")
@@ -26,7 +26,7 @@ public class RoomController {
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(200)
                 .message("Successfully retrieved all rooms")
-                .data(roomService.getPageRooms(pageable))
+                .data(theaterService.getPageRooms(pageable))
                 .build();
         return ResponseEntity.ok(dataResponse);
     }
@@ -37,7 +37,7 @@ public class RoomController {
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(200)
                 .message("Successfully retrieved room with ID: " + id)
-                .data(roomService.getRoomById(id))
+                .data(theaterService.getRoomById(id))
                 .build();
         return ResponseEntity.ok(dataResponse);
     }
@@ -48,7 +48,7 @@ public class RoomController {
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(200)
                 .message("Successfully retrieved rooms for cinema ID: " + cinemaId)
-                .data(roomService.getPageRoomsByCinemaId(cinemaId))
+                .data(theaterService.getPageRoomsByCinemaId(cinemaId))
                 .build();
         return ResponseEntity.ok(dataResponse);
     }
@@ -59,7 +59,7 @@ public class RoomController {
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(201)
                 .message("Successfully created a new room")
-                .data(roomService.createRoom(cinemaId, theaterRequest))
+                .data(theaterService.createRoom(cinemaId, theaterRequest))
                 .build();
         return ResponseEntity.status(201).body(dataResponse);
     }
@@ -70,7 +70,7 @@ public class RoomController {
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(200)
                 .message("Successfully updated room with ID: " + id)
-                .data(roomService.updateRoom(id, theaterRequest))
+                .data(theaterService.updateRoom(id, theaterRequest))
                 .build();
         return ResponseEntity.ok(dataResponse);
     }
@@ -78,7 +78,7 @@ public class RoomController {
     @Operation(summary = "Delete a room", description = "Delete a specific room by its ID")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteRoom(@PathVariable Long id) {
-        roomService.deleteRoom(id);
+        theaterService.deleteRoom(id);
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(200)
                 .message("Successfully deleted room with ID: " + id)
@@ -89,7 +89,7 @@ public class RoomController {
     @Operation(summary = "Delete all rooms by cinema ID", description = "Delete all rooms associated with a specific cinema ID")
     @DeleteMapping("/cinema/{cinemaId}")
     public ResponseEntity<?> deleteRoomsByCinemaId(@PathVariable Long cinemaId) {
-        roomService.deleteRoomsByCinemaId(cinemaId);
+        theaterService.deleteRoomsByCinemaId(cinemaId);
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(200)
                 .message("Successfully deleted all rooms for cinema ID: " + cinemaId)
@@ -102,7 +102,7 @@ public class RoomController {
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(200)
                 .message("Successfully retrieved all rooms without pagination")
-                .data(roomService.getAllRoomsNoPage())
+                .data(theaterService.getAllRoomsNoPage())
                 .build();
         return ResponseEntity.ok(dataResponse);
     }

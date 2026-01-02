@@ -12,10 +12,12 @@ import lombok.Setter;
 @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Builder
-public class ResponseData<T> {
+public class DataResponse<T> {
+
+    @Builder.Default
+    private LocalDateTime timestamp = LocalDateTime.now();
     private int status;
     private String message;
-    private LocalDateTime timestamp;
     private String path;
     private T data;
 

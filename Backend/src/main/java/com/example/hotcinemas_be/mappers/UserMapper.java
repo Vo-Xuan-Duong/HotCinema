@@ -13,16 +13,20 @@ public class UserMapper {
         }
         return UserResponse.builder()
                 .id(user.getId())
-                .username(user.getUsername())
                 .email(user.getEmail())
-                .password(user.getPassword())
+                .password(user.getPassword() != null ? user.getPassword() : null)
                 .fullName(user.getFullName())
                 .phone(user.getPhone())
                 .address(user.getAddress())
                 .avatarUrl(user.getAvatarUrl())
+                .dateOfBirth(user.getDateOfBirth())
+                .role(user.getRole() != null ? user.getRole().getName() : null)
+                .loyaltyPoints(user.getLoyaltyPoints())
+                .membershipTier(user.getMembershipTier())
+                .lastLogin(user.getLastLogin())
                 .isActive(user.getIsActive())
-                .role(user.getRole().getCode())
                 .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
                 .build();
     }
 }

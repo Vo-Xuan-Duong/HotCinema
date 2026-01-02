@@ -1,4 +1,4 @@
-package com.example.hotcinemas_be.dtos.user.requests;
+package com.example.hotcinemas_be.dtos.auth.requests;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

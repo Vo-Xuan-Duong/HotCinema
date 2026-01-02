@@ -1,159 +1,328 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { TableWrapper } from '../../../components/ui/table-wrapper';
+import { Pagination } from '../../../components/ui/pagination';
+import { Button } from '../../../components/ui/button';
+import { Modal } from '../../../components/ui/modal';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '../../../components/ui/form';
+import { Input } from '../../../components/ui/input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select';
+import { Tag } from '../../../components/ui/tag';
+import { Card } from '../../../components/ui/card';
+import { Statistic } from '../../../components/ui/statistic';
+import { DatePicker } from '../../../components/ui/date-picker';
+import { Badge } from '../../../components/ui/badge-count';
+import { Breadcrumb } from '../../../components/ui/breadcrumb';
 import {
-  Table,
-  Button,
-  Modal,
-  Form,
-  Input,
-  Select,
-  Tag,
-  Space,
-  Popconfirm,
-  message,
-  Row,
-  Col,
-  Card,
-  Statistic,
-  DatePicker,
-  Descriptions,
-  Badge,
-  Tooltip
-} from 'antd';
-import {
-  CalendarOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-  DollarOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  CloseCircleOutlined,
-  ExclamationCircleOutlined,
-  UserOutlined,
-  VideoCameraOutlined
-} from '@ant-design/icons';
-import bookingsData from '../../../data/bookings.json';
-import moviesData from '../../../data/movies.json';
-import cinemasData from '../../../data/cinemas.json';
-import usersData from '../../../data/users.json';
-import './BookingsAntd.css';
-
-const { Option } = Select;
-const { RangePicker } = DatePicker;
+  Calendar,
+  Edit,
+  Trash2,
+  DollarSign,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  AlertCircle,
+  User,
+  Video,
+  Home,
+  Search,
+  Loader2,
+  Ticket
+} from 'lucide-react';
+import bookingService from '../../../services/bookingService';
+import movieService from '../../../services/movieService';
+import cinemaService from '../../../services/cinemaService';
+import { useNotification } from '../../../hooks/useNotification';
 
 const Bookings = () => {
-  const [bookings, setBookings] = useState(bookingsData);
-  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const navigate = useNavigate();
+  const { showNotification } = useNotification();
+  const tableRef = useRef(null);
+  const [bookings, setBookings] = useState([]);
+  const [movies, setMovies] = useState([]);
+  const [cinemas, setCinemas] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMovies, setLoadingMovies] = useState(false);
+  const [loadingCinemas, setLoadingCinemas] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
-  const [form] = Form.useForm();
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [movieFilter, setMovieFilter] = useState('all');
   const [cinemaFilter, setCinemaFilter] = useState('all');
+  const [formValues, setFormValues] = useState({
+    status: '',
+    paymentStatus: '',
+    paymentMethod: ''
+  });
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0
+  });
+
+  // Load movies and cinemas on mount
+  useEffect(() => {
+    loadMovies();
+    loadCinemas();
+  }, []);
+
+  // Load bookings from API
+  useEffect(() => {
+    loadBookings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagination.current, pagination.pageSize, statusFilter, movieFilter, cinemaFilter, searchText]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    if (pagination.current !== 1) {
+      setPagination(prev => ({ ...prev, current: 1 }));
+    }
+  }, [statusFilter, movieFilter, cinemaFilter, searchText]);
+
+  const loadMovies = async () => {
+    try {
+      setLoadingMovies(true);
+      const response = await movieService.getAllMovies({ page: 0, size: 100 });
+      const moviesData = response?.data?.content || response?.data?.data || response?.data || [];
+      setMovies(Array.isArray(moviesData) ? moviesData : []);
+    } catch (error) {
+      console.error('Error loading movies:', error);
+      showNotification('error', 'Lỗi', 'Không thể tải danh sách phim');
+      setMovies([]);
+    } finally {
+      setLoadingMovies(false);
+    }
+  };
+
+  const loadCinemas = async () => {
+    try {
+      setLoadingCinemas(true);
+      const response = await cinemaService.getAllCinemas({ page: 0, size: 100 });
+      const cinemasData = response?.data?.content || response?.data?.data || response?.data || [];
+      setCinemas(Array.isArray(cinemasData) ? cinemasData : []);
+    } catch (error) {
+      console.error('Error loading cinemas:', error);
+      showNotification('error', 'Lỗi', 'Không thể tải danh sách rạp');
+      setCinemas([]);
+    } finally {
+      setLoadingCinemas(false);
+    }
+  };
+
+  const loadBookings = async (currentPage = pagination.current, pageSize = pagination.pageSize) => {
+    try {
+      setLoading(true);
+      const params = {
+        page: currentPage - 1, // Backend uses 0-based indexing
+        size: pageSize,
+        sort: 'id,desc'
+      };
+
+      // Add filters
+      if (statusFilter !== 'all') {
+        params.status = statusFilter;
+      }
+      if (movieFilter !== 'all') {
+        params.movieId = movieFilter;
+      }
+      if (cinemaFilter !== 'all') {
+        params.cinemaId = cinemaFilter;
+      }
+      if (searchText) {
+        params.keyword = searchText;
+      }
+
+      const response = await bookingService.listPage(params);
+      const bookingsData = response?.content || response?.data?.content || response?.data || [];
+      const total = response?.totalElements || response?.data?.totalElements || response?.total || bookingsData.length;
+
+      console.log('Bookings API Response:', {
+        response,
+        bookingsCount: bookingsData.length,
+        total,
+        currentPage: currentPage || pagination.current,
+        pageSize: pageSize || pagination.pageSize
+      });
+
+      setBookings(Array.isArray(bookingsData) ? bookingsData : []);
+      setPagination(prev => ({
+        ...prev,
+        total: total || prev.total
+      }));
+    } catch (error) {
+      console.error('Error loading bookings:', error);
+      showNotification('error', 'Lỗi', 'Không thể tải danh sách đặt vé');
+      setBookings([]);
+      setPagination(prev => ({ ...prev, total: 0 }));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle table change (pagination)
+  const handleTableChange = (page, pageSize) => {
+    const newPageSize = pageSize || pagination.pageSize;
+    setPagination(prev => ({
+      current: page,
+      pageSize: newPageSize,
+      total: prev.total
+    }));
+    // Load bookings with new page immediately
+    loadBookings(page, newPageSize);
+    // Scroll to top of table
+    setTimeout(() => {
+      if (tableRef.current) {
+        tableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+
+  // Handle page size change
+  const handlePageSizeChange = (current, newPageSize) => {
+    setPagination(prev => ({
+      current: 1,
+      pageSize: newPageSize,
+      total: prev.total
+    }));
+    // Load bookings with new page size immediately
+    loadBookings(1, newPageSize);
+    // Scroll to top of table
+    setTimeout(() => {
+      if (tableRef.current) {
+        tableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+
+  // Handle search
+  const handleSearch = (value) => {
+    setSearchText(value);
+    setPagination(prev => ({ ...prev, current: 1 }));
+  };
 
   // Thống kê booking
   const bookingStats = useMemo(() => {
     const stats = {
-      total: bookings.length,
-      confirmed: bookings.filter(booking => booking.status === 'confirmed').length,
-      pending: bookings.filter(booking => booking.status === 'pending').length,
-      cancelled: bookings.filter(booking => booking.status === 'cancelled').length,
-      expired: bookings.filter(booking => booking.status === 'expired').length,
+      total: pagination.total,
+      confirmed: bookings.filter(booking => {
+        const status = (booking.bookingStatus || booking.status)?.toUpperCase();
+        return status === 'CONFIRMED' || status === 'confirmed';
+      }).length,
+      pending: bookings.filter(booking => {
+        const status = (booking.bookingStatus || booking.status)?.toUpperCase();
+        return status === 'PENDING' || status === 'pending';
+      }).length,
+      cancelled: bookings.filter(booking => {
+        const status = (booking.bookingStatus || booking.status)?.toUpperCase();
+        return status === 'CANCELLED' || status === 'cancelled';
+      }).length,
+      expired: bookings.filter(booking => {
+        const status = (booking.bookingStatus || booking.status)?.toUpperCase();
+        return status === 'EXPIRED' || status === 'expired';
+      }).length,
       totalRevenue: bookings
-        .filter(booking => booking.status === 'confirmed')
-        .reduce((sum, booking) => sum + booking.totalPrice, 0),
+        .filter(booking => {
+          const status = (booking.bookingStatus || booking.status)?.toUpperCase();
+          return status === 'CONFIRMED' || status === 'confirmed';
+        })
+        .reduce((sum, booking) => sum + (booking.finalAmount || booking.totalAmount || booking.totalPrice || 0), 0),
       totalSeats: bookings
-        .filter(booking => booking.status === 'confirmed')
-        .reduce((sum, booking) => sum + booking.seats.length, 0)
+        .filter(booking => {
+          const status = (booking.bookingStatus || booking.status)?.toUpperCase();
+          return status === 'CONFIRMED' || status === 'confirmed';
+        })
+        .reduce((sum, booking) => sum + (booking.seats?.length || 0), 0)
     };
     return stats;
-  }, [bookings]);
-
-  // Lọc booking
-  const filteredBookings = useMemo(() => {
-    return bookings.filter(booking => {
-      const matchesSearch = booking.userName?.toLowerCase().includes(searchText.toLowerCase()) ||
-        booking.movieTitle?.toLowerCase().includes(searchText.toLowerCase()) ||
-        booking.cinemaName?.toLowerCase().includes(searchText.toLowerCase()) ||
-        booking.customerInfo?.email?.toLowerCase().includes(searchText.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
-      const matchesMovie = movieFilter === 'all' || booking.movieId.toString() === movieFilter;
-      const matchesCinema = cinemaFilter === 'all' || booking.cinemaId.toString() === cinemaFilter;
-      return matchesSearch && matchesStatus && matchesMovie && matchesCinema;
-    });
-  }, [bookings, searchText, statusFilter, movieFilter, cinemaFilter]);
+  }, [bookings, pagination.total]);
 
   // Xử lý cập nhật trạng thái booking
-  const handleStatusChange = (bookingId, newStatus) => {
-    const updatedBookings = bookings.map(booking =>
-      booking.id === bookingId
-        ? { ...booking, status: newStatus, paymentStatus: newStatus === 'confirmed' ? 'paid' : newStatus === 'cancelled' ? 'refunded' : booking.paymentStatus }
-        : booking
-    );
-
-    setBookings(updatedBookings);
-    message.success(`Đã ${newStatus === 'confirmed' ? 'xác nhận' : newStatus === 'cancelled' ? 'hủy' : 'cập nhật'} booking!`);
+  const handleStatusChange = async (bookingId, newStatus) => {
+    try {
+      if (newStatus === 'cancelled') {
+        await bookingService.cancelBooking(bookingId);
+      } else {
+        await bookingService.updateBookingStatus(bookingId, newStatus);
+      }
+      showNotification('success', 'Thành công', `Đã ${newStatus === 'confirmed' ? 'xác nhận' : newStatus === 'cancelled' ? 'hủy' : 'cập nhật'} booking!`);
+      loadBookings();
+    } catch (error) {
+      console.error('Error updating booking status:', error);
+      showNotification('error', 'Lỗi', error.response?.data?.message || 'Không thể cập nhật trạng thái booking');
+    }
   };
 
   // Xử lý xóa booking
-  const handleDeleteBooking = (bookingId) => {
-    const updatedBookings = bookings.filter(booking => booking.id !== bookingId);
-    setBookings(updatedBookings);
-    message.success('Xóa booking thành công!');
+  const handleDeleteBooking = async (bookingId) => {
+    try {
+      await bookingService.deleteBooking(bookingId);
+      showNotification('success', 'Thành công', 'Xóa booking thành công!');
+      loadBookings();
+    } catch (error) {
+      console.error('Error deleting booking:', error);
+      showNotification('error', 'Lỗi', error.response?.data?.message || 'Không thể xóa booking');
+    }
   };
 
   // Xử lý chỉnh sửa booking
-  const handleEditBooking = (values) => {
-    const updatedBookings = bookings.map(booking =>
-      booking.id === selectedBooking.id
-        ? { ...booking, ...values }
-        : booking
-    );
-
-    setBookings(updatedBookings);
-    setIsEditModalVisible(false);
-    setSelectedBooking(null);
-    form.resetFields();
-    message.success('Cập nhật booking thành công!');
+  const handleEditBooking = async (values) => {
+    try {
+      await bookingService.updateBooking(selectedBooking.id, values);
+      showNotification('success', 'Thành công', 'Cập nhật booking thành công!');
+      setIsEditModalVisible(false);
+      setSelectedBooking(null);
+      // Form reset not needed - using controlled components
+      loadBookings();
+    } catch (error) {
+      console.error('Error updating booking:', error);
+      showNotification('error', 'Lỗi', error.response?.data?.message || 'Không thể cập nhật booking');
+    }
   };
 
-  // Hiển thị modal
+  // Navigate to detail page
   const showDetailModal = (booking) => {
-    setSelectedBooking(booking);
-    setIsDetailModalVisible(true);
+    const code = booking.bookingCode || booking.id;
+    navigate(`/admin/bookings/${code}`);
   };
 
   const showEditModal = (booking) => {
     setSelectedBooking(booking);
     setIsEditModalVisible(true);
-    form.setFieldsValue({
-      status: booking.status,
-      paymentStatus: booking.paymentStatus,
-      paymentMethod: booking.paymentMethod
+    setFormValues({
+      status: booking?.bookingStatus || booking?.status || '',
+      paymentStatus: booking?.paymentStatus || '',
+      paymentMethod: booking?.paymentMethod || ''
     });
   };
 
   // Render trạng thái booking
   const renderBookingStatus = (status) => {
     const statusConfig = {
-      confirmed: { color: 'success', text: 'Đã xác nhận', icon: <CheckCircleOutlined /> },
-      pending: { color: 'warning', text: 'Chờ xử lý', icon: <ClockCircleOutlined /> },
-      cancelled: { color: 'error', text: 'Đã hủy', icon: <CloseCircleOutlined /> },
-      expired: { color: 'default', text: 'Hết hạn', icon: <ExclamationCircleOutlined /> }
+      confirmed: { color: 'green', text: 'Đã thanh toán', icon: <CheckCircle2 className="h-3 w-3" /> },
+      pending: { color: 'yellow', text: 'Chờ thanh toán', icon: <Clock className="h-3 w-3" /> },
+      cancelled: { color: 'red', text: 'Đã hủy', icon: <XCircle className="h-3 w-3" /> },
+      expired: { color: 'gray', text: 'Hết hạn', icon: <AlertCircle className="h-3 w-3" /> }
     };
 
     const config = statusConfig[status] || statusConfig.pending;
-    return <Tag color={config.color} icon={config.icon}>{config.text}</Tag>;
+    return (
+      <Tag color={config.color}>
+        <span className="flex items-center gap-1">
+          {config.icon}
+          {config.text}
+        </span>
+      </Tag>
+    );
   };
 
   // Render trạng thái thanh toán
   const renderPaymentStatus = (status) => {
     const statusConfig = {
-      paid: { color: 'success', text: 'Đã thanh toán' },
-      pending: { color: 'warning', text: 'Chờ thanh toán' },
-      failed: { color: 'error', text: 'Thanh toán thất bại' },
-      refunded: { color: 'default', text: 'Đã hoàn tiền' }
+      paid: { color: 'green', text: 'Đã thanh toán' },
+      pending: { color: 'yellow', text: 'Chờ thanh toán' },
+      failed: { color: 'red', text: 'Thanh toán thất bại' },
+      refunded: { color: 'gray', text: 'Đã hoàn tiền' }
     };
 
     const config = statusConfig[status] || statusConfig.pending;
@@ -175,23 +344,32 @@ const Bookings = () => {
   // Cấu hình cột bảng
   const columns = [
     {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 60,
-      sorter: (a, b) => a.id - b.id,
+      title: 'Mã đặt vé',
+      key: 'bookingCode',
+      width: 120,
+      render: (_, record) => (
+        <div
+          className="cursor-pointer hover:text-indigo-700 transition-colors"
+          onClick={() => showDetailModal(record)}
+        >
+          <div className="font-semibold text-indigo-600 hover:underline">#{record.bookingCode || record.id}</div>
+          <div className="text-xs text-gray-500">ID: {record.id}</div>
+        </div>
+      ),
+      sorter: (a, b) => (a.id || 0) - (b.id || 0),
     },
     {
       title: 'Khách hàng',
       key: 'customer',
       render: (_, record) => (
         <div>
-          <div style={{ fontWeight: 'bold', marginBottom: 4 }}>
-            <UserOutlined style={{ marginRight: 8 }} />
-            {record.userName}
+          <div className="font-bold mb-1 flex items-center gap-2">
+            <User className="h-4 w-4" />
+            {record.userFullName || record.fullName || 'N/A'}
           </div>
-          <div style={{ color: '#666', fontSize: '12px' }}>{record.customerInfo.email}</div>
-          <div style={{ color: '#666', fontSize: '12px' }}>{record.customerInfo.phone}</div>
+          <div className="text-gray-600 text-xs">
+            {record.userEmail || record.customerInfo?.email || 'N/A'}
+          </div>
         </div>
       ),
     },
@@ -200,444 +378,445 @@ const Bookings = () => {
       key: 'movie',
       render: (_, record) => (
         <div>
-          <div style={{ fontWeight: 'bold', marginBottom: 4 }}>
-            <VideoCameraOutlined style={{ marginRight: 8 }} />
-            {record.movieTitle}
+          <div className="font-bold mb-1 flex items-center gap-2">
+            <Video className="h-4 w-4" />
+            {record.movieTitle || 'N/A'}
           </div>
-          <div style={{ color: '#666', fontSize: '12px' }}>{record.cinemaName}</div>
+          <div className="text-gray-600 text-xs">
+            {record.cinemaName || 'N/A'}
+          </div>
         </div>
       ),
     },
     {
       title: 'Suất chiếu',
       key: 'showtime',
-      render: (_, record) => (
-        <div>
-          <div style={{ fontWeight: 'bold', marginBottom: 4 }}>
-            <CalendarOutlined style={{ marginRight: 8 }} />
-            {new Date(record.showtime).toLocaleDateString('vi-VN')}
+      render: (_, record) => {
+        // showDate là LocalDate (YYYY-MM-DD), startTime và endTime là LocalTime (HH:mm:ss)
+        const showDate = record.showDate;
+        const startTime = record.startTime;
+        const endTime = record.endTime;
+        const roomName = record.roomName;
+
+        // Format date: LocalDate string "YYYY-MM-DD"
+        const formatDate = (dateStr) => {
+          if (!dateStr) return 'N/A';
+          try {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('vi-VN');
+          } catch {
+            return dateStr;
+          }
+        };
+
+        // Format time: LocalTime string "HH:mm:ss" hoặc "HH:mm"
+        const formatTime = (timeStr) => {
+          if (!timeStr) return 'N/A';
+          try {
+            // Nếu là "HH:mm:ss", chỉ lấy "HH:mm"
+            const time = timeStr.split(':').slice(0, 2).join(':');
+            return time;
+          } catch {
+            return timeStr;
+          }
+        };
+
+        return (
+          <div>
+            <div className="font-bold mb-1 flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              {formatDate(showDate)}
+            </div>
+            <div className="text-gray-600 text-xs">
+              {formatTime(startTime)} - {formatTime(endTime)}
+            </div>
+            {roomName && (
+              <div className="text-gray-600 text-xs">
+                Phòng: {roomName}
+              </div>
+            )}
           </div>
-          <div style={{ color: '#666', fontSize: '12px' }}>
-            {new Date(record.showtime).toLocaleTimeString('vi-VN', {
-              hour: '2-digit',
-              minute: '2-digit'
-            })}
-          </div>
-          <div style={{ color: '#666', fontSize: '12px' }}>
-            {record.screening.room} - {record.screening.format}
-          </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       title: 'Ghế',
-      dataIndex: 'seats',
       key: 'seats',
-      render: (seats) => (
-        <div>
-          <Badge count={seats.length} style={{ backgroundColor: '#1890ff' }}>
-            <span>{seats.join(', ')}</span>
-          </Badge>
-        </div>
-      ),
+      render: (_, record) => {
+        // seats là List<SeatSnapshot> với cấu trúc: { seatId, seatName, price, seatType }
+        const seats = record.seats || [];
+        const seatNames = seats.length > 0
+          ? seats.map(seat => seat.seatName || `Seat-${seat.seatId}`)
+          : (record.seatNames || []);
+
+        return (
+          <div>
+            <Badge className="bg-blue-600 text-white px-2 py-0.5 rounded text-xs">
+              {seats.length || seatNames.length || 0} ghế
+            </Badge>
+            {/* <div className="text-xs mt-1 text-gray-600">
+              {seatNames.length > 0 ? seatNames.join(', ') : 'N/A'}
+            </div> */}
+            {seats.length > 0 && seats.some(seat => seat.seatType) && (
+              <div className="text-xs mt-1 flex flex-wrap gap-1">
+                {seats.map((seat, index) => (
+                  <Tag key={seat.seatId || index} color={seat.seatType === 'VIP' ? 'orange' : 'default'} className="text-xs">
+                    {seat.seatName || `Seat-${seat.seatId}`}
+                  </Tag>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
       title: 'Tổng tiền',
-      dataIndex: 'totalPrice',
-      key: 'totalPrice',
-      render: (amount) => (
-        <div style={{ fontWeight: 'bold', color: '#1890ff' }}>
-          <DollarOutlined style={{ marginRight: 4 }} />
-          {amount?.toLocaleString('vi-VN')} ₫
-        </div>
-      ),
-      sorter: (a, b) => a.totalPrice - b.totalPrice,
+      key: 'finalAmount',
+      render: (_, record) => {
+        const amount = record.finalAmount || record.totalPrice || 0;
+        return (
+          <div className="font-bold text-blue-600 flex items-center gap-1">
+            {/* <DollarSign className="h-4 w-4" /> */}
+            {amount.toLocaleString('vi-VN')} ₫
+          </div>
+        );
+      },
+      sorter: (a, b) => (a.finalAmount || a.totalPrice || 0) - (b.finalAmount || b.totalPrice || 0),
     },
     {
       title: 'Trạng thái',
       key: 'status',
-      render: (_, record) => (
-        <div>
-          {renderBookingStatus(record.status)}
-          <br />
-          <div style={{ marginTop: 4 }}>
-            {renderPaymentStatus(record.paymentStatus)}
-          </div>
-        </div>
-      ),
+      render: (_, record) => {
+        const status = record.bookingStatus || record.status;
+        return renderBookingStatus(status);
+      },
       filters: [
-        { text: 'Đã xác nhận', value: 'confirmed' },
-        { text: 'Chờ xử lý', value: 'pending' },
-        { text: 'Đã hủy', value: 'cancelled' },
-        { text: 'Hết hạn', value: 'expired' }
+        { text: 'Đã xác nhận', value: 'CONFIRMED' },
+        { text: 'Chờ xử lý', value: 'PENDING' },
+        { text: 'Đã hủy', value: 'CANCELLED' },
+        { text: 'Hết hạn', value: 'EXPIRED' }
       ],
-      onFilter: (value, record) => record.status === value,
-    },
-    {
-      title: 'Thao tác',
-      key: 'actions',
-      width: 200,
-      render: (_, record) => (
-        <Space size="small" direction="vertical">
-          <Space size="small">
-            <Button
-              type="link"
-              icon={<EyeOutlined />}
-              onClick={() => showDetailModal(record)}
-              size="small"
-            >
-              Xem
-            </Button>
-            <Button
-              type="link"
-              icon={<EditOutlined />}
-              onClick={() => showEditModal(record)}
-              size="small"
-            >
-              Sửa
-            </Button>
-          </Space>
-          <Space size="small">
-            {record.status === 'pending' && (
-              <Popconfirm
-                title="Xác nhận booking này?"
-                onConfirm={() => handleStatusChange(record.id, 'confirmed')}
-                okText="Có"
-                cancelText="Không"
-              >
-                <Button type="link" size="small" style={{ color: '#52c41a' }}>
-                  Xác nhận
-                </Button>
-              </Popconfirm>
-            )}
-            {(record.status === 'pending' || record.status === 'confirmed') && (
-              <Popconfirm
-                title="Hủy booking này?"
-                onConfirm={() => handleStatusChange(record.id, 'cancelled')}
-                okText="Có"
-                cancelText="Không"
-              >
-                <Button type="link" danger size="small">
-                  Hủy
-                </Button>
-              </Popconfirm>
-            )}
-            <Popconfirm
-              title="Bạn có chắc chắn muốn xóa booking này?"
-              onConfirm={() => handleDeleteBooking(record.id)}
-              okText="Có"
-              cancelText="Không"
-            >
-              <Button
-                type="link"
-                danger
-                icon={<DeleteOutlined />}
-                size="small"
-              >
-                Xóa
-              </Button>
-            </Popconfirm>
-          </Space>
-        </Space>
-      ),
+      onFilter: (value, record) => {
+        const recordStatus = (record.bookingStatus || record.status)?.toUpperCase();
+        return recordStatus === value;
+      },
     },
   ];
 
   return (
-    <div className="bookings-container">
-      <div className="bookings-header">
-        <h1>Quản lý đặt vé</h1>
-      </div>
+    <div className="min-h-screen">
+      <div>
+        {/* Breadcrumb */}
+        <Breadcrumb
+          className="mb-6"
+          items={[
+            {
+              title: 'Dashboard',
+              icon: <Home className="h-4 w-4" />,
+              href: '/admin/dashboard'
+            },
+            {
+              title: 'Quản lý đặt vé',
+              icon: <Ticket className="h-4 w-4" />
+            }
+          ]}
+        />
 
-      {/* Thống kê tổng quan */}
-      <Row gutter={[16, 16]} className="stats-row">
-        <Col xs={24} sm={12} md={6}>
-          <Card>
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-indigo-100 rounded-lg">
+              <Ticket className="h-6 w-6 text-indigo-600" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 m-0">Quản lý đặt vé</h1>
+              <p className="text-gray-500 mt-1">Quản lý và theo dõi tất cả các đặt vé trong hệ thống</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Thống kê tổng quan */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
             <Statistic
               title="Tổng booking"
               value={bookingStats.total}
-              prefix={<CalendarOutlined />}
+              prefix={<Calendar className="h-4 w-4 text-blue-500" />}
               valueStyle={{ color: '#1890ff' }}
             />
           </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card>
+          <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
             <Statistic
               title="Đã xác nhận"
               value={bookingStats.confirmed}
-              prefix={<CheckCircleOutlined />}
+              prefix={<CheckCircle2 className="h-4 w-4 text-green-500" />}
               valueStyle={{ color: '#52c41a' }}
             />
           </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card>
+          <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
             <Statistic
               title="Tổng doanh thu"
               value={bookingStats.totalRevenue}
-              prefix={<DollarOutlined />}
+              prefix={<DollarSign className="h-4 w-4 text-yellow-500" />}
               suffix="₫"
               formatter={(value) => value.toLocaleString('vi-VN')}
               valueStyle={{ color: '#faad14' }}
             />
           </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card>
+          <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
             <Statistic
               title="Tổng ghế đã bán"
               value={bookingStats.totalSeats}
-              prefix={<UserOutlined />}
+              prefix={<User className="h-4 w-4 text-purple-500" />}
               valueStyle={{ color: '#722ed1' }}
             />
           </Card>
-        </Col>
-      </Row>
+        </div>
 
-      {/* Bộ lọc */}
-      <Card className="filter-card">
-        <Row gutter={[16, 16]}>
-          <Col xs={24} md={6}>
-            <Input.Search
-              placeholder="Tìm kiếm theo tên, email, phim..."
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              allowClear
-            />
-          </Col>
-          <Col xs={24} md={6}>
-            <Select
-              placeholder="Lọc theo trạng thái"
-              value={statusFilter}
-              onChange={setStatusFilter}
-              style={{ width: '100%' }}
-            >
-              <Option value="all">Tất cả trạng thái</Option>
-              <Option value="confirmed">Đã xác nhận</Option>
-              <Option value="pending">Chờ xử lý</Option>
-              <Option value="cancelled">Đã hủy</Option>
-              <Option value="expired">Hết hạn</Option>
-            </Select>
-          </Col>
-          <Col xs={24} md={6}>
-            <Select
-              placeholder="Lọc theo phim"
-              value={movieFilter}
-              onChange={setMovieFilter}
-              style={{ width: '100%' }}
-            >
-              <Option value="all">Tất cả phim</Option>
-              {moviesData.map(movie => (
-                <Option key={movie.id} value={movie.id.toString()}>
-                  {movie.title}
-                </Option>
-              ))}
-            </Select>
-          </Col>
-          <Col xs={24} md={6}>
-            <Select
-              placeholder="Lọc theo rạp"
-              value={cinemaFilter}
-              onChange={setCinemaFilter}
-              style={{ width: '100%' }}
-            >
-              <Option value="all">Tất cả rạp</Option>
-              {cinemasData.map(cinema => (
-                <Option key={cinema.id} value={cinema.id.toString()}>
-                  {cinema.name}
-                </Option>
-              ))}
-            </Select>
-          </Col>
-        </Row>
-      </Card>
+        {/* Bộ lọc */}
+        <Card className="bg-white rounded-xl shadow-md border border-gray-200 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4">
+            <div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Tìm kiếm theo tên, email, phim..."
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  className="rounded-lg pl-10"
+                />
+              </div>
+            </div>
+            <div>
+              <Select
+                value={statusFilter || "all"}
+                onValueChange={setStatusFilter}
+              >
+                <SelectTrigger className="w-full h-10">
+                  <SelectValue placeholder="Lọc theo trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="confirmed">Đã xác nhận</SelectItem>
+                  <SelectItem value="pending">Chờ xử lý</SelectItem>
+                  <SelectItem value="cancelled">Đã hủy</SelectItem>
+                  <SelectItem value="expired">Hết hạn</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Select
+                value={movieFilter || "all"}
+                onValueChange={setMovieFilter}
+              >
+                <SelectTrigger className="w-full h-10">
+                  <SelectValue placeholder="Lọc theo phim" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả phim</SelectItem>
+                  {movies.map(movie => (
+                    <SelectItem key={movie.id} value={movie.id.toString()}>
+                      {movie.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Select
+                value={cinemaFilter || "all"}
+                onValueChange={setCinemaFilter}
+              >
+                <SelectTrigger className="w-full h-10">
+                  <SelectValue placeholder="Lọc theo rạp" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả rạp</SelectItem>
+                  {cinemas.map(cinema => (
+                    <SelectItem key={cinema.id} value={cinema.id.toString()}>
+                      {cinema.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </Card>
 
-      {/* Bảng booking */}
-      <Card>
-        <Table
-          columns={columns}
-          dataSource={filteredBookings}
-          rowKey="id"
-          pagination={{
-            total: filteredBookings.length,
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} của ${total} booking`,
+        {/* Bảng booking */}
+        <Card className="bg-white rounded-xl shadow-md border border-gray-200">
+          <div className="p-5">
+            {loading ? (
+              <div className="p-12 text-center">
+                <Loader2 className="h-10 w-10 animate-spin mx-auto text-indigo-600 mb-4" />
+                <p className="text-gray-500">Đang tải dữ liệu...</p>
+              </div>
+            ) : bookings.length === 0 ? (
+              <div className="p-12 text-center">
+                <Ticket className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+                <p className="text-gray-500 text-lg font-medium">Không có đặt vé nào</p>
+                <p className="text-gray-400 text-sm mt-2">Chưa có đặt vé nào trong hệ thống</p>
+              </div>
+            ) : (
+              <>
+                <div ref={tableRef}>
+                  <TableWrapper
+                    columns={columns}
+                    data={bookings}
+                    rowKey="id"
+                    pagination={false}
+                  />
+                </div>
+                <div className="mt-4 flex items-center justify-between flex-wrap gap-4 pt-4 border-t border-gray-200">
+                  <div className="text-sm text-gray-600">
+                    {pagination.total > 0 ? (
+                      <>Hiển thị {(pagination.current - 1) * pagination.pageSize + 1} - {Math.min(pagination.current * pagination.pageSize, pagination.total)} trong tổng số {pagination.total} booking</>
+                    ) : (
+                      <>Không có dữ liệu</>
+                    )}
+                  </div>
+                  {pagination.total > 0 && (
+                    <Pagination
+                      current={pagination.current}
+                      pageSize={pagination.pageSize}
+                      total={pagination.total}
+                      showSizeChanger={true}
+                      showQuickJumper={true}
+                      onChange={handleTableChange}
+                      onShowSizeChange={handlePageSizeChange}
+                    />
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </Card>
+
+        {/* Modal chỉnh sửa booking */}
+        <Modal
+          title={
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-indigo-100 rounded-lg">
+                <Edit className="h-5 w-5 text-indigo-600" />
+              </div>
+              <span className="text-xl font-semibold">Chỉnh sửa booking</span>
+            </div>
+          }
+          open={isEditModalVisible}
+          onCancel={() => {
+            setIsEditModalVisible(false);
+            setSelectedBooking(null);
+            setFormValues({
+              status: '',
+              paymentStatus: '',
+              paymentMethod: ''
+            });
           }}
-          scroll={{ x: 1400 }}
-        />
-      </Card>
-
-      {/* Modal chỉnh sửa booking */}
-      <Modal
-        title="Chỉnh sửa booking"
-        open={isEditModalVisible}
-        onCancel={() => {
-          setIsEditModalVisible(false);
-          setSelectedBooking(null);
-          form.resetFields();
-        }}
-        footer={null}
-        width={500}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleEditBooking}
+          footer={null}
+          width={600}
         >
-          <Form.Item
-            name="status"
-            label="Trạng thái booking"
-            rules={[{ required: true, message: 'Vui lòng chọn trạng thái!' }]}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!formValues.status || !formValues.paymentStatus || !formValues.paymentMethod) {
+                showNotification('error', 'Lỗi', 'Vui lòng điền đầy đủ thông tin');
+                return;
+              }
+              handleEditBooking(formValues);
+            }}
+            className="space-y-6 p-4"
           >
-            <Select placeholder="Chọn trạng thái">
-              <Option value="confirmed">Đã xác nhận</Option>
-              <Option value="pending">Chờ xử lý</Option>
-              <Option value="cancelled">Đã hủy</Option>
-              <Option value="expired">Hết hạn</Option>
-            </Select>
-          </Form.Item>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                <CheckCircle2 className="h-4 w-4 text-gray-500" />
+                Trạng thái booking <span className="text-red-500">*</span>
+              </label>
+              <Select
+                value={formValues.status}
+                onValueChange={(value) => setFormValues({ ...formValues, status: value })}
+              >
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="Chọn trạng thái booking" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="confirmed">Đã xác nhận</SelectItem>
+                  <SelectItem value="pending">Chờ xử lý</SelectItem>
+                  <SelectItem value="cancelled">Đã hủy</SelectItem>
+                  <SelectItem value="expired">Hết hạn</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          <Form.Item
-            name="paymentStatus"
-            label="Trạng thái thanh toán"
-            rules={[{ required: true, message: 'Vui lòng chọn trạng thái thanh toán!' }]}
-          >
-            <Select placeholder="Chọn trạng thái thanh toán">
-              <Option value="paid">Đã thanh toán</Option>
-              <Option value="pending">Chờ thanh toán</Option>
-              <Option value="failed">Thanh toán thất bại</Option>
-              <Option value="refunded">Đã hoàn tiền</Option>
-            </Select>
-          </Form.Item>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                <DollarSign className="h-4 w-4 text-gray-500" />
+                Trạng thái thanh toán <span className="text-red-500">*</span>
+              </label>
+              <Select
+                value={formValues.paymentStatus}
+                onValueChange={(value) => setFormValues({ ...formValues, paymentStatus: value })}
+              >
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="Chọn trạng thái thanh toán" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="paid">Đã thanh toán</SelectItem>
+                  <SelectItem value="pending">Chờ thanh toán</SelectItem>
+                  <SelectItem value="failed">Thanh toán thất bại</SelectItem>
+                  <SelectItem value="refunded">Đã hoàn tiền</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          <Form.Item
-            name="paymentMethod"
-            label="Phương thức thanh toán"
-            rules={[{ required: true, message: 'Vui lòng chọn phương thức thanh toán!' }]}
-          >
-            <Select placeholder="Chọn phương thức thanh toán">
-              <Option value="credit_card">Thẻ tín dụng</Option>
-              <Option value="bank_transfer">Chuyển khoản</Option>
-              <Option value="e_wallet">Ví điện tử</Option>
-              <Option value="cash">Tiền mặt</Option>
-            </Select>
-          </Form.Item>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                <DollarSign className="h-4 w-4 text-gray-500" />
+                Phương thức thanh toán <span className="text-red-500">*</span>
+              </label>
+              <Select
+                value={formValues.paymentMethod}
+                onValueChange={(value) => setFormValues({ ...formValues, paymentMethod: value })}
+              >
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="Chọn phương thức thanh toán" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="credit_card">Thẻ tín dụng</SelectItem>
+                  <SelectItem value="bank_transfer">Chuyển khoản</SelectItem>
+                  <SelectItem value="e_wallet">Ví điện tử</SelectItem>
+                  <SelectItem value="cash">Tiền mặt</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit">
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <Button
+                type="submit"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white h-10"
+              >
                 Cập nhật
               </Button>
-              <Button onClick={() => {
-                setIsEditModalVisible(false);
-                setSelectedBooking(null);
-                form.resetFields();
-              }}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsEditModalVisible(false);
+                  setSelectedBooking(null);
+                  setFormValues({
+                    status: '',
+                    paymentStatus: '',
+                    paymentMethod: ''
+                  });
+                }}
+                className="h-10"
+              >
                 Hủy
               </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Modal>
+            </div>
+          </form>
+        </Modal>
 
-      {/* Modal chi tiết booking */}
-      <Modal
-        title="Chi tiết booking"
-        open={isDetailModalVisible}
-        onCancel={() => {
-          setIsDetailModalVisible(false);
-          setSelectedBooking(null);
-        }}
-        footer={[
-          <Button key="close" onClick={() => {
-            setIsDetailModalVisible(false);
-            setSelectedBooking(null);
-          }}>
-            Đóng
-          </Button>
-        ]}
-        width={800}
-      >
-        {selectedBooking && (
-          <div>
-            <Row gutter={[24, 16]}>
-              <Col span={12}>
-                <Card title="Thông tin khách hàng" size="small">
-                  <Descriptions column={1} size="small">
-                    <Descriptions.Item label="Tên">{selectedBooking.customerInfo.name}</Descriptions.Item>
-                    <Descriptions.Item label="Email">{selectedBooking.customerInfo.email}</Descriptions.Item>
-                    <Descriptions.Item label="Số điện thoại">{selectedBooking.customerInfo.phone}</Descriptions.Item>
-                  </Descriptions>
-                </Card>
-              </Col>
-              <Col span={12}>
-                <Card title="Thông tin đặt vé" size="small">
-                  <Descriptions column={1} size="small">
-                    <Descriptions.Item label="Mã booking">#{selectedBooking.id}</Descriptions.Item>
-                    <Descriptions.Item label="Ngày đặt">
-                      {new Date(selectedBooking.bookingDate).toLocaleDateString('vi-VN')} {' '}
-                      {new Date(selectedBooking.bookingDate).toLocaleTimeString('vi-VN')}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Trạng thái">{renderBookingStatus(selectedBooking.status)}</Descriptions.Item>
-                  </Descriptions>
-                </Card>
-              </Col>
-            </Row>
-
-            <Row gutter={[24, 16]} style={{ marginTop: 16 }}>
-              <Col span={12}>
-                <Card title="Thông tin phim" size="small">
-                  <Descriptions column={1} size="small">
-                    <Descriptions.Item label="Phim">{selectedBooking.movieTitle}</Descriptions.Item>
-                    <Descriptions.Item label="Rạp">{selectedBooking.cinemaName}</Descriptions.Item>
-                    <Descriptions.Item label="Phòng chiếu">{selectedBooking.screening.room}</Descriptions.Item>
-                    <Descriptions.Item label="Định dạng">{selectedBooking.screening.format}</Descriptions.Item>
-                    <Descriptions.Item label="Ngôn ngữ">{selectedBooking.screening.language}</Descriptions.Item>
-                  </Descriptions>
-                </Card>
-              </Col>
-              <Col span={12}>
-                <Card title="Thông tin thanh toán" size="small">
-                  <Descriptions column={1} size="small">
-                    <Descriptions.Item label="Phương thức">{renderPaymentMethod(selectedBooking.paymentMethod)}</Descriptions.Item>
-                    <Descriptions.Item label="Trạng thái">{renderPaymentStatus(selectedBooking.paymentStatus)}</Descriptions.Item>
-                    <Descriptions.Item label="Tổng tiền">
-                      <strong style={{ color: '#1890ff', fontSize: '16px' }}>
-                        {selectedBooking.totalPrice?.toLocaleString('vi-VN')} ₫
-                      </strong>
-                    </Descriptions.Item>
-                  </Descriptions>
-                </Card>
-              </Col>
-            </Row>
-
-            <Card title="Chi tiết suất chiếu" size="small" style={{ marginTop: 16 }}>
-              <Descriptions column={2} size="small">
-                <Descriptions.Item label="Ngày chiếu">
-                  {new Date(selectedBooking.showtime).toLocaleDateString('vi-VN')}
-                </Descriptions.Item>
-                <Descriptions.Item label="Giờ chiếu">
-                  {new Date(selectedBooking.showtime).toLocaleTimeString('vi-VN', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </Descriptions.Item>
-                <Descriptions.Item label="Ghế đã chọn" span={2}>
-                  <Space wrap>
-                    {selectedBooking.seats.map(seat => (
-                      <Tag key={seat} color="blue">{seat}</Tag>
-                    ))}
-                  </Space>
-                </Descriptions.Item>
-              </Descriptions>
-            </Card>
-          </div>
-        )}
-      </Modal>
+      </div>
     </div>
   );
 };

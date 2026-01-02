@@ -1,21 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { List, Card, Typography, Tag, Button, Empty, Avatar, Space, message } from 'antd';
-import { BellOutlined, CheckOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
-import './Notifications.css';
+import { Bell, Check, Trash2, Eye } from 'lucide-react';
+import { Button } from '../../../components/ui/button';
+import { Card } from '../../../components/ui/card';
+import { Avatar } from '../../../components/ui/avatar';
+import { Tag } from '../../../components/ui/tag';
+import { Empty } from '../../../components/ui/empty';
+import { List } from '../../../components/ui/list';
 import notificationService from '../../../services/notificationService';
-
-const { Title, Text } = Typography;
+import useNotification from '../../../hooks/useNotification';
 
 const Notifications = () => {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
+    const notification = useNotification();
 
     useEffect(() => {
         const fetchNotifications = async () => {
             setLoading(true);
             try {
                 const data = await notificationService.list();
-                // Normalize payload shape
                 const items = Array.isArray(data) ? data : (data?.items || []);
                 setNotifications(items.map(n => ({
                     id: n.id ?? n._id,
@@ -27,13 +30,13 @@ const Notifications = () => {
                     priority: n.priority || 'low'
                 })));
             } catch (err) {
-                message.error(err.message || 'Không tải được danh sách thông báo');
+                notification.error(err.message || 'Không tải được danh sách thông báo');
             } finally {
                 setLoading(false);
             }
         };
         fetchNotifications();
-    }, []);
+    }, [notification]);
 
     const getNotificationIcon = (type) => {
         const icons = {
@@ -55,12 +58,11 @@ const Notifications = () => {
     };
 
     const markAsRead = async (id) => {
-        // Optimistic UI
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
         try {
             await notificationService.markAsRead(id);
         } catch (err) {
-            message.error('Không thể đánh dấu đã đọc');
+            notification.error('Không thể đánh dấu đã đọc');
         }
     };
 
@@ -70,19 +72,18 @@ const Notifications = () => {
         try {
             await notificationService.delete(id);
         } catch (err) {
-            message.error('Xóa thất bại');
+            notification.error('Xóa thất bại');
             setNotifications(prev);
         }
     };
 
     const markAllAsRead = async () => {
-        // Optimistic UI
         const prev = notifications;
         setNotifications(prev.map(n => ({ ...n, read: true })));
         try {
             await notificationService.markAllAsRead();
         } catch (err) {
-            message.error('Không thể đánh dấu tất cả đã đọc');
+            notification.error('Không thể đánh dấu tất cả đã đọc');
             setNotifications(prev);
         }
     };
@@ -90,105 +91,103 @@ const Notifications = () => {
     const unreadCount = notifications.filter(notif => !notif.read).length;
 
     return (
-        <div className="notifications-page">
-            <div className="notifications-header">
-                <div className="header-content">
-                    <div className="header-info">
-                        <Title level={2}>
-                            <BellOutlined /> Thông báo
-                        </Title>
-                        <Text type="secondary">
-                            {unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : 'Tất cả thông báo đã được đọc'}
-                        </Text>
+        <div className="min-h-screen bg-gray-50 py-8 px-4">
+            <div className="max-w-[1200px] mx-auto">
+                <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-6">
+                    <div className="flex justify-between items-center flex-wrap gap-4">
+                        <div>
+                            <h2 className="text-gray-900 mb-2 text-2xl font-bold flex items-center gap-2">
+                                <Bell className="h-6 w-6" />
+                                Thông báo
+                            </h2>
+                            <p className="text-gray-600">
+                                {unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : 'Tất cả thông báo đã được đọc'}
+                            </p>
+                        </div>
+                        {unreadCount > 0 && (
+                            <Button
+                                onClick={markAllAsRead}
+                                className="rounded-lg"
+                            >
+                                <Check className="h-4 w-4 mr-2" />
+                                Đánh dấu tất cả đã đọc
+                            </Button>
+                        )}
                     </div>
-                    {unreadCount > 0 && (
-                        <Button
-                            type="primary"
-                            icon={<CheckOutlined />}
-                            onClick={markAllAsRead}
-                        >
-                            Đánh dấu tất cả đã đọc
-                        </Button>
-                    )}
                 </div>
-            </div>
 
-            <div className="notifications-content">
-                {notifications.length === 0 && !loading ? (
-                    <Empty
-                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        description="Không có thông báo nào"
-                    />
-                ) : (
-                    <List
-                        loading={loading}
-                        dataSource={notifications}
-                        renderItem={(notification) => (
-                            <List.Item className={`notification-item ${!notification.read ? 'unread' : 'read'}`}>
-                                <Card
-                                    hoverable
-                                    className="notification-card"
-                                    actions={[
-                                        !notification.read && (
-                                            <Button
-                                                type="text"
-                                                icon={<EyeOutlined />}
-                                                onClick={() => markAsRead(notification.id)}
-                                                title="Đánh dấu đã đọc"
-                                            >
-                                                Đã đọc
-                                            </Button>
-                                        ),
-                                        <Button
-                                            type="text"
-                                            danger
-                                            icon={<DeleteOutlined />}
-                                            onClick={() => deleteNotification(notification.id)}
-                                            title="Xóa thông báo"
-                                        >
-                                            Xóa
-                                        </Button>
-                                    ].filter(Boolean)}
-                                >
-                                    <Card.Meta
-                                        avatar={
-                                            <Avatar
-                                                size="large"
-                                                className={`notification-avatar ${notification.type}`}
-                                            >
+                <div>
+                    {notifications.length === 0 && !loading ? (
+                        <Empty description="Không có thông báo nào" />
+                    ) : (
+                        <List
+                            loading={loading}
+                            items={notifications.map((notification) => ({
+                                key: notification.id,
+                                content: (
+                                    <Card
+                                        className={`w-full rounded-lg shadow-sm border transition-all duration-300 ${
+                                            !notification.read
+                                                ? 'bg-blue-50 border-blue-200 hover:shadow-md'
+                                                : 'bg-white border-gray-200 hover:shadow-md'
+                                        }`}
+                                    >
+                                        <div className="flex gap-4 p-4">
+                                            <Avatar className={`text-2xl ${
+                                                notification.type === 'booking' ? 'bg-blue-100' :
+                                                notification.type === 'promotion' ? 'bg-pink-100' :
+                                                notification.type === 'reminder' ? 'bg-yellow-100' :
+                                                'bg-gray-100'
+                                            }`}>
                                                 {getNotificationIcon(notification.type)}
                                             </Avatar>
-                                        }
-                                        title={
-                                            <div className="notification-title">
-                                                <span>{notification.title}</span>
-                                                <Space>
-                                                    <Tag color={getPriorityColor(notification.priority)}>
-                                                        {notification.priority === 'high' ? 'Quan trọng' :
-                                                            notification.priority === 'medium' ? 'Thông thường' : 'Thấp'}
-                                                    </Tag>
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-start flex-wrap gap-2 mb-2">
+                                                    <span className="text-gray-900 font-semibold">{notification.title}</span>
+                                                    <div className="flex gap-2">
+                                                        <Tag color={getPriorityColor(notification.priority)}>
+                                                            {notification.priority === 'high' ? 'Quan trọng' :
+                                                                notification.priority === 'medium' ? 'Thông thường' : 'Thấp'}
+                                                        </Tag>
+                                                        {!notification.read && (
+                                                            <Tag color="red">Mới</Tag>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <p className="text-gray-700 block mb-2">{notification.message}</p>
+                                                <p className="text-xs text-gray-500">
+                                                    {notification.time}
+                                                </p>
+                                                <div className="flex gap-2 mt-3">
                                                     {!notification.read && (
-                                                        <Tag color="red">Mới</Tag>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => markAsRead(notification.id)}
+                                                            className="rounded"
+                                                        >
+                                                            <Eye className="h-4 w-4 mr-1" />
+                                                            Đã đọc
+                                                        </Button>
                                                     )}
-                                                </Space>
-                                            </div>
-                                        }
-                                        description={
-                                            <div className="notification-content">
-                                                <Text>{notification.message}</Text>
-                                                <div className="notification-time">
-                                                    <Text type="secondary" size="small">
-                                                        {notification.time}
-                                                    </Text>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => deleteNotification(notification.id)}
+                                                        className="rounded text-red-600 hover:text-red-700"
+                                                    >
+                                                        <Trash2 className="h-4 w-4 mr-1" />
+                                                        Xóa
+                                                    </Button>
                                                 </div>
                                             </div>
-                                        }
-                                    />
-                                </Card>
-                            </List.Item>
-                        )}
-                    />
-                )}
+                                        </div>
+                                    </Card>
+                                )
+                            }))}
+                        />
+                    )}
+                </div>
             </div>
         </div>
     );

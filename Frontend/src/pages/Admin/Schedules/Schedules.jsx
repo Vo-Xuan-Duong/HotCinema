@@ -1,60 +1,62 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card } from '../../../components/ui/card';
+import { Button } from '../../../components/ui/button';
+import { TableWrapper } from '../../../components/ui/table-wrapper';
+import { Modal } from '../../../components/ui/modal';
+import { Input } from '../../../components/ui/input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select';
+import { DatePicker } from '../../../components/ui/date-picker';
+import { InputNumber } from '../../../components/ui/input-number';
+import { Tag } from '../../../components/ui/tag';
+import { Statistic } from '../../../components/ui/statistic';
+import { Badge } from '../../../components/ui/badge-count';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '../../../components/ui/tooltip';
+import { Alert } from '../../../components/ui/alert';
+import { Breadcrumb } from '../../../components/ui/breadcrumb';
 import {
-    Card,
-    Button,
-    Table,
-    Modal,
-    Form,
-    Input,
-    Select,
-    DatePicker,
-    TimePicker,
-    InputNumber,
-    Space,
-    Tag,
-    Typography,
-    message,
-    Popconfirm,
-    Row,
-    Col,
-    Statistic,
-    Badge,
-    Switch,
-    Tooltip,
-    Alert,
-    Dropdown,
-    Spin
-} from 'antd';
-import {
-    PlusOutlined,
-    EditOutlined,
-    DeleteOutlined,
-    SearchOutlined,
-    CalendarOutlined,
-    ClockCircleOutlined,
-    VideoCameraOutlined,
-    ShopOutlined,
-    EyeOutlined,
-    PlayCircleOutlined,
-    PauseCircleOutlined,
-    DollarCircleOutlined,
-    UserOutlined,
-    AppstoreOutlined,
-    SettingOutlined
-} from '@ant-design/icons';
+    Plus,
+    Edit,
+    Trash2,
+    Search,
+    Calendar,
+    Clock,
+    Video,
+    Store,
+    Eye,
+    PlayCircle,
+    PauseCircle,
+    DollarSign,
+    User,
+    Grid,
+    Settings,
+    Home,
+    Loader2,
+    Building2,
+    Film,
+    Users,
+    X
+} from 'lucide-react';
 import dayjs from 'dayjs';
-import './Schedules.css';
 import showtimeService from '../../../services/showtimeService';
 import movieService from '../../../services/movieService';
 import cinemaService from '../../../services/cinemaService';
-import SeatViewer from '../../../components/SeatManager/SeatViewer';
-
-const { Title, Text } = Typography;
-const { Option } = Select;
-const { RangePicker } = DatePicker;
+import useNotification from '../../../hooks/useNotification';
 
 const Schedules = () => {
-    const [form] = Form.useForm();
+    const navigate = useNavigate();
+    const notification = useNotification();
+    const [formValues, setFormValues] = useState({
+        movieId: '',
+        cinemaId: '',
+        screenName: '',
+        format: 'TWO_D',
+        audioType: 'SUBTITLE',
+        date: '',
+        time: '',
+        price: '',
+        status: 'AVAILABLE'
+    });
     const [schedules, setSchedules] = useState([]);
     const [movies, setMovies] = useState([]);
     const [cinemas, setCinemas] = useState([]);
@@ -66,10 +68,7 @@ const Schedules = () => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDetailModal, setShowDetailModal] = useState(false);
-    const [showSeatsModal, setShowSeatsModal] = useState(false);
     const [selectedSchedule, setSelectedSchedule] = useState(null);
-    const [showtimeSeats, setShowtimeSeats] = useState([]);
-    const [seatsLoading, setSeatsLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
     const [movieFilter, setMovieFilter] = useState('all');
     const [cinemaFilter, setCinemaFilter] = useState('all');
@@ -113,18 +112,32 @@ const Schedules = () => {
                 status: selectedSchedule.status
             });
 
-            form.setFieldsValue({
-                movieId: movie?.id,
-                cinemaId: cinema?.id,
-                screenName: selectedSchedule.roomName,
-                date: selectedSchedule.showDate ? dayjs(selectedSchedule.showDate) : null,
-                time: selectedSchedule.startTime ? dayjs(selectedSchedule.startTime, 'HH:mm:ss') : null,
-                price: selectedSchedule.price,
-                format: selectedSchedule.movieFormat || selectedSchedule.format || 'TWO_D_SUB', // movieFormat từ backend hoặc fallback
-                status: selectedSchedule.status
+            // Format date và time cho Input type="date" và type="time"
+            // Input type="date" cần format "YYYY-MM-DD", Input type="time" cần format "HH:mm"
+            const formattedDate = selectedSchedule.showDate
+                ? (typeof selectedSchedule.showDate === 'string'
+                    ? selectedSchedule.showDate.split('T')[0]
+                    : dayjs(selectedSchedule.showDate).format('YYYY-MM-DD'))
+                : null;
+            const formattedTime = selectedSchedule.startTime
+                ? (typeof selectedSchedule.startTime === 'string'
+                    ? selectedSchedule.startTime.substring(0, 5) // Lấy "HH:mm" từ "HH:mm:ss"
+                    : dayjs(selectedSchedule.startTime, 'HH:mm:ss').format('HH:mm'))
+                : null;
+
+            setFormValues({
+                movieId: movie?.id || '',
+                cinemaId: cinema?.id || '',
+                screenName: selectedSchedule.roomName || '',
+                date: formattedDate || '',
+                time: formattedTime || '',
+                price: selectedSchedule.basePrice || selectedSchedule.price || '',
+                format: selectedSchedule.format || 'TWO_D',
+                audioType: selectedSchedule.audioType || 'SUBTITLE',
+                status: selectedSchedule.status || 'AVAILABLE'
             });
         }
-    }, [showEditModal, selectedSchedule, rooms, movies, cinemas, form]);
+    }, [showEditModal, selectedSchedule, rooms, movies, cinemas]);
 
     // Reload khi currentPage hoặc pageSize thay đổi
     useEffect(() => {
@@ -174,7 +187,7 @@ const Schedules = () => {
             setTotalElements(total);
         } catch (error) {
             console.error('Error loading schedules:', error);
-            message.error('Lỗi khi tải lịch chiếu');
+            notification.error('Lỗi khi tải lịch chiếu');
         } finally {
             setLoading(false);
         }
@@ -210,11 +223,11 @@ const Schedules = () => {
             setMovies(activeMovies);
 
             if (activeMovies.length === 0) {
-                message.warning('Không có phim đang chiếu nào. Vui lòng thêm phim đang chiếu trước.');
+                notification.warning('Không có phim đang chiếu nào. Vui lòng thêm phim đang chiếu trước.');
             }
         } catch (error) {
             console.error('Error loading now showing movies:', error);
-            message.error('Lỗi khi tải danh sách phim đang chiếu: ' + (error.response?.data?.message || error.message));
+            notification.error('Lỗi khi tải danh sách phim đang chiếu: ' + (error.response?.data?.message || error.message));
             setMovies([]);
         } finally {
             setMoviesLoading(false);
@@ -250,11 +263,11 @@ const Schedules = () => {
             setCinemas(activeCinemas);
 
             if (activeCinemas.length === 0) {
-                message.warning('Không có rạp nào đang hoạt động. Vui lòng thêm rạp trước.');
+                notification.warning('Không có rạp nào đang hoạt động. Vui lòng thêm rạp trước.');
             }
         } catch (error) {
             console.error('Error loading cinemas:', error);
-            message.error('Lỗi khi tải danh sách rạp: ' + (error.response?.data?.message || error.message));
+            notification.error('Lỗi khi tải danh sách rạp: ' + (error.response?.data?.message || error.message));
             setCinemas([]);
         } finally {
             setCinemasLoading(false);
@@ -288,11 +301,11 @@ const Schedules = () => {
             setRooms(activeRooms);
 
             if (activeRooms.length === 0) {
-                message.warning('Rạp này chưa có phòng chiếu nào.');
+                notification.warning('Rạp này chưa có phòng chiếu nào.');
             }
         } catch (error) {
             console.error('Error loading rooms:', error);
-            message.error('Lỗi khi tải danh sách phòng chiếu: ' + (error.response?.data?.message || error.message));
+            notification.error('Lỗi khi tải danh sách phòng chiếu: ' + (error.response?.data?.message || error.message));
             setRooms([]);
         } finally {
             setRoomsLoading(false);
@@ -302,7 +315,7 @@ const Schedules = () => {
     // Xử lý khi thay đổi rạp
     const handleCinemaChange = (cinemaId) => {
         // Reset phòng chiếu đã chọn
-        form.setFieldsValue({ screenName: undefined, format: undefined });
+        // Form values will be reset via form state
         // Load danh sách phòng của rạp mới
         loadRoomsByCinema(cinemaId);
     };
@@ -313,9 +326,7 @@ const Schedules = () => {
         const selectedRoom = rooms.find(r => r.name === roomName);
         if (selectedRoom) {
             // Lưu roomId để submit (không tự động set format nữa)
-            form.setFieldsValue({
-                roomId: selectedRoom.id
-            });
+            // Form values will be set via form state
         }
     };
 
@@ -330,7 +341,17 @@ const Schedules = () => {
     };
 
     const handleAddSchedule = () => {
-        form.resetFields();
+        setFormValues({
+            movieId: '',
+            cinemaId: '',
+            screenName: '',
+            format: 'TWO_D',
+            audioType: 'SUBTITLE',
+            date: '',
+            time: '',
+            price: '',
+            status: 'AVAILABLE'
+        });
         setShowAddModal(true);
     };
 
@@ -353,7 +374,7 @@ const Schedules = () => {
             setShowEditModal(true);
         } catch (error) {
             console.error('Error in handleEditSchedule:', error);
-            message.error('Lỗi khi tải thông tin lịch chiếu');
+            notification.error('Lỗi khi tải thông tin lịch chiếu');
         }
     };
 
@@ -362,118 +383,150 @@ const Schedules = () => {
         setShowDetailModal(true);
     };
 
-    const handleViewSeats = async (schedule) => {
-        setSelectedSchedule(schedule);
-        setSeatsLoading(true);
-
-        try {
-            // Lấy trạng thái ghế cho lịch chiếu này
-            const seatsResponse = await showtimeService.getSeatsByShowtimeId(schedule.id);
-            console.log('Showtime seats API response:', seatsResponse);
-            const seatsData = seatsResponse?.data || seatsResponse || [];
-            setShowtimeSeats(seatsData);
-            console.log('Showtime seats loaded:', seatsData);
-
-            setShowSeatsModal(true);
-        } catch (error) {
-            console.error('Error loading showtime seats:', error);
-            message.error('Không thể tải danh sách ghế');
-            setShowtimeSeats([]);
-        } finally {
-            setSeatsLoading(false);
-        }
+    const handleViewSeats = (schedule) => {
+        navigate(`/admin/schedules/${schedule.id}/seats`);
     };
 
     const handleDeleteSchedule = async (scheduleId) => {
         try {
             await showtimeService.deleteShowtime(scheduleId);
-            message.success('Xóa lịch chiếu thành công!');
+            notification.success('Xóa lịch chiếu thành công!');
             // Reload trang hiện tại, nếu trang hiện tại không còn dữ liệu thì về trang 1
             await loadSchedules(currentPage, pageSize);
         } catch (error) {
             console.error('Error deleting schedule:', error);
-            message.error('Lỗi khi xóa lịch chiếu');
+            notification.error('Lỗi khi xóa lịch chiếu');
         }
     };
 
     const handleStatusChange = async (scheduleId, newStatus) => {
         try {
             await showtimeService.updateShowtimeStatus(scheduleId, newStatus);
-            const statusText = newStatus === 'OPEN_FOR_BOOKING' ? 'mở bán vé' :
-                newStatus === 'CANCELED' ? 'hủy' :
-                    newStatus === 'BOOKING_CLOSED' ? 'đóng đặt vé' : 'cập nhật';
-            message.success(`Đã ${statusText} lịch chiếu!`);
+            const statusTextMap = {
+                'UPCOMING': 'sắp chiếu',
+                'AVAILABLE': 'còn vé',
+                'ALMOST_FULL': 'sắp hết chỗ',
+                'FULL': 'hết chỗ',
+                'SALES_ENDED': 'dừng bán vé',
+                'COMPLETED': 'đã kết thúc',
+                'CANCELLED': 'hủy',
+                'POSTPONED': 'tạm hoãn'
+            };
+            const statusText = statusTextMap[newStatus] || 'cập nhật';
+            notification.success(`Đã ${statusText} lịch chiếu!`);
             await loadSchedules();
         } catch (error) {
             console.error('Error updating status:', error);
-            message.error('Lỗi khi cập nhật trạng thái');
+            notification.error('Lỗi khi cập nhật trạng thái');
         }
     };
 
     const handleSubmit = async (values) => {
         try {
-            // Tìm roomId từ screenName đã chọn
+            // Tìm theaterId từ screenName đã chọn
             const selectedRoom = rooms.find(r => r.name === values.screenName);
             if (!selectedRoom) {
-                message.error('Không tìm thấy thông tin phòng chiếu');
+                notification.error('Không tìm thấy thông tin phòng chiếu');
+                return;
+            }
+
+            // Tìm movie để lấy durationMinutes
+            const selectedMovie = movies.find(m => m.id === values.movieId);
+            if (!selectedMovie) {
+                notification.error('Không tìm thấy thông tin phim');
                 return;
             }
 
             // Chuẩn bị data theo format backend yêu cầu
+            // Input type="date" trả về string "YYYY-MM-DD", Input type="time" trả về "HH:mm"
+            const showDate = typeof values.date === 'string' ? values.date : dayjs(values.date).format('YYYY-MM-DD');
+            const startTime = typeof values.time === 'string' ? `${values.time}:00` : dayjs(values.time).format('HH:mm:ss');
+
+            // Tính toán endTime từ startTime + movie duration (phút)
+            const durationMinutes = selectedMovie.durationMinutes || 120; // Mặc định 120 phút nếu không có
+            const startTimeObj = dayjs(`${showDate} ${startTime}`);
+            const endTime = startTimeObj.add(durationMinutes, 'minute').format('HH:mm:ss');
+
             const scheduleData = {
-                roomId: selectedRoom.id,
                 movieId: values.movieId,
-                date: values.date.format('YYYY-MM-DD'),
-                startTime: values.time.format('HH:mm:ss'),
-                ticketPrice: values.price,
-                movieFormat: values.format, // MovieFormat enum value
-                status: values.status || 'OPEN_FOR_BOOKING' // Mặc định: mở bán vé
+                theaterId: selectedRoom.id, // Đổi từ roomId sang theaterId
+                format: values.format, // Format enum: TWO_D, THREE_D, IMAX, IMAX_3D, FOUR_DX, SCREEN_X
+                audioType: values.audioType, // AudioType enum: SUBTITLE, DUBBED, ORIGINAL
+                showDate: showDate, // LocalDate
+                startTime: startTime, // LocalTime
+                endTime: endTime, // LocalTime - tính từ startTime + duration
+                basePrice: values.price, // BigDecimal - đổi từ ticketPrice
+                status: values.status || 'AVAILABLE' // ShowtimeStatus enum - mặc định: Còn vé
             };
 
             console.log('Submitting schedule data:', scheduleData);
 
             if (showEditModal) {
                 await showtimeService.updateShowtime(selectedSchedule.id, scheduleData);
-                message.success('Cập nhật lịch chiếu thành công!');
+                notification.success('Cập nhật lịch chiếu thành công!');
                 setShowEditModal(false);
-                form.resetFields();
+                setFormValues({
+                    movieId: '',
+                    cinemaId: '',
+                    screenName: '',
+                    format: 'TWO_D',
+                    audioType: 'SUBTITLE',
+                    date: '',
+                    time: '',
+                    price: '',
+                    status: 'AVAILABLE'
+                });
                 setSelectedSchedule(null);
                 await loadSchedules(currentPage, pageSize); // Reload trang hiện tại
             } else {
                 await showtimeService.createShowtime(scheduleData);
-                message.success('Thêm lịch chiếu thành công!');
+                notification.success('Thêm lịch chiếu thành công!');
                 setShowAddModal(false);
-                form.resetFields();
+                setFormValues({
+                    movieId: '',
+                    cinemaId: '',
+                    screenName: '',
+                    format: 'TWO_D',
+                    audioType: 'SUBTITLE',
+                    date: '',
+                    time: '',
+                    price: '',
+                    status: 'AVAILABLE'
+                });
                 setSelectedSchedule(null);
                 setCurrentPage(1); // Reset về trang 1 khi thêm mới
                 await loadSchedules(1, pageSize);
             }
         } catch (error) {
             console.error('Error saving schedule:', error);
-            message.error(error.response?.data?.message || 'Lỗi khi lưu lịch chiếu');
+            notification.error(error.response?.data?.message || 'Lỗi khi lưu lịch chiếu');
         }
     };
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'DRAFT': return 'default';
-            case 'OPEN_FOR_BOOKING': return 'success';
-            case 'BOOKING_CLOSED': return 'warning';
-            case 'ONGOING': return 'processing';
-            case 'FINISHED': return 'default';
-            case 'CANCELED': return 'error';
+            case 'UPCOMING': return 'cyan';
+            case 'AVAILABLE': return 'success';
+            case 'ALMOST_FULL': return 'orange';
+            case 'FULL': return 'error';
+            case 'SALES_ENDED': return 'warning';
+            case 'COMPLETED': return 'default';
+            case 'CANCELLED': return 'error';
+            case 'POSTPONED': return 'warning';
             default: return 'default';
         }
     };
 
     const getStatusText = (status) => {
         switch (status) {
-            case 'DRAFT': return 'Nháp';
-            case 'OPEN_FOR_BOOKING': return 'Mở bán vé';
-            case 'BOOKING_CLOSED': return 'Đã đóng đặt vé';
-            case 'ONGOING': return 'Đang chiếu';
-            case 'FINISHED': return 'Đã kết thúc';
-            case 'CANCELED': return 'Đã hủy';
+            case 'UPCOMING': return 'Sắp chiếu';
+            case 'AVAILABLE': return 'Còn vé';
+            case 'ALMOST_FULL': return 'Sắp hết chỗ';
+            case 'FULL': return 'Hết chỗ';
+            case 'SALES_ENDED': return 'Dừng bán vé';
+            case 'COMPLETED': return 'Đã kết thúc';
+            case 'CANCELLED': return 'Đã hủy';
+            case 'POSTPONED': return 'Tạm hoãn';
             default: return status;
         }
     };
@@ -491,28 +544,37 @@ const Schedules = () => {
 
     const getStatusTagColor = (status) => {
         switch (status) {
-            case 'DRAFT': return 'default';
-            case 'OPEN_FOR_BOOKING': return 'success';
-            case 'BOOKING_CLOSED': return 'warning';
-            case 'ONGOING': return 'processing';
-            case 'FINISHED': return 'default';
-            case 'CANCELED': return 'error';
+            case 'UPCOMING': return 'cyan';
+            case 'AVAILABLE': return 'success';
+            case 'ALMOST_FULL': return 'orange';
+            case 'FULL': return 'error';
+            case 'SALES_ENDED': return 'warning';
+            case 'COMPLETED': return 'default';
+            case 'CANCELLED': return 'error';
+            case 'POSTPONED': return 'warning';
             default: return 'default';
         }
     };
 
-    const getMovieFormatLabel = (format) => {
+    const getFormatLabel = (format) => {
         const formatLabels = {
-            'TWO_D_SUB': '2D Phụ đề',
-            'TWO_D_DUB': '2D Lồng tiếng',
-            'TWO_D_VIET': '2D Tiếng Việt',
-            'THREE_D_SUB': '3D Phụ đề',
-            'THREE_D_DUB': '3D Lồng tiếng',
-            'IMAX_2D': 'IMAX 2D',
+            'TWO_D': '2D',
+            'THREE_D': '3D',
+            'IMAX': 'IMAX',
             'IMAX_3D': 'IMAX 3D',
-            'FOUR_DX': '4DX'
+            'FOUR_DX': '4DX',
+            'SCREEN_X': 'ScreenX'
         };
         return formatLabels[format] || format || 'N/A';
+    };
+
+    const getAudioTypeLabel = (audioType) => {
+        const audioLabels = {
+            'SUBTITLE': 'Phụ đề',
+            'DUBBED': 'Lồng tiếng',
+            'ORIGINAL': 'Nguyên gốc'
+        };
+        return audioLabels[audioType] || audioType || 'N/A';
     };
 
     const calculateDuration = (startTime, endTime) => {
@@ -550,106 +612,108 @@ const Schedules = () => {
         const sortedRows = Object.keys(seatsByRow).sort();
 
         return (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                {sortedRows.map(rowLabel => {
-                    const rowSeats = seatsByRow[rowLabel].sort((a, b) =>
-                        parseInt(a.seatNumber) - parseInt(b.seatNumber)
-                    );
+            <TooltipProvider>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                    {sortedRows.map(rowLabel => {
+                        const rowSeats = seatsByRow[rowLabel].sort((a, b) =>
+                            parseInt(a.seatNumber) - parseInt(b.seatNumber)
+                        );
 
-                    return (
-                        <div key={rowLabel} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            {/* Row Label */}
-                            <div style={{
-                                width: '30px',
-                                textAlign: 'center',
-                                fontWeight: 'bold',
-                                color: '#1890ff'
-                            }}>
-                                {rowLabel}
-                            </div>
+                        return (
+                            <div key={rowLabel} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                {/* Row Label */}
+                                <div style={{
+                                    width: '30px',
+                                    textAlign: 'center',
+                                    fontWeight: 'bold',
+                                    color: '#1890ff'
+                                }}>
+                                    {rowLabel}
+                                </div>
 
-                            {/* Seats in Row */}
-                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                {rowSeats.map(seat => {
-                                    const isBooked = seat.status === 'BOOKED';
-                                    const isReserved = seat.status === 'RESERVED';
-                                    const isVIP = seat.seatType === 'VIP';
-                                    const isCouple = seat.seatType === 'COUPLE';
-                                    const isAvailable = seat.status === 'AVAILABLE' && seat.isActive;
+                                {/* Seats in Row */}
+                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                    {rowSeats.map(seat => {
+                                        const isBooked = seat.status === 'BOOKED';
+                                        const isReserved = seat.status === 'RESERVED';
+                                        const isVIP = seat.seatType === 'VIP';
+                                        const isCouple = seat.seatType === 'COUPLE';
+                                        const isAvailable = seat.status === 'AVAILABLE' && seat.isActive;
 
-                                    let backgroundColor = '#d9d9d9'; // Default - gray
-                                    if (!seat.isActive) {
-                                        backgroundColor = '#d9d9d9'; // Inactive - gray
-                                    } else if (isBooked) {
-                                        backgroundColor = '#ff5500'; // Booked - orange/red
-                                    } else if (isReserved) {
-                                        backgroundColor = '#faad14'; // Reserved - orange
-                                    } else if (isAvailable) {
-                                        if (isVIP) {
-                                            backgroundColor = '#ffd700'; // VIP Available - gold
-                                        } else {
-                                            backgroundColor = '#52c41a'; // Available - green
-                                        }
-                                    }
-
-                                    let statusText = 'Không khả dụng';
-                                    if (seat.isActive) {
-                                        if (isBooked) statusText = 'Đã đặt';
-                                        else if (isReserved) statusText = 'Đang giữ';
-                                        else statusText = 'Còn trống';
-                                    }
-
-                                    return (
-                                        <Tooltip
-                                            key={seat.id}
-                                            title={
-                                                <div>
-                                                    <div>Ghế: {seat.rowLabel}{seat.seatNumber}</div>
-                                                    <div>Loại: {seat.seatType}</div>
-                                                    <div>Trạng thái: {statusText}</div>
-                                                    <div>Giá: {seat.price?.toLocaleString('vi-VN')} VNĐ</div>
-                                                </div>
+                                        let backgroundColor = '#d9d9d9'; // Default - gray
+                                        if (!seat.isActive) {
+                                            backgroundColor = '#d9d9d9'; // Inactive - gray
+                                        } else if (isBooked) {
+                                            backgroundColor = '#ff5500'; // Booked - orange/red
+                                        } else if (isReserved) {
+                                            backgroundColor = '#faad14'; // Reserved - orange
+                                        } else if (isAvailable) {
+                                            if (isVIP) {
+                                                backgroundColor = '#ffd700'; // VIP Available - gold
+                                            } else {
+                                                backgroundColor = '#52c41a'; // Available - green
                                             }
-                                        >
-                                            <div
-                                                style={{
-                                                    width: isCouple ? '50px' : '35px',
-                                                    height: '35px',
-                                                    backgroundColor,
-                                                    borderRadius: '4px',
-                                                    border: `2px solid ${isBooked ? '#d4380d' :
-                                                        isReserved ? '#d48806' :
-                                                            isVIP && isAvailable ? '#d4b106' :
-                                                                isAvailable ? '#389e0d' :
-                                                                    '#bfbfbf'
-                                                        }`,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    fontSize: '11px',
-                                                    fontWeight: '500',
-                                                    color: !seat.isActive ? '#8c8c8c' : '#fff',
-                                                    cursor: 'default',
-                                                    userSelect: 'none',
-                                                    opacity: !seat.isActive ? 0.5 : 1
-                                                }}
-                                            >
-                                                {seat.seatNumber}
-                                            </div>
-                                        </Tooltip>
-                                    );
-                                })}
+                                        }
+
+                                        let statusText = 'Không khả dụng';
+                                        if (seat.isActive) {
+                                            if (isBooked) statusText = 'Đã đặt';
+                                            else if (isReserved) statusText = 'Đang giữ';
+                                            else statusText = 'Còn trống';
+                                        }
+
+                                        return (
+                                            <Tooltip key={seat.id}>
+                                                <TooltipTrigger asChild>
+                                                    <div
+                                                        style={{
+                                                            width: isCouple ? '50px' : '35px',
+                                                            height: '35px',
+                                                            backgroundColor,
+                                                            borderRadius: '4px',
+                                                            border: `2px solid ${isBooked ? '#d4380d' :
+                                                                isReserved ? '#d48806' :
+                                                                    isVIP && isAvailable ? '#d4b106' :
+                                                                        isAvailable ? '#389e0d' :
+                                                                            '#bfbfbf'
+                                                                }`,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            fontSize: '11px',
+                                                            fontWeight: '500',
+                                                            color: !seat.isActive ? '#8c8c8c' : '#fff',
+                                                            cursor: 'default',
+                                                            userSelect: 'none',
+                                                            opacity: !seat.isActive ? 0.5 : 1
+                                                        }}
+                                                    >
+                                                        {seat.seatNumber}
+                                                    </div>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <div className="space-y-1">
+                                                        <div>Ghế: {seat.rowLabel}{seat.seatNumber}</div>
+                                                        <div>Loại: {seat.seatType}</div>
+                                                        <div>Trạng thái: {statusText}</div>
+                                                        <div>Giá: {seat.price?.toLocaleString('vi-VN')} VNĐ</div>
+                                                    </div>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        );
+                                    })}
+                                </div>
                             </div>
-                        </div>
-                    );
-                })}
-            </div>
+                        );
+                    })}
+                </div>
+            </TooltipProvider>
         );
     };
 
     const saveSeatLayout = async (seatData) => {
         // SeatManager sẽ tự động lưu, chỉ cần đóng modal
-        message.success('Cập nhật sơ đồ ghế thành công');
+        notification.success('Cập nhật sơ đồ ghế thành công');
         setShowSeatsModal(false);
     };
 
@@ -689,35 +753,28 @@ const Schedules = () => {
     // Batch operations
     const handleBatchDelete = async () => {
         if (selectedRowKeys.length === 0) {
-            message.warning('Vui lòng chọn ít nhất một lịch chiếu để xóa');
+            notification.warning('Vui lòng chọn ít nhất một lịch chiếu để xóa');
             return;
         }
 
-        Modal.confirm({
-            title: 'Xác nhận xóa',
-            content: `Bạn có chắc chắn muốn xóa ${selectedRowKeys.length} lịch chiếu đã chọn?`,
-            okText: 'Xóa',
-            okType: 'danger',
-            cancelText: 'Hủy',
-            async onOk() {
-                try {
-                    await Promise.all(
-                        selectedRowKeys.map(id => showtimeService.deleteShowtime(id))
-                    );
-                    message.success(`Đã xóa ${selectedRowKeys.length} lịch chiếu`);
-                    setSelectedRowKeys([]);
-                    await loadSchedules();
-                } catch (error) {
-                    console.error('Error batch deleting:', error);
-                    message.error('Lỗi khi xóa hàng loạt');
-                }
+        if (window.confirm(`Bạn có chắc chắn muốn xóa ${selectedRowKeys.length} lịch chiếu đã chọn?`)) {
+            try {
+                await Promise.all(
+                    selectedRowKeys.map(id => showtimeService.deleteShowtime(id))
+                );
+                notification.success(`Đã xóa ${selectedRowKeys.length} lịch chiếu`);
+                setSelectedRowKeys([]);
+                await loadSchedules();
+            } catch (error) {
+                console.error('Error batch deleting:', error);
+                notification.error('Lỗi khi xóa hàng loạt');
             }
-        });
+        }
     };
 
     const handleBatchStatusChange = async (newStatus) => {
         if (selectedRowKeys.length === 0) {
-            message.warning('Vui lòng chọn ít nhất một lịch chiếu');
+            notification.warning('Vui lòng chọn ít nhất một lịch chiếu');
             return;
         }
 
@@ -725,28 +782,17 @@ const Schedules = () => {
             await Promise.all(
                 selectedRowKeys.map(id => showtimeService.updateShowtimeStatus(id, newStatus))
             );
-            message.success(`Đã cập nhật trạng thái cho ${selectedRowKeys.length} lịch chiếu`);
+            notification.success(`Đã cập nhật trạng thái cho ${selectedRowKeys.length} lịch chiếu`);
             setSelectedRowKeys([]);
             await loadSchedules();
         } catch (error) {
             console.error('Error batch status update:', error);
-            message.error('Lỗi khi cập nhật trạng thái hàng loạt');
+            notification.error('Lỗi khi cập nhật trạng thái hàng loạt');
         }
     };
 
     const handleDuplicate = (schedule) => {
-        form.setFieldsValue({
-            movieId: schedule.movieId,
-            cinemaId: schedule.cinemaId,
-            screenName: schedule.screenName,
-            date: dayjs(schedule.date).add(1, 'day'), // Duplicate cho ngày hôm sau
-            time: dayjs(schedule.time, 'HH:mm'),
-            price: schedule.price,
-            format: schedule.format,
-            language: schedule.language,
-            type: schedule.type,
-            status: 'OPEN_FOR_BOOKING'
-        });
+        // Form values will be set via form state
         setShowAddModal(true);
     };
 
@@ -756,11 +802,6 @@ const Schedules = () => {
         onChange: (newSelectedRowKeys) => {
             setSelectedRowKeys(newSelectedRowKeys);
         },
-        selections: [
-            Table.SELECTION_ALL,
-            Table.SELECTION_INVERT,
-            Table.SELECTION_NONE,
-        ],
     };
 
     const columns = [
@@ -771,10 +812,13 @@ const Schedules = () => {
             fixed: 'left',
             ellipsis: true,
             render: (_, record) => (
-                <Space direction="vertical" size={4}>
-                    <Text strong>{record.movieTitle}</Text>
-                    <Tag color="blue">{record.format}</Tag>
-                </Space>
+                <div className="flex flex-col gap-1">
+                    <span className="font-semibold">{record.movieTitle}</span>
+                    <div className="flex gap-1">
+                        <Tag color="blue">{getFormatLabel(record.format)}</Tag>
+                        {record.audioType && <Tag color="cyan">{getAudioTypeLabel(record.audioType)}</Tag>}
+                    </div>
+                </div>
             ),
         },
         {
@@ -783,10 +827,10 @@ const Schedules = () => {
             width: 180,
             ellipsis: true,
             render: (_, record) => (
-                <Space direction="vertical" size={4}>
-                    <Text>{record.cinemaName}</Text>
-                    <Text type="secondary">{record.roomName}</Text>
-                </Space>
+                <div className="flex flex-col gap-1">
+                    <span>{record.cinemaName}</span>
+                    <span className="text-gray-500 text-sm">{record.roomName}</span>
+                </div>
             ),
         },
         {
@@ -796,16 +840,16 @@ const Schedules = () => {
             align: 'center',
             // sorter: (a, b) => dayjs(a.showDate + ' ' + a.startTime).unix() - dayjs(b.showDate + ' ' + b.startTime).unix(),
             render: (_, record) => (
-                <Space direction="vertical" size={4}>
-                    <Space>
-                        <CalendarOutlined />
-                        <Text>{dayjs(record.showDate).format('DD/MM/YYYY')}</Text>
-                    </Space>
-                    <Space>
-                        <ClockCircleOutlined />
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>{dayjs(record.showDate).format('DD/MM/YYYY')}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
                         <Tag color="green">{record.startTime} - {record.endTime}</Tag>
-                    </Space>
-                </Space>
+                    </div>
+                </div>
             ),
         },
         {
@@ -816,9 +860,9 @@ const Schedules = () => {
             align: 'right',
             // sorter: (a, b) => a.price - b.price,
             render: (price) => (
-                <Text strong style={{ color: '#f50' }}>
+                <span className="font-semibold text-orange-500">
                     {price?.toLocaleString('vi-VN')} VNĐ
-                </Text>
+                </span>
             ),
         },
         {
@@ -830,10 +874,10 @@ const Schedules = () => {
             render: (_, record) => {
                 const rate = getBookingRate(record.seatsBooked, record.totalSeats);
                 return (
-                    <Space direction="vertical" size={4}>
-                        <Text>{record.seatsBooked}/{record.totalSeats} ghế</Text>
+                    <div className="flex flex-col gap-1">
+                        <span>{record.seatsBooked}/{record.totalSeats} ghế</span>
                         <Tag color={getBookingRateColor(rate)}>{rate}%</Tag>
-                    </Space>
+                    </div>
                 );
             },
         },
@@ -843,22 +887,26 @@ const Schedules = () => {
             width: 140,
             align: 'center',
             filters: [
-                { text: 'Nháp', value: 'DRAFT' },
-                { text: 'Mở bán vé', value: 'OPEN_FOR_BOOKING' },
-                { text: 'Đã đóng đặt vé', value: 'BOOKING_CLOSED' },
-                { text: 'Đang chiếu', value: 'ONGOING' },
-                { text: 'Đã kết thúc', value: 'FINISHED' },
-                { text: 'Đã hủy', value: 'CANCELED' },
+                { text: 'Sắp chiếu', value: 'UPCOMING' },
+                { text: 'Còn vé', value: 'AVAILABLE' },
+                { text: 'Sắp hết chỗ', value: 'ALMOST_FULL' },
+                { text: 'Hết chỗ', value: 'FULL' },
+                { text: 'Dừng bán vé', value: 'SALES_ENDED' },
+                { text: 'Đã kết thúc', value: 'COMPLETED' },
+                { text: 'Đã hủy', value: 'CANCELLED' },
+                { text: 'Tạm hoãn', value: 'POSTPONED' },
             ],
             onFilter: (value, record) => record.status === value,
             render: (_, record) => {
                 const statusConfig = {
-                    'DRAFT': { color: 'default', text: 'Nháp' },
-                    'OPEN_FOR_BOOKING': { color: 'success', text: 'Mở bán vé' },
-                    'BOOKING_CLOSED': { color: 'warning', text: 'Đóng đặt vé' },
-                    'ONGOING': { color: 'processing', text: 'Đang chiếu' },
-                    'FINISHED': { color: 'default', text: 'Kết thúc' },
-                    'CANCELED': { color: 'error', text: 'Đã hủy' }
+                    'UPCOMING': { color: 'cyan', text: 'Sắp chiếu' },
+                    'AVAILABLE': { color: 'success', text: 'Còn vé' },
+                    'ALMOST_FULL': { color: 'orange', text: 'Sắp hết chỗ' },
+                    'FULL': { color: 'error', text: 'Hết chỗ' },
+                    'SALES_ENDED': { color: 'warning', text: 'Dừng bán vé' },
+                    'COMPLETED': { color: 'default', text: 'Đã kết thúc' },
+                    'CANCELLED': { color: 'error', text: 'Đã hủy' },
+                    'POSTPONED': { color: 'warning', text: 'Tạm hoãn' }
                 };
                 const config = statusConfig[record.status] || { color: 'default', text: record.status };
                 return (
@@ -875,783 +923,1029 @@ const Schedules = () => {
             align: 'center',
             fixed: 'right',
             render: (_, record) => (
-                <Space wrap>
-                    <Tooltip title="Xem chi tiết">
+                <TooltipProvider>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleViewSchedule(record)}
+                                >
+                                    <Eye className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Xem chi tiết</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleViewSeats(record)}
+                                >
+                                    <Grid className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Danh sách ghế</TooltipContent>
+                        </Tooltip>
                         <Button
-                            icon={<EyeOutlined />}
-                            size="small"
-                            onClick={() => handleViewSchedule(record)}
-                        />
-                    </Tooltip>
-                    <Tooltip title="Danh sách ghế">
-                        <Button
-                            icon={<AppstoreOutlined />}
-                            size="small"
-                            type="primary"
-                            ghost
-                            onClick={() => handleViewSeats(record)}
-                        />
-                    </Tooltip>
-                    <Button
-                        icon={<EditOutlined />}
-                        size="small"
-                        onClick={() => handleEditSchedule(record)}
-                    >
-                        Sửa
-                    </Button>
-                    <Popconfirm
-                        title="Xóa lịch chiếu"
-                        description="Bạn có chắc chắn muốn xóa lịch chiếu này?"
-                        onConfirm={() => handleDeleteSchedule(record.id)}
-                        okText="Có"
-                        cancelText="Không"
-                    >
-                        <Button
-                            icon={<DeleteOutlined />}
-                            size="small"
-                            danger
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditSchedule(record)}
                         >
+                            <Edit className="h-4 w-4 mr-1" />
+                            Sửa
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600"
+                            onClick={() => {
+                                if (window.confirm('Bạn có chắc chắn muốn xóa lịch chiếu này?')) {
+                                    handleDeleteSchedule(record.id);
+                                }
+                            }}
+                        >
+                            <Trash2 className="h-4 w-4 mr-1" />
                             Xóa
                         </Button>
-                    </Popconfirm>
-                </Space>
+                    </div>
+                </TooltipProvider>
             ),
         },
     ];
 
     return (
-        <div className="schedules-container">
-            {/* Header */}
-            <Card className="schedules-header">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <Title level={2} style={{ margin: 0 }}>Quản lý Lịch chiếu</Title>
-                    <Button
-                        type="primary"
-                        icon={<PlusOutlined />}
-                        size="large"
-                        onClick={handleAddSchedule}
-                    >
-                        Thêm Lịch chiếu
-                    </Button>
-                </div>
-
-                {/* Filters */}
-                <Row gutter={[12, 12]}>
-                    <Col xs={24} sm={24} md={6} lg={6}>
-                        <Input
-                            placeholder="Tìm kiếm lịch chiếu..."
-                            prefix={<SearchOutlined />}
-                            value={searchText}
-                            onChange={(e) => setSearchText(e.target.value)}
-                            allowClear
-                        />
-                    </Col>
-                    <Col xs={24} sm={12} md={6} lg={5}>
-                        <RangePicker
-                            style={{ width: '100%' }}
-                            format="DD/MM/YYYY"
-                            placeholder={['Từ ngày', 'Đến ngày']}
-                            value={dateRange}
-                            onChange={setDateRange}
-                            allowClear
-                        />
-                    </Col>
-                    <Col xs={24} sm={12} md={6} lg={5}>
-                        <Select
-                            placeholder="Lọc theo phim"
-                            value={movieFilter}
-                            onChange={setMovieFilter}
-                            style={{ width: '100%' }}
-                            allowClear
-                            showSearch
-                            optionFilterProp="children"
-                        >
-                            <Option value="all">Tất cả phim</Option>
-                            {movies.map(movie => (
-                                <Option key={movie.id} value={movie.id.toString()}>
-                                    {movie.title}
-                                </Option>
-                            ))}
-                        </Select>
-                    </Col>
-                    <Col xs={24} sm={12} md={6} lg={4}>
-                        <Select
-                            placeholder="Lọc theo rạp"
-                            value={cinemaFilter}
-                            onChange={setCinemaFilter}
-                            style={{ width: '100%' }}
-                            allowClear
-                            showSearch
-                            optionFilterProp="children"
-                        >
-                            <Option value="all">Tất cả rạp</Option>
-                            {cinemas.map(cinema => (
-                                <Option key={cinema.id} value={cinema.id.toString()}>
-                                    {cinema.name}
-                                </Option>
-                            ))}
-                        </Select>
-                    </Col>
-                    <Col xs={24} sm={12} md={6} lg={4}>
-                        <Select
-                            placeholder="Lọc theo trạng thái"
-                            value={statusFilter}
-                            onChange={setStatusFilter}
-                            style={{ width: '100%' }}
-                            allowClear
-                        >
-                            <Option value="all">Tất cả trạng thái</Option>
-                            <Option value="DRAFT">Nháp</Option>
-                            <Option value="OPEN_FOR_BOOKING">Mở bán vé</Option>
-                            <Option value="BOOKING_CLOSED">Đã đóng đặt vé</Option>
-                            <Option value="ONGOING">Đang chiếu</Option>
-                            <Option value="FINISHED">Đã kết thúc</Option>
-                            <Option value="CANCELED">Đã hủy</Option>
-                        </Select>
-                    </Col>
-                </Row>
-            </Card>
-
-            {/* Filter Info */}
-            {(searchText || dateRange || movieFilter !== 'all' || cinemaFilter !== 'all' || statusFilter !== 'all') && (
-                <Alert
-                    message={
-                        <Space wrap>
-                            <Text strong>Đang lọc:</Text>
-                            {searchText && <Tag color="blue" closable onClose={() => setSearchText('')}>Từ khóa: {searchText}</Tag>}
-                            {dateRange && <Tag color="cyan" closable onClose={() => setDateRange(null)}>
-                                Từ {dateRange[0].format('DD/MM')} đến {dateRange[1].format('DD/MM')}
-                            </Tag>}
-                            {movieFilter !== 'all' && <Tag color="green" closable onClose={() => setMovieFilter('all')}>
-                                Phim: {getMovieTitle(parseInt(movieFilter))}
-                            </Tag>}
-                            {cinemaFilter !== 'all' && <Tag color="orange" closable onClose={() => setCinemaFilter('all')}>
-                                Rạp: {getCinemaName(parseInt(cinemaFilter))}
-                            </Tag>}
-                            {statusFilter !== 'all' && <Tag color="purple" closable onClose={() => setStatusFilter('all')}>
-                                Trạng thái: {getStatusText(statusFilter)}
-                            </Tag>}
-                            <Text type="secondary">→ Tìm thấy {filteredSchedules.length} kết quả</Text>
-                        </Space>
-                    }
-                    type="info"
-                    showIcon
-                    closable
-                    onClose={() => {
-                        setSearchText('');
-                        setDateRange(null);
-                        setMovieFilter('all');
-                        setCinemaFilter('all');
-                        setStatusFilter('all');
-                    }}
-                    style={{ marginBottom: 16 }}
-                />
-            )}
-
-            {/* Schedules Table */}
-            <Card>
-                <Table
-                    columns={columns}
-                    dataSource={filteredSchedules}
-                    rowKey="id"
-                    loading={loading}
-                    pagination={{
-                        current: currentPage,
-                        pageSize: pageSize,
-                        total: totalElements, // Sử dụng tổng số từ backend
-                        showSizeChanger: true,
-                        showQuickJumper: true,
-                        pageSizeOptions: ['5', '10', '20', '50', '100'],
-                        showTotal: (total, range) => `Hiển thị ${(currentPage - 1) * pageSize + 1}-${Math.min(currentPage * pageSize, total)} trong tổng số ${total} lịch chiếu`,
-                        onChange: (page, size) => {
-                            setCurrentPage(page);
-                            if (size !== pageSize) {
-                                setPageSize(size);
-                            }
+        <div className="min-h-screen">
+            <div className="">
+                {/* Breadcrumb */}
+                <Breadcrumb
+                    className="mb-6"
+                    items={[
+                        {
+                            title: 'Dashboard',
+                            icon: <Home className="h-4 w-4" />,
+                            href: '/admin/dashboard'
                         },
-                        onShowSizeChange: (current, size) => {
-                            setCurrentPage(1); // Reset về trang 1 khi thay đổi kích thước
-                            setPageSize(size);
-                        },
-                    }}
-                    scroll={{ x: 1200 }}
+                        {
+                            title: 'Quản lý Lịch chiếu',
+                            icon: <Calendar className="h-4 w-4" />
+                        }
+                    ]}
                 />
-            </Card>
 
-            {/* Add Schedule Modal */}
-            <Modal
-                title="Thêm Lịch chiếu"
-                open={showAddModal}
-                onCancel={() => {
-                    setShowAddModal(false);
-                    form.resetFields();
-                    setRooms([]); // Reset danh sách phòng
-                }}
-                footer={null}
-                width={800}
-                destroyOnClose
-            >
-                {(movies.length === 0 || cinemas.length === 0) && (
-                    <Alert
-                        message="Thiếu dữ liệu"
-                        description={
+                {/* Header */}
+                <Card className="p-6 bg-white rounded-xl shadow-md border border-gray-200 mb-6">
+                    <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-indigo-100 rounded-lg">
+                                <Calendar className="h-6 w-6 text-indigo-600" />
+                            </div>
                             <div>
-                                {movies.length === 0 && <div>• Chưa có phim nào. Vui lòng thêm phim trước.</div>}
-                                {cinemas.length === 0 && <div>• Chưa có rạp nào. Vui lòng thêm rạp trước.</div>}
+                                <h2 className="text-gray-900 m-0 text-2xl font-bold">Quản lý Lịch chiếu</h2>
+                                <p className="text-sm text-gray-500 mt-1">Quản lý và theo dõi lịch chiếu phim</p>
+                            </div>
+                        </div>
+                        <Button
+                            size="lg"
+                            onClick={handleAddSchedule}
+                            className="rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white"
+                        >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Thêm Lịch chiếu
+                        </Button>
+                    </div>
+
+                    {/* Filters */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                        <div>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                <Input
+                                    placeholder="Tìm kiếm lịch chiếu..."
+                                    value={searchText}
+                                    onChange={(e) => setSearchText(e.target.value)}
+                                    className="rounded-lg pl-10"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <DatePicker
+                                mode="range"
+                                className="w-full rounded-lg"
+                                format="DD/MM/YYYY"
+                                placeholder={['Từ ngày', 'Đến ngày']}
+                                value={dateRange}
+                                onChange={setDateRange}
+                            />
+                        </div>
+                        <div>
+                            <Select
+                                value={movieFilter || "all"}
+                                onValueChange={setMovieFilter}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Lọc theo phim" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Tất cả phim</SelectItem>
+                                    {movies.map(movie => (
+                                        <SelectItem key={movie.id} value={movie.id.toString()}>
+                                            {movie.title}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Select
+                                value={cinemaFilter || "all"}
+                                onValueChange={setCinemaFilter}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Lọc theo rạp" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Tất cả rạp</SelectItem>
+                                    {cinemas.map(cinema => (
+                                        <SelectItem key={cinema.id} value={cinema.id.toString()}>
+                                            {cinema.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Select
+                                value={statusFilter || "all"}
+                                onValueChange={setStatusFilter}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Lọc theo trạng thái" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                                    <SelectItem value="DRAFT">Nháp</SelectItem>
+                                    <SelectItem value="OPEN_FOR_BOOKING">Mở bán vé</SelectItem>
+                                    <SelectItem value="BOOKING_CLOSED">Đã đóng đặt vé</SelectItem>
+                                    <SelectItem value="ONGOING">Đang chiếu</SelectItem>
+                                    <SelectItem value="FINISHED">Đã kết thúc</SelectItem>
+                                    <SelectItem value="CANCELED">Đã hủy</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                </Card>
+
+                {/* Filter Info */}
+                {(searchText || dateRange || movieFilter !== 'all' || cinemaFilter !== 'all' || statusFilter !== 'all') && (
+                    <Alert
+                        variant="default"
+                        title={
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-semibold">Đang lọc:</span>
+                                {searchText && (
+                                    <Tag color="blue" className="flex items-center gap-1">
+                                        Từ khóa: {searchText}
+                                        <button
+                                            onClick={() => setSearchText('')}
+                                            className="ml-1 hover:bg-blue-200 rounded-full p-0.5 transition-colors"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    </Tag>
+                                )}
+                                {dateRange && (
+                                    <Tag color="cyan" className="flex items-center gap-1">
+                                        Từ {dayjs(dateRange[0]).format('DD/MM')} đến {dayjs(dateRange[1]).format('DD/MM')}
+                                        <button
+                                            onClick={() => setDateRange(null)}
+                                            className="ml-1 hover:bg-cyan-200 rounded-full p-0.5 transition-colors"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    </Tag>
+                                )}
+                                {movieFilter !== 'all' && (
+                                    <Tag color="green" className="flex items-center gap-1">
+                                        Phim: {getMovieTitle(parseInt(movieFilter))}
+                                        <button
+                                            onClick={() => setMovieFilter('all')}
+                                            className="ml-1 hover:bg-green-200 rounded-full p-0.5 transition-colors"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    </Tag>
+                                )}
+                                {cinemaFilter !== 'all' && (
+                                    <Tag color="orange" className="flex items-center gap-1">
+                                        Rạp: {getCinemaName(parseInt(cinemaFilter))}
+                                        <button
+                                            onClick={() => setCinemaFilter('all')}
+                                            className="ml-1 hover:bg-orange-200 rounded-full p-0.5 transition-colors"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    </Tag>
+                                )}
+                                {statusFilter !== 'all' && (
+                                    <Tag color="purple" className="flex items-center gap-1">
+                                        Trạng thái: {getStatusText(statusFilter)}
+                                        <button
+                                            onClick={() => setStatusFilter('all')}
+                                            className="ml-1 hover:bg-purple-200 rounded-full p-0.5 transition-colors"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    </Tag>
+                                )}
+                                <span className="text-gray-500">→ Tìm thấy {filteredSchedules.length} kết quả</span>
                             </div>
                         }
-                        type="warning"
-                        showIcon
-                        style={{ marginBottom: 16 }}
+                        onClose={() => {
+                            setSearchText('');
+                            setDateRange(null);
+                            setMovieFilter('all');
+                            setCinemaFilter('all');
+                            setStatusFilter('all');
+                        }}
+                        className="mb-4"
                     />
                 )}
-                <Form
-                    form={form}
-                    layout="vertical"
-                    onFinish={handleSubmit}
+
+                {/* Schedules Table */}
+                <Card>
+                    <div className="p-5">
+                        {loading ? (
+                            <div className="p-8 text-center">
+                                <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
+                            </div>
+                        ) : (
+                            <TableWrapper
+                                columns={columns}
+                                data={filteredSchedules}
+                                rowKey="id"
+                                pagination={{
+                                    current: currentPage,
+                                    pageSize: pageSize,
+                                    total: totalElements,
+                                    showSizeChanger: true,
+                                    showQuickJumper: true,
+                                    pageSizeOptions: ['5', '10', '20', '50', '100'],
+                                    showTotal: (total, range) => `Hiển thị ${(currentPage - 1) * pageSize + 1}-${Math.min(currentPage * pageSize, total)} trong tổng số ${total} lịch chiếu`,
+                                    onChange: (page, size) => {
+                                        setCurrentPage(page);
+                                        if (size !== pageSize) {
+                                            setPageSize(size);
+                                        }
+                                    },
+                                    onShowSizeChange: (current, size) => {
+                                        setCurrentPage(1);
+                                        setPageSize(size);
+                                    },
+                                }}
+                            />
+                        )}
+                    </div>
+                </Card>
+
+                {/* Add Schedule Modal */}
+                <Modal
+                    title={
+                        <div className="flex items-center gap-2">
+                            <div className="p-2 bg-indigo-100 rounded-lg">
+                                <Plus className="h-5 w-5 text-indigo-600" />
+                            </div>
+                            <span className="text-xl font-semibold">Thêm Lịch chiếu</span>
+                        </div>
+                    }
+                    open={showAddModal}
+                    onCancel={() => {
+                        setShowAddModal(false);
+                        setFormValues({
+                            movieId: '',
+                            cinemaId: '',
+                            screenName: '',
+                            format: 'TWO_D',
+                            audioType: 'SUBTITLE',
+                            date: '',
+                            time: '',
+                            price: '',
+                            status: 'AVAILABLE'
+                        });
+                        setRooms([]);
+                    }}
+                    footer={null}
+                    width={900}
+                    destroyOnHidden
+                    transitionName=""
+                    maskTransitionName=""
+                    getContainer={false}
                 >
-                    <Row gutter={16}>
-                        <Col span={12}>
-                            <Form.Item
-                                label="Phim"
-                                name="movieId"
-                                rules={[{ required: true, message: 'Vui lòng chọn phim' }]}
-                            >
-                                <Select
-                                    placeholder={moviesLoading ? "Đang tải..." : movies.length === 0 ? "Không có phim" : "Chọn phim"}
-                                    showSearch
-                                    optionFilterProp="children"
-                                    filterOption={(input, option) =>
-                                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                                    }
-                                    loading={moviesLoading}
-                                    disabled={moviesLoading || movies.length === 0}
-                                    notFoundContent={moviesLoading ? "Đang tải..." : "Không có phim nào"}
-                                    getPopupContainer={(trigger) => trigger.parentElement}
-                                >
-                                    {movies.map(movie => (
-                                        <Option key={movie.id} value={movie.id}>
-                                            {movie.title}
-                                        </Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                            <Form.Item
-                                label="Rạp chiếu"
-                                name="cinemaId"
-                                rules={[{ required: true, message: 'Vui lòng chọn rạp' }]}
-                            >
-                                <Select
-                                    placeholder={cinemasLoading ? "Đang tải..." : cinemas.length === 0 ? "Không có rạp" : "Chọn rạp"}
-                                    showSearch
-                                    optionFilterProp="children"
-                                    filterOption={(input, option) =>
-                                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                                    }
-                                    loading={cinemasLoading}
-                                    disabled={cinemasLoading || cinemas.length === 0}
-                                    notFoundContent={cinemasLoading ? "Đang tải..." : "Không có rạp nào"}
-                                    getPopupContainer={(trigger) => trigger.parentElement}
-                                    onChange={handleCinemaChange}
-                                >
-                                    {cinemas.map(cinema => (
-                                        <Option key={cinema.id} value={cinema.id}>
-                                            {cinema.name}
-                                        </Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                    </Row>
-
-                    <Row gutter={16}>
-                        <Col span={12}>
-                            <Form.Item
-                                label="Phòng chiếu"
-                                name="screenName"
-                                rules={[{ required: true, message: 'Vui lòng chọn phòng chiếu' }]}
-                            >
-                                <Select
-                                    placeholder={roomsLoading ? "Đang tải..." : rooms.length === 0 ? "Chọn rạp trước" : "Chọn phòng chiếu"}
-                                    showSearch
-                                    optionFilterProp="children"
-                                    filterOption={(input, option) =>
-                                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                                    }
-                                    loading={roomsLoading}
-                                    disabled={roomsLoading || rooms.length === 0}
-                                    notFoundContent={roomsLoading ? "Đang tải..." : rooms.length === 0 ? "Vui lòng chọn rạp trước" : "Không có phòng chiếu nào"}
-                                    getPopupContainer={(trigger) => trigger.parentElement}
-                                    onChange={handleRoomChange}
-                                >
-                                    {rooms.map(room => (
-                                        <Option key={room.id} value={room.name}>
-                                            {room.name} ({room.roomType})
-                                        </Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                            <Form.Item
-                                label="Định dạng phim"
-                                name="format"
-                                rules={[{ required: true, message: 'Vui lòng chọn định dạng phim' }]}
-                            >
-                                <Select
-                                    placeholder="Chọn định dạng phim"
-                                    showSearch
-                                    allowClear
-                                    optionFilterProp="children"
-                                    filterOption={(input, option) =>
-                                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                                    }
-                                    getPopupContainer={(trigger) => trigger.parentElement}
-                                >
-                                    <Option value="TWO_D_SUB">2D Phụ đề</Option>
-                                    <Option value="TWO_D_DUB">2D Lồng tiếng</Option>
-                                    <Option value="TWO_D_VIET">2D Tiếng Việt</Option>
-                                    <Option value="THREE_D_SUB">3D Phụ đề</Option>
-                                    <Option value="THREE_D_DUB">3D Lồng tiếng</Option>
-                                    <Option value="IMAX_2D">IMAX 2D</Option>
-                                    <Option value="IMAX_3D">IMAX 3D</Option>
-                                    <Option value="FOUR_DX">4DX</Option>
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                    </Row>
-
-                    <Row gutter={16}>
-                        <Col span={8}>
-                            <Form.Item
-                                label="Ngày chiếu"
-                                name="date"
-                                rules={[{ required: true, message: 'Vui lòng chọn ngày' }]}
-                            >
-                                <DatePicker
-                                    style={{ width: '100%' }}
-                                    getPopupContainer={(trigger) => trigger.parentElement}
-                                />
-                            </Form.Item>
-                        </Col>
-                        <Col span={8}>
-                            <Form.Item
-                                label="Giờ chiếu"
-                                name="time"
-                                rules={[{ required: true, message: 'Vui lòng chọn giờ' }]}
-                            >
-                                <TimePicker
-                                    style={{ width: '100%' }}
-                                    format="HH:mm"
-                                    getPopupContainer={(trigger) => trigger.parentElement}
-                                />
-                            </Form.Item>
-                        </Col>
-                        <Col span={8}>
-                            <Form.Item
-                                label="Giá vé (VNĐ)"
-                                name="price"
-                                rules={[{ required: true, message: 'Vui lòng nhập giá vé' }]}
-                            >
-                                <InputNumber
-                                    style={{ width: '100%' }}
-                                    min={0}
-                                    formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                    parser={value => value.replace(/\$\s?|(,*)/g, '')}
-                                />
-                            </Form.Item>
-                        </Col>
-                    </Row>
-
-                    <Form.Item
-                        label="Trạng thái"
-                        name="status"
-                        initialValue="OPEN_FOR_BOOKING"
+                    {(movies.length === 0 || cinemas.length === 0) && (
+                        <Alert
+                            variant="default"
+                            title="Thiếu dữ liệu"
+                            description={
+                                <div className="space-y-1">
+                                    {movies.length === 0 && <div>• Chưa có phim nào. Vui lòng thêm phim trước.</div>}
+                                    {cinemas.length === 0 && <div>• Chưa có rạp nào. Vui lòng thêm rạp trước.</div>}
+                                </div>
+                            }
+                            className="mb-4 bg-yellow-50 border-yellow-200"
+                        />
+                    )}
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            // Validate required fields
+                            if (!formValues.movieId) {
+                                notification.error('Vui lòng chọn phim');
+                                return;
+                            }
+                            if (!formValues.cinemaId) {
+                                notification.error('Vui lòng chọn rạp');
+                                return;
+                            }
+                            if (!formValues.screenName) {
+                                notification.error('Vui lòng chọn phòng chiếu');
+                                return;
+                            }
+                            if (!formValues.format) {
+                                notification.error('Vui lòng chọn định dạng phim');
+                                return;
+                            }
+                            if (!formValues.audioType) {
+                                notification.error('Vui lòng chọn loại âm thanh');
+                                return;
+                            }
+                            if (!formValues.date) {
+                                notification.error('Vui lòng chọn ngày');
+                                return;
+                            }
+                            if (!formValues.time) {
+                                notification.error('Vui lòng chọn giờ');
+                                return;
+                            }
+                            if (!formValues.price) {
+                                notification.error('Vui lòng nhập giá vé');
+                                return;
+                            }
+                            handleSubmit(formValues);
+                        }}
+                        className="space-y-6 p-4"
                     >
-                        <Select getPopupContainer={(trigger) => trigger.parentElement}>
-                            <Option value="DRAFT">Nháp</Option>
-                            <Option value="OPEN_FOR_BOOKING">Mở bán vé</Option>
-                            <Option value="BOOKING_CLOSED">Đã đóng đặt vé</Option>
-                            <Option value="ONGOING">Đang chiếu</Option>
-                            <Option value="FINISHED">Đã kết thúc</Option>
-                            <Option value="CANCELED">Đã hủy</Option>
-                        </Select>
-                    </Form.Item>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                                    <Film className="h-4 w-4 text-gray-500" />
+                                    Phim <span className="text-red-500">*</span>
+                                </label>
+                                <Select
+                                    value={formValues.movieId?.toString()}
+                                    onValueChange={(value) => setFormValues({ ...formValues, movieId: parseInt(value) })}
+                                    disabled={moviesLoading || movies.length === 0}
+                                >
+                                    <SelectTrigger className="h-10">
+                                        <SelectValue placeholder={moviesLoading ? "Đang tải..." : movies.length === 0 ? "Không có phim" : "Chọn phim"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {movies.map(movie => (
+                                            <SelectItem key={movie.id} value={movie.id.toString()}>
+                                                {movie.title}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                                    <Building2 className="h-4 w-4 text-gray-500" />
+                                    Rạp chiếu <span className="text-red-500">*</span>
+                                </label>
+                                <Select
+                                    value={formValues.cinemaId?.toString()}
+                                    onValueChange={(value) => {
+                                        setFormValues({ ...formValues, cinemaId: parseInt(value), screenName: '' });
+                                        handleCinemaChange(parseInt(value));
+                                    }}
+                                    disabled={cinemasLoading || cinemas.length === 0}
+                                >
+                                    <SelectTrigger className="h-10">
+                                        <SelectValue placeholder={cinemasLoading ? "Đang tải..." : cinemas.length === 0 ? "Không có rạp" : "Chọn rạp"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {cinemas.map(cinema => (
+                                            <SelectItem key={cinema.id} value={cinema.id.toString()}>
+                                                {cinema.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
 
-                    <Form.Item style={{ textAlign: 'right' }}>
-                        <Space>
-                            <Button onClick={() => {
-                                setShowAddModal(false);
-                                form.resetFields();
-                            }}>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                                    <Video className="h-4 w-4 text-gray-500" />
+                                    Phòng chiếu <span className="text-red-500">*</span>
+                                </label>
+                                <Select
+                                    value={formValues.screenName}
+                                    onValueChange={(value) => {
+                                        setFormValues({ ...formValues, screenName: value });
+                                        handleRoomChange(value);
+                                    }}
+                                    disabled={roomsLoading || rooms.length === 0}
+                                >
+                                    <SelectTrigger className="h-10">
+                                        <SelectValue placeholder={roomsLoading ? "Đang tải..." : rooms.length === 0 ? "Chọn rạp trước" : "Chọn phòng chiếu"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {rooms.map(room => (
+                                            <SelectItem key={room.id} value={room.name}>
+                                                {room.name} ({room.roomType})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                                    <Settings className="h-4 w-4 text-gray-500" />
+                                    Định dạng phim <span className="text-red-500">*</span>
+                                </label>
+                                <Select
+                                    value={formValues.format}
+                                    onValueChange={(value) => setFormValues({ ...formValues, format: value })}
+                                >
+                                    <SelectTrigger className="h-10">
+                                        <SelectValue placeholder="Chọn định dạng phim" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="TWO_D">2D</SelectItem>
+                                        <SelectItem value="THREE_D">3D</SelectItem>
+                                        <SelectItem value="IMAX">IMAX</SelectItem>
+                                        <SelectItem value="IMAX_3D">IMAX 3D</SelectItem>
+                                        <SelectItem value="FOUR_DX">4DX</SelectItem>
+                                        <SelectItem value="SCREEN_X">ScreenX</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                                <PlayCircle className="h-4 w-4 text-gray-500" />
+                                Loại âm thanh <span className="text-red-500">*</span>
+                            </label>
+                            <Select
+                                value={formValues.audioType}
+                                onValueChange={(value) => setFormValues({ ...formValues, audioType: value })}
+                            >
+                                <SelectTrigger className="h-10">
+                                    <SelectValue placeholder="Chọn loại âm thanh" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="SUBTITLE">Phụ đề</SelectItem>
+                                    <SelectItem value="DUBBED">Lồng tiếng</SelectItem>
+                                    <SelectItem value="ORIGINAL">Nguyên gốc</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                                    <Calendar className="h-4 w-4 text-gray-500" />
+                                    Ngày chiếu <span className="text-red-500">*</span>
+                                </label>
+                                <Input
+                                    type="date"
+                                    value={formValues.date}
+                                    onChange={(e) => setFormValues({ ...formValues, date: e.target.value })}
+                                    className="w-full h-10"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                                    <Clock className="h-4 w-4 text-gray-500" />
+                                    Giờ chiếu <span className="text-red-500">*</span>
+                                </label>
+                                <Input
+                                    type="time"
+                                    value={formValues.time}
+                                    onChange={(e) => setFormValues({ ...formValues, time: e.target.value })}
+                                    className="w-full h-10"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                                    <DollarSign className="h-4 w-4 text-gray-500" />
+                                    Giá vé (VNĐ) <span className="text-red-500">*</span>
+                                </label>
+                                <InputNumber
+                                    value={formValues.price}
+                                    onChange={(value) => setFormValues({ ...formValues, price: value })}
+                                    min={0}
+                                    className="w-full h-10"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                                <PauseCircle className="h-4 w-4 text-gray-500" />
+                                Trạng thái
+                            </label>
+                            <Select
+                                value={formValues.status}
+                                onValueChange={(value) => setFormValues({ ...formValues, status: value })}
+                            >
+                                <SelectTrigger className="h-10">
+                                    <SelectValue placeholder="Chọn trạng thái" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="UPCOMING">Sắp chiếu</SelectItem>
+                                    <SelectItem value="AVAILABLE">Còn vé</SelectItem>
+                                    <SelectItem value="ALMOST_FULL">Sắp hết chỗ</SelectItem>
+                                    <SelectItem value="FULL">Hết chỗ</SelectItem>
+                                    <SelectItem value="SALES_ENDED">Dừng bán vé</SelectItem>
+                                    <SelectItem value="COMPLETED">Đã kết thúc</SelectItem>
+                                    <SelectItem value="CANCELLED">Đã hủy</SelectItem>
+                                    <SelectItem value="POSTPONED">Tạm hoãn</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    setShowAddModal(false);
+                                    setFormValues({
+                                        movieId: '',
+                                        cinemaId: '',
+                                        screenName: '',
+                                        format: 'TWO_D',
+                                        audioType: 'SUBTITLE',
+                                        date: '',
+                                        time: '',
+                                        price: '',
+                                        status: 'AVAILABLE'
+                                    });
+                                    setRooms([]);
+                                }}
+                                className="h-10"
+                            >
                                 Hủy
                             </Button>
                             <Button
-                                type="primary"
-                                htmlType="submit"
+                                type="submit"
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white h-10"
                                 disabled={movies.length === 0 || cinemas.length === 0}
                             >
+                                <Plus className="h-4 w-4 mr-2" />
                                 Thêm Lịch chiếu
                             </Button>
-                        </Space>
-                    </Form.Item>
-                </Form>
-            </Modal>
+                        </div>
+                    </form>
+                </Modal>
 
-            {/* Edit Schedule Modal */}
-            <Modal
-                title="Chỉnh sửa Lịch chiếu"
-                open={showEditModal}
-                onCancel={() => {
-                    setShowEditModal(false);
-                    form.resetFields();
-                    setSelectedSchedule(null);
-                    setRooms([]); // Reset danh sách phòng
-                }}
-                footer={null}
-                width={800}
-                destroyOnClose
-            >
-                <Form
-                    form={form}
-                    layout="vertical"
-                    onFinish={handleSubmit}
+                {/* Edit Schedule Modal */}
+                <Modal
+                    title="Chỉnh sửa Lịch chiếu"
+                    open={showEditModal}
+                    onCancel={() => {
+                        setShowEditModal(false);
+                        setFormValues({
+                            movieId: '',
+                            cinemaId: '',
+                            screenName: '',
+                            format: 'TWO_D',
+                            audioType: 'SUBTITLE',
+                            date: '',
+                            time: '',
+                            price: '',
+                            status: 'AVAILABLE'
+                        });
+                        setSelectedSchedule(null);
+                        setRooms([]); // Reset danh sách phòng
+                    }}
+                    footer={null}
+                    width={800}
+                    destroyOnHidden
+                    transitionName=""
+                    maskTransitionName=""
+                    getContainer={false}
                 >
-                    <Row gutter={16}>
-                        <Col span={12}>
-                            <Form.Item
-                                label="Phim"
-                                name="movieId"
-                                rules={[{ required: true, message: 'Vui lòng chọn phim' }]}
-                            >
-                                <Select
-                                    placeholder={moviesLoading ? "Đang tải..." : movies.length === 0 ? "Không có phim" : "Chọn phim"}
-                                    showSearch
-                                    optionFilterProp="children"
-                                    filterOption={(input, option) =>
-                                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                                    }
-                                    loading={moviesLoading}
-                                    disabled={moviesLoading || movies.length === 0}
-                                    notFoundContent={moviesLoading ? "Đang tải..." : "Không có phim nào"}
-                                    getPopupContainer={(trigger) => trigger.parentElement}
-                                >
-                                    {movies.map(movie => (
-                                        <Option key={movie.id} value={movie.id}>
-                                            {movie.title}
-                                        </Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                            <Form.Item
-                                label="Rạp chiếu"
-                                name="cinemaId"
-                                rules={[{ required: true, message: 'Vui lòng chọn rạp' }]}
-                            >
-                                <Select
-                                    placeholder={cinemasLoading ? "Đang tải..." : cinemas.length === 0 ? "Không có rạp" : "Chọn rạp"}
-                                    showSearch
-                                    optionFilterProp="children"
-                                    filterOption={(input, option) =>
-                                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                                    }
-                                    loading={cinemasLoading}
-                                    disabled={cinemasLoading || cinemas.length === 0}
-                                    notFoundContent={cinemasLoading ? "Đang tải..." : "Không có rạp nào"}
-                                    getPopupContainer={(trigger) => trigger.parentElement}
-                                    onChange={handleCinemaChange}
-                                >
-                                    {cinemas.map(cinema => (
-                                        <Option key={cinema.id} value={cinema.id}>
-                                            {cinema.name}
-                                        </Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                    </Row>
-
-                    <Row gutter={16}>
-                        <Col span={12}>
-                            <Form.Item
-                                label="Phòng chiếu"
-                                name="screenName"
-                                rules={[{ required: true, message: 'Vui lòng chọn phòng chiếu' }]}
-                            >
-                                <Select
-                                    placeholder={roomsLoading ? "Đang tải..." : rooms.length === 0 ? "Chọn rạp trước" : "Chọn phòng chiếu"}
-                                    showSearch
-                                    optionFilterProp="children"
-                                    filterOption={(input, option) =>
-                                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                                    }
-                                    loading={roomsLoading}
-                                    disabled={roomsLoading || rooms.length === 0}
-                                    notFoundContent={roomsLoading ? "Đang tải..." : rooms.length === 0 ? "Vui lòng chọn rạp trước" : "Không có phòng chiếu nào"}
-                                    getPopupContainer={(trigger) => trigger.parentElement}
-                                    onChange={handleRoomChange}
-                                >
-                                    {rooms.map(room => (
-                                        <Option key={room.id} value={room.name}>
-                                            {room.name} ({room.roomType})
-                                        </Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                            <Form.Item
-                                label="Định dạng phim"
-                                name="format"
-                                rules={[{ required: true, message: 'Vui lòng chọn định dạng phim' }]}
-                            >
-                                <Select
-                                    placeholder="Chọn định dạng phim"
-                                    showSearch
-                                    allowClear
-                                    optionFilterProp="children"
-                                    filterOption={(input, option) =>
-                                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                                    }
-                                    getPopupContainer={(trigger) => trigger.parentElement}
-                                >
-                                    <Option value="TWO_D_SUB">2D Phụ đề</Option>
-                                    <Option value="TWO_D_DUB">2D Lồng tiếng</Option>
-                                    <Option value="TWO_D_VIET">2D Tiếng Việt</Option>
-                                    <Option value="THREE_D_SUB">3D Phụ đề</Option>
-                                    <Option value="THREE_D_DUB">3D Lồng tiếng</Option>
-                                    <Option value="IMAX_2D">IMAX 2D</Option>
-                                    <Option value="IMAX_3D">IMAX 3D</Option>
-                                    <Option value="FOUR_DX">4DX</Option>
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                    </Row>
-
-                    <Row gutter={16}>
-                        <Col span={8}>
-                            <Form.Item
-                                label="Ngày chiếu"
-                                name="date"
-                                rules={[{ required: true, message: 'Vui lòng chọn ngày' }]}
-                            >
-                                <DatePicker
-                                    style={{ width: '100%' }}
-                                    getPopupContainer={(trigger) => trigger.parentElement}
-                                />
-                            </Form.Item>
-                        </Col>
-                        <Col span={8}>
-                            <Form.Item
-                                label="Giờ chiếu"
-                                name="time"
-                                rules={[{ required: true, message: 'Vui lòng chọn giờ' }]}
-                            >
-                                <TimePicker
-                                    style={{ width: '100%' }}
-                                    format="HH:mm"
-                                    getPopupContainer={(trigger) => trigger.parentElement}
-                                />
-                            </Form.Item>
-                        </Col>
-                        <Col span={8}>
-                            <Form.Item
-                                label="Giá vé (VNĐ)"
-                                name="price"
-                                rules={[{ required: true, message: 'Vui lòng nhập giá vé' }]}
-                            >
-                                <InputNumber
-                                    style={{ width: '100%' }}
-                                    min={0}
-                                    formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                    parser={value => value.replace(/\$\s?|(,*)/g, '')}
-                                />
-                            </Form.Item>
-                        </Col>
-                    </Row>
-
-                    <Form.Item
-                        label="Trạng thái"
-                        name="status"
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            // Validate required fields
+                            if (!formValues.movieId) {
+                                notification.error('Vui lòng chọn phim');
+                                return;
+                            }
+                            if (!formValues.cinemaId) {
+                                notification.error('Vui lòng chọn rạp');
+                                return;
+                            }
+                            if (!formValues.screenName) {
+                                notification.error('Vui lòng chọn phòng chiếu');
+                                return;
+                            }
+                            if (!formValues.format) {
+                                notification.error('Vui lòng chọn định dạng phim');
+                                return;
+                            }
+                            if (!formValues.audioType) {
+                                notification.error('Vui lòng chọn loại âm thanh');
+                                return;
+                            }
+                            if (!formValues.date) {
+                                notification.error('Vui lòng chọn ngày');
+                                return;
+                            }
+                            if (!formValues.time) {
+                                notification.error('Vui lòng chọn giờ');
+                                return;
+                            }
+                            if (!formValues.price) {
+                                notification.error('Vui lòng nhập giá vé');
+                                return;
+                            }
+                            handleSubmit(formValues);
+                        }}
+                        className="space-y-6 p-4"
                     >
-                        <Select getPopupContainer={(trigger) => trigger.parentElement}>
-                            <Option value="DRAFT">Nháp</Option>
-                            <Option value="OPEN_FOR_BOOKING">Mở bán vé</Option>
-                            <Option value="BOOKING_CLOSED">Đã đóng đặt vé</Option>
-                            <Option value="ONGOING">Đang chiếu</Option>
-                            <Option value="FINISHED">Đã kết thúc</Option>
-                            <Option value="CANCELED">Đã hủy</Option>
-                        </Select>
-                    </Form.Item>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Phim <span className="text-red-500">*</span>
+                                </label>
+                                <Select
+                                    value={formValues.movieId?.toString()}
+                                    onValueChange={(value) => setFormValues({ ...formValues, movieId: parseInt(value) })}
+                                    disabled={moviesLoading || movies.length === 0}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={moviesLoading ? "Đang tải..." : movies.length === 0 ? "Không có phim" : "Chọn phim"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {movies.map(movie => (
+                                            <SelectItem key={movie.id} value={movie.id.toString()}>
+                                                {movie.title}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Rạp chiếu <span className="text-red-500">*</span>
+                                </label>
+                                <Select
+                                    value={formValues.cinemaId?.toString()}
+                                    onValueChange={(value) => {
+                                        setFormValues({ ...formValues, cinemaId: parseInt(value), screenName: '' });
+                                        handleCinemaChange(parseInt(value));
+                                    }}
+                                    disabled={cinemasLoading || cinemas.length === 0}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={cinemasLoading ? "Đang tải..." : cinemas.length === 0 ? "Không có rạp" : "Chọn rạp"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {cinemas.map(cinema => (
+                                            <SelectItem key={cinema.id} value={cinema.id.toString()}>
+                                                {cinema.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
 
-                    <Form.Item style={{ textAlign: 'right' }}>
-                        <Space>
-                            <Button onClick={() => {
-                                setShowEditModal(false);
-                                form.resetFields();
-                                setSelectedSchedule(null);
-                            }}>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Phòng chiếu <span className="text-red-500">*</span>
+                                </label>
+                                <Select
+                                    value={formValues.screenName}
+                                    onValueChange={(value) => {
+                                        setFormValues({ ...formValues, screenName: value });
+                                        handleRoomChange(value);
+                                    }}
+                                    disabled={roomsLoading || rooms.length === 0}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={roomsLoading ? "Đang tải..." : rooms.length === 0 ? "Chọn rạp trước" : "Chọn phòng chiếu"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {rooms.map(room => (
+                                            <SelectItem key={room.id} value={room.name}>
+                                                {room.name} ({room.roomType})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Định dạng phim <span className="text-red-500">*</span>
+                                </label>
+                                <Select
+                                    value={formValues.format}
+                                    onValueChange={(value) => setFormValues({ ...formValues, format: value })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Chọn định dạng phim" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="TWO_D">2D</SelectItem>
+                                        <SelectItem value="THREE_D">3D</SelectItem>
+                                        <SelectItem value="IMAX">IMAX</SelectItem>
+                                        <SelectItem value="IMAX_3D">IMAX 3D</SelectItem>
+                                        <SelectItem value="FOUR_DX">4DX</SelectItem>
+                                        <SelectItem value="SCREEN_X">ScreenX</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Loại âm thanh <span className="text-red-500">*</span>
+                            </label>
+                            <Select
+                                value={formValues.audioType}
+                                onValueChange={(value) => setFormValues({ ...formValues, audioType: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Chọn loại âm thanh" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="SUBTITLE">Phụ đề</SelectItem>
+                                    <SelectItem value="DUBBED">Lồng tiếng</SelectItem>
+                                    <SelectItem value="ORIGINAL">Nguyên gốc</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Ngày chiếu <span className="text-red-500">*</span>
+                                </label>
+                                <Input
+                                    type="date"
+                                    value={formValues.date}
+                                    onChange={(e) => setFormValues({ ...formValues, date: e.target.value })}
+                                    className="w-full"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Giờ chiếu <span className="text-red-500">*</span>
+                                </label>
+                                <Input
+                                    type="time"
+                                    value={formValues.time}
+                                    onChange={(e) => setFormValues({ ...formValues, time: e.target.value })}
+                                    className="w-full"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Giá vé (VNĐ) <span className="text-red-500">*</span>
+                                </label>
+                                <InputNumber
+                                    value={formValues.price}
+                                    onChange={(value) => setFormValues({ ...formValues, price: value })}
+                                    min={0}
+                                    className="w-full"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Trạng thái
+                            </label>
+                            <Select
+                                value={formValues.status}
+                                onValueChange={(value) => setFormValues({ ...formValues, status: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Chọn trạng thái" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="UPCOMING">Sắp chiếu</SelectItem>
+                                    <SelectItem value="AVAILABLE">Còn vé</SelectItem>
+                                    <SelectItem value="ALMOST_FULL">Sắp hết chỗ</SelectItem>
+                                    <SelectItem value="FULL">Hết chỗ</SelectItem>
+                                    <SelectItem value="SALES_ENDED">Dừng bán vé</SelectItem>
+                                    <SelectItem value="COMPLETED">Đã kết thúc</SelectItem>
+                                    <SelectItem value="CANCELLED">Đã hủy</SelectItem>
+                                    <SelectItem value="POSTPONED">Tạm hoãn</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="flex justify-end gap-3 pt-4 border-t">
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    setShowEditModal(false);
+                                    setFormValues({
+                                        movieId: '',
+                                        cinemaId: '',
+                                        screenName: '',
+                                        format: 'TWO_D',
+                                        audioType: 'SUBTITLE',
+                                        date: '',
+                                        time: '',
+                                        price: '',
+                                        status: 'AVAILABLE'
+                                    });
+                                    setSelectedSchedule(null);
+                                    setRooms([]);
+                                }}
+                            >
                                 Hủy
                             </Button>
-                            <Button type="primary" htmlType="submit">
+                            <Button
+                                type="submit"
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                            >
                                 Cập nhật
                             </Button>
-                        </Space>
-                    </Form.Item>
-                </Form>
-            </Modal>
+                        </div>
+                    </form>
+                </Modal>
 
-            {/* Detail Modal */}
-            <Modal
-                title="Chi tiết Lịch chiếu"
-                open={showDetailModal}
-                onCancel={() => {
-                    setShowDetailModal(false);
-                    setSelectedSchedule(null);
-                }}
-                footer={[
-                    <Button key="close" onClick={() => {
+                {/* Detail Modal */}
+                <Modal
+                    title="Chi tiết Lịch chiếu"
+                    open={showDetailModal}
+                    onCancel={() => {
                         setShowDetailModal(false);
                         setSelectedSchedule(null);
-                    }}>
-                        Đóng
-                    </Button>,
-                    <Button
-                        key="edit"
-                        type="primary"
-                        onClick={() => {
-                            setShowDetailModal(false);
-                            handleEditSchedule(selectedSchedule);
-                        }}
-                    >
-                        Chỉnh sửa
-                    </Button>
-                ]}
-                width={800}
-            >
-                {selectedSchedule && (
-                    <div>
-                        {/* Header Info */}
-                        <Alert
-                            message={selectedSchedule.movieTitle}
-                            description={
-                                <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                                    <Text><ShopOutlined /> {selectedSchedule.cinemaName} - {selectedSchedule.roomName}</Text>
-                                    <Text><CalendarOutlined /> {dayjs(selectedSchedule.showDate).format('DD/MM/YYYY')} | <ClockCircleOutlined /> {selectedSchedule.startTime} - {selectedSchedule.endTime}</Text>
-                                </Space>
-                            }
-                            type="info"
-                            showIcon
-                            icon={<VideoCameraOutlined />}
-                            style={{ marginBottom: 20 }}
-                        />
+                    }}
+                    footer={
+                        <div className="flex justify-end gap-3">
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    setShowDetailModal(false);
+                                    setSelectedSchedule(null);
+                                }}
+                            >
+                                Đóng
+                            </Button>
+                            <Button
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                                onClick={() => {
+                                    setShowDetailModal(false);
+                                    handleEditSchedule(selectedSchedule);
+                                }}
+                            >
+                                Chỉnh sửa
+                            </Button>
+                        </div>
+                    }
+                    width={800}
+                >
+                    {selectedSchedule && (
+                        <div className="space-y-6">
+                            {/* Header Info */}
+                            <Alert
+                                variant="default"
+                                title={
+                                    <div className="flex items-center gap-2">
+                                        <Film className="h-5 w-5" />
+                                        <span className="font-semibold">{selectedSchedule.movieTitle}</span>
+                                    </div>
+                                }
+                                description={
+                                    <div className="flex flex-col gap-2 mt-2">
+                                        <div className="flex items-center gap-2">
+                                            <Building2 className="h-4 w-4 text-gray-500" />
+                                            <span>{selectedSchedule.cinemaName} - {selectedSchedule.roomName}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Calendar className="h-4 w-4 text-gray-500" />
+                                            <span>{dayjs(selectedSchedule.showDate).format('DD/MM/YYYY')}</span>
+                                            <span className="mx-2">|</span>
+                                            <Clock className="h-4 w-4 text-gray-500" />
+                                            <span>{selectedSchedule.startTime} - {selectedSchedule.endTime}</span>
+                                        </div>
+                                    </div>
+                                }
+                                className="mb-6"
+                            />
 
-                        {/* Main Info Grid */}
-                        <Row gutter={[16, 16]}>
-                            {/* Movie & Cinema Info */}
-                            <Col span={24}>
-                                <Card size="small" title="Thông tin cơ bản" bordered={true}>
-                                    <Row gutter={[16, 12]}>
-                                        <Col span={12}>
-                                            <Text type="secondary">Phim:</Text>
-                                            <div><Text strong>{selectedSchedule.movieTitle}</Text></div>
-                                        </Col>
-                                        <Col span={12}>
-                                            <Text type="secondary">Rạp chiếu:</Text>
-                                            <div><Text strong>{selectedSchedule.cinemaName}</Text></div>
-                                        </Col>
-                                        <Col span={12}>
-                                            <Text type="secondary">Phòng chiếu:</Text>
-                                            <div><Text strong>{selectedSchedule.roomName}</Text></div>
-                                        </Col>
-                                        <Col span={12}>
-                                            <Text type="secondary">Định dạng phim:</Text>
-                                            <div><Tag color="blue">{getMovieFormatLabel(selectedSchedule.movieFormat || selectedSchedule.format)}</Tag></div>
-                                        </Col>
-                                    </Row>
-                                </Card>
-                            </Col>
-
-                            {/* Showtime Info */}
-                            <Col span={12}>
-                                <Card size="small" title="Thông tin chiếu phim" bordered={true}>
-                                    <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                            {/* Main Info Grid */}
+                            <div className="grid grid-cols-1 gap-4">
+                                {/* Movie & Cinema Info */}
+                                <Card className="p-4 border border-gray-200">
+                                    <h4 className="font-semibold text-gray-900 mb-4">Thông tin cơ bản</h4>
+                                    <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <Text type="secondary">Ngày chiếu:</Text>
-                                            <div><Tag color="cyan" icon={<CalendarOutlined />}>{dayjs(selectedSchedule.showDate).format('DD/MM/YYYY')}</Tag></div>
+                                            <p className="text-sm text-gray-500 mb-1">Phim:</p>
+                                            <p className="font-semibold text-gray-900">{selectedSchedule.movieTitle}</p>
                                         </div>
                                         <div>
-                                            <Text type="secondary">Giờ chiếu:</Text>
-                                            <div><Tag color="green" icon={<ClockCircleOutlined />}>{selectedSchedule.startTime} - {selectedSchedule.endTime}</Tag></div>
+                                            <p className="text-sm text-gray-500 mb-1">Rạp chiếu:</p>
+                                            <p className="font-semibold text-gray-900">{selectedSchedule.cinemaName}</p>
                                         </div>
                                         <div>
-                                            <Text type="secondary">Thời lượng:</Text>
-                                            <div><Text strong>{calculateDuration(selectedSchedule.startTime, selectedSchedule.endTime)}</Text></div>
+                                            <p className="text-sm text-gray-500 mb-1">Phòng chiếu:</p>
+                                            <p className="font-semibold text-gray-900">{selectedSchedule.roomName}</p>
                                         </div>
-                                    </Space>
-                                </Card>
-                            </Col>
-
-                            {/* Pricing & Status */}
-                            <Col span={12}>
-                                <Card size="small" title="Giá vé & Trạng thái" bordered={true}>
-                                    <Space direction="vertical" size={12} style={{ width: '100%' }}>
                                         <div>
-                                            <Text type="secondary">Giá vé:</Text>
-                                            <div>
-                                                <Text strong style={{ fontSize: '18px', color: '#ff5500' }}>
-                                                    {selectedSchedule.price?.toLocaleString('vi-VN')} VNĐ
-                                                </Text>
+                                            <p className="text-sm text-gray-500 mb-1">Định dạng phim:</p>
+                                            <div className="flex gap-2">
+                                                <Tag color="blue">{getFormatLabel(selectedSchedule.format)}</Tag>
+                                                {selectedSchedule.audioType && <Tag color="cyan">{getAudioTypeLabel(selectedSchedule.audioType)}</Tag>}
                                             </div>
                                         </div>
-                                        <div>
-                                            <Text type="secondary">Trạng thái:</Text>
+                                    </div>
+                                </Card>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    {/* Showtime Info */}
+                                    <Card className="p-4 border border-gray-200">
+                                        <h4 className="font-semibold text-gray-900 mb-4">Thông tin chiếu phim</h4>
+                                        <div className="flex flex-col gap-3">
                                             <div>
+                                                <p className="text-sm text-gray-500 mb-1">Ngày chiếu:</p>
+                                                <Tag color="cyan">
+                                                    <Calendar className="h-3 w-3 mr-1" />
+                                                    {dayjs(selectedSchedule.showDate).format('DD/MM/YYYY')}
+                                                </Tag>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-500 mb-1">Giờ chiếu:</p>
+                                                <Tag color="green">
+                                                    <Clock className="h-3 w-3 mr-1" />
+                                                    {selectedSchedule.startTime} - {selectedSchedule.endTime}
+                                                </Tag>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-500 mb-1">Thời lượng:</p>
+                                                <p className="font-semibold text-gray-900">{calculateDuration(selectedSchedule.startTime, selectedSchedule.endTime)}</p>
+                                            </div>
+                                        </div>
+                                    </Card>
+
+                                    {/* Pricing & Status */}
+                                    <Card className="p-4 border border-gray-200">
+                                        <h4 className="font-semibold text-gray-900 mb-4">Giá vé & Trạng thái</h4>
+                                        <div className="flex flex-col gap-3">
+                                            <div>
+                                                <p className="text-sm text-gray-500 mb-1">Giá vé:</p>
+                                                <p className="font-semibold text-lg text-orange-500">
+                                                    {selectedSchedule.price?.toLocaleString('vi-VN')} VNĐ
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-500 mb-1">Trạng thái:</p>
                                                 <Tag
                                                     color={getStatusTagColor(selectedSchedule.status)}
-                                                    style={{ fontSize: '13px', padding: '4px 12px' }}
+                                                    className="text-sm px-3 py-1"
                                                 >
                                                     {getStatusText(selectedSchedule.status)}
                                                 </Tag>
                                             </div>
                                         </div>
-                                        {/* <div>
-                                            <Text type="secondary">Trạng thái hoạt động:</Text>
-                                            <div>
-                                                <Badge
-                                                    status={selectedSchedule.isActive ? "success" : "default"}
-                                                    text={selectedSchedule.isActive ? "Đang hoạt động" : "Không hoạt động"}
-                                                />
-                                            </div>
-                                        </div> */}
-                                    </Space>
-                                </Card>
-                            </Col>
+                                    </Card>
+                                </div>
 
-                            {/* Booking Statistics */}
-                            <Col span={24}>
-                                <Card size="small" title="Thống kê đặt vé" bordered={true}>
-                                    <Row gutter={16}>
-                                        <Col span={8}>
+                                {/* Booking Statistics */}
+                                <Card className="p-4 border border-gray-200">
+                                    <h4 className="font-semibold text-gray-900 mb-4">Thống kê đặt vé</h4>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div>
                                             <Statistic
                                                 title="Tổng số ghế"
                                                 value={selectedSchedule.totalSeats}
-                                                prefix={<UserOutlined />}
+                                                prefix={<Users className="h-4 w-4" />}
                                             />
-                                        </Col>
-                                        <Col span={8}>
+                                        </div>
+                                        <div>
                                             <Statistic
                                                 title="Đã đặt"
                                                 value={selectedSchedule.seatsBooked}
                                                 valueStyle={{ color: '#3f8600' }}
-                                                prefix={<UserOutlined />}
+                                                prefix={<Users className="h-4 w-4" />}
                                             />
-                                        </Col>
-                                        <Col span={8}>
+                                        </div>
+                                        <div>
                                             <Statistic
                                                 title="Tỷ lệ đặt vé"
                                                 value={getBookingRate(selectedSchedule.seatsBooked, selectedSchedule.totalSeats)}
@@ -1660,46 +1954,15 @@ const Schedules = () => {
                                                     color: getBookingRate(selectedSchedule.seatsBooked, selectedSchedule.totalSeats) > 70 ? '#cf1322' : '#3f8600'
                                                 }}
                                             />
-                                        </Col>
-                                    </Row>
+                                        </div>
+                                    </div>
                                 </Card>
-                            </Col>
-                        </Row>
-                    </div>
-                )}
-            </Modal>
-
-            {/* Seats Modal - Showtime Seat Viewer */}
-            {showSeatsModal && selectedSchedule && (
-                <Modal
-                    title={
-                        <Space size="middle">
-                            <SettingOutlined style={{ color: '#1890ff' }} />
-                            <span>Sơ đồ ghế - {selectedSchedule.movieTitle}</span>
-                            <Tag color="blue">{selectedSchedule.cinemaName}</Tag>
-                        </Space>
-                    }
-                    open={showSeatsModal}
-                    onCancel={() => {
-                        setShowSeatsModal(false);
-                        setSelectedSchedule(null);
-                        setShowtimeSeats([]);
-                    }}
-                    footer={null}
-                    width="60%"
-                    style={{ top: 20 }}
-                    bodyStyle={{ height: '75vh', overflow: 'auto', padding: '16px' }}
-                    className="seat-manager-modal"
-                >
-                    <SeatViewer
-                        showtimeId={selectedSchedule.id}
-                        selectedScreen={{
-                            name: selectedSchedule.roomName,
-                            cinemaName: selectedSchedule.cinemaName
-                        }}
-                    />
+                            </div>
+                        </div>
+                    )}
                 </Modal>
-            )}
+
+            </div>
         </div>
     );
 };

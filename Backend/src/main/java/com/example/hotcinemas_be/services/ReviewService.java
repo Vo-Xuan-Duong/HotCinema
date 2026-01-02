@@ -4,105 +4,101 @@ import com.example.hotcinemas_be.dtos.review.request.ReviewRequest;
 import com.example.hotcinemas_be.dtos.review.response.ReviewResponse;
 import com.example.hotcinemas_be.exceptions.AppException;
 import com.example.hotcinemas_be.exceptions.ErrorCode;
-import com.example.hotcinemas_be.mappers.CommentMapper;
+import com.example.hotcinemas_be.mappers.ReviewMapper;
 import com.example.hotcinemas_be.models.Movie;
+import com.example.hotcinemas_be.models.Review;
 import com.example.hotcinemas_be.models.User;
 import com.example.hotcinemas_be.repositorys.MovieRepository;
+import com.example.hotcinemas_be.repositorys.ReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
-public class CommentService {
+public class ReviewService {
 
-        private final CommentRepository commentRepository;
+        private final ReviewRepository reviewRepository;
         private final MovieRepository movieRepository;
         private final AuthService authService;
-        private final CommentMapper commentMapper;
+        private final ReviewMapper reviewMapper;
 
-        public ReviewResponse createComment(ReviewRequest reviewRequest) {
-
+        public ReviewResponse createReview(ReviewRequest reviewRequest) {
                 User user = authService.getCurrentUser();
                 Movie movie = movieRepository.findById(reviewRequest.getMovieId()).orElseThrow(
                                 () -> new AppException("Movie not found",
                                                 ErrorCode.MOVIE_NOT_FOUND));
 
-                Comment parentComment = null;
+                Review parentReview = null;
 
                 if (reviewRequest.getParentId() != null) {
-                        parentComment = commentRepository.findById(reviewRequest.getParentId()).orElseThrow(
-                                        () -> new AppException("Parent comment not found",
+                        parentReview = reviewRepository.findById(reviewRequest.getParentId()).orElseThrow(
+                                        () -> new AppException("Parent review not found",
                                                         ErrorCode.MODEL_NOT_FOUND));
                 }
 
-                Comment comment = Comment.builder()
+                Review review = Review.builder()
                                 .movie(movie)
                                 .user(user)
                                 .comment(reviewRequest.getComment())
-                                .rating(reviewRequest.getRating())
-                                .parentComment(parentComment)
+                                .rating(reviewRequest.getRating() != null ? reviewRequest.getRating() : 0)
+                                .parentReview(parentReview)
                                 .build();
 
-                Comment savedComment = commentRepository.save(comment);
+                Review savedReview = reviewRepository.save(review);
 
-                return commentMapper.mapToResponse(savedComment);
+                return reviewMapper.mapToResponse(savedReview);
         }
 
-        public void deleteComment(Long commentId) {
-                Comment comment = commentRepository.findById(commentId).orElseThrow(
-                                () -> new AppException("Comment not found",
+        public void deleteReview(Long reviewId) {
+                Review review = reviewRepository.findById(reviewId).orElseThrow(
+                                () -> new AppException("Review not found",
                                                 ErrorCode.MODEL_NOT_FOUND));
-                commentRepository.delete(comment);
+                reviewRepository.delete(review);
         }
 
-        public ReviewResponse getCommentById(Long commentId) {
-                Comment comment = commentRepository.findById(commentId).orElseThrow(
-                                () -> new AppException("Comment not found",
+        public ReviewResponse getReviewById(Long reviewId) {
+                Review review = reviewRepository.findById(reviewId).orElseThrow(
+                                () -> new AppException("Review not found",
                                                 ErrorCode.MODEL_NOT_FOUND));
-                return commentMapper.mapToResponse(comment);
+                return reviewMapper.mapToResponse(review);
         }
 
-        public Page<ReviewResponse> getCommentsByMovieId(Long movieId, Pageable pageable) {
-                Movie movie = movieRepository.findById(movieId).orElseThrow(
-                                () -> new AppException("Movie not found",
-                                                ErrorCode.MOVIE_NOT_FOUND));
+        public Page<ReviewResponse> getReviewsByMovieId(Long movieId, Pageable pageable) {
+                Page<Review> reviewPage = reviewRepository.findReviewsByMovie_IdAndParentReviewIsNull(movieId, pageable);
 
-                Page<Comment> commentsPage = commentRepository.findCommentsByMovieAndParentCommentIsNull(movie,
-                                pageable);
-
-                return commentsPage.map(commentMapper::mapToResponse);
+                return reviewPage.map(reviewMapper::mapToResponse);
         }
 
-        public ReviewResponse updateComment(Long commentId, ReviewRequest reviewRequest) {
-                Comment comment = commentRepository.findById(commentId).orElseThrow(
-                                () -> new AppException("Comment not found",
+        public ReviewResponse updateReview(Long reviewId, ReviewRequest reviewRequest) {
+                Review review = reviewRepository.findById(reviewId).orElseThrow(
+                                () -> new AppException("Review not found",
                                                 ErrorCode.MODEL_NOT_FOUND));
-                comment.setComment(reviewRequest.getComment());
-                comment.setRating(reviewRequest.getRating());
-                Comment updatedComment = commentRepository.save(comment);
-                return commentMapper.mapToResponse(updatedComment);
+                review.setComment(reviewRequest.getComment());
+                review.setRating(reviewRequest.getRating());
+                Review updatedReview = reviewRepository.save(review);
+                return reviewMapper.mapToResponse(updatedReview);
         }
 
         public Double getAverageRatingByMovieId(Long movieId) {
-                Movie movie = movieRepository.findById(movieId).orElseThrow(
-                                () -> new AppException("Movie not found",
-                                                ErrorCode.MOVIE_NOT_FOUND));
+                List<Review> reviews = reviewRepository.findReviewsByMovie_Id(movieId);
 
-                return commentRepository.findCommentsByMovieAndParentCommentIsNull(movie, Pageable.unpaged())
-                                .stream()
-                                .mapToInt(Comment::getRating)
+                return reviews.stream()
+                                .mapToInt(Review::getRating)
                                 .average()
                                 .orElse(0.0);
         }
 
-        public Long getCommentCountByMovieId(Long movieId) {
-                Movie movie = movieRepository.findById(movieId).orElseThrow(
-                                () -> new AppException("Movie not found",
-                                                ErrorCode.MOVIE_NOT_FOUND));
+        public Integer getTotalReviewByMovieId(Long movieId) {
+                return (Integer) reviewRepository.findReviewsByMovie_IdAndParentReviewIsNull(movieId).size();
 
-                return commentRepository.findCommentsByMovieAndParentCommentIsNull(movie, Pageable.unpaged())
-                                .getTotalElements();
+        }
+
+        public Object getAllReviews(Pageable pageable) {
+                Page<Review> reviewPage = reviewRepository.findAll(pageable);
+                return reviewPage.map(reviewMapper::mapToItemResponse);
         }
 }

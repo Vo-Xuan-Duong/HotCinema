@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { message } from 'antd';
 
 /**
  * Generic WebSocket Hook for Real-time Communication
@@ -61,7 +60,9 @@ const useWebSocket = (url, options = {}) => {
                 setReconnectAttempts(0);
 
                 if (showConnectionMessage && !hasShownConnectionMessage.current) {
-                    message.success('Kết nối thành công!');
+                    if (showConnectionMessage) {
+                        console.log('Kết nối thành công!');
+                    }
                     hasShownConnectionMessage.current = true;
                 }
 
@@ -127,7 +128,7 @@ const useWebSocket = (url, options = {}) => {
                         connect();
                     }, delay);
                 } else if (reconnectAttempts >= maxReconnectAttempts) {
-                    message.error('Không thể kết nối đến server. Vui lòng tải lại trang.');
+                    console.error('Không thể kết nối đến server. Vui lòng tải lại trang.');
                 }
             };
 

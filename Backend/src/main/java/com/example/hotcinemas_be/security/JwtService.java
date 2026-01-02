@@ -1,4 +1,4 @@
-package com.example.hotcinemas_be.jwts;
+package com.example.hotcinemas_be.security;
 
 import com.example.hotcinemas_be.enums.TokenType;
 import com.example.hotcinemas_be.exceptions.AppException;
@@ -39,11 +39,10 @@ public class JwtService {
         this.userRepository = userRepository;
     }
 
-    public String generateToken(TokenType tokenType, UserDetails userDetails, String tokenId) {
+    public String generateToken(TokenType tokenType, UserDetails userDetails) {
 
         String token = Jwts.builder()
                 .claim("roles : ", getRole(userDetails))
-                .id(tokenId)
                 .subject(userDetails.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .issuer(ISSUER)
@@ -52,7 +51,7 @@ public class JwtService {
                 .compact();
 
         if (tokenType.equals(TokenType.REFRESH)) {
-            refreshTokenService.addRefreshToken(userDetails.getUsername(), token ,tokenId);
+            refreshTokenService.addRefreshToken(userDetails.getUsername(), token);
         }
 
         return token;
@@ -94,7 +93,7 @@ public class JwtService {
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token, tokenType));
     }
 
-    public String extractUsername(String token, TokenType tokenType) {
+    public String extractEmail(String token, TokenType tokenType) {
         return extractClaims(token, tokenType).getSubject();
     }
 
@@ -102,7 +101,4 @@ public class JwtService {
         return extractClaims(token, tokenType).getId();
     }
 
-    public String extractEmail(String token, TokenType tokenType) {
-        return extractClaims(token, tokenType).get("email", String.class);
-    }
 }

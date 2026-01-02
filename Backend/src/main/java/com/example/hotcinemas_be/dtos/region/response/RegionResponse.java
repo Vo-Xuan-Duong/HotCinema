@@ -1,4 +1,4 @@
-package com.example.hotcinemas_be.dtos.city.response;
+package com.example.hotcinemas_be.dtos.region.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,11 +9,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class CityResponse {
+public class RegionResponse {
     private Long id;
     private String name;
-    private String code;
-    private String country;
+    private String slug;
     private boolean isActive;
-
 }

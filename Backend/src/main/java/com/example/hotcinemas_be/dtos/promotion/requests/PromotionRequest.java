@@ -1,7 +1,9 @@
-package com.example.hotcinemas_be.dtos.voucher.requests;
+package com.example.hotcinemas_be.dtos.promotion.requests;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import com.example.hotcinemas_be.enums.DiscountType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,14 +13,16 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class VoucherRequest {
+public class PromotionRequest {
     private String code;
+    private String name;
     private String description;
-    private VoucherType voucherType;
-    private Integer quantity;
-    private Double discountValue;
-    private Double minOrderAmount;
-    private Double maxDiscountAmount;
+    private DiscountType discountType;
+    private BigDecimal discountValue;
+    private BigDecimal minPurchase;
+    private BigDecimal maxDiscount;
+    private Integer usageLimit;
+    private Integer usedCount;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
 }

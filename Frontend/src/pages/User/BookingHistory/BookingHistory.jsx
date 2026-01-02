@@ -1,24 +1,25 @@
 import React, { useState, useMemo } from 'react';
-import {
-    Table, Card, Button, Tag, Space, Modal, Descriptions, Row, Col,
-    Tooltip, Input, Select, DatePicker, Empty, Statistic, Image,
-    Typography, Divider, Rate, message
-} from 'antd';
-import {
-    EyeOutlined, PrinterOutlined, DownloadOutlined, DeleteOutlined,
-    CalendarOutlined, ClockCircleOutlined, SearchOutlined, StarFilled,
-    UserOutlined, FileTextOutlined
-} from '@ant-design/icons';
+import { Eye, Printer, Download, Trash2, Calendar, Clock, Star, User, FileText, Search } from 'lucide-react';
 import moment from 'moment';
+import { Button } from '../../../components/ui/button';
+import { Card } from '../../../components/ui/card';
+import { Tag } from '../../../components/ui/tag';
+import { Input } from '../../../components/ui/input';
+import { Select } from '../../../components/ui/select';
+import { RangePicker } from '../../../components/ui/date-picker';
+import { Empty } from '../../../components/ui/empty';
+import { StatisticCard } from '../../../components/ui/statistic';
+import { Rate } from '../../../components/ui/rate';
+import { Modal } from '../../../components/ui/modal';
+import { Descriptions } from '../../../components/ui/descriptions';
+import { TableWrapper } from '../../../components/ui/table-wrapper';
+import { Tooltip } from '../../../components/ui/tooltip';
+import { Separator } from '../../../components/ui/separator';
 import useAuth from '../../../hooks/useAuth';
+import useNotification from '../../../hooks/useNotification';
 
-const { Title, Paragraph, Text } = Typography;
-const { Option } = Select;
-const { RangePicker } = DatePicker;
-
-// Mock data
 const mockBookings = [
-  {
+    {
         id: 'BK001',
         movie: 'Spider-Man: No Way Home',
         moviePoster: 'https://image.tmdb.org/t/p/w500/1g0dhYtq4irTY1GPXvft6k4YLjm.jpg',
@@ -70,122 +71,77 @@ const mockBookings = [
     }
 ];
 
-// TicketViewer Component
 const TicketViewer = ({ ticket }) => {
     if (!ticket) return null;
 
     return (
-        <div style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            borderRadius: '12px',
-            padding: '24px',
-            color: 'white',
-            position: 'relative',
-            overflow: 'hidden'
-        }}>
-            {/* Header */}
-            <div style={{
-                textAlign: 'center',
-                marginBottom: '20px',
-                borderBottom: '2px dashed rgba(255,255,255,0.3)',
-                paddingBottom: '16px'
-            }}>
-                <h2 style={{ color: 'white', margin: '0 0 8px 0', fontSize: '24px' }}>HOT CINEMAS</h2>
-                <p style={{ margin: 0, fontSize: '14px', opacity: 0.9 }}>VÉ XEM PHIM ĐIỆN TỬ</p>
+        <div className="bg-gradient-to-br from-purple-600 to-purple-800 rounded-xl p-6 text-white relative overflow-hidden">
+            <div className="text-center mb-5 pb-4 border-b-2 border-dashed border-white/30">
+                <h2 className="text-white m-0 mb-2 text-2xl font-bold">HOT CINEMAS</h2>
+                <p className="m-0 text-sm opacity-90">VÉ XEM PHIM ĐIỆN TỬ</p>
             </div>
 
-            {/* Movie & Cinema Info */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+            <div className="grid grid-cols-2 gap-5 mb-5">
                 <div>
-                    <div style={{ marginBottom: '8px' }}>
-                        <strong style={{ fontSize: '16px' }}>{ticket.movie}</strong>
+                    <div className="mb-2">
+                        <strong className="text-base">{ticket.movie}</strong>
                     </div>
-                    <div style={{ fontSize: '14px', opacity: 0.9 }}>
+                    <div className="text-sm opacity-90">
                         📍 {ticket.cinema}
                     </div>
-                    <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '4px' }}>
+                    <div className="text-xs opacity-80 mt-1">
                         {ticket.cinemaAddress}
                     </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '14px', marginBottom: '4px' }}>
+                <div className="text-right">
+                    <div className="text-sm mb-1">
                         📅 {moment(ticket.showtime).format('DD/MM/YYYY')}
                     </div>
-                    <div style={{ fontSize: '14px', marginBottom: '4px' }}>
+                    <div className="text-sm mb-1">
                         🕐 {moment(ticket.showtime).format('HH:mm')}
                     </div>
-                    <div style={{ fontSize: '14px' }}>
+                    <div className="text-sm">
                         🎬 {ticket.room}
                     </div>
                 </div>
             </div>
 
-            {/* Seats & Price */}
-            <div style={{
-                background: 'rgba(255,255,255,0.1)',
-                borderRadius: '8px',
-                padding: '16px',
-                marginBottom: '16px'
-            }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="bg-white/10 rounded-lg p-4 mb-4">
+                <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '4px' }}>GHẾ NGỒI</div>
-                        <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
+                        <div className="text-xs opacity-80 mb-1">GHẾ NGỒI</div>
+                        <div className="text-lg font-bold">
                             {ticket.seats.join(', ')}
                         </div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '12px', opacity: 0.8, marginBottom: '4px' }}>TỔNG TIỀN</div>
-                        <div style={{ fontSize: '18px', fontWeight: 'bold' }}>
+                    <div className="text-right">
+                        <div className="text-xs opacity-80 mb-1">TỔNG TIỀN</div>
+                        <div className="text-lg font-bold">
                             {ticket.totalPrice.toLocaleString('vi-VN')} VNĐ
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Booking Details */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '12px' }}>
+            <div className="grid grid-cols-2 gap-4 text-xs">
                 <div>
-                    <div style={{ opacity: 0.8 }}>Mã vé: <strong>{ticket.id}</strong></div>
-                    <div style={{ opacity: 0.8 }}>Số lượng: {ticket.quantity} vé</div>
+                    <div className="opacity-80">Mã vé: <strong>{ticket.id}</strong></div>
+                    <div className="opacity-80">Số lượng: {ticket.quantity} vé</div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                    <div style={{ opacity: 0.8 }}>Ngày đặt: {moment(ticket.bookingDate).format('DD/MM/YYYY')}</div>
-                    <div style={{ opacity: 0.8 }}>Thanh toán: {ticket.paymentMethod}</div>
+                <div className="text-right">
+                    <div className="opacity-80">Ngày đặt: {moment(ticket.bookingDate).format('DD/MM/YYYY')}</div>
+                    <div className="opacity-80">Thanh toán: {ticket.paymentMethod}</div>
                 </div>
             </div>
 
-            {/* QR Code Placeholder */}
-            <div style={{
-                position: 'absolute',
-                top: '20px',
-                right: '20px',
-                width: '60px',
-                height: '60px',
-                background: 'white',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '10px',
-                color: '#333',
-                textAlign: 'center'
-            }}>
+            <div className="absolute top-5 right-5 w-15 h-15 bg-white rounded-lg flex items-center justify-center text-xs text-gray-900">
                 QR
             </div>
 
-            {/* Footer */}
-            <div style={{
-                marginTop: '20px',
-                paddingTop: '16px',
-                borderTop: '1px dashed rgba(255,255,255,0.3)',
-                textAlign: 'center',
-                fontSize: '10px',
-                opacity: 0.8
-            }}>
-                <p style={{ margin: '0 0 4px 0' }}>Vui lòng có mặt tại rạp trước 15 phút</p>
-                <p style={{ margin: '0 0 4px 0' }}>Hotline: 1900-6017 | Website: hotcinemas.vn</p>
-                <p style={{ margin: 0 }}>Xem vé lúc: {moment().format('DD/MM/YYYY HH:mm:ss')}</p>
+            <div className="mt-5 pt-4 border-t border-dashed border-white/30 text-center text-xs opacity-80">
+                <p className="m-0 mb-1">Vui lòng có mặt tại rạp trước 15 phút</p>
+                <p className="m-0 mb-1">Hotline: 1900-6017 | Website: hotcinemas.vn</p>
+                <p className="m-0">Xem vé lúc: {moment().format('DD/MM/YYYY HH:mm:ss')}</p>
             </div>
         </div>
     );
@@ -193,6 +149,7 @@ const TicketViewer = ({ ticket }) => {
 
 const BookingHistory = () => {
     const { isAuthenticated } = useAuth();
+    const notification = useNotification();
     const [searchText, setSearchText] = useState('');
     const [statusFilter, setStatusFilter] = useState(null);
     const [dateRange, setDateRange] = useState(null);
@@ -201,10 +158,8 @@ const BookingHistory = () => {
     const [ticketViewerVisible, setTicketViewerVisible] = useState(false);
     const [ticketToView, setTicketToView] = useState(null);
 
-    // Filter bookings
     const filteredBookings = useMemo(() => {
         return mockBookings.filter(booking => {
-            // Search filter
             if (searchText) {
                 const searchLower = searchText.toLowerCase();
                 if (!booking.movie.toLowerCase().includes(searchLower) &&
@@ -214,12 +169,10 @@ const BookingHistory = () => {
                 }
             }
 
-            // Status filter
             if (statusFilter && booking.status !== statusFilter) {
                 return false;
             }
 
-            // Date filter
             if (dateRange && dateRange.length === 2) {
                 const bookingDate = moment(booking.bookingDate);
                 if (!bookingDate.isBetween(dateRange[0], dateRange[1], 'day', '[]')) {
@@ -269,114 +222,23 @@ const BookingHistory = () => {
             <head>
                 <title>Vé xem phim - ${booking.id}</title>
                 <style>
-                    body { 
-                        font-family: Arial, sans-serif; 
-                        margin: 0; 
-                        padding: 20px; 
-                        background: #f5f5f5;
-                    }
-                    .ticket {
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        color: white;
-                        max-width: 400px;
-                        margin: 0 auto;
-                        border-radius: 12px;
-                        padding: 24px;
-                        position: relative;
-                        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-                    }
-                    .header {
-                        text-align: center;
-                        border-bottom: 2px dashed rgba(255,255,255,0.3);
-                        padding-bottom: 16px;
-                        margin-bottom: 20px;
-                    }
-                    .header h1 {
-                        margin: 0 0 8px 0;
-                        font-size: 24px;
-                    }
-                    .header p {
-                        margin: 0;
-                        font-size: 14px;
-                        opacity: 0.9;
-                    }
-                    .content {
-                        display: grid;
-                        grid-template-columns: 1fr 1fr;
-                        gap: 20px;
-                        margin-bottom: 20px;
-                    }
-                    .movie-info h2 {
-                        margin: 0 0 8px 0;
-                        font-size: 16px;
-                    }
-                    .cinema-info {
-                        text-align: right;
-                        font-size: 14px;
-                    }
-                    .details {
-                        background: rgba(255,255,255,0.1);
-                        border-radius: 8px;
-                        padding: 16px;
-                        margin-bottom: 16px;
-                    }
-                    .details-grid {
-                        display: grid;
-                        grid-template-columns: 1fr 1fr;
-                        gap: 16px;
-                    }
-                    .seats {
-                        font-size: 18px;
-                        font-weight: bold;
-                    }
-                    .price {
-                        text-align: right;
-                        font-size: 18px;
-                        font-weight: bold;
-                    }
-                    .booking-details {
-                        display: grid;
-                        grid-template-columns: 1fr 1fr;
-                        gap: 16px;
-                        font-size: 12px;
-                    }
-                    .qr-code {
-                        position: absolute;
-                        top: 20px;
-                        right: 20px;
-                        width: 60px;
-                        height: 60px;
-                        background: white;
-                        border-radius: 8px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        color: #333;
-                        font-size: 10px;
-                        text-align: center;
-                    }
-                    .footer {
-                        margin-top: 20px;
-                        padding-top: 16px;
-                        border-top: 1px dashed rgba(255,255,255,0.3);
-                        text-align: center;
-                        font-size: 10px;
-                        opacity: 0.8;
-                    }
-                    .footer p {
-                        margin: 0 0 4px 0;
-                    }
-                    @media print {
-                        body { 
-                            background: white; 
-                            padding: 0; 
-                        }
-                        .ticket {
-                            box-shadow: none;
-                            max-width: none;
-                            width: 100%;
-                        }
-                    }
+                    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
+                    .ticket { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; max-width: 400px; margin: 0 auto; border-radius: 12px; padding: 24px; position: relative; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+                    .header { text-align: center; border-bottom: 2px dashed rgba(255,255,255,0.3); padding-bottom: 16px; margin-bottom: 20px; }
+                    .header h1 { margin: 0 0 8px 0; font-size: 24px; }
+                    .header p { margin: 0; font-size: 14px; opacity: 0.9; }
+                    .content { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+                    .movie-info h2 { margin: 0 0 8px 0; font-size: 16px; }
+                    .cinema-info { text-align: right; font-size: 14px; }
+                    .details { background: rgba(255,255,255,0.1); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+                    .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+                    .seats { font-size: 18px; font-weight: bold; }
+                    .price { text-align: right; font-size: 18px; font-weight: bold; }
+                    .booking-details { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 12px; }
+                    .qr-code { position: absolute; top: 20px; right: 20px; width: 60px; height: 60px; background: white; border-radius: 8px; display: flex; align-items: center; justify-center; color: #333; font-size: 10px; text-align: center; }
+                    .footer { margin-top: 20px; padding-top: 16px; border-top: 1px dashed rgba(255,255,255,0.3); text-align: center; font-size: 10px; opacity: 0.8; }
+                    .footer p { margin: 0 0 4px 0; }
+                    @media print { body { background: white; padding: 0; } .ticket { box-shadow: none; max-width: none; width: 100%; } }
                 </style>
             </head>
             <body>
@@ -385,14 +247,11 @@ const BookingHistory = () => {
                         <h1>HOT CINEMAS</h1>
                         <p>VÉ XEM PHIM ĐIỆN TỬ</p>
                     </div>
-                    
                     <div class="content">
                         <div class="movie-info">
                             <h2>${booking.movie}</h2>
                             <div>📍 ${booking.cinema}</div>
-                            <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">
-                                ${booking.cinemaAddress}
-                            </div>
+                            <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">${booking.cinemaAddress}</div>
                         </div>
                         <div class="cinema-info">
                             <div>📅 ${moment(booking.showtime).format('DD/MM/YYYY')}</div>
@@ -400,7 +259,6 @@ const BookingHistory = () => {
                             <div>🎬 ${booking.room}</div>
                         </div>
                     </div>
-                    
                     <div class="details">
                         <div class="details-grid">
                             <div>
@@ -413,7 +271,6 @@ const BookingHistory = () => {
                             </div>
                         </div>
                     </div>
-                    
                     <div class="booking-details">
                         <div>
                             <div>Mã vé: <strong>${booking.id}</strong></div>
@@ -424,9 +281,7 @@ const BookingHistory = () => {
                             <div>Thanh toán: ${booking.paymentMethod}</div>
                         </div>
                     </div>
-                    
                     <div class="qr-code">QR</div>
-                    
                     <div class="footer">
                         <p>Vui lòng có mặt tại rạp trước 15 phút</p>
                         <p>Hotline: 1900-6017 | Website: hotcinemas.vn</p>
@@ -447,7 +302,7 @@ const BookingHistory = () => {
     };
 
     const handleDownloadTicket = (bookingId) => {
-        message.success(`Đang tải vé ${bookingId}...`);
+        notification.success(`Đang tải vé ${bookingId}...`);
     };
 
     const handleCancelBooking = (bookingId) => {
@@ -455,7 +310,7 @@ const BookingHistory = () => {
             title: 'Xác nhận hủy vé',
             content: 'Bạn có chắc chắn muốn hủy vé này không? Hành động này không thể hoàn tác.',
             onOk: () => {
-                message.success(`Đã hủy vé ${bookingId}`);
+                notification.success(`Đã hủy vé ${bookingId}`);
             }
         });
     };
@@ -466,7 +321,7 @@ const BookingHistory = () => {
             dataIndex: 'id',
             key: 'id',
             width: 100,
-            render: (text) => <Text strong>{text}</Text>
+            render: (text) => <span className="font-semibold">{text}</span>
         },
         {
             title: 'Phim',
@@ -474,20 +329,19 @@ const BookingHistory = () => {
             key: 'movie',
             width: 200,
             render: (text, record) => (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <Image
+                <div className="flex items-center gap-3">
+                    <img
                         src={record.moviePoster}
                         alt={text}
-                        width={40}
-                        height={60}
-                        preview={false}
-                        style={{ borderRadius: '4px' }}
-                        fallback="https://via.placeholder.com/40x60?text=No+Image"
+                        className="w-10 h-15 object-cover rounded"
+                        onError={(e) => {
+                            e.target.src = 'https://via.placeholder.com/40x60?text=No+Image';
+                        }}
                     />
                     <div>
-                        <Text strong>{text}</Text>
+                        <span className="font-semibold">{text}</span>
                         <br />
-                        <Text type="secondary">{record.room}</Text>
+                        <span className="text-gray-500 text-sm">{record.room}</span>
                     </div>
                 </div>
             )
@@ -499,9 +353,9 @@ const BookingHistory = () => {
             width: 180,
             render: (text, record) => (
                 <div>
-                    <Text strong>{text}</Text>
+                    <span className="font-semibold">{text}</span>
                     <br />
-                    <Text type="secondary" style={{ fontSize: '12px' }}>{record.cinemaAddress}</Text>
+                    <span className="text-gray-500 text-xs">{record.cinemaAddress}</span>
                 </div>
             )
         },
@@ -511,11 +365,11 @@ const BookingHistory = () => {
             key: 'seats',
             width: 100,
             render: (seats) => (
-                <Space wrap>
+                <div className="flex flex-wrap gap-1">
                     {seats.map(seat => (
                         <Tag key={seat} color="blue">{seat}</Tag>
                     ))}
-                </Space>
+                </div>
             )
         },
         {
@@ -525,11 +379,13 @@ const BookingHistory = () => {
             width: 140,
             render: (text) => (
                 <div>
-                    <div>
-                        <CalendarOutlined /> {moment(text).format('DD/MM/YYYY')}
+                    <div className="flex items-center gap-1 text-sm">
+                        <Calendar className="h-3 w-3" />
+                        {moment(text).format('DD/MM/YYYY')}
                     </div>
-                    <div>
-                        <ClockCircleOutlined /> {moment(text).format('HH:mm')}
+                    <div className="flex items-center gap-1 text-sm">
+                        <Clock className="h-3 w-3" />
+                        {moment(text).format('HH:mm')}
                     </div>
                 </div>
             )
@@ -540,9 +396,9 @@ const BookingHistory = () => {
             key: 'totalPrice',
             width: 120,
             render: (price) => (
-                <Text strong style={{ color: '#e50914' }}>
+                <span className="font-semibold text-primary">
                     {new Intl.NumberFormat('vi-VN').format(price)}đ
-                </Text>
+                </span>
             )
         },
         {
@@ -561,64 +417,68 @@ const BookingHistory = () => {
             key: 'actions',
             width: 180,
             render: (_, record) => (
-                <Space size="middle">
-                    <Tooltip title="Xem chi tiết">
+                <div className="flex items-center gap-2">
+                    <Tooltip content="Xem chi tiết">
                         <Button
-                            type="link"
-                            icon={<EyeOutlined />}
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleViewDetail(record)}
-                            size="small"
-                        />
+                        >
+                            <Eye className="h-4 w-4" />
+                        </Button>
                     </Tooltip>
                     {(record.status === 'completed' || record.status === 'upcoming') && (
-                        <Tooltip title="Xem vé">
-                            <Button
-                                type="link"
-                                icon={<FileTextOutlined />}
-                                onClick={() => handleViewTicket(record)}
-                                size="small"
-                                style={{ color: '#1890ff' }}
-                            />
-                        </Tooltip>
-                    )}
-                    {(record.status === 'completed' || record.status === 'upcoming') && (
-                        <Tooltip title="In vé">
-                            <Button
-                                type="link"
-                                icon={<PrinterOutlined />}
-                                onClick={() => handlePrintTicket(record)}
-                                size="small"
-                                style={{ color: '#52c41a' }}
-                            />
-                        </Tooltip>
+                        <>
+                            <Tooltip content="Xem vé">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleViewTicket(record)}
+                                    className="text-blue-600"
+                                >
+                                    <FileText className="h-4 w-4" />
+                                </Button>
+                            </Tooltip>
+                            <Tooltip content="In vé">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handlePrintTicket(record)}
+                                    className="text-green-600"
+                                >
+                                    <Printer className="h-4 w-4" />
+                                </Button>
+                            </Tooltip>
+                        </>
                     )}
                     {record.status === 'completed' && (
-                        <Tooltip title="Tải vé">
+                        <Tooltip content="Tải vé">
                             <Button
-                                type="link"
-                                icon={<DownloadOutlined />}
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => handleDownloadTicket(record.id)}
-                                size="small"
-                            />
+                            >
+                                <Download className="h-4 w-4" />
+                            </Button>
                         </Tooltip>
                     )}
                     {record.status === 'upcoming' && (
-                        <Tooltip title="Hủy vé">
+                        <Tooltip content="Hủy vé">
                             <Button
-                                type="link"
-                                danger
-                                icon={<DeleteOutlined />}
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => handleCancelBooking(record.id)}
-                                size="small"
-                            />
+                                className="text-red-600"
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
                         </Tooltip>
                     )}
-                </Space>
+                </div>
             )
         }
     ];
 
-    // Calculate statistics
     const totalBookings = mockBookings.length;
     const completedBookings = mockBookings.filter(b => b.status === 'completed').length;
     const upcomingBookings = mockBookings.filter(b => b.status === 'upcoming').length;
@@ -628,12 +488,12 @@ const BookingHistory = () => {
 
     if (!isAuthenticated) {
         return (
-            <div style={{ padding: '50px', textAlign: 'center' }}>
-                <Card>
-                    <UserOutlined style={{ fontSize: '48px', color: '#e50914', marginBottom: '20px' }} />
-                    <Title level={3}>Bạn chưa đăng nhập</Title>
-                    <Paragraph>Vui lòng đăng nhập để xem lịch sử đặt vé</Paragraph>
-                    <Button type="primary" size="large" href="/login-demo">
+            <div className="p-12 text-center min-h-screen flex items-center justify-center">
+                <Card className="max-w-md mx-auto">
+                    <User className="w-12 h-12 text-primary mx-auto mb-5" />
+                    <h3 className="text-xl font-bold mb-2">Bạn chưa đăng nhập</h3>
+                    <p className="text-gray-600 mb-4">Vui lòng đăng nhập để xem lịch sử đặt vé</p>
+                    <Button href="/login-demo">
                         Đăng nhập
                     </Button>
                 </Card>
@@ -641,206 +501,173 @@ const BookingHistory = () => {
         );
     }
 
-  return (
-        <div style={{ padding: '20px', minHeight: '100vh', background: '#f0f2f5' }}>
-            <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-                {/* Page Header */}
-                <div style={{ marginBottom: '24px' }}>
-                    <Title level={2} style={{ color: '#1890ff', marginBottom: '8px' }}>
+    return (
+        <div className="p-5 min-h-screen bg-gray-50">
+            <div className="max-w-[1200px] mx-auto">
+                <div className="mb-6">
+                    <h2 className="text-blue-600 mb-2 text-2xl font-bold">
                         📋 Lịch sử đặt vé
-                    </Title>
-                    <Paragraph style={{ color: '#666', fontSize: '16px' }}>
+                    </h2>
+                    <p className="text-gray-600 text-base">
                         Quản lý và theo dõi tất cả các vé đã đặt của bạn
-                    </Paragraph>
+                    </p>
                 </div>
 
-                {/* Statistics */}
-                <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-                    <Col xs={24} sm={6}>
-                        <Card>
-                            <Statistic
-                                title="Tổng số vé"
-                                value={totalBookings}
-                                valueStyle={{ color: '#3f8600' }}
-                                prefix={<CalendarOutlined />}
-                            />
-                        </Card>
-                    </Col>
-                    <Col xs={24} sm={6}>
-                        <Card>
-                            <Statistic
-                                title="Đã hoàn thành"
-                                value={completedBookings}
-                                valueStyle={{ color: '#52c41a' }}
-                                prefix={<StarFilled />}
-                            />
-                        </Card>
-                    </Col>
-                    <Col xs={24} sm={6}>
-                        <Card>
-                            <Statistic
-                                title="Sắp chiếu"
-                                value={upcomingBookings}
-                                valueStyle={{ color: '#1890ff' }}
-                                prefix={<ClockCircleOutlined />}
-                            />
-                        </Card>
-                    </Col>
-                    <Col xs={24} sm={6}>
-                        <Card>
-                            <Statistic
-                                title="Tổng chi tiêu"
-                                value={totalSpent}
-                                formatter={value => `${new Intl.NumberFormat('vi-VN').format(value)}đ`}
-                                valueStyle={{ color: '#faad14' }}
-                                prefix={<StarFilled />}
-                            />
-                        </Card>
-                    </Col>
-                </Row>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <Card>
+                        <StatisticCard
+                            title="Tổng số vé"
+                            value={totalBookings}
+                            valueStyle={{ color: '#3f8600' }}
+                            icon={<Calendar className="h-6 w-6" />}
+                        />
+                    </Card>
+                    <Card>
+                        <StatisticCard
+                            title="Đã hoàn thành"
+                            value={completedBookings}
+                            valueStyle={{ color: '#52c41a' }}
+                            icon={<Star className="h-6 w-6" />}
+                        />
+                    </Card>
+                    <Card>
+                        <StatisticCard
+                            title="Sắp chiếu"
+                            value={upcomingBookings}
+                            valueStyle={{ color: '#1890ff' }}
+                            icon={<Clock className="h-6 w-6" />}
+                        />
+                    </Card>
+                    <Card>
+                        <StatisticCard
+                            title="Tổng chi tiêu"
+                            value={`${new Intl.NumberFormat('vi-VN').format(totalSpent)}đ`}
+                            valueStyle={{ color: '#faad14' }}
+                            icon={<Star className="h-6 w-6" />}
+                        />
+                    </Card>
+                </div>
 
-                {/* Filters */}
-                <Card style={{ marginBottom: '24px' }}>
-                    <Row gutter={[16, 16]} align="middle">
-                        <Col xs={24} sm={8}>
+                <Card className="mb-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                             <Input
-                                prefix={<SearchOutlined />}
                                 placeholder="Tìm kiếm theo tên phim, rạp, mã vé..."
                                 value={searchText}
                                 onChange={e => setSearchText(e.target.value)}
-                                allowClear
-                                size="large"
+                                className="pl-10 h-10"
                             />
-                        </Col>
-                        <Col xs={24} sm={6}>
-                            <Select
-                                placeholder="Trạng thái"
-                                value={statusFilter}
-                                onChange={setStatusFilter}
-                                allowClear
-                                size="large"
-                                style={{ width: '100%' }}
-                            >
-                                <Option value="completed">Đã hoàn thành</Option>
-                                <Option value="upcoming">Sắp chiếu</Option>
-                                <Option value="cancelled">Đã hủy</Option>
-                                <Option value="expired">Đã hết hạn</Option>
-                            </Select>
-                        </Col>
-                        <Col xs={24} sm={10}>
-                            <RangePicker
-                                placeholder={['Từ ngày', 'Đến ngày']}
-                                value={dateRange}
-                                onChange={setDateRange}
-                                size="large"
-                                style={{ width: '100%' }}
-                                format="DD/MM/YYYY"
-                            />
-                        </Col>
-                    </Row>
+                        </div>
+                        <Select
+                            placeholder="Trạng thái"
+                            value={statusFilter}
+                            onValueChange={setStatusFilter}
+                        >
+                            <option value="completed">Đã hoàn thành</option>
+                            <option value="upcoming">Sắp chiếu</option>
+                            <option value="cancelled">Đã hủy</option>
+                            <option value="expired">Đã hết hạn</option>
+                        </Select>
+                        <RangePicker
+                            value={dateRange}
+                            onChange={setDateRange}
+                            format="DD/MM/YYYY"
+                        />
+                    </div>
                 </Card>
 
-                {/* Booking Table */}
                 <Card>
                     {filteredBookings.length === 0 ? (
-                        <Empty
-                            description="Không tìm thấy vé nào"
-                            image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        />
+                        <Empty description="Không tìm thấy vé nào" />
                     ) : (
-                        <Table
+                        <TableWrapper
                             columns={columns}
                             dataSource={filteredBookings}
                             rowKey="id"
                             pagination={{
                                 showSizeChanger: true,
                                 showQuickJumper: true,
-                                showTotal: (total, range) =>
-                                    `${range[0]}-${range[1]} của ${total} vé`,
                             }}
-                            scroll={{ x: 1200 }}
                         />
                     )}
                 </Card>
 
-                {/* Detail Modal */}
                 <Modal
                     title="Chi tiết đặt vé"
                     open={detailModalVisible}
                     onCancel={() => setDetailModalVisible(false)}
+                    width={700}
                     footer={[
-                        <Button key="close" onClick={() => setDetailModalVisible(false)}>
+                        <Button key="close" variant="outline" onClick={() => setDetailModalVisible(false)}>
                             Đóng
                         </Button>,
                         (selectedBooking?.status === 'completed' || selectedBooking?.status === 'upcoming') && (
                             <Button
                                 key="view"
-                                icon={<FileTextOutlined />}
                                 onClick={() => handleViewTicket(selectedBooking)}
-                                style={{ background: '#1890ff', borderColor: '#1890ff', color: 'white' }}
+                                className="bg-blue-600 text-white"
                             >
+                                <FileText className="h-4 w-4 mr-2" />
                                 Xem vé
                             </Button>
                         ),
                         (selectedBooking?.status === 'completed' || selectedBooking?.status === 'upcoming') && (
                             <Button
                                 key="print"
-                                icon={<PrinterOutlined />}
                                 onClick={() => handlePrintTicket(selectedBooking)}
-                                style={{ background: '#52c41a', borderColor: '#52c41a', color: 'white' }}
+                                className="bg-green-600 text-white"
                             >
+                                <Printer className="h-4 w-4 mr-2" />
                                 In vé
                             </Button>
                         ),
                         selectedBooking?.status === 'completed' && (
                             <Button
                                 key="download"
-                                type="primary"
-                                icon={<DownloadOutlined />}
                                 onClick={() => handleDownloadTicket(selectedBooking?.id)}
                             >
+                                <Download className="h-4 w-4 mr-2" />
                                 Tải vé
                             </Button>
                         ),
                         selectedBooking?.status === 'upcoming' && (
                             <Button
                                 key="cancel"
-                                danger
-                                icon={<DeleteOutlined />}
+                                variant="destructive"
                                 onClick={() => {
                                     setDetailModalVisible(false);
                                     handleCancelBooking(selectedBooking?.id);
                                 }}
                             >
+                                <Trash2 className="h-4 w-4 mr-2" />
                                 Hủy vé
                             </Button>
                         )
                     ].filter(Boolean)}
-                    width={700}
                 >
                     {selectedBooking && (
                         <div>
-                            <Row gutter={[24, 24]}>
-                                <Col span={8}>
-                                    <Image
-                                        src={selectedBooking.moviePoster}
-                                        alt={selectedBooking.movie}
-                                        width="100%"
-                                        style={{ borderRadius: '8px' }}
-                                        fallback="https://via.placeholder.com/200x300?text=No+Image"
-                                    />
-                                </Col>
-                                <Col span={16}>
-                                    <Title level={4}>
+                            <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-6">
+                                <img
+                                    src={selectedBooking.moviePoster}
+                                    alt={selectedBooking.movie}
+                                    className="w-full rounded-lg"
+                                    onError={(e) => {
+                                        e.target.src = 'https://via.placeholder.com/200x300?text=No+Image';
+                                    }}
+                                />
+                                <div>
+                                    <h4 className="text-lg font-bold mb-2">
                                         {selectedBooking.movie}
-                                    </Title>
-                                    <Tag color={getStatusColor(selectedBooking.status)}>
+                                    </h4>
+                                    <Tag color={getStatusColor(selectedBooking.status)} className="mb-4">
                                         {getStatusText(selectedBooking.status)}
                                     </Tag>
-                                    <Divider />
-                                    <Descriptions column={1} size="small">
+                                    <Separator className="mb-4" />
+                                    <Descriptions column={1}>
                                         <Descriptions.Item label="Mã vé">
-                                            <Text strong>{selectedBooking.id}</Text>
+                                            <span className="font-semibold">{selectedBooking.id}</span>
                                         </Descriptions.Item>
                                         <Descriptions.Item label="Rạp chiếu">
                                             {selectedBooking.cinema}
@@ -852,11 +679,11 @@ const BookingHistory = () => {
                                             {selectedBooking.room}
                                         </Descriptions.Item>
                                         <Descriptions.Item label="Ghế ngồi">
-                                            <Space>
+                                            <div className="flex flex-wrap gap-1">
                                                 {selectedBooking.seats.map(seat => (
                                                     <Tag key={seat} color="blue">{seat}</Tag>
                                                 ))}
-                                            </Space>
+                                            </div>
                                         </Descriptions.Item>
                                         <Descriptions.Item label="Suất chiếu">
                                             {moment(selectedBooking.showtime).format('DD/MM/YYYY HH:mm')}
@@ -868,48 +695,51 @@ const BookingHistory = () => {
                                             {selectedBooking.paymentMethod}
                                         </Descriptions.Item>
                                         <Descriptions.Item label="Tổng tiền">
-                                            <Text strong style={{ color: '#e50914' }}>
+                                            <span className="font-semibold text-primary text-lg">
                                                 {new Intl.NumberFormat('vi-VN').format(selectedBooking.totalPrice)}đ
-                                            </Text>
+                                            </span>
                                         </Descriptions.Item>
                                         {selectedBooking.status === 'cancelled' && selectedBooking.refundAmount && (
                                             <Descriptions.Item label="Số tiền hoàn">
-                                                <Text strong style={{ color: '#52c41a' }}>
+                                                <span className="font-semibold text-green-600">
                                                     {new Intl.NumberFormat('vi-VN').format(selectedBooking.refundAmount)}đ
-                                                </Text>
+                                                </span>
                                             </Descriptions.Item>
                                         )}
                                         {selectedBooking.hasReviewed && (
                                             <Descriptions.Item label="Đánh giá của bạn">
-                                                <Rate disabled defaultValue={selectedBooking.rating} />
+                                                <Rate disabled value={selectedBooking.rating} />
                                             </Descriptions.Item>
                                         )}
                                     </Descriptions>
-                                </Col>
-                            </Row>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </Modal>
 
-                {/* Ticket Viewer Modal */}
                 <Modal
-                    title={<span><FileTextOutlined /> Xem vé</span>}
+                    title={
+                        <span className="flex items-center gap-2">
+                            <FileText className="h-5 w-5" />
+                            Xem vé
+                        </span>
+                    }
                     open={ticketViewerVisible}
                     onCancel={() => setTicketViewerVisible(false)}
                     width={600}
                     footer={[
-                        <Button key="close" onClick={() => setTicketViewerVisible(false)}>
+                        <Button key="close" variant="outline" onClick={() => setTicketViewerVisible(false)}>
                             Đóng
                         </Button>,
                         <Button
                             key="print"
-                            type="primary"
-                            icon={<PrinterOutlined />}
                             onClick={() => {
                                 handlePrintTicket(ticketToView);
                                 setTicketViewerVisible(false);
                             }}
                         >
+                            <Printer className="h-4 w-4 mr-2" />
                             In vé
                         </Button>
                     ]}
@@ -917,8 +747,8 @@ const BookingHistory = () => {
                     {ticketToView && <TicketViewer ticket={ticketToView} />}
                 </Modal>
             </div>
-    </div>
-  );
+        </div>
+    );
 };
 
 export default BookingHistory;

@@ -1,5 +1,6 @@
 package com.example.hotcinemas_be.repositorys;
 
+import com.example.hotcinemas_be.enums.SeatStatus;
 import com.example.hotcinemas_be.enums.SeatType;
 import com.example.hotcinemas_be.models.Seat;
 import org.springframework.data.domain.Page;
@@ -13,18 +14,20 @@ import java.util.Optional;
 
 public interface SeatRepository extends JpaRepository<Seat, Long> {
 
-    List<Seat> findByRoomId(Long roomId);
+    List<Seat> findSeatsByTheater_Id(Long theaterId);
 
-    List<Seat> findByRoomIdAndIsActiveTrue(Long roomId);
+    List<Seat> findSeatsByTheater_IdAndSeatStatus(Long theaterId, SeatStatus seatStatus);
 
-    List<Seat> findBySeatType(SeatType seatType);
+    List<Seat> findSeatsBySeatType(SeatType seatType);
 
-    List<Seat> findByRoomIdAndSeatType(Long roomId, SeatType seatType);
+    List<Seat> findSeatsByTheater_IdAndSeatType(Long theaterId, SeatType seatType);
 
-    Optional<Seat> findByRoomIdAndName(Long roomId, String name);
+    Optional<Seat> findSeatByTheater_IdAndName(Long theaterId, String name);
 
-    Page<Seat> findByRoomId(Long roomId, Pageable pageable);
+    Page<Seat> findSeatsByTheater_Id(Long theaterId, Pageable pageable);
 
-    @Query("SELECT s FROM Seat s WHERE s.room.cinema.id = :cinemaId")
+    @Query("SELECT s FROM Seat s WHERE s.theater.cinema.id = :cinemaId")
     List<Seat> findByCinemaId(@Param("cinemaId") Long cinemaId);
+
+    List<Seat> findSeatsByTheater_Cinema_Id(Long cinemaId);
 }

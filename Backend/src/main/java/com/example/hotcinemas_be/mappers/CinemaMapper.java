@@ -2,15 +2,18 @@ package com.example.hotcinemas_be.mappers;
 
 import com.example.hotcinemas_be.dtos.cinema.responses.CinemaResponse;
 import com.example.hotcinemas_be.models.Cinema;
-import com.example.hotcinemas_be.services.RoomService;
+import com.example.hotcinemas_be.services.TheaterService;
 import org.springframework.stereotype.Service;
 
 @Service
 public class CinemaMapper {
-    private final RoomService roomService;
+    private final TheaterService theaterService;
+    private final RegionMapper regionMapper;
 
-    public CinemaMapper(RoomService roomService) {
-        this.roomService = roomService;
+    public CinemaMapper(TheaterService theaterService,
+                        RegionMapper regionMapper) {
+        this.regionMapper = regionMapper;
+        this.theaterService = theaterService;
     }
 
     public CinemaResponse mapToResponse(Cinema cinema) {
@@ -21,14 +24,11 @@ public class CinemaMapper {
                 .id(cinema.getId())
                 .name(cinema.getName())
                 .address(cinema.getAddress())
-                .phone(cinema.getPhone())
-                .email(cinema.getEmail())
-                .city(cinema.getCity().getName())
+                .region(regionMapper.mapToResponse(cinema.getRegion()))
                 .latitude(cinema.getLatitude())
                 .longitude(cinema.getLongitude())
-                .numberOfRooms(roomService.getNumberRoomsByCinemaId(cinema.getId()))
+                .numberOfRooms(theaterService.getNumberRoomsByCinemaId(cinema.getId()))
                 .createdAt(cinema.getCreatedAt() != null ? cinema.getCreatedAt().toString() : null)
-                .updatedAt(cinema.getUpdatedAt() != null ? cinema.getUpdatedAt().toString() : null)
                 .build();
     }
 }

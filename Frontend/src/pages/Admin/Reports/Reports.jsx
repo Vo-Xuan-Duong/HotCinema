@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, Button, Space, Typography, Alert, message } from 'antd';
-import { DollarCircleOutlined, ShoppingCartOutlined, UserOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+import { Card } from '../../../components/ui/card';
+import { Statistic } from '../../../components/ui/statistic';
+import { Button } from '../../../components/ui/button';
+import { Alert } from '../../../components/ui/alert';
+import { Breadcrumb } from '../../../components/ui/breadcrumb';
+import {
+    DollarSign,
+    ShoppingCart,
+    User,
+    Home
+} from 'lucide-react';
 import dayjs from 'dayjs';
-import './Reports.css';
-
-const { Title, Text } = Typography;
+import useNotification from '../../../hooks/useNotification';
 
 const Reports = () => {
     const [bookings, setBookings] = useState([]);
@@ -72,8 +80,28 @@ const Reports = () => {
     };
 
     return (
-        <div className="reports-page">
-            <Card className="controls-card">
+        <div className="p-6 bg-gray-50 min-h-screen">
+            {/* Breadcrumb */}
+            <Breadcrumb
+                className="mb-4"
+                items={[
+                    {
+                        title: (
+                            <span
+                                onClick={() => navigate('/admin/dashboard')}
+                                className="cursor-pointer hover:text-primary transition-colors"
+                            >
+                                <HomeOutlined /> Dashboard
+                            </span>
+                        ),
+                    },
+                    {
+                        title: 'Báo cáo',
+                    },
+                ]}
+            />
+
+            <Card className="mb-6 rounded-lg shadow-md">
                 <Alert
                     message={`Debug: ${bookings.length} bookings loaded`}
                     type="info"

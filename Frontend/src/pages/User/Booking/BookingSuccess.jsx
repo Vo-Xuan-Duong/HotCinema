@@ -1,25 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { Button, Card, Typography, Space, Divider, Spin, message } from 'antd';
-import { CheckCircleOutlined, DownloadOutlined, MailOutlined, CalendarOutlined, LoadingOutlined } from '@ant-design/icons';
-import QRCode from 'qrcode';
+import { CheckCircle2, Download, Mail, Calendar } from 'lucide-react';
+import { Button } from '../../../components/ui/button';
+import { Card } from '../../../components/ui/card';
+import ContentLoader from '../../../components/Loading/ContentLoader';
+import useNotification from '../../../hooks/useNotification';
 import paymentService from '../../../services/paymentService';
 import bookingService from '../../../services/bookingService';
 import ticketService from '../../../services/ticketService';
 import emailService from '../../../services/emailService';
-import './BookingSuccess.css';
-
-const { Title, Text } = Typography;
+import QRCode from 'qrcode';
+import dayjs from 'dayjs';
 
 const BookingSuccess = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [searchParams] = useSearchParams();
+    const notification = useNotification();
     const [qrCodeUrl, setQrCodeUrl] = useState('');
     const [loading, setLoading] = useState(true);
     const [bookingData, setBookingData] = useState({});
 
-    // Lấy bookingCode từ URL params, state hoặc localStorage
     const bookingCodeParam = searchParams.get('bookingCode') ||
         location.state?.bookingData?.bookingCode ||
         JSON.parse(localStorage.getItem('lastBooking') || '{}').bookingCode;
@@ -30,48 +31,133 @@ const BookingSuccess = () => {
                 setLoading(true);
 
                 if (bookingCodeParam) {
-                    // Lấy booking details từ bookingCode
                     const bookingDetails = await bookingService.getBookingByCode(bookingCodeParam);
 
-                    console.log('Fetched booking details:', bookingDetails);
-
-                    // Format seat information from seats array
+                    // Extract seat information from SeatSnapshot list
                     let seatInfo = 'Chưa có thông tin ghế';
-                    if (bookingDetails.seats && bookingDetails.seats.length > 0) {
-                        seatInfo = bookingDetails.seats.map(seat => seat.seatName).join(', ');
-                    } else if (bookingDetails.seatNames) {
-                        seatInfo = bookingDetails.seatNames;
+                    if (bookingDetails.seats && Array.isArray(bookingDetails.seats) && bookingDetails.seats.length > 0) {
+                        // SeatSnapshot may have seatName, name, or seatNumber property
+                        seatInfo = bookingDetails.seats
+                            .map(seat => seat.seatName || seat.name || seat.seatNumber || seat.id)
+                            .filter(Boolean)
+                            .join(', ');
                     }
 
-                    // Map dữ liệu từ BookingResponse
+                    // Format showtime date from LocalDate
+                    let formattedShowDate = '';
+                    if (bookingDetails.showtimeDateTime) {
+                        try {
+                            // Handle LocalDate format (YYYY-MM-DD) or ISO string
+                            const dateStr = bookingDetails.showtimeDateTime;
+                            const date = dayjs(dateStr);
+                            if (date.isValid()) {
+                                formattedShowDate = date.format('dddd, DD [Tháng] MM, YYYY');
+                                // Convert to Vietnamese day names
+                                formattedShowDate = formattedShowDate
+                                    .replace('Monday', 'Thứ Hai')
+                                    .replace('Tuesday', 'Thứ Ba')
+                                    .replace('Wednesday', 'Thứ Tư')
+                                    .replace('Thursday', 'Thứ Năm')
+                                    .replace('Friday', 'Thứ Sáu')
+                                    .replace('Saturday', 'Thứ Bảy')
+                                    .replace('Sunday', 'Chủ Nhật');
+                            }
+                        } catch (e) {
+                            console.warn('Error formatting showtime date:', e);
+                        }
+                    }
+
+                    // Format showtime start time from LocalTime
+                    let formattedStartTime = '';
+                    if (bookingDetails.showtimeStartTime) {
+                        try {
+                            // Handle LocalTime format (HH:mm:ss or HH:mm)
+                            const timeStr = bookingDetails.showtimeStartTime;
+                            if (/^\d{2}:\d{2}:\d{2}/.test(timeStr)) {
+                                formattedStartTime = timeStr.substring(0, 5); // Extract HH:mm
+                            } else if (/^\d{2}:\d{2}$/.test(timeStr)) {
+                                formattedStartTime = timeStr;
+                            } else {
+                                const time = dayjs(`2000-01-01 ${timeStr}`);
+                                if (time.isValid()) {
+                                    formattedStartTime = time.format('HH:mm');
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('Error formatting showtime start time:', e);
+                            formattedStartTime = bookingDetails.showtimeStartTime;
+                        }
+                    }
+
+                    // Format showtime end time from LocalTime
+                    let formattedEndTime = '';
+                    if (bookingDetails.showtimeEndTime) {
+                        try {
+                            const timeStr = bookingDetails.showtimeEndTime;
+                            if (/^\d{2}:\d{2}:\d{2}/.test(timeStr)) {
+                                formattedEndTime = timeStr.substring(0, 5);
+                            } else if (/^\d{2}:\d{2}$/.test(timeStr)) {
+                                formattedEndTime = timeStr;
+                            } else {
+                                const time = dayjs(`2000-01-01 ${timeStr}`);
+                                if (time.isValid()) {
+                                    formattedEndTime = time.format('HH:mm');
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('Error formatting showtime end time:', e);
+                            formattedEndTime = bookingDetails.showtimeEndTime;
+                        }
+                    }
+
+                    // Format total amount - use finalAmount if available, otherwise totalAmount
+                    const finalAmount = bookingDetails.finalAmount || bookingDetails.totalAmount || 0;
+                    const totalAmountValue = typeof finalAmount === 'number' ? finalAmount : parseFloat(finalAmount) || 0;
+                    const formattedTotalAmount = `${totalAmountValue.toLocaleString('vi-VN')}đ`;
+
+                    // Format discount amount
+                    const discountAmountValue = bookingDetails.discountAmount || 0;
+                    const discountValue = typeof discountAmountValue === 'number' ? discountAmountValue : parseFloat(discountAmountValue) || 0;
+
+                    // Build format string from movieFormat and movieAudioType
+                    let formatType = '';
+                    if (bookingDetails.movieFormat) {
+                        formatType = bookingDetails.movieFormat;
+                        if (bookingDetails.movieAudioType) {
+                            formatType += ` ${bookingDetails.movieAudioType}`;
+                        }
+                    }
+
                     const combinedData = {
                         bookingId: bookingDetails.id,
                         bookingCode: bookingDetails.bookingCode,
+                        status: bookingDetails.status,
                         movieTitle: bookingDetails.movieTitle,
+                        moviePosterUrl: bookingDetails.moviePosterUrl,
+                        movieFormat: bookingDetails.movieFormat,
+                        movieAudioType: bookingDetails.movieAudioType,
+                        formatType: formatType,
                         cinemaName: bookingDetails.cinemaName,
                         cinemaAddress: bookingDetails.cinemaAddress,
-                        screen: bookingDetails.roomName,
+                        roomName: bookingDetails.roomName,
                         seatNumbers: seatInfo,
                         seats: bookingDetails.seats || [],
-                        showDate: bookingDetails.showtimeDateTime ? new Date(bookingDetails.showtimeDateTime).toLocaleDateString('vi-VN', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                        }) : '',
-                        showTime: bookingDetails.showtimeStartTime || '',
-                        totalAmount: bookingDetails.totalPrice ? `${bookingDetails.totalPrice.toLocaleString('vi-VN')}đ` : '0đ',
+                        showDate: formattedShowDate,
+                        showTime: formattedStartTime,
+                        showTimeEnd: formattedEndTime,
+                        showTimeRange: formattedEndTime ? `${formattedStartTime} ~ ${formattedEndTime}` : formattedStartTime,
+                        totalAmount: formattedTotalAmount,
+                        totalAmountValue: totalAmountValue,
+                        discountAmount: discountValue,
+                        finalAmount: totalAmountValue,
                         moviePoster: bookingDetails.moviePosterUrl || 'https://via.placeholder.com/300x450',
                         bookingDate: bookingDetails.bookingDate,
                         userName: bookingDetails.userName,
-                        userEmail: bookingDetails.userEmail,
-                        originalPrice: bookingDetails.originalPrice,
-                        discountAmount: bookingDetails.discountAmount
+                        userEmail: bookingDetails.userEmail
                     };
 
                     setBookingData(combinedData);
 
-                    // Generate QR Code
                     const qrData = `BOOKING:${combinedData.bookingCode}`;
                     const qrUrl = await QRCode.toDataURL(qrData, {
                         width: 300,
@@ -83,7 +169,6 @@ const BookingSuccess = () => {
                     });
                     setQrCodeUrl(qrUrl);
                 } else {
-                    // Fallback: Sử dụng dữ liệu từ state/localStorage
                     const fallbackData = location.state?.bookingData || JSON.parse(localStorage.getItem('lastBooking') || '{}');
                     setBookingData(fallbackData);
 
@@ -102,7 +187,6 @@ const BookingSuccess = () => {
                 }
             } catch (error) {
                 console.error('Error fetching booking details:', error);
-                // Fallback to existing data
                 const fallbackData = location.state?.bookingData || JSON.parse(localStorage.getItem('lastBooking') || '{}');
                 setBookingData(fallbackData);
             } finally {
@@ -116,52 +200,40 @@ const BookingSuccess = () => {
     const handleDownloadPDF = async () => {
         try {
             if (!bookingData.bookingId) {
-                message.error('Không tìm thấy thông tin booking');
+                notification.error('Không tìm thấy thông tin booking');
                 return;
             }
 
-            message.loading('Đang tải vé...', 0);
+            notification.info('Đang tải vé...');
 
-            // Download by booking ID only
             const pdfBlob = await ticketService.downloadBookingPDF(bookingData.bookingId);
-
-            message.destroy();
-
-            // Trigger download
             const filename = `Ve_${bookingData.bookingId}.pdf`;
             ticketService.triggerDownload(pdfBlob, filename);
 
-            message.success('Tải vé thành công!');
+            notification.success('Tải vé thành công!');
         } catch (error) {
-            message.destroy();
             console.error('Error downloading PDF:', error);
-            message.error('Không thể tải vé. Vui lòng thử lại sau.');
+            notification.error('Không thể tải vé. Vui lòng thử lại sau.');
         }
     };
 
     const handleSendEmail = async () => {
         try {
             if (!bookingData.bookingId) {
-                message.error('Kh\u00f4ng t\u00ecm th\u1ea5y th\u00f4ng tin booking');
+                notification.error('Không tìm thấy thông tin booking');
                 return;
             }
 
-            message.loading('\u0110ang g\u1eedi email...', 0);
-
-            // Send ticket email by booking ID
+            notification.info('Đang gửi email...');
             await emailService.sendTicketEmail(bookingData.bookingId);
-
-            message.destroy();
-            message.success('\u0110\u00e3 g\u1eedi v\u00e9 qua email th\u00e0nh c\u00f4ng!');
+            notification.success('Đã gửi vé qua email thành công!');
         } catch (error) {
-            message.destroy();
             console.error('Error sending email:', error);
-            message.error('Kh\u00f4ng th\u1ec3 g\u1eedi email. Vui l\u00f2ng th\u1eed l\u1ea1i sau.');
+            notification.error('Không thể gửi email. Vui lòng thử lại sau.');
         }
     };
 
     const handleAddToCalendar = () => {
-        // TODO: Implement calendar integration
         console.log('Add to calendar');
     };
 
@@ -170,13 +242,7 @@ const BookingSuccess = () => {
     };
 
     if (loading) {
-        return (
-            <div className="booking-success-container">
-                <div className="success-content" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-                    <Spin indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />} tip="Đang tải thông tin đặt vé..." />
-                </div>
-            </div>
-        );
+        return <ContentLoader message="Đang tải thông tin đặt vé..." />;
     }
 
     const {
@@ -184,133 +250,126 @@ const BookingSuccess = () => {
         movieTitle = 'Dune: Part Two',
         cinemaName = 'CGV Crescent Mall',
         cinemaAddress = '101 Tôn Dật Tiên, P.Tân Phú, Quận 7, TP.HCM',
-        screen = 'Rạp 05',
+        roomName = 'Rạp 05',
         seatNumbers = 'Ghế F11, F12',
         showDate = 'Thứ Sáu, 24 Tháng 6, 2024',
         showTime = '15:30',
+        showTimeRange = '15:30',
         totalAmount = '250.000đ',
-        moviePoster = 'https://image.tmdb.org/t/p/original/czembW0Rk1Ke7lCJGahbOhdCuhV.jpg'
+        moviePoster = 'https://image.tmdb.org/t/p/original/czembW0Rk1Ke7lCJGahbOhdCuhV.jpg',
+        formatType = ''
     } = bookingData;
 
     return (
-        <div className="booking-success-container">
-            <div className="success-content">
-                {/* Success Icon */}
-                <div className="success-icon">
-                    <CheckCircleOutlined />
-                </div>
-
-                {/* Success Message */}
-                <Title level={2} className="success-title">
-                    Chúc mừng! Bạn đã đặt vé thành công.
-                </Title>
-                <Text className="success-subtitle">
-                    Một email xác nhận cũng với vé điện tử đã được gửi đến địa chỉ email của bạn.
-                </Text>                <div className="booking-details-wrapper">
-                    {/* QR Code Card */}
-                    <Card className="qr-code-card" bordered={false}>
-                        <div className="qr-code-card-header">
-                            <Text className="qr-card-title">Mã vé của bạn</Text>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center py-10 px-5">
+            <div className="max-w-[1200px] w-full mt-8">
+                <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-8 mb-10">
+                    <Card className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
+                        <div className="text-center mb-5">
+                            <p className="text-gray-800 text-base font-semibold block">
+                                Mã vé của bạn
+                            </p>
                         </div>
 
-                        <div className="qr-code-section">
+                        <div className="flex flex-col items-center justify-center mb-6">
                             {qrCodeUrl && (
-                                <div className="qr-code-wrapper">
-                                    <img src={qrCodeUrl} alt="QR Code" className="qr-code-image" />
+                                <div className="bg-white p-4 rounded-lg shadow-md">
+                                    <img src={qrCodeUrl} alt="QR Code" className="w-64 h-64" />
                                 </div>
                             )}
                         </div>
 
-                        <div className="booking-code-section">
-                            <Text className="code-label">Mã đặt vé:</Text>
-                            <Title level={3} className="booking-code">{bookingCode}</Title>
-                            <Text className="code-instruction">
+                        <div className="text-center mb-6">
+                            <p className="text-gray-600 text-sm block mb-2">Mã đặt vé:</p>
+                            <h3 className="text-gray-900 text-2xl font-bold mb-2">{bookingCode}</h3>
+                            <p className="text-gray-500 text-xs block">
                                 Sử dụng mã này để xuất vé tại rạp
-                            </Text>
+                            </p>
                         </div>
 
-                        {/* Action Buttons */}
-                        <div className="action-buttons-section">
-                            <Text className="action-section-label">Lưu lại vé của bạn</Text>
-                            <Space direction="vertical" size="middle" className="action-buttons">
+                        <div className="mt-6">
+                            <p className="text-gray-700 text-sm font-medium block mb-4">Lưu lại vé của bạn</p>
+                            <div className="flex flex-col gap-3 w-full">
                                 <Button
-                                    type="primary"
-                                    size="large"
-                                    icon={<DownloadOutlined />}
                                     onClick={handleDownloadPDF}
-                                    block
-                                    className="download-btn"
+                                    className="h-12 rounded-lg font-semibold"
                                 >
+                                    <Download className="h-4 w-4 mr-2" />
                                     Tải vé (PDF)
                                 </Button>
                                 <Button
-                                    size="large"
-                                    icon={<MailOutlined />}
+                                    variant="outline"
                                     onClick={handleSendEmail}
-                                    block
-                                    className="email-btn"
+                                    className="h-12 rounded-lg font-semibold"
                                 >
+                                    <Mail className="h-4 w-4 mr-2" />
                                     Gửi vé qua Email
                                 </Button>
                                 <Button
-                                    size="large"
-                                    icon={<CalendarOutlined />}
+                                    variant="outline"
                                     onClick={handleAddToCalendar}
-                                    block
-                                    className="calendar-btn"
+                                    className="h-12 rounded-lg font-semibold"
                                 >
+                                    <Calendar className="h-4 w-4 mr-2" />
                                     Thêm vào Lịch
                                 </Button>
-                            </Space>
+                            </div>
                         </div>
                     </Card>
 
-                    {/* Ticket Details Card */}
-                    <Card className="ticket-details-card" bordered={false}>
-                        <Title level={4} className="details-title">Chi tiết vé</Title>
+                    <Card className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
 
-                        <div className="ticket-info-grid">
-                            {/* Movie Poster */}
-                            <div className="movie-poster-section">
+                        <div className="text-center mb-6">
+                            <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto animate-pulse" />
+                        </div>
+
+                        <h2 className="text-gray-800 text-center mb-2.5 text-3xl font-bold">
+                            Chúc mừng! Bạn đã đặt vé thành công.
+                        </h2>
+
+                        <h4 className="text-gray-800 text-xl font-bold mb-6">Chi tiết vé</h4>
+
+                        <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-6">
+                            <div className="flex flex-col">
                                 <img
                                     src={moviePoster}
                                     alt={movieTitle}
-                                    className="movie-poster-large"
+                                    className="w-full h-64 object-cover rounded-lg mb-4"
                                 />
-                                <div className="movie-name-section">
-                                    <Text className="movie-name-label">Phim</Text>
-                                    <Text className="movie-name-value">{movieTitle}</Text>
+                                <div className="flex flex-col">
+                                    <p className="text-gray-500 text-xs font-medium mb-1">Phim</p>
+                                    <p className="text-gray-900 text-base font-semibold">{movieTitle}</p>
                                 </div>
                             </div>
 
-                            {/* Ticket Details - 2 columns */}
-                            <div className="ticket-details-columns">
-                                {/* Left Column */}
-                                <div className="detail-column">
-                                    <div className="detail-item">
-                                        <Text className="detail-label">Rạp chiếu</Text>
-                                        <Text className="detail-value">{cinemaName}</Text>
-                                        <Text className="detail-address">{cinemaAddress}</Text>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="flex flex-col gap-6">
+                                    <div className="flex flex-col">
+                                        <p className="text-gray-500 text-xs font-medium mb-1">Rạp chiếu</p>
+                                        <p className="text-gray-900 text-base font-semibold mb-1">{cinemaName}</p>
+                                        <p className="text-gray-600 text-sm">{cinemaAddress}</p>
                                     </div>
 
-                                    <div className="detail-item">
-                                        <Text className="detail-label">Thông tin chỗ ngồi</Text>
-                                        <Text className="detail-value">{screen}</Text>
-                                        <Text className="detail-seats">Ghế: {seatNumbers}</Text>
+                                    <div className="flex flex-col">
+                                        <p className="text-gray-500 text-xs font-medium mb-1">Thông tin chỗ ngồi</p>
+                                        <p className="text-gray-900 text-base font-semibold mb-1">{roomName}</p>
+                                        <p className="text-gray-600 text-sm">Ghế: {seatNumbers}</p>
                                     </div>
                                 </div>
 
-                                {/* Right Column */}
-                                <div className="detail-column">
-                                    <div className="detail-item">
-                                        <Text className="detail-label">Suất chiếu</Text>
-                                        <Text className="detail-value">{showDate}</Text>
-                                        <Text className="detail-time">{showTime}</Text>
+                                <div className="flex flex-col gap-6">
+                                    <div className="flex flex-col">
+                                        <p className="text-gray-500 text-xs font-medium mb-1">Suất chiếu</p>
+                                        <p className="text-gray-900 text-base font-semibold mb-1">{showDate}</p>
+                                        <p className="text-gray-600 text-sm">{showTimeRange || showTime}</p>
+                                        {formatType && (
+                                            <p className="text-gray-500 text-xs mt-1">{formatType}</p>
+                                        )}
                                     </div>
 
-                                    <div className="detail-item detail-item-total">
-                                        <Text className="detail-label">Thanh toán</Text>
-                                        <Text className="detail-total">{totalAmount}</Text>
+                                    <div className="flex flex-col pt-4 border-t border-gray-200">
+                                        <p className="text-gray-500 text-xs font-medium mb-1">Thanh toán</p>
+                                        <p className="text-red-600 text-2xl font-bold">{totalAmount}</p>
                                     </div>
                                 </div>
                             </div>
@@ -318,11 +377,9 @@ const BookingSuccess = () => {
                     </Card>
                 </div>
 
-                {/* Back to Home Button */}
                 <Button
-                    size="large"
                     onClick={handleBackToHome}
-                    className="back-home-btn"
+                    className="w-full max-w-md mx-auto block h-12 rounded-lg font-semibold"
                 >
                     Quay về trang chủ
                 </Button>

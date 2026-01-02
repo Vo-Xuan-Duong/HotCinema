@@ -38,7 +38,7 @@ public class RevenueService {
                 endDate.atTime(23, 59, 59));
 
         List<Payment> successfulPayments = payments.stream()
-                .filter(p -> p.getStatus() == PaymentStatus.SUCCESS)
+                .filter(p -> p.getPaymentStatus() == PaymentStatus.SUCCESS)
                 .toList();
 
         BigDecimal totalRevenue = successfulPayments.stream()
@@ -51,20 +51,20 @@ public class RevenueService {
                 .count();
 
         long totalTickets = successfulPayments.stream()
-                .map(p -> p.getBooking().getTotalSeats())
-                .mapToLong(Integer::longValue)
+                .map(p -> p.getBooking().getBookingSeats())
+                .mapToLong(List::size)
                 .sum();
 
         long successCount = payments.stream()
-                .filter(p -> p.getStatus() == PaymentStatus.SUCCESS)
+                .filter(p -> p.getPaymentStatus() == PaymentStatus.SUCCESS)
                 .count();
 
         long pendingCount = payments.stream()
-                .filter(p -> p.getStatus() == PaymentStatus.PENDING)
+                .filter(p -> p.getPaymentStatus() == PaymentStatus.PENDING)
                 .count();
 
         long failedCount = payments.stream()
-                .filter(p -> p.getStatus() == PaymentStatus.FAILED)
+                .filter(p -> p.getPaymentStatus() == PaymentStatus.FAILED)
                 .count();
 
         long daysBetween = ChronoUnit.DAYS.between(startDate, endDate) + 1;
@@ -96,7 +96,7 @@ public class RevenueService {
     public List<RevenueByDateResponse> getRevenueByDate(LocalDate startDate, LocalDate endDate) {
         log.info("Getting revenue by date from {} to {}", startDate, endDate);
 
-        List<Payment> payments = paymentRepository.findByPaymentDateBetweenAndStatus(
+        List<Payment> payments = paymentRepository.findByPaymentDateBetweenAndPaymentStatus(
                 startDate.atStartOfDay(),
                 endDate.atTime(23, 59, 59),
                 PaymentStatus.SUCCESS);
@@ -119,8 +119,8 @@ public class RevenueService {
                     .count();
 
             long totalTickets = datePayments.stream()
-                    .map(p -> p.getBooking().getTotalSeats())
-                    .mapToLong(Integer::longValue)
+                    .map(p -> p.getBooking().getBookingSeats())
+                    .mapToLong(List::size)
                     .sum();
 
             result.add(RevenueByDateResponse.builder()
@@ -147,12 +147,12 @@ public class RevenueService {
         Map<Long, List<Payment>> paymentsByMovie = payments.stream()
                 .collect(Collectors.groupingBy(p -> p.getBooking().getShowtime().getMovie().getId()));
 
-        List<RevenueByMovieResponse> result = paymentsByMovie.entrySet().stream()
+        return paymentsByMovie.entrySet().stream()
                 .map(entry -> {
                     Long movieId = entry.getKey();
                     List<Payment> moviePayments = entry.getValue();
 
-                    var movie = moviePayments.get(0).getBooking().getShowtime().getMovie();
+                    var movie = moviePayments.getFirst().getBooking().getShowtime().getMovie();
 
                     BigDecimal totalRevenue = moviePayments.stream()
                             .map(Payment::getAmount)
@@ -164,14 +164,14 @@ public class RevenueService {
                             .count();
 
                     long totalTickets = moviePayments.stream()
-                            .map(p -> p.getBooking().getTotalSeats())
-                            .mapToLong(Integer::longValue)
+                            .map(p -> p.getBooking().getBookingSeats())
+                            .mapToLong(List::size)
                             .sum();
 
                     return RevenueByMovieResponse.builder()
                             .movieId(movieId)
                             .movieTitle(movie.getTitle())
-                            .posterPath(movie.getPosterPath())
+                            .posterUrl(movie.getPosterUrl())
                             .totalRevenue(totalRevenue)
                             .totalBookings(totalBookings)
                             .totalTickets(totalTickets)
@@ -180,8 +180,6 @@ public class RevenueService {
                 .sorted((a, b) -> b.getTotalRevenue().compareTo(a.getTotalRevenue()))
                 .limit(limit > 0 ? limit : Integer.MAX_VALUE)
                 .collect(Collectors.toList());
-
-        return result;
     }
 
     /**
@@ -193,14 +191,14 @@ public class RevenueService {
         List<Payment> payments = getFilteredPayments(filter);
 
         Map<Long, List<Payment>> paymentsByCinema = payments.stream()
-                .collect(Collectors.groupingBy(p -> p.getBooking().getShowtime().getRoom().getCinema().getId()));
+                .collect(Collectors.groupingBy(p -> p.getBooking().getShowtime().getTheater().getCinema().getId()));
 
-        List<RevenueByCinemaResponse> result = paymentsByCinema.entrySet().stream()
+        return paymentsByCinema.entrySet().stream()
                 .map(entry -> {
                     Long cinemaId = entry.getKey();
                     List<Payment> cinemaPayments = entry.getValue();
 
-                    var cinema = cinemaPayments.get(0).getBooking().getShowtime().getRoom().getCinema();
+                    var cinema = cinemaPayments.getFirst().getBooking().getShowtime().getTheater().getCinema();
 
                     BigDecimal totalRevenue = cinemaPayments.stream()
                             .map(Payment::getAmount)
@@ -212,14 +210,14 @@ public class RevenueService {
                             .count();
 
                     long totalTickets = cinemaPayments.stream()
-                            .map(p -> p.getBooking().getTotalSeats())
-                            .mapToLong(Integer::longValue)
+                            .map(p -> p.getBooking().getBookingSeats())
+                            .mapToLong(List::size)
                             .sum();
 
                     return RevenueByCinemaResponse.builder()
                             .cinemaId(cinemaId)
                             .cinemaName(cinema.getName())
-                            .cityName(cinema.getCity() != null ? cinema.getCity().getName() : "N/A")
+                            .cityName(cinema.getRegion() != null ? cinema.getRegion().getName() : "N/A")
                             .totalRevenue(totalRevenue)
                             .totalBookings(totalBookings)
                             .totalTickets(totalTickets)
@@ -228,17 +226,12 @@ public class RevenueService {
                 .sorted((a, b) -> b.getTotalRevenue().compareTo(a.getTotalRevenue()))
                 .limit(limit > 0 ? limit : Integer.MAX_VALUE)
                 .collect(Collectors.toList());
-
-        return result;
     }
 
-    /**
-     * Get revenue by payment method
-     */
     public List<RevenueByPaymentMethodResponse> getRevenueByPaymentMethod(LocalDate startDate, LocalDate endDate) {
         log.info("Getting revenue by payment method from {} to {}", startDate, endDate);
 
-        List<Payment> payments = paymentRepository.findByPaymentDateBetweenAndStatus(
+        List<Payment> payments = paymentRepository.findByPaymentDateBetweenAndPaymentStatus(
                 startDate.atStartOfDay(),
                 endDate.atTime(23, 59, 59),
                 PaymentStatus.SUCCESS);
@@ -291,7 +284,7 @@ public class RevenueService {
         LocalDate endDate = filter.getEndDate() != null ? filter.getEndDate() : LocalDate.now();
         PaymentStatus status = filter.getPaymentStatus() != null ? filter.getPaymentStatus() : PaymentStatus.SUCCESS;
 
-        List<Payment> payments = paymentRepository.findByPaymentDateBetweenAndStatus(
+        List<Payment> payments = paymentRepository.findByPaymentDateBetweenAndPaymentStatus(
                 startDate.atStartOfDay(),
                 endDate.atTime(23, 59, 59),
                 status);
@@ -305,7 +298,7 @@ public class RevenueService {
 
         if (filter.getCinemaId() != null) {
             payments = payments.stream()
-                    .filter(p -> p.getBooking().getShowtime().getRoom().getCinema().getId()
+                    .filter(p -> p.getBooking().getShowtime().getTheater().getCinema().getId()
                             .equals(filter.getCinemaId()))
                     .collect(Collectors.toList());
         }

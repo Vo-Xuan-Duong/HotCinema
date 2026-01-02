@@ -1,34 +1,14 @@
 import React, { useState } from 'react';
-import {
-  Card,
-  Row,
-  Col,
-  Typography,
-  Button,
-  Space,
-  Tag,
-  Rate,
-  Avatar,
-  Badge,
-  Tooltip,
-  Empty,
-  Skeleton,
-  Modal
-} from 'antd';
-import {
-  PlayCircleOutlined,
-  CalendarOutlined,
-  FireOutlined,
-  HeartOutlined,
-  ShareAltOutlined,
-  InfoCircleOutlined,
-  RightOutlined,
-  StarOutlined,
-  ThunderboltOutlined,
-  SmileOutlined,
-  MehOutlined,
-  FrownOutlined
-} from '@ant-design/icons';
+import { Card } from '../ui/card';
+import { Button } from '../ui/button';
+import { Tag } from '../ui/tag';
+import { Rate } from '../ui/rate';
+import { Avatar } from '../ui/avatar';
+import { Badge } from '../ui/badge-count';
+import { Tooltip } from '../ui/tooltip';
+import { Empty } from '../ui/empty';
+import { Skeleton } from '../ui/skeleton';
+import { Modal } from '../ui/modal';
 import {
   Play,
   Calendar,
@@ -40,13 +20,10 @@ import {
   Star,
   Zap,
   Smile,
-  Users
+  Users,
+  ChevronRight
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import './MovieShowcase.css';
-
-const { Title, Text, Paragraph } = Typography;
-const { Meta } = Card;
 
 const MovieShowcase = ({ movies = [], title = "Phim đặc sắc", loading = false, maxItems = 12, showFilters = true, enableSlider = true, category = 'all' }) => {
   const navigate = useNavigate();
@@ -105,14 +82,14 @@ const MovieShowcase = ({ movies = [], title = "Phim đặc sắc", loading = fal
     if (scrollContainerRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
       setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
     }
   };
 
   const scrollLeft = () => {
     if (scrollContainerRef.current) {
       const containerWidth = scrollContainerRef.current.clientWidth;
-      const scrollAmount = containerWidth * 0.8; // Scroll 80% of container width
+      const scrollAmount = containerWidth * 1; // Scroll 100% of container width
       scrollContainerRef.current.scrollBy({
         left: -scrollAmount,
         behavior: 'smooth'
@@ -124,7 +101,7 @@ const MovieShowcase = ({ movies = [], title = "Phim đặc sắc", loading = fal
   const scrollRight = () => {
     if (scrollContainerRef.current) {
       const containerWidth = scrollContainerRef.current.clientWidth;
-      const scrollAmount = containerWidth * 0.8; // Scroll 80% of container width
+      const scrollAmount = containerWidth * 1; // Scroll 100% of container width
       scrollContainerRef.current.scrollBy({
         left: scrollAmount,
         behavior: 'smooth'
@@ -158,156 +135,140 @@ const MovieShowcase = ({ movies = [], title = "Phim đặc sắc", loading = fal
 
   if (loading) {
     return (
-      <div className="movie-showcase-antd">
-        <div className="showcase-container">
-          <Skeleton active paragraph={{ rows: 2 }} />
-          <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+      <div className="py-4 pb-12 bg-white">
+        <div className="max-w-[1200px] mx-auto px-8 md:px-6 sm:px-4">
+          <Skeleton className="h-8 w-64 mb-6" />
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-6">
             {[...Array(Math.min(maxItems, 8))].map((_, index) => (
-              <Col xs={12} sm={12} md={8} lg={4} xl={4} key={index} className="movie-col-custom">
-                <Card loading className="movie-card-skeleton" />
-              </Col>
+              <Skeleton key={index} className="h-[400px] w-full" />
             ))}
-          </Row>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <section className="movie-showcase-antd">
-      <div className="showcase-container">
+    <section className="py-4 pb-12 bg-white">
+      <div className="max-w-[1200px] mx-auto px-8 md:px-6 sm:px-4">
         {/* Section Header */}
-        <div className="showcase-header">
-          <div className="header-content">
-            <Space align="center" size="middle">
-              <Avatar
-                size="large"
-                icon={<StarOutlined />}
-                style={{ backgroundColor: '#ff6b35' }}
-              />
+        <div className="flex justify-between items-start mb-8 flex-wrap gap-4 md:flex-col md:items-start">
+          <div className="flex-1">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-12 w-12 bg-[#ff6b35] flex items-center justify-center">
+                <Star className="h-6 w-6 text-white" />
+              </Avatar>
               <div>
-                <Title level={2} className="showcase-title">
+                <h2 className="text-gray-800 m-0 font-bold text-2xl md:text-xl">
                   {title}
-                </Title>
-                <Text type="secondary" className="showcase-subtitle">
+                </h2>
+                <p className="text-gray-600 text-base block mt-2 md:hidden">
                   Khám phá những bộ phim hay nhất đang chiếu tại HotCinemas
-                </Text>
+                </p>
               </div>
-            </Space>
+            </div>
           </div>
         </div>
 
-
         {/* Movies Grid/Slider */}
         {filteredMovies.length > 0 ? (
-          <div className="movies-container">
+          <div className="relative">
             {enableSlider && (
               <>
-                {canScrollLeft && (
-                  <Button
-                    type="text"
-                    shape="circle"
-                    size="large"
-                    className="nav-btn nav-btn-left"
-                    onClick={scrollLeft}
-                    icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>}
-                  />
-                )}
-                {canScrollRight && (
-                  <Button
-                    type="text"
-                    shape="circle"
-                    size="large"
-                    className="nav-btn nav-btn-right"
-                    onClick={scrollRight}
-                    icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>}
-                  />
-                )}
+                {/* Nút bên trái */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={!canScrollLeft}
+                  className="absolute -left-5 top-1/2 z-10 bg-white shadow-lg border-0 w-12 h-10 rounded-full transition-all duration-300 hover:bg-gradient-to-br hover:from-primary hover:to-orange-500 hover:text-white hover:brightness-125 disabled:hidden"
+                  onClick={scrollLeft}
+                >
+                  <ChevronRight className="h-5 w-5 rotate-180" />
+                </Button>
+
+                {/* Nút bên phải */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={!canScrollRight}
+                  className="absolute -right-5 top-1/2 z-10 bg-white shadow-lg border-0 w-12 h-10 rounded-full transition-all duration-300 hover:bg-gradient-to-br hover:from-primary hover:to-orange-500 hover:text-white hover:brightness-125 disabled:hidden"
+                  onClick={scrollRight}
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
               </>
             )}
 
             <div
-              className={`movies-grid-container ${enableSlider ? 'slider-mode' : ''}`}
+              className={`mb-5 ${enableSlider ? 'overflow-x-auto overflow-y-hidden p-0 scroll-smooth scrollbar-hide' : ''}`}
               ref={scrollContainerRef}
               onScroll={checkScrollButtons}
               key={`showcase-${category}-${filteredMovies.length}`}
             >
-              <Row gutter={[12, 20]} className={`movies-grid ${enableSlider ? 'movies-grid-slider' : ''}`}>
+              <div className={`${enableSlider ? 'flex flex-nowrap gap-0' : 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-5'}`}>
                 {filteredMovies.map((movie, index) => (
-                  <Col
-                    xs={12}
-                    sm={12}
-                    md={8}
-                    lg={4}
-                    xl={4}
+                  <div
                     key={movie.id || index}
-                    className={`movie-col-custom ${enableSlider ? 'slider-col' : ''}`}
+                    className={`${enableSlider ? 'flex-shrink-0 flex-[0_0_calc(20%-9.6px)] max-w-[calc(20%-9.6px)] mx-[4.8px] md:flex-[0_0_calc(20%-9.6px)] md:max-w-[calc(20%-9.6px)] sm:flex-[0_0_calc(50%-6px)] sm:max-w-[calc(50%-6px)]' : ''}`}
                   >
-                    <Link to={`/movies/${movie.id}`} className="movie-card-link">
+                    <Link to={`/movies/${movie.id}`} className="block text-inherit no-underline w-full h-full hover:text-inherit">
                       <Card
-                        hoverable
-                        className="movie-showcase-card"
-                        bodyStyle={{ padding: 0 }}
+                        className="bg-white border-0 rounded-xl overflow-hidden h-[380px] flex flex-col shadow-none md:h-[380px] sm:h-[280px] hover:!shadow-none hover:!transform-none hover:!scale-100"
                       >
                         {/* Movie Poster Container */}
                         <div
-                          className="movie-poster-container"
+                          className="relative overflow-hidden h-[320px] md:h-[320px] sm:h-[240px] group rounded-b-xl"
                           onMouseEnter={() => setHoveredMovie(movie.id)}
                           onMouseLeave={() => setHoveredMovie(null)}
                         >
                           {/* Age Rating Badge */}
-                          <div className="age-rating-badge">
+                          <div className="absolute top-2 left-2 bg-gradient-to-br from-red-500 to-red-600 text-white px-2 py-0.5 rounded-xl text-[10px] font-semibold z-[4]">
                             {movie.ageLabel || "13+"}
                           </div>
 
                           {/* Rating Badge - Top Right */}
-                          <div className="movie-rating-badge">
+                          <div className="absolute top-2 right-2 bg-black/75 backdrop-blur-[10px] text-white px-2 py-1 rounded-2xl text-[11px] font-medium z-[4] flex items-center gap-1 border border-white/20">
                             <Star size={12} fill="#faad14" color="#faad14" />
-                            <span>{movie.rating || '8.5'}</span>
+                            <span>{movie.averageRating || movie.rating || '8.5'}</span>
                           </div>
 
                           <img
                             src={movie.poster || `https://picsum.photos/300/450?random=${index}`}
                             alt={movie.title}
-                            className="movie-poster"
+                            className="w-full h-full object-cover transition-all duration-[400ms] ease-[cubic-bezier(0.4,0,0.2,1)] group-hover:scale-105 group-hover:brightness-90 rounded-b-xl"
                           />
 
                           {/* Hover Overlay */}
-                          <div className={`movie-overlay ${hoveredMovie === movie.id ? 'active' : ''}`}>
-                            <div className="overlay-content">
-                              {/* Play Button */}
-                              <Button
-                                type="primary"
-                                shape="circle"
-                                size="large"
-                                icon={<Play size={18} />}
-                                className="play-button"
-                                onClick={(e) => handleTrailerClick(movie, e)}
-                              />
+                          {(movie.trailerUrl || movie.trailer) && (
+                            <div className={`absolute inset-0 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] z-[10] ${hoveredMovie === movie.id ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+                              <div className="absolute bottom-0 left-0 right-0 p-5 pb-4 flex flex-col items-center gap-3">
+                                {/* Play Button */}
+                                <Button
+                                  size="icon"
+                                  className="absolute bottom-[250%] left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-br from-blue-500 to-blue-600 border-0 transition-all duration-300 z-[5] hover:from-blue-400 hover:to-blue-500 hover:scale-110 rounded-full w-14 h-14"
+                                  onClick={(e) => handleTrailerClick(movie, e)}
+                                >
+                                  <Play className="h-5 w-5" />
+                                </Button>
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
 
                         {/* Movie Info Section */}
-                        <div className="movie-info-section">
+                        <div className="p-1 pt-2 pb-2 bg-white">
                           {/* Movie Title */}
-                          <div className="movie-title">
-                            <Text strong ellipsis={{ tooltip: movie.title }}>
+                          <div className="mb-1.5 text-black">
+                            <span className="text-xs font-semibold leading-snug text-red-600 md:text-sm block truncate" title={movie.title}>
                               {movie.title}
-                            </Text>
+                            </span>
                           </div>
 
                           {/* Genre Tags */}
-                          <div className="movie-genre">
+                          <div className="mb-1 text-[10px] text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis sm:text-[9px]">
                             {(() => {
-                              // Handle both genres array and genre string
                               let genreList = [];
                               if (Array.isArray(movie.genres) && movie.genres.length > 0) {
-                                // Handle array of objects {id, name} or array of strings
                                 genreList = movie.genres.map(g => typeof g === 'object' ? g.name : g);
                               } else if (typeof movie.genre === 'string' && movie.genre) {
                                 genreList = movie.genre.split(',').map(g => g.trim());
@@ -316,64 +277,58 @@ const MovieShowcase = ({ movies = [], title = "Phim đặc sắc", loading = fal
                               } else {
                                 genreList = ['Phim hay'];
                               }
-
-                              // Display genres separated by commas
                               return genreList.slice(0, 3).join(', ');
                             })()}
                           </div>
                         </div>
                       </Card>
                     </Link>
-                  </Col>
+                  </div>
                 ))}
-              </Row>
+              </div>
             </div>
           </div>
         ) : (
           <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
             description={
-              <Space direction="vertical" align="center">
-                <Text>Không có phim nào để hiển thị</Text>
-              </Space>
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-gray-600">Không có phim nào để hiển thị</p>
+              </div>
             }
-            className="empty-state"
+            className="my-12 py-8"
           />
         )}
 
         {/* Load More Section */}
         {filteredMovies.length > 0 && category !== 'top-rated' && (
-          <div className="load-more-section">
-            <Space direction="vertical" align="center" size="middle">
+          <div className="text-center mt-5 py-4">
+            <div className="flex flex-col items-center gap-4">
               <Button
-                type="primary"
-                size="large"
-                // icon={<RightOutlined />}
-                className="load-more-btn"
+                className="bg-gradient-to-r from-[#ff6b35] to-[#e55a28] border-0 rounded-[25px] h-12 px-8 font-semibold transition-all duration-300 hover:-translate-y-0.5 md:h-10 md:px-6 md:text-sm sm:h-9 sm:px-5 sm:text-[13px] sm:rounded-[18px]"
                 onClick={() => {
-                  // Navigate to movies page with different filter based on category
                   const filterMap = {
                     'upcoming': 'COMING_SOON',
                     'now-showing': 'NOW_SHOWING',
-                    'top-rated': 'all', // Top rated không có status riêng, hiển thị tất cả
+                    'top-rated': 'all',
                     'all': 'all'
                   };
                   navigate('/movies', { state: { defaultFilter: filterMap[category] || 'all' } });
                 }}>
-                <span className="load-more-text-full">Xem thêm phim</span>
-                <span className="load-more-text-short">Xem thêm</span>
+                <span className="hidden md:inline">Xem thêm</span>
               </Button>
-              {/* <Text type="secondary">
-                Hiển thị {filteredMovies.length} / {movies.length} phim
-              </Text> */}
-            </Space>
+            </div>
           </div>
         )}
       </div>
 
       {/* Trailer Modal */}
       <Modal
-        title={<span><PlayCircleOutlined /> Trailer - {selectedMovie?.title}</span>}
+        title={
+          <div className="flex items-center gap-2">
+            <Play className="h-5 w-5" />
+            <span>Trailer - {selectedMovie?.title}</span>
+          </div>
+        }
         open={trailerModalVisible}
         onCancel={() => {
           setTrailerModalVisible(false);
@@ -381,8 +336,6 @@ const MovieShowcase = ({ movies = [], title = "Phim đặc sắc", loading = fal
         }}
         footer={null}
         width={900}
-        centered
-        destroyOnClose
       >
         {(selectedMovie?.trailerUrl || selectedMovie?.trailer) && (
           <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>

@@ -1,300 +1,300 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import {
-    Card,
-    Row,
-    Col,
-    Input,
-    Select,
-    Button,
-    Tag,
-    Typography,
-    Breadcrumb,
-    Space,
-    Avatar,
-    Divider,
-    Empty,
-    Spin,
-    message,
-    Tabs,
-    Dropdown,
-    Pagination
-} from 'antd';
-import {
-    SearchOutlined,
-    EnvironmentOutlined,
-    PhoneOutlined,
-    ClockCircleOutlined,
-    StarOutlined,
-    HomeOutlined,
-    ShopOutlined,
-    RightOutlined,
-    AppstoreOutlined,
-    DownOutlined
-} from '@ant-design/icons';
+import { Search, MapPin, Phone, Clock, Star, Home, Store, ChevronRight, Grid, ChevronDown } from 'lucide-react';
+import { Input } from '../../../components/ui/input';
+import { Button } from '../../../components/ui/button';
+import { Card } from '../../../components/ui/card';
+import { Tag } from '../../../components/ui/tag';
+import { Breadcrumb } from '../../../components/ui/breadcrumb';
+import { Avatar } from '../../../components/ui/avatar';
+import { Separator } from '../../../components/ui/separator';
+import { Empty } from '../../../components/ui/empty';
+import { Pagination } from '../../../components/ui/pagination';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../components/ui/dropdown-menu';
 import cinemaService from '../../../services/cinemaService';
-import cityService from '../../../services/cityService';
-import './Cinemas.css';
-
-const { Title, Text } = Typography;
-const { Search } = Input;
-const { Option } = Select;
+import regionService from '../../../services/regionService';
+import ContentLoader from '../../../components/Loading/ContentLoader';
+import useNotification from '../../../hooks/useNotification';
 
 const Cinemas = () => {
     const [searchParams, setSearchParams] = useSearchParams();
+    const notification = useNotification();
     const [loading, setLoading] = useState(true);
     const [searchText, setSearchText] = useState('');
-    const [selectedCity, setSelectedCity] = useState('all');
+    const [selectedRegion, setSelectedRegion] = useState('all'); // Lưu slug của region
     const [selectedAmenities, setSelectedAmenities] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
+    const [pageSize, setPageSize] = useState(9);
 
-    // Data states
     const [cinemas, setCinemas] = useState([]);
-    const [cities, setCities] = useState([]);
+    const [regions, setRegions] = useState([]);
+    const [pagination, setPagination] = useState({
+        total: 0,
+        totalPages: 0,
+        current: 1,
+        pageSize: 9
+    });
 
-    // Load initial data from API
+    // Load regions once
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchRegions = async () => {
+            try {
+                const regionsResponse = await regionService.getAllRegions();
+                const regionsData = Array.isArray(regionsResponse?.data?.content)
+                    ? regionsResponse.data.content
+                    : (Array.isArray(regionsResponse?.data) ? regionsResponse.data : []);
+                // Lưu toàn bộ region objects với slug
+                setRegions(regionsData);
+            } catch (error) {
+                console.error('Error loading regions:', error);
+                notification.error('Không thể tải danh sách khu vực');
+            }
+        };
+        fetchRegions();
+    }, []);
+
+    // Load cinemas with pagination
+    useEffect(() => {
+        const fetchCinemas = async () => {
             setLoading(true);
             try {
-                // Fetch all data in parallel
-                const [cinemasResponse, citiesResponse] = await Promise.all([
-                    cinemaService.getAllCinemas({ size: 1000 }),
-                    cityService.getAllCities()
-                ]);
+                const params = {
+                    page: currentPage - 1, // API thường dùng 0-based index
+                    size: pageSize
+                };
 
-                // Extract data from responses
-                const cinemasData = Array.isArray(cinemasResponse?.data?.content)
-                    ? cinemasResponse.data.content
-                    : (Array.isArray(cinemasResponse?.data) ? cinemasResponse.data : []);
+                const cinemasResponse = await cinemaService.getAllCinemas(params);
 
-                const citiesData = Array.isArray(citiesResponse?.data?.content)
-                    ? citiesResponse.data.content
-                    : (Array.isArray(citiesResponse?.data) ? citiesResponse.data : []);
+                // Xử lý response có phân trang
+                let cinemasData = [];
+                let paginationData = {
+                    total: 0,
+                    totalPages: 0,
+                    current: currentPage,
+                    pageSize: pageSize
+                };
+
+                if (cinemasResponse?.data) {
+                    // Nếu có cấu trúc phân trang Spring Boot
+                    if (cinemasResponse.data.content) {
+                        cinemasData = Array.isArray(cinemasResponse.data.content)
+                            ? cinemasResponse.data.content
+                            : [];
+                        paginationData = {
+                            total: cinemasResponse.data.totalElements || 0,
+                            totalPages: cinemasResponse.data.totalPages || 0,
+                            current: (cinemasResponse.data.number || 0) + 1,
+                            pageSize: cinemasResponse.data.size || pageSize
+                        };
+                    }
+                    // Nếu là array trực tiếp
+                    else if (Array.isArray(cinemasResponse.data)) {
+                        cinemasData = cinemasResponse.data;
+                        paginationData = {
+                            total: cinemasData.length,
+                            totalPages: Math.ceil(cinemasData.length / pageSize),
+                            current: currentPage,
+                            pageSize: pageSize
+                        };
+                    }
+                }
 
                 setCinemas(cinemasData);
-
-                // Add 'all' option to cities
-                const cityOptions = ['all', ...citiesData.map(city => city.name || city)];
-                setCities(cityOptions);
-
-                console.log('Loaded cinemas:', cinemasData);
-                console.log('Loaded cities:', citiesData);
+                setPagination(paginationData);
             } catch (error) {
-                console.error('Error loading data:', error);
-                message.error('Không thể tải danh sách rạp chiếu');
+                console.error('Error loading cinemas:', error);
+                notification.error('Không thể tải danh sách rạp chiếu');
+                setCinemas([]);
+                setPagination({
+                    total: 0,
+                    totalPages: 0,
+                    current: 1,
+                    pageSize: pageSize
+                });
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchData();
-    }, []);
+        fetchCinemas();
+    }, [currentPage, pageSize, notification]);
 
-    // Filter cinemas based on search and city
+    // Filter cinemas client-side (search và region filter)
     const filteredCinemas = cinemas.filter(cinema => {
-        // Search filter
         const matchesSearch = !searchText ||
             cinema.name?.toLowerCase().includes(searchText.toLowerCase()) ||
             cinema.address?.toLowerCase().includes(searchText.toLowerCase());
 
-        // City filter - compare with city name or city object
-        const cinemaCity = typeof cinema.city === 'object' ? cinema.city?.name : cinema.cityId;
-        const matchesCity = selectedCity === 'all' || cinemaCity === selectedCity;
+        // Kiểm tra region theo slug hoặc name
+        const cinemaRegionSlug = typeof cinema.region === 'object' ? cinema.region?.slug : null;
+        const cinemaRegionName = typeof cinema.region === 'object' ? cinema.region?.name : null;
+        const matchesRegion = selectedRegion === 'all' || 
+            cinemaRegionSlug === selectedRegion || 
+            cinemaRegionName === selectedRegion;
 
-        return matchesSearch && matchesCity;
+        return matchesSearch && matchesRegion;
     });
-
-    const handleCinemaClick = (cinema) => {
-        // Navigate to cinema detail page
-        console.log('Selected cinema:', cinema);
-    };
-
-    // Get paginated cinemas
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    const paginatedCinemas = filteredCinemas.slice(startIndex, endIndex);
 
     const handlePageChange = (page, size) => {
         setCurrentPage(page);
-        setPageSize(size);
+        if (size) {
+            setPageSize(size);
+        }
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    if (loading) {
-        return (
-            <div className="cinemas-new">
-                <div className="breadcrumb-section">
-                    <div className="container">
-                        <Breadcrumb>
-                            <Breadcrumb.Item>
-                                <Link to="/">
-                                    <HomeOutlined /> Trang chủ
-                                </Link>
-                            </Breadcrumb.Item>
-                            <Breadcrumb.Item>
-                                <ShopOutlined /> Rạp chiếu
-                            </Breadcrumb.Item>
-                        </Breadcrumb>
-                    </div>
-                </div>
+    // Reset về trang 1 khi filter thay đổi
+    useEffect(() => {
+        if (currentPage !== 1) {
+            setCurrentPage(1);
+        }
+    }, [searchText, selectedRegion]);
 
-                <div className="container">
-                    <div style={{ textAlign: 'center', padding: '100px 0' }}>
-                        <Spin size="large" />
-                        <Title level={4} style={{ marginTop: 16, color: 'var(--text-primary)' }}>
-                            Đang tải danh sách rạp...
-                        </Title>
-                    </div>
-                </div>
-            </div>
-        );
+    if (loading) {
+        return <ContentLoader message="Đang tải danh sách rạp..." />;
     }
 
-    const amenitiesOptions = [
-        { label: '4DX', value: '4dx' },
-        { label: 'IMAX', value: 'imax' },
-        { label: 'Dolby Atmos', value: 'dolby' },
-        { label: 'Ghế Sweetbox', value: 'sweetbox' },
-        { label: 'Ghé VIP', value: 'vip' },
-        { label: 'Thu dời', value: 'wheelchair' }
-    ];
-
     return (
-        <div className="cinemas-new">
-            {/* Header Section */}
-            <div className="cinemas-header">
-                <Title level={1} className="cinemas-title">
-                    Danh Sách Rạp Chiếu
-                </Title>
-            </div>
-
-            <div className="container">
-                {/* Search Section */}
-                <div className="search-section">
-                    <Row gutter={[16, 16]}>
-                        <Col xs={24} md={18}>
-                            <Input
-                                size="large"
-                                placeholder="Tìm kiếm tên rạp hoặc địa chỉ..."
-                                prefix={<SearchOutlined style={{ color: '#e50914' }} />}
-                                value={searchText}
-                                onChange={(e) => setSearchText(e.target.value)}
-                                allowClear
-                                className="cinema-search-input"
-                            />
-                        </Col>
-                        <Col xs={24} md={6}>
-                            <Dropdown
-                                menu={{
-                                    items: [
-                                        { key: 'all', label: 'Tất cả thành phố' },
-                                        ...cities.map(city => ({ key: city, label: city }))
-                                    ],
-                                    onClick: ({ key }) => setSelectedCity(key),
-                                    selectedKeys: [selectedCity]
-                                }}
-                                trigger={['click']}
-                            >
-                                <Button size="large" className="filter-button" block>
-                                    <Space>
-                                        Thành phố
-                                        <DownOutlined />
-                                    </Space>
-                                </Button>
-                            </Dropdown>
-                        </Col>
-                    </Row>
+        <div className="bg-gradient-to-b from-gray-50 to-white min-h-screen pb-16 pt-16">
+            <div className="max-w-[1200px] mx-auto px-4 md:px-6 pt-16">
+                <div className="mb-8 -mt-12">
+                    <Card className="rounded-2xl shadow-xl border-0 overflow-hidden">
+                        <div className="grid grid-cols-1 md:grid-cols-[1fr_200px] gap-4 p-4">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
+                                <Input
+                                    placeholder="Tìm kiếm tên rạp hoặc địa chỉ..."
+                                    value={searchText}
+                                    onChange={(e) => setSearchText(e.target.value)}
+                                    className="pl-10 h-12 rounded-xl border-2 border-gray-200 text-base transition-all duration-300 hover:border-primary/60 hover:shadow-md focus:border-primary focus:shadow-lg"
+                                />
+                            </div>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        className="w-full h-12 rounded-xl border-2 border-gray-200 font-semibold text-base transition-all duration-300 hover:border-primary hover:text-primary hover:bg-primary/5"
+                                    >
+                                        <MapPin className="h-4 w-4 mr-2" />
+                                        <span>Khu vực</span>
+                                        <ChevronDown className="h-4 w-4 ml-2" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuItem
+                                        onClick={() => setSelectedRegion('all')}
+                                        className={selectedRegion === 'all' ? 'bg-primary/10' : ''}
+                                    >
+                                        Tất cả khu vực
+                                    </DropdownMenuItem>
+                                    {Array.isArray(regions) && regions.map(region => (
+                                        <DropdownMenuItem
+                                            key={region.id || region.slug || region.name}
+                                            onClick={() => setSelectedRegion(region.slug || region.name)}
+                                            className={selectedRegion === (region.slug || region.name) ? 'bg-primary/10' : ''}
+                                        >
+                                            {region.name}
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    </Card>
                 </div>
 
-                {/* Cinema List */}
-                <div className="cinema-list">
+                <div className="mt-6">
                     {filteredCinemas.length > 0 ? (
                         <>
-                            <Row gutter={[16, 16]}>
-                                {paginatedCinemas.map(cinema => (
-                                    <Col xs={24} sm={24} md={12} lg={12} xl={12} key={cinema.id}>
-                                        <Link to={`/cinemas/${cinema.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                                            <Card className="cinema-card-new cinema-card-clickable">
-                                                <Row gutter={24}>
-                                                    <Col xs={24} lg={16}>
-                                                        <div className="cinema-info-section">
-                                                            <div className="cinema-brand-logo">
-                                                                <Avatar size={48} style={{ backgroundColor: '#e50914' }}>
-                                                                    {cinema.name?.substring(0, 2)}
-                                                                </Avatar>
-                                                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {filteredCinemas.map((cinema, index) => (
+                                    <Link key={cinema.id} to={`/cinemas/${cinema.id}`} className="no-underline text-inherit block h-full">
+                                        <Card className="bg-white rounded-2xl border border-gray-200 shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 hover:border-primary cursor-pointer h-full overflow-hidden group">
+                                            <div className="relative">
+                                                <div className="relative w-full h-[200px] md:h-[240px] lg:h-[220px] overflow-hidden bg-gray-100 rounded-t-2xl">
+                                                    <iframe
+                                                        width="100%"
+                                                        height="100%"
+                                                        frameBorder="0"
+                                                        style={{ minHeight: '100%' }}
+                                                        className="border-0 scale-100 group-hover:scale-105 transition-transform duration-500 absolute inset-0"
+                                                        src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(cinema.address)}&zoom=15`}
+                                                        allowFullScreen
+                                                        title={cinema.name}
+                                                    />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10"></div>
+                                                </div>
 
-                                                            <div className="cinema-details">
-                                                                <Title level={4} className="cinema-name-new">
-                                                                    {cinema.name}
-                                                                </Title>
-
-                                                                <div className="cinema-address-new">
-                                                                    <Text className="address-text">{cinema.address}</Text>
-                                                                </div>
-
-                                                                <Button
-                                                                    type="primary"
-                                                                    danger
-                                                                    size="large"
-                                                                    className="view-schedule-btn"
-                                                                    onClick={(e) => {
-                                                                        e.preventDefault();
-                                                                        window.location.href = `/cinemas/${cinema.id}`;
-                                                                    }}
-                                                                >
-                                                                    XEM LỊCH CHIẾU
-                                                                </Button>
+                                                <div className="p-5">
+                                                    <div className="flex gap-4 items-start mb-4">
+                                                        <div className="flex-shrink-0">
+                                                            <div className="w-14 h-14 bg-gradient-to-br from-primary to-red-700 rounded-xl flex items-center justify-center shadow-lg">
+                                                                <span className="text-white font-bold text-lg">
+                                                                    {cinema.name?.substring(0, 2).toUpperCase()}
+                                                                </span>
                                                             </div>
                                                         </div>
-                                                    </Col>
 
-                                                    <Col xs={24} lg={8}>
-                                                        <div className="cinema-map">
-                                                            <iframe
-                                                                width="100%"
-                                                                height="200"
-                                                                frameBorder="0"
-                                                                style={{ border: 0, borderRadius: '8px' }}
-                                                                src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(cinema.address)}&zoom=15`}
-                                                                allowFullScreen
-                                                                title={cinema.name}
-                                                            />
+                                                        <div className="flex-1 min-w-0">
+                                                            <h4 className="m-0 mb-2 text-lg font-bold text-gray-900 leading-tight group-hover:text-primary transition-colors duration-300 line-clamp-2">
+                                                                {cinema.name}
+                                                            </h4>
+
+                                                            <div className="flex items-start gap-2 mb-3">
+                                                                <MapPin className="text-primary mt-0.5 flex-shrink-0 h-4 w-4" />
+                                                                <p className="text-gray-600 text-sm leading-relaxed line-clamp-2">
+                                                                    {cinema.address}
+                                                                </p>
+                                                            </div>
                                                         </div>
-                                                    </Col>
-                                                </Row>
-                                            </Card>
-                                        </Link>
-                                    </Col>
+                                                    </div>
+
+                                                    <Button
+                                                        className="w-full h-11 rounded-xl bg-gradient-to-r from-primary to-red-700 border-0 font-semibold text-sm tracking-wide shadow-md hover:shadow-xl hover:from-red-700 hover:to-red-800 transition-all duration-300"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            window.location.href = `/cinemas/${cinema.id}`;
+                                                        }}
+                                                    >
+                                                        <Clock className="h-4 w-4 mr-2" />
+                                                        <span>XEM LỊCH CHIẾU</span>
+                                                        <ChevronRight className="h-4 w-4 ml-2" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    </Link>
                                 ))}
-                            </Row>
+                            </div>
 
-                            {/* Pagination */}
-                            <div className="cinema-pagination">
+                            <div className="flex justify-center items-center mt-12 pt-8 border-t border-gray-200">
                                 <Pagination
-                                    current={currentPage}
-                                    pageSize={pageSize}
-                                    total={filteredCinemas.length}
+                                    current={pagination.current}
+                                    total={pagination.total}
+                                    pageSize={pagination.pageSize}
                                     onChange={handlePageChange}
+                                    onShowSizeChange={handlePageChange}
                                     showSizeChanger
-                                    pageSizeOptions={['5', '10', '15', '20']}
-                                    showTotal={(total, range) => `${range[0]}-${range[1]} của ${total} rạp`}
-                                    locale={{
-                                        items_per_page: '/ trang',
-                                        jump_to: 'Đi đến',
-                                        jump_to_confirm: 'xác nhận',
-                                        page: ''
-                                    }}
+                                    pageSizeOptions={['9', '18', '27', '36']}
                                 />
                             </div>
                         </>
                     ) : (
-                        <Empty
-                            description="Không tìm thấy rạp chiếu phim nào"
-                            image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        />
+                        <Card className="rounded-2xl shadow-lg border-0">
+                            <Empty
+                                description={
+                                    <div className="text-center py-8">
+                                        <p className="text-gray-500 text-lg font-medium">
+                                            Không tìm thấy rạp chiếu phim nào
+                                        </p>
+                                        <div className="mt-4">
+                                            <p className="text-gray-400 text-sm">
+                                                Thử thay đổi từ khóa tìm kiếm hoặc khu vực
+                                            </p>
+                                        </div>
+                                    </div>
+                                }
+                            />
+                        </Card>
                     )}
                 </div>
             </div>

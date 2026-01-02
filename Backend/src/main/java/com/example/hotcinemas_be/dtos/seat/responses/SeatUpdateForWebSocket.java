@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 @Data
 @Builder
 public class SeatUpdateForWebSocket {
-    private long seatId;
-    private long lockedByUserId;
+    private Long seatId;
+    private Long lockedByUserId;
     private SeatStatus status;
 
 }

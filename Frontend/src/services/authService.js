@@ -70,5 +70,30 @@ export const authService = {
         return api.get('/auth/validate_token');
     },
 
+    // Google OAuth login - Send authorization code to backend
+    // Backend will exchange code for ID token, validate, and return JWT
+    loginWithGoogle: async (code) => {
+        console.log('Login with Google authorization code');
+
+        const response = await api.post('/auth/google', { code: code });
+
+        console.log('Login with Google response:', response);
+
+        // Let apiClient handle token storage via setAuthToken
+        if (response?.data?.accessToken) {
+            api.setAuthToken(response.data.accessToken, response.data.refreshToken, response.data.userAuth);
+        }
+        return response;
+    },
+
+    // Google OAuth callback (for server-side flow - fallback)
+    handleGoogleCallback: async (code) => {
+        const response = await api.get(`/auth/google/callback?code=${code}`);
+
+        if (response?.data?.accessToken) {
+            api.setAuthToken(response.data.accessToken, response.data.refreshToken, response.data.userAuth);
+        }
+        return response;
+    },
 
 };

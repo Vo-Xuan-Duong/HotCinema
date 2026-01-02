@@ -1,68 +1,165 @@
-import React from 'react';
-import './TrailerModal.css';
+import React, { useEffect, useState } from 'react';
+import { Dialog, DialogContent } from '../ui/dialog';
+import { Button } from '../ui/button';
+import { Play, X, Maximize2, Share2, Loader2 } from 'lucide-react';
+import useNotification from '../../hooks/useNotification';
 
 const TrailerModal = ({ isOpen, onClose, trailerUrl, movieTitle }) => {
+  const notification = useNotification();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && trailerUrl) {
+      setIsLoading(true);
+    }
+  }, [isOpen, trailerUrl]);
+
+  const handleIframeLoad = () => {
+    setIsLoading(false);
+  };
+
+  const handleFullscreen = () => {
+    const iframe = document.querySelector('.trailer-iframe');
+    if (iframe) {
+      if (!document.fullscreenElement) {
+        iframe.requestFullscreen().catch(err => {
+          notification.error('Không thể vào chế độ toàn màn hình');
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+  };
+
+  const handleShare = async () => {
+    if (navigator.share && trailerUrl) {
+      try {
+        await navigator.share({
+          title: `Trailer: ${movieTitle}`,
+          text: `Xem trailer của ${movieTitle}`,
+          url: trailerUrl
+        });
+      } catch (err) {
+        // User cancelled or error
+        if (err.name !== 'AbortError') {
+          // Copy to clipboard as fallback
+          navigator.clipboard.writeText(trailerUrl);
+          notification.success('Đã sao chép link trailer');
+        }
+      }
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(trailerUrl || '');
+      notification.success('Đã sao chép link trailer');
+    }
+  };
+
   if (!isOpen) return null;
 
-  console.log('TrailerModal render:', { isOpen, trailerUrl, movieTitle });
-
   return (
-    <div className="trailer-modal-overlay" onClick={onClose}>
-      <div className="trailer-modal" onClick={e => e.stopPropagation()}>
-        <div className="trailer-modal-header">
-          <div className="trailer-modal-title-wrapper">
-            <div className="trailer-modal-icon">🎬</div>
-            <div className="trailer-modal-title-text">
-              <h2 className="trailer-modal-title">{movieTitle}</h2>
-              <span className="trailer-modal-subtitle">Official Trailer</span>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] p-0 bg-white border-gray-800 overflow-hidden [&>button]:hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 md:p-6 bg-gradient-to-r from-primary/90 via-red-600/90 to-orange-600/90 border-b border-white/10">
+          <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
+            <div className="flex-shrink-0">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <Play className="h-5 w-5 md:h-6 md:w-6 text-white" />
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg md:text-2xl font-bold text-white truncate drop-shadow-lg">
+                {movieTitle || 'Trailer'}
+              </h2>
+              <p className="text-xs md:text-sm text-white/80 font-medium">Official Trailer</p>
             </div>
           </div>
-          <button className="trailer-modal-close" onClick={onClose}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 md:h-10 md:w-10 text-white hover:bg-white/20"
+              onClick={handleFullscreen}
+              title="Toàn màn hình"
+            >
+              <Maximize2 className="h-4 w-4 md:h-5 md:w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 md:h-10 md:w-10 text-white hover:bg-white/20"
+              onClick={handleShare}
+              title="Chia sẻ"
+            >
+              <Share2 className="h-4 w-4 md:h-5 md:w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 md:h-10 md:w-10 text-white hover:bg-white/20"
+              onClick={onClose}
+              title="Đóng"
+            >
+              <X className="h-4 w-4 md:h-5 md:w-5" />
+            </Button>
+          </div>
         </div>
-        <div className="trailer-video-container">
+
+        {/* Video Container */}
+        <div className="relative w-full bg-black flex items-center justify-center" style={{ aspectRatio: '16/9', minHeight: '400px' }}>
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
+              <div className="text-center">
+                <Loader2 className="h-12 w-12 animate-spin text-white mx-auto mb-4" />
+                <p className="text-white text-sm md:text-base">Đang tải trailer...</p>
+              </div>
+            </div>
+          )}
+
           {trailerUrl ? (
             <iframe
-              className="trailer-video"
+              className="trailer-iframe w-full h-full border-0"
               src={trailerUrl.replace('youtube.com', 'youtube-nocookie.com')}
               title={`Trailer ${movieTitle}`}
-              frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
-              loading="lazy"
-            ></iframe>
+              onLoad={handleIframeLoad}
+            />
           ) : (
-            <div className="trailer-error">
-              <div className="trailer-error-icon">🎬</div>
-              <p>Đang tải trailer...</p>
-              <span className="trailer-error-hint">Hoặc trailer không khả dụng</span>
+            <div className="text-center py-16 px-6">
+              <div className="text-6xl mb-4">🎬</div>
+              <p className="text-white text-lg md:text-xl mb-2 font-semibold">Trailer không khả dụng</p>
+              <span className="text-white/60 text-sm md:text-base">Vui lòng thử lại sau</span>
             </div>
           )}
         </div>
-        <div className="trailer-modal-footer">
-          <div className="trailer-controls">
-            <button className="trailer-fullscreen-btn" title="Toàn màn hình">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-              </svg>
-            </button>
-            <button className="trailer-share-btn" title="Chia sẻ">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="18" cy="5" r="3" />
-                <circle cx="6" cy="12" r="3" />
-                <circle cx="18" cy="19" r="3" />
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-              </svg>
-            </button>
+
+        {/* Footer Actions */}
+        <div className="p-3 md:p-4 bg-gradient-to-t from-black/50 to-transparent border-t border-white/5">
+          <div className="flex justify-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-white border-white/20 hover:bg-white/10"
+              onClick={handleFullscreen}
+            >
+              <Maximize2 className="h-4 w-4 mr-2" />
+              Toàn màn hình
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-white border-white/20 hover:bg-white/10"
+              onClick={handleShare}
+            >
+              <Share2 className="h-4 w-4 mr-2" />
+              Chia sẻ
+            </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

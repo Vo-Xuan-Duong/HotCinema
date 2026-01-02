@@ -1,22 +1,25 @@
 /* Modern Responsive Design System */
 
 /* Base responsive utilities */
-.container {
+/* Note: Tailwind classes max-w-[1200px] take precedence */
+/* This is a fallback for elements without Tailwind classes */
+.container:not([class*="max-w"]) {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 20px;
 }
 
 /* Responsive breakpoints */
+/* Only apply if container doesn't have Tailwind max-w class */
 @media (max-width: 1200px) {
-  .container {
+  .container:not([class*="max-w"]) {
     max-width: 960px;
     padding: 0 16px;
   }
 }
 
 @media (max-width: 992px) {
-  .container {
+  .container:not([class*="max-w"]) {
     max-width: 720px;
     padding: 0 16px;
   }
@@ -33,7 +36,7 @@
 }
 
 @media (max-width: 768px) {
-  .container {
+  .container:not([class*="max-w"]) {
     max-width: 540px;
     padding: 0 12px;
   }
@@ -72,7 +75,7 @@
 }
 
 @media (max-width: 576px) {
-  .container {
+  .container:not([class*="max-w"]) {
     padding: 0 8px;
   }
   

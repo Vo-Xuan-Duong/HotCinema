@@ -9,26 +9,26 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+import java.util.List;
+
 @Builder
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserUpdateRequest {
-    @NotBlank(message = "Email is required")
-    @Email(message = "Email should be valid")
-    @Size(max = 100, message = "Email must not exceed 100 characters")
-    private String email;
-
     @Size(max = 100, message = "Full name must not exceed 100 characters")
     private String fullName;
 
     @Pattern(regexp = "^[+]?[0-9]{10,15}$", message = "Phone number should be valid")
-    private String phoneNumber;
+    private String phone;
 
     private String address;
 
     private String avatarUrl;
 
+    private LocalDate dateOfBirth;
 
+    private String role;
 }
 

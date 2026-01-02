@@ -10,8 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class RefreshTokenRequest {
-    private String username;
-    private String tokenId;
-    private String token;
+    private String email;
+    private String refreshToken;
 }
 

@@ -1,4 +1,4 @@
-package com.example.hotcinemas_be.jwts;
+package com.example.hotcinemas_be.security;
 
 import com.example.hotcinemas_be.enums.TokenType;
 import com.example.hotcinemas_be.services.BlackListService;
@@ -51,19 +51,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "JWT Token is blacklisted");
             }
 
-            String userName = jwtService.extractUsername(tokenJwt, TokenType.ACCESS);
-            log.info("Username extracted from JWT: {}", userName);
+            String email = jwtService.extractEmail(tokenJwt, TokenType.ACCESS);
+            log.info("Email extracted from JWT: {}", email);
 
-            if (userName == null) {
+            if (email == null) {
                 log.error("JWT Token is not valid");
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "JWT Token is not valid");
             }
 
             if(SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                UserDetails userDetails = userDetailsService.loadUserByUsername(userName);
+                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-                log.info("UserDetails loaded for username: {}", userName);
+                log.info("UserDetails loaded for email: {}", email);
 
                 if (jwtService.validateToken(tokenJwt, userDetails, TokenType.ACCESS)) {
 
@@ -75,17 +75,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     SecurityContextHolder.getContext().setAuthentication(authenticationToken);
 
-                    log.info("SecurityContextHolder updated with authentication for user: {}", userName);
+                    log.info("SecurityContextHolder updated with authentication for user: {}", email);
 
                     filterChain.doFilter(request, response);
                 } else {
-                    log.error("JWT Token is not valid for user: {}", userName);
+                    log.error("JWT Token is not valid for user: {}", email);
 
                     response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "JWT Token is not valid");
                 }
 
             } else {
-                log.info("User is already authenticated: {}", userName);
+                log.info("User is already authenticated: {}", email);
             }
 
         } catch (Exception e) {

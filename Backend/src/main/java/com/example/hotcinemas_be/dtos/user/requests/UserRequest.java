@@ -9,15 +9,14 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+import java.util.List;
+
 @Builder
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserRequest {
-    @NotBlank(message = "Username is required")
-    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
-    private String username;
-
     @NotBlank(message = "Email is required")
     @Email(message = "Email should be valid")
     @Size(max = 100, message = "Email must not exceed 100 characters")
@@ -31,14 +30,14 @@ public class UserRequest {
     private String fullName;
 
     @Pattern(regexp = "^[+]?[0-9]{10,15}$", message = "Phone number should be valid")
-    private String phoneNumber;
+    private String phone;
 
     private String avatarUrl;
 
     private String address;
 
-    private String role;
+    private LocalDate dateOfBirth;
 
-    private boolean isActive;
+    private String role;
 }
 

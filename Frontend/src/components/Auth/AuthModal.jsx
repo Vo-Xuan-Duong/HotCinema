@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Button } from 'antd';
-import { UserOutlined, LoginOutlined } from '@ant-design/icons';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import LoginForm from './LoginForm';
 import RegisterForm from './RegisterForm';
 import OTPVerificationForm from './OTPVerificationForm';
-import './AuthModal.css';
 
 const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
     const [currentMode, setCurrentMode] = useState(initialMode);
     const [registerEmail, setRegisterEmail] = useState('');
 
-    // Sync currentMode with initialMode whenever modal is (re)opened
     useEffect(() => {
         if (isOpen) {
             setCurrentMode(initialMode);
@@ -41,41 +38,35 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
     };
 
     return (
-        <Modal
-            title={
-                <div className="auth-modal-title">
-                    🎬 HotCinemas
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="max-w-[420px] bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-2xl shadow-[0_10px_30px_-5px_rgba(0,0,0,0.12),0_4px_16px_-2px_rgba(0,0,0,0.08)]">
+                <DialogHeader className="bg-gradient-to-b from-white/90 to-white/75 border-b border-gray-200 pb-4">
+                    <DialogTitle className="text-2xl font-bold text-center bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent">
+                        🎬 HotCinemas
+                    </DialogTitle>
+                </DialogHeader>
+                <div className="p-0">
+                    {currentMode === 'login' ? (
+                        <LoginForm
+                            onSwitchToRegister={handleSwitchToRegister}
+                            onClose={onClose}
+                        />
+                    ) : currentMode === 'otp' ? (
+                        <OTPVerificationForm
+                            email={registerEmail}
+                            onSuccess={handleOTPSuccess}
+                            onBack={handleBackToRegister}
+                        />
+                    ) : (
+                        <RegisterForm
+                            onSwitchToLogin={handleSwitchToLogin}
+                            onSwitchToOTP={handleSwitchToOTP}
+                            onClose={onClose}
+                        />
+                    )}
                 </div>
-            }
-            open={isOpen}
-            onCancel={onClose}
-            footer={null}
-            centered
-            width={420}
-            className="auth-modal-antd"
-            destroyOnClose
-        >
-            <div className="auth-content">
-                {currentMode === 'login' ? (
-                    <LoginForm
-                        onSwitchToRegister={handleSwitchToRegister}
-                        onClose={onClose}
-                    />
-                ) : currentMode === 'otp' ? (
-                    <OTPVerificationForm
-                        email={registerEmail}
-                        onSuccess={handleOTPSuccess}
-                        onBack={handleBackToRegister}
-                    />
-                ) : (
-                    <RegisterForm
-                        onSwitchToLogin={handleSwitchToLogin}
-                        onSwitchToOTP={handleSwitchToOTP}
-                        onClose={onClose}
-                    />
-                )}
-            </div>
-        </Modal>
+            </DialogContent>
+        </Dialog>
     );
 };
 

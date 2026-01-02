@@ -1,37 +1,30 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card } from '../../../components/ui/card';
+import { TableWrapper } from '../../../components/ui/table-wrapper';
+import { Button } from '../../../components/ui/button';
+import { Modal } from '../../../components/ui/modal';
+import { Input } from '../../../components/ui/input';
+import { Select } from '../../../components/ui/select';
+import { Tag } from '../../../components/ui/tag';
+import { Statistic } from '../../../components/ui/statistic';
+import { Tooltip } from '../../../components/ui/tooltip';
+import { InputNumber } from '../../../components/ui/input-number';
+import { Separator } from '../../../components/ui/separator';
+import { Alert } from '../../../components/ui/alert';
+import { Breadcrumb } from '../../../components/ui/breadcrumb';
 import {
-    Card,
-    Table,
-    Button,
-    Modal,
-    Form,
-    Input,
-    Select,
-    Row,
-    Col,
-    Tag,
-    Space,
-    message,
-    Statistic,
-    Tooltip,
-    InputNumber,
-    Divider,
-    Switch,
-    Alert
-} from 'antd';
-import {
-    PlusOutlined,
-    EditOutlined,
-    DeleteOutlined,
-    EyeOutlined,
-    SettingOutlined,
-    CheckCircleOutlined,
-    CloseCircleOutlined,
-    StopOutlined
-} from '@ant-design/icons';
-import './Seats.css';
-
-const { Option } = Select;
+    Plus,
+    Edit,
+    Trash2,
+    Eye,
+    Settings,
+    CheckCircle2,
+    XCircle,
+    Ban,
+    Home
+} from 'lucide-react';
+import useNotification from '../../../hooks/useNotification';
 
 const Seats = () => {
     const [seats, setSeats] = useState([]);
@@ -40,7 +33,8 @@ const Seats = () => {
     const [modalVisible, setModalVisible] = useState(false);
     const [layoutModalVisible, setLayoutModalVisible] = useState(false);
     const [editingRoom, setEditingRoom] = useState(null);
-    const [form] = Form.useForm();
+    const notification = useNotification();
+    const [form] = useState({});
     const [selectedRoom, setSelectedRoom] = useState(null);
     const [seatLayout, setSeatLayout] = useState([]);
     const [stats, setStats] = useState({
@@ -344,9 +338,9 @@ const Seats = () => {
     ];
 
     return (
-        <div className="seats-page">
+        <div className="p-6">
             {/* Thống kê tổng quan */}
-            <Row gutter={16} style={{ marginBottom: 24 }}>
+            <Row gutter={16} className="mb-6">
                 <Col span={6}>
                     <Card>
                         <Statistic
@@ -504,26 +498,37 @@ const Seats = () => {
                 bodyStyle={{ maxHeight: '70vh', overflow: 'auto' }}
             >
                 {selectedRoom && (
-                    <div className="seat-layout">
-                        <div className="screen">
-                            <div className="screen-text">MÀN HÌNH</div>
+                    <div className="text-center p-5">
+                        <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-10 rounded-t-2xl mb-8 flex items-center justify-center shadow-lg">
+                            <div className="text-white font-bold text-base tracking-widest">MÀN HÌNH</div>
                         </div>
 
-                        <div className="seat-grid">
+                        <div className="mb-8">
                             {Object.keys(seatLayout).sort().map(row => (
-                                <div key={row} className="seat-row">
-                                    <div className="row-label">{row}</div>
-                                    <div className="seats">
+                                <div key={row} className="flex items-center justify-center mb-2">
+                                    <div className="w-8 font-bold text-gray-600 mr-5">{row}</div>
+                                    <div className="flex gap-1">
                                         {Object.keys(seatLayout[row]).sort((a, b) => Number(a) - Number(b)).map(seatNum => {
                                             const seat = seatLayout[row][seatNum];
                                             const seatTypeConfig = seatTypes.find(t => t.value === seat.type);
+                                            const statusClasses = {
+                                                available: 'bg-green-50 border-green-300 text-green-700 hover:bg-green-100 hover:border-green-500',
+                                                booked: 'bg-red-50 border-pink-300 text-red-700',
+                                                blocked: 'bg-yellow-50 border-yellow-300 text-yellow-700'
+                                            };
+                                            const typeClasses = {
+                                                normal: 'bg-green-50 border-green-300 text-green-700',
+                                                vip: 'bg-gradient-to-br from-yellow-50 to-yellow-200 border-yellow-400 text-yellow-800 relative',
+                                                couple: 'bg-gradient-to-br from-pink-50 to-pink-200 border-pink-400 text-pink-800 w-16',
+                                                premium: 'bg-gradient-to-br from-purple-50 to-purple-200 border-purple-400 text-purple-800 relative'
+                                            };
                                             return (
                                                 <Tooltip
                                                     key={seat.id}
                                                     title={`${seat.id} - ${seatTypeConfig.label} - ${seat.price.toLocaleString('vi-VN')}đ`}
                                                 >
                                                     <div
-                                                        className={`seat ${seat.status} ${seat.type}`}
+                                                        className={`w-8 h-8 rounded-md flex items-center justify-center text-xs font-medium cursor-pointer transition-all duration-300 border-2 relative hover:scale-110 hover:z-10 ${statusClasses[seat.status]} ${typeClasses[seat.type]}`}
                                                         onClick={() => {
                                                             // Toggle seat status for demo
                                                             const statuses = ['available', 'booked', 'blocked'];
@@ -533,6 +538,9 @@ const Seats = () => {
                                                         }}
                                                     >
                                                         {seatNum}
+                                                        {seat.type === 'vip' && <span className="absolute -top-0.5 -right-0.5 text-[8px] text-yellow-500">★</span>}
+                                                        {seat.type === 'couple' && <span className="absolute -top-0.5 right-0.5 text-[8px] text-pink-500">♥</span>}
+                                                        {seat.type === 'premium' && <span className="absolute -top-0.5 -right-0.5 text-[8px] text-purple-500">◆</span>}
                                                     </div>
                                                 </Tooltip>
                                             );
@@ -542,18 +550,18 @@ const Seats = () => {
                             ))}
                         </div>
 
-                        <div className="seat-legend">
+                        <div className="flex justify-center py-5 border-t border-gray-200 mt-5">
                             <Space>
-                                <div className="legend-item">
-                                    <div className="seat-demo available"></div>
+                                <div className="flex items-center mx-4">
+                                    <div className="w-5 h-5 rounded border-2 border-green-300 bg-green-50 mr-2"></div>
                                     <span>Trống</span>
                                 </div>
-                                <div className="legend-item">
-                                    <div className="seat-demo booked"></div>
+                                <div className="flex items-center mx-4">
+                                    <div className="w-5 h-5 rounded border-2 border-pink-300 bg-red-50 mr-2"></div>
                                     <span>Đã đặt</span>
                                 </div>
-                                <div className="legend-item">
-                                    <div className="seat-demo blocked"></div>
+                                <div className="flex items-center mx-4">
+                                    <div className="w-5 h-5 rounded border-2 border-yellow-300 bg-yellow-50 mr-2"></div>
                                     <span>Bị khóa</span>
                                 </div>
                             </Space>

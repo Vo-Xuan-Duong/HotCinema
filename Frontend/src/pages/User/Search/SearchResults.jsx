@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Row, Col, Input, Select, Empty, Spin, Typography, Card } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
+import { Search } from 'lucide-react';
+import { Input } from '../../../components/ui/input';
+import { Button } from '../../../components/ui/button';
+import { Select } from '../../../components/ui/select';
+import { Card } from '../../../components/ui/card';
+import { Empty } from '../../../components/ui/empty';
+import ContentLoader from '../../../components/Loading/ContentLoader';
 import movieService from '../../../services/movieService';
 import cinemaService from '../../../services/cinemaService';
 import MovieCard from '../../../components/MovieCard/MovieCard';
-import './SearchResults.css';
-
-const { Title, Text } = Typography;
-const { Option } = Select;
 
 const SearchResults = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -42,7 +43,6 @@ const SearchResults = () => {
                 cinemaService.getAllCinemas()
             ]);
 
-            // Handle Page object from getAllMovies
             const allMovies = Array.isArray(moviesResponse)
                 ? moviesResponse
                 : (moviesResponse?.content || []);
@@ -53,8 +53,8 @@ const SearchResults = () => {
             if (type === 'all' || type === 'movies') {
                 movieResults = allMovies.filter(movie =>
                     movie.title.toLowerCase().includes(query.toLowerCase()) ||
-                    movie.genre.toLowerCase().includes(query.toLowerCase()) ||
-                    movie.director.toLowerCase().includes(query.toLowerCase()) ||
+                    movie.genre?.toLowerCase().includes(query.toLowerCase()) ||
+                    movie.director?.toLowerCase().includes(query.toLowerCase()) ||
                     (movie.cast && movie.cast.some(actor =>
                         actor.toLowerCase().includes(query.toLowerCase())
                     ))
@@ -64,8 +64,8 @@ const SearchResults = () => {
             if (type === 'all' || type === 'cinemas') {
                 cinemaResults = allCinemas.filter(cinema =>
                     cinema.name.toLowerCase().includes(query.toLowerCase()) ||
-                    cinema.address.toLowerCase().includes(query.toLowerCase()) ||
-                    cinema.district.toLowerCase().includes(query.toLowerCase())
+                    cinema.address?.toLowerCase().includes(query.toLowerCase()) ||
+                    cinema.district?.toLowerCase().includes(query.toLowerCase())
                 );
             }
 
@@ -83,7 +83,6 @@ const SearchResults = () => {
 
     const handleSearch = (value) => {
         if (!value.trim()) return;
-
         setSearchParams({ q: value, type: searchType });
     };
 
@@ -103,115 +102,99 @@ const SearchResults = () => {
     };
 
     return (
-        <div className="search-results-page">
-            <div className="search-header">
-                <Row gutter={[16, 16]} align="middle">
-                    <Col xs={24} md={16}>
-                        <Input.Search
-                            placeholder="Tìm kiếm phim, rạp chiếu..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            onSearch={handleSearch}
-                            size="large"
-                            enterButton={<SearchOutlined />}
-                            allowClear
-                        />
-                    </Col>
-                    <Col xs={24} md={8}>
+        <div className="p-6 min-h-[calc(100vh-140px)] bg-gray-50">
+            <div className="max-w-[1200px] mx-auto">
+                <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-[1fr_200px] gap-4 items-center">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                                placeholder="Tìm kiếm phim, rạp chiếu..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
+                                className="pl-10 h-10 rounded-lg"
+                            />
+                        </div>
                         <Select
                             value={searchType}
-                            onChange={handleTypeChange}
-                            size="large"
-                            style={{ width: '100%' }}
+                            onValueChange={handleTypeChange}
                         >
-                            <Option value="all">Tất cả</Option>
-                            <Option value="movies">Phim</Option>
-                            <Option value="cinemas">Rạp chiếu</Option>
+                            <option value="all">Tất cả</option>
+                            <option value="movies">Phim</option>
+                            <option value="cinemas">Rạp chiếu</option>
                         </Select>
-                    </Col>
-                </Row>
-            </div>
-
-            {loading ? (
-                <div className="search-loading">
-                    <Spin size="large" />
-                    <Text>Đang tìm kiếm...</Text>
+                    </div>
                 </div>
-            ) : (
-                <div className="search-content">
-                    {searchQuery && (
-                        <div className="search-info">
-                            <Title level={3}>
-                                Kết quả tìm kiếm cho "{searchQuery}"
-                            </Title>
-                            <Text type="secondary">
-                                Tìm thấy {results.total} kết quả
-                            </Text>
-                        </div>
-                    )}
 
-                    {results.total === 0 && searchQuery ? (
-                        <Empty
-                            description="Không tìm thấy kết quả nào"
-                            image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        />
-                    ) : (
-                        <>
-                            {/* Movie Results */}
-                            {results.movies.length > 0 && (
-                                <div className="search-section">
-                                    <Title level={4}>
-                                        Phim ({results.movies.length})
-                                    </Title>
-                                    <Row gutter={[16, 16]}>
-                                        {results.movies.map(movie => (
-                                            <Col key={movie.id} xs={24} sm={12} md={8} lg={6}>
+                {loading ? (
+                    <ContentLoader message="Đang tìm kiếm..." />
+                ) : (
+                    <div className="bg-white p-6 rounded-lg shadow-md">
+                        {searchQuery && (
+                            <div className="mb-6 pb-4 border-b border-gray-200">
+                                <h3 className="text-gray-900 text-xl font-bold mb-2">
+                                    Kết quả tìm kiếm cho "{searchQuery}"
+                                </h3>
+                                <p className="text-gray-600">
+                                    Tìm thấy {results.total} kết quả
+                                </p>
+                            </div>
+                        )}
+
+                        {results.total === 0 && searchQuery ? (
+                            <Empty description="Không tìm thấy kết quả nào" />
+                        ) : (
+                            <>
+                                {results.movies.length > 0 && (
+                                    <div className="mb-8 last:mb-0">
+                                        <h4 className="text-gray-900 text-lg font-bold mb-4">
+                                            Phim ({results.movies.length})
+                                        </h4>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                            {results.movies.map(movie => (
                                                 <MovieCard
+                                                    key={movie.id}
                                                     movie={movie}
                                                     onClick={() => handleMovieClick(movie.id)}
                                                 />
-                                            </Col>
-                                        ))}
-                                    </Row>
-                                </div>
-                            )}
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
-                            {/* Cinema Results */}
-                            {results.cinemas.length > 0 && (
-                                <div className="search-section">
-                                    <Title level={4}>
-                                        Rạp chiếu ({results.cinemas.length})
-                                    </Title>
-                                    <Row gutter={[16, 16]}>
-                                        {results.cinemas.map(cinema => (
-                                            <Col key={cinema.id} xs={24} sm={12} md={8}>
+                                {results.cinemas.length > 0 && (
+                                    <div className="mb-8 last:mb-0">
+                                        <h4 className="text-gray-900 text-lg font-bold mb-4">
+                                            Rạp chiếu ({results.cinemas.length})
+                                        </h4>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                            {results.cinemas.map(cinema => (
                                                 <Card
-                                                    hoverable
-                                                    className="cinema-search-card"
+                                                    key={cinema.id}
+                                                    className="h-full rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer"
                                                     onClick={() => handleCinemaClick(cinema.id)}
                                                 >
-                                                    <Card.Meta
-                                                        title={cinema.name}
-                                                        description={
+                                                    <div className="p-4">
+                                                        <h5 className="text-primary text-lg font-semibold mb-2">{cinema.name}</h5>
+                                                        <div className="text-gray-600 space-y-1 text-sm">
+                                                            <div>{cinema.address}</div>
+                                                            <div>{cinema.district}</div>
                                                             <div>
-                                                                <div>{cinema.address}</div>
-                                                                <div>{cinema.district}</div>
-                                                                <div>
-                                                                    {cinema.rooms?.length || 0} phòng chiếu
-                                                                </div>
+                                                                {cinema.rooms?.length || 0} phòng chiếu
                                                             </div>
-                                                        }
-                                                    />
+                                                        </div>
+                                                    </div>
                                                 </Card>
-                                            </Col>
-                                        ))}
-                                    </Row>
-                                </div>
-                            )}
-                        </>
-                    )}
-                </div>
-            )}
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

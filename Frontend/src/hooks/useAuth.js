@@ -56,10 +56,10 @@ const login = async (...args) => {
     try {
         let payload;
         if (args.length === 1 && typeof args[0] === 'object') {
-            const { usernameOrEmail, password, rememberMe } = args[0] || {};
-            payload = { usernameOrEmail, password, rememberMe };
+            const { email, password, rememberMe } = args[0] || {};
+            payload = { email, password, rememberMe };
         } else if (args.length === 2 && typeof args[0] === 'string') {
-            payload = { usernameOrEmail: args[0], password: args[1] };
+            payload = { email: args[0], password: args[1] };
         } else {
             throw new Error('Invalid login parameters');
         }
@@ -74,8 +74,8 @@ const login = async (...args) => {
         // So we DON'T need to save again here, just handle rememberEmail
 
         // Handle remember email separately (not part of auth data)
-        if (payload?.rememberMe && payload?.usernameOrEmail) {
-            saveAuthData({ rememberEmail: payload.usernameOrEmail });
+        if (payload?.rememberMe && payload?.email) {
+            saveAuthData({ rememberEmail: payload.email });
         } else {
             saveAuthData({ rememberEmail: false });
         }
@@ -181,6 +181,40 @@ const updateProfile = async (userData) => {
     }
 };
 
+const loginWithGoogle = async (googleToken) => {
+    setState({ isLoading: true, error: null });
+    try {
+        const res = await authService.loginWithGoogle(googleToken);
+
+        const token = res?.data?.accessToken || res?.token;
+        const user = res?.user || res?.data?.userAuth;
+
+        // Update state immediately after persisting
+        setState({
+            user: user,
+            token: token,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+        });
+
+        return res;
+    } catch (err) {
+        console.error('Google login error in useAuth:', err);
+        const message = err?.response?.data?.message || err?.message || 'Đăng nhập bằng Google thất bại.';
+        const status = err?.status || err?.response?.status;
+
+        setState({ user: null, token: null, isAuthenticated: false, isLoading: false, error: message });
+
+        throw {
+            message: message,
+            status: status,
+            response: err?.response,
+            data: err?.response?.data || err?.data
+        };
+    }
+};
+
 const clearError = () => setState({ error: null });
 
 const setMockUser = (mockUser, token = 'mock-jwt-token-' + Date.now()) => {
@@ -256,6 +290,7 @@ export const useAuth = () => {
             login,
             register,
             logout,
+            loginWithGoogle,
             updateProfile,
             updateUser: updateProfile,
             clearError,

@@ -1,5 +1,7 @@
 package com.example.hotcinemas_be.services;
 
+import com.example.hotcinemas_be.exceptions.AppException;
+import com.example.hotcinemas_be.exceptions.ErrorCode;
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -36,8 +38,7 @@ public class EmailService {
             log.info("OTP confirmation email sent to {}", email);
 
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Failed to send OTP confirmation email: " + e.getMessage());
+            log.error("Failed to send OTP confirmation email to {}: {}", email, e.getMessage());
         }
     }
 }

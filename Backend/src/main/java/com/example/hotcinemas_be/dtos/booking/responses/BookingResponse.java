@@ -19,10 +19,9 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class BookingDetailResponse {
+public class BookingResponse {
     private Long id;
     private String bookingCode;
-    private String qrCodeBase64;
     private BookingStatus status;
     private Long userId;
     private String userName;

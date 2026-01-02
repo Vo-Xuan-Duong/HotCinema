@@ -9,13 +9,17 @@ export const ENDPOINTS = {
   AUTH: '/auth',
   NOTIFICATIONS: '/notifications',
   CITIES: '/cities',
+  REGIONS: '/regions',
   CINEMA_CLUSTERS: '/cinema-clusters',
   SEATS: '/seats',
   ROOMS: '/rooms',
   SHOWTIMESEATS: '/showtime-seats',
   PROMOTIONS: '/promotions',
+  VOUCHERS: '/vouchers',
   PAYMENTS: '/payments',
-  REPORTS: '/reports'
+  REPORTS: '/reports',
+  ROLES: '/roles',
+  PERMISSIONS: '/permissions'
 };
 
 export const API_ENDPOINTS = ENDPOINTS; // Backward compatibility

@@ -19,10 +19,11 @@ public class RoleMapper {
         return RoleResponse.builder()
                 .id(role.getId())
                 .name(role.getName())
-                .code(role.getCode())
                 .description(role.getDescription())
                 .isActive(role.getIsActive())
-                .permissions(role.getPermissions().stream().map(permissionMapper::mapToResponse).toList())
+                .permissions(role.getRolePermissions().stream()
+                        .map(rolePermission -> permissionMapper.mapToResponse(rolePermission.getPermission()))
+                        .toList())
                 .build();
     }
 }

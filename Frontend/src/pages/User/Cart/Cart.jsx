@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, List, Typography, Empty, Row, Col, InputNumber, Divider, Space, Tag, message } from 'antd';
-import { ShoppingCartOutlined, DeleteOutlined, PlusOutlined, MinusOutlined } from '@ant-design/icons';
+import { ShoppingCart, Trash2, Plus, Minus } from 'lucide-react';
+import { Button } from '../../../components/ui/button';
+import { Card } from '../../../components/ui/card';
+import { Tag } from '../../../components/ui/tag';
+import { Empty } from '../../../components/ui/empty';
+import { List } from '../../../components/ui/list';
+import { Separator } from '../../../components/ui/separator';
+import { InputNumber } from '../../../components/ui/input-number';
 import { useNavigate } from 'react-router-dom';
-import './Cart.css';
-
-const { Title, Text } = Typography;
+import useNotification from '../../../hooks/useNotification';
 
 const Cart = () => {
     const navigate = useNavigate();
+    const notification = useNotification();
     const [cartItems, setCartItems] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Mock cart data
         const mockCartItems = [
             {
                 id: 1,
@@ -59,7 +63,7 @@ const Cart = () => {
 
     const removeItem = (id) => {
         setCartItems(prev => prev.filter(item => item.id !== id));
-        message.success('Đã xóa khỏi giỏ hàng');
+        notification.success('Đã xóa khỏi giỏ hàng');
     };
 
     const getTotalPrice = () => {
@@ -72,11 +76,10 @@ const Cart = () => {
 
     const proceedToCheckout = () => {
         if (cartItems.length === 0) {
-            message.warning('Giỏ hàng của bạn đang trống');
+            notification.warning('Giỏ hàng của bạn đang trống');
             return;
         }
 
-        // Save cart to localStorage for checkout process
         localStorage.setItem('checkoutItems', JSON.stringify(cartItems));
         navigate('/booking/confirm');
     };
@@ -86,30 +89,28 @@ const Cart = () => {
     };
 
     return (
-        <div className="cart-page">
-            <div className="cart-header">
-                <Title level={2}>
-                    <ShoppingCartOutlined /> Giỏ hàng của bạn
-                </Title>
-                <Text type="secondary">
-                    {cartItems.length > 0 ? `${getTotalItems()} vé phim` : 'Giỏ hàng trống'}
-                </Text>
-            </div>
+        <div className="min-h-screen bg-gray-50 py-8 px-4">
+            <div className="max-w-[1200px] mx-auto">
+                <div className="mb-8 text-center">
+                    <h2 className="text-gray-900 mb-2 text-2xl font-bold flex items-center justify-center gap-2">
+                        <ShoppingCart className="h-6 w-6" />
+                        Giỏ hàng của bạn
+                    </h2>
+                    <p className="text-gray-600">
+                        {cartItems.length > 0 ? `${getTotalItems()} vé phim` : 'Giỏ hàng trống'}
+                    </p>
+                </div>
 
-            <Row gutter={[24, 24]}>
-                <Col xs={24} lg={16}>
-                    <Card className="cart-items-card">
+                <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
+                    <Card className="bg-white rounded-xl shadow-md border border-gray-200">
                         {cartItems.length === 0 ? (
                             <Empty
-                                image="/images/empty-cart.svg"
                                 description={
                                     <div>
-                                        <Text>Giỏ hàng của bạn đang trống</Text>
-                                        <br />
+                                        <p className="text-gray-600 mb-4">Giỏ hàng của bạn đang trống</p>
                                         <Button
-                                            type="primary"
-                                            style={{ marginTop: 16 }}
                                             onClick={continueShopping}
+                                            className="rounded-lg"
                                         >
                                             Khám phá phim mới
                                         </Button>
@@ -119,148 +120,121 @@ const Cart = () => {
                         ) : (
                             <List
                                 loading={loading}
-                                dataSource={cartItems}
-                                renderItem={(item) => (
-                                    <List.Item className="cart-item">
-                                        <Card
-                                            hoverable
-                                            className="cart-item-card"
-                                        >
-                                            <Row gutter={16} align="middle">
-                                                <Col xs={24} sm={6}>
-                                                    <div className="movie-poster">
-                                                        <img
-                                                            src={item.poster}
-                                                            alt={item.movieTitle}
-                                                            onError={(e) => {
-                                                                e.target.src = 'https://via.placeholder.com/200x300?text=Movie+Poster';
-                                                            }}
+                                items={cartItems.map((item) => ({
+                                    key: item.id,
+                                    content: (
+                                        <Card className="w-full bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow mb-4">
+                                            <div className="grid grid-cols-1 sm:grid-cols-[100px_1fr_150px] gap-4 p-4">
+                                                <div className="w-full aspect-[2/3] rounded-lg overflow-hidden bg-gray-100">
+                                                    <img
+                                                        src={item.poster}
+                                                        alt={item.movieTitle}
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e) => {
+                                                            e.target.src = 'https://via.placeholder.com/200x300?text=Movie+Poster';
+                                                        }}
+                                                    />
+                                                </div>
+
+                                                <div className="py-2">
+                                                    <h4 className="text-gray-900 mb-3 text-lg font-semibold">{item.movieTitle}</h4>
+                                                    <div className="flex flex-col gap-2 text-sm">
+                                                        <p className="text-gray-600">📍 {item.cinema}</p>
+                                                        <p className="text-gray-600">🕐 {item.showtime}</p>
+                                                        <p className="text-gray-600">📅 {item.date}</p>
+                                                        <div className="flex flex-wrap gap-1">
+                                                            🪑 {item.seats.map(seat => (
+                                                                <Tag key={seat} color="blue">{seat}</Tag>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex flex-col gap-4">
+                                                    <div>
+                                                        <p className="text-lg text-red-600 font-semibold mb-1">
+                                                            {(item.price * item.quantity).toLocaleString()}đ
+                                                        </p>
+                                                        <p className="text-sm text-gray-500">
+                                                            {item.price.toLocaleString()}đ/vé
+                                                        </p>
+                                                    </div>
+
+                                                    <div>
+                                                        <InputNumber
+                                                            value={item.quantity}
+                                                            onChange={(value) => updateQuantity(item.id, value)}
+                                                            min={1}
+                                                            className="w-full"
                                                         />
                                                     </div>
-                                                </Col>
 
-                                                <Col xs={24} sm={12}>
-                                                    <div className="movie-info">
-                                                        <Title level={4}>{item.movieTitle}</Title>
-                                                        <Space direction="vertical" size="small">
-                                                            <Text>📍 {item.cinema}</Text>
-                                                            <Text>🕐 {item.showtime}</Text>
-                                                            <Text>📅 {item.date}</Text>
-                                                            <div>
-                                                                🪑 {item.seats.map(seat => (
-                                                                    <Tag key={seat} color="blue">{seat}</Tag>
-                                                                ))}
-                                                            </div>
-                                                        </Space>
-                                                    </div>
-                                                </Col>
-
-                                                <Col xs={24} sm={6}>
-                                                    <div className="quantity-controls">
-                                                        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                                                            <div className="price">
-                                                                <Text strong style={{ fontSize: 16, color: '#e50914' }}>
-                                                                    {(item.price * item.quantity).toLocaleString()}đ
-                                                                </Text>
-                                                                <br />
-                                                                <Text type="secondary" size="small">
-                                                                    {item.price.toLocaleString()}đ/vé
-                                                                </Text>
-                                                            </div>
-
-                                                            <div className="quantity">
-                                                                <Space>
-                                                                    <Button
-                                                                        size="small"
-                                                                        icon={<MinusOutlined />}
-                                                                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                                                    />
-                                                                    <InputNumber
-                                                                        size="small"
-                                                                        min={1}
-                                                                        value={item.quantity}
-                                                                        onChange={(value) => updateQuantity(item.id, value)}
-                                                                        style={{ width: 60 }}
-                                                                    />
-                                                                    <Button
-                                                                        size="small"
-                                                                        icon={<PlusOutlined />}
-                                                                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                                                    />
-                                                                </Space>
-                                                            </div>
-
-                                                            <Button
-                                                                danger
-                                                                type="text"
-                                                                icon={<DeleteOutlined />}
-                                                                onClick={() => removeItem(item.id)}
-                                                                size="small"
-                                                            >
-                                                                Xóa
-                                                            </Button>
-                                                        </Space>
-                                                    </div>
-                                                </Col>
-                                            </Row>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => removeItem(item.id)}
+                                                        className="text-red-600 hover:text-red-700"
+                                                    >
+                                                        <Trash2 className="h-4 w-4 mr-1" />
+                                                        Xóa
+                                                    </Button>
+                                                </div>
+                                            </div>
                                         </Card>
-                                    </List.Item>
-                                )}
+                                    )
+                                }))}
                             />
                         )}
                     </Card>
-                </Col>
 
-                <Col xs={24} lg={8}>
-                    <Card className="cart-summary-card" title="Tóm tắt đơn hàng">
-                        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                            <div className="summary-row">
-                                <Text>Số lượng vé:</Text>
-                                <Text strong>{getTotalItems()} vé</Text>
+                    <Card className="bg-white rounded-xl shadow-md border border-gray-200 h-fit">
+                        <h4 className="text-lg font-semibold mb-4">Tóm tắt đơn hàng</h4>
+                        <div className="flex flex-col gap-4">
+                            <div className="flex justify-between items-center">
+                                <p className="text-gray-600">Số lượng vé:</p>
+                                <p className="text-gray-900 font-semibold">{getTotalItems()} vé</p>
                             </div>
 
-                            <div className="summary-row">
-                                <Text>Tạm tính:</Text>
-                                <Text>{getTotalPrice().toLocaleString()}đ</Text>
+                            <div className="flex justify-between items-center">
+                                <p className="text-gray-600">Tạm tính:</p>
+                                <p className="text-gray-900">{getTotalPrice().toLocaleString()}đ</p>
                             </div>
 
-                            <div className="summary-row">
-                                <Text>Phí dịch vụ:</Text>
-                                <Text>0đ</Text>
+                            <div className="flex justify-between items-center">
+                                <p className="text-gray-600">Phí dịch vụ:</p>
+                                <p className="text-gray-900">0đ</p>
                             </div>
 
-                            <Divider />
+                            <Separator />
 
-                            <div className="summary-row total">
-                                <Title level={4}>Tổng cộng:</Title>
-                                <Title level={4} style={{ color: '#e50914', margin: 0 }}>
+                            <div className="flex justify-between items-center pt-2">
+                                <h4 className="text-gray-900 text-lg font-bold">Tổng cộng:</h4>
+                                <h4 className="text-red-600 text-lg font-bold">
                                     {getTotalPrice().toLocaleString()}đ
-                                </Title>
+                                </h4>
                             </div>
 
-                            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                            <div className="flex flex-col gap-3 mt-4">
                                 <Button
-                                    type="primary"
-                                    size="large"
-                                    block
                                     onClick={proceedToCheckout}
                                     disabled={cartItems.length === 0}
+                                    className="h-12 rounded-lg font-semibold"
                                 >
                                     Tiến hành thanh toán
                                 </Button>
 
                                 <Button
-                                    size="large"
-                                    block
+                                    variant="outline"
                                     onClick={continueShopping}
+                                    className="h-12 rounded-lg font-semibold"
                                 >
                                     Tiếp tục mua vé
                                 </Button>
-                            </Space>
-                        </Space>
+                            </div>
+                        </div>
                     </Card>
-                </Col>
-            </Row>
+                </div>
+            </div>
         </div>
     );
 };

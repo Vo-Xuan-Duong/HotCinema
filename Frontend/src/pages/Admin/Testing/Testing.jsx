@@ -1,68 +1,69 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card } from '../../../components/ui/card';
+import { TableWrapper } from '../../../components/ui/table-wrapper';
+import { Button } from '../../../components/ui/button';
+import { Modal } from '../../../components/ui/modal';
+import { Input } from '../../../components/ui/input';
+import { Select } from '../../../components/ui/select';
+import { Tag } from '../../../components/ui/tag';
+import { Statistic } from '../../../components/ui/statistic';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
+import { Alert } from '../../../components/ui/alert';
+import { Avatar } from '../../../components/ui/avatar';
+import { List } from '../../../components/ui/list';
+import { Separator } from '../../../components/ui/separator';
+import { Badge } from '../../../components/ui/badge-count';
+import { Progress } from '../../../components/ui/progress';
+import { Tooltip } from '../../../components/ui/tooltip';
+import { Empty } from '../../../components/ui/empty';
+import { Descriptions } from '../../../components/ui/descriptions';
+import { Drawer } from '../../../components/ui/drawer';
+import { DatePicker } from '../../../components/ui/date-picker';
+import { InputNumber } from '../../../components/ui/input-number';
+import { Breadcrumb } from '../../../components/ui/breadcrumb';
 import {
-  Card,
-  Table,
-  Button,
-  Modal,
-  Form,
-  Input,
-  Select,
-  Switch,
-  Tag,
-  Statistic,
-  Row,
-  Col,
-  Tabs,
-  Alert,
-  Space,
-  Avatar,
-  List,
-  Typography,
-  Divider,
-  Badge,
-  Progress,
-  Tooltip,
-  Popconfirm,
-  Empty,
-  Timeline,
-  Steps,
-  message,
-  Descriptions,
-  Drawer,
-  DatePicker,
-  InputNumber,
-  TimePicker
-} from 'antd';
-import {
-  BugOutlined,
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-  PlayCircleOutlined,
-  CheckCircleOutlined,
-  ExclamationCircleOutlined,
-  ClockCircleOutlined,
-  SettingOutlined,
-  FileTextOutlined,
-  DownloadOutlined,
-  ReloadOutlined,
-  StopOutlined,
-  PauseCircleOutlined,
-  BarChartOutlined,
-  HistoryOutlined
-} from '@ant-design/icons';
+  Bug,
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  PlayCircle,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  Settings,
+  FileText,
+  Download,
+  RotateCw,
+  Square,
+  Home,
+  PauseCircle,
+  BarChart3,
+  History,
+  XCircle,
+  Loader2
+} from 'lucide-react';
 import dayjs from 'dayjs';
-import styles from './Testing.module.css';
+import { useNotification } from '../../../hooks/useNotification';
+import { Textarea } from '../../../components/ui/textarea';
+import { SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select';
 // import testingData from '../../../data/testing.json'; // File removed during cleanup
-
-const { Title, Text } = Typography;
-const { Option } = Select;
-const { TextArea } = Input;
-const { RangePicker } = DatePicker;
-
 const Testing = () => {
-  const [form] = Form.useForm();
+  const navigate = useNavigate();
+  const { showNotification } = useNotification();
+  const [formValues, setFormValues] = useState({
+    name: '',
+    type: 'unit',
+    priority: 'medium',
+    status: 'pending',
+    description: '',
+    steps: '',
+    expectedResult: '',
+    environment: '',
+    browser: '',
+    os: ''
+  });
   const [tests, setTests] = useState([]);
   const [testRuns, setTestRuns] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -90,25 +91,25 @@ const Testing = () => {
     {
       title: 'Tổng test cases',
       value: tests.length,
-      icon: <BugOutlined />,
+      icon: <Bug className="h-5 w-5" />,
       color: '#1890ff'
     },
     {
       title: 'Đã pass',
       value: tests.filter(t => t.status === 'passed').length,
-      icon: <CheckCircleOutlined />,
+      icon: <CheckCircle2 className="h-5 w-5" />,
       color: '#52c41a'
     },
     {
       title: 'Coverage TB',
-      value: `${Math.round(tests.reduce((sum, t) => sum + t.coverage, 0) / tests.length)}%`,
-      icon: <FileTextOutlined />,
+      value: tests.length > 0 ? `${Math.round(tests.reduce((sum, t) => sum + (t.coverage || 0), 0) / tests.length)}%` : '0%',
+      icon: <FileText className="h-5 w-5" />,
       color: '#722ed1'
     },
     {
       title: 'Test runs',
       value: testRuns.length,
-      icon: <PlayCircleOutlined />,
+      icon: <PlayCircle className="h-5 w-5" />,
       color: '#fa8c16'
     }
   ];
@@ -116,24 +117,35 @@ const Testing = () => {
   const handleCreateTest = () => {
     setIsEditMode(false);
     setSelectedTest(null);
-    form.resetFields();
+    setFormValues({
+      name: '',
+      type: 'unit',
+      priority: 'medium',
+      status: 'pending',
+      description: '',
+      steps: '',
+      expectedResult: '',
+      environment: '',
+      browser: '',
+      os: ''
+    });
     setIsModalVisible(true);
   };
 
   const handleEditTest = (test) => {
     setIsEditMode(true);
     setSelectedTest(test);
-    form.setFieldsValue({
-      name: test.name,
-      type: test.type,
-      priority: test.priority,
-      status: test.status,
-      description: test.description,
-      steps: test.steps,
-      expectedResult: test.expectedResult,
-      environment: test.environment,
-      browser: test.browser,
-      os: test.os
+    setFormValues({
+      name: test.name || '',
+      type: test.type || 'unit',
+      priority: test.priority || 'medium',
+      status: test.status || 'pending',
+      description: test.description || '',
+      steps: test.steps || '',
+      expectedResult: test.expectedResult || '',
+      environment: test.environment || '',
+      browser: test.browser || '',
+      os: test.os || ''
     });
     setIsModalVisible(true);
   };
@@ -145,7 +157,7 @@ const Testing = () => {
 
   const handleDeleteTest = (testId) => {
     setTests(tests.filter(test => test.id !== testId));
-    message.success('Đã xóa test case thành công!');
+    showNotification('success', 'Thành công', 'Đã xóa test case thành công!');
   };
 
   const handleRunTest = (test) => {
@@ -154,7 +166,7 @@ const Testing = () => {
         ? { ...t, status: 'running', lastRun: dayjs().format('YYYY-MM-DD HH:mm:ss') }
         : t
     ));
-    message.info(`Đang chạy test: ${test.name}`);
+    showNotification('info', 'Thông tin', `Đang chạy test: ${test.name}`);
 
     // Simulate test running
     setTimeout(() => {
@@ -164,13 +176,13 @@ const Testing = () => {
           ? { ...t, status: newStatus, duration: `${(Math.random() * 20 + 5).toFixed(1)}s` }
           : t
       ));
-      message.success(`Test ${test.name} ${newStatus === 'passed' ? 'passed' : 'failed'}!`);
+      showNotification('success', 'Thành công', `Test ${test.name} ${newStatus === 'passed' ? 'passed' : 'failed'}!`);
     }, 3000);
   };
 
   const handleRunAllTests = () => {
     setLoading(true);
-    message.info('Đang chạy tất cả tests...');
+    showNotification('info', 'Thông tin', 'Đang chạy tất cả tests...');
 
     setTimeout(() => {
       setTests(tests.map(test => ({
@@ -180,41 +192,79 @@ const Testing = () => {
         lastRun: dayjs().format('YYYY-MM-DD HH:mm:ss')
       })));
       setLoading(false);
-      message.success('Đã chạy xong tất cả tests!');
+      showNotification('success', 'Thành công', 'Đã chạy xong tất cả tests!');
     }, 5000);
   };
 
   const handleModalOk = () => {
-    form.validateFields().then((values) => {
-      if (isEditMode) {
-        setTests(tests.map(test =>
-          test.id === selectedTest.id
-            ? { ...test, ...values, lastRun: dayjs().format('YYYY-MM-DD HH:mm:ss') }
-            : test
-        ));
-        message.success('Cập nhật test case thành công!');
-      } else {
-        const newTest = {
-          id: Date.now(),
-          ...values,
-          duration: '0s',
-          coverage: 0,
-          lastRun: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-          status: 'pending'
-        };
-        setTests([...tests, newTest]);
-        message.success('Thêm test case thành công!');
-      }
-      setIsModalVisible(false);
-      form.resetFields();
-      setIsEditMode(false);
-      setSelectedTest(null);
+    // Validate
+    if (!formValues.name?.trim()) {
+      showNotification('error', 'Lỗi', 'Vui lòng nhập tên test case!');
+      return;
+    }
+    if (!formValues.type) {
+      showNotification('error', 'Lỗi', 'Vui lòng chọn loại test!');
+      return;
+    }
+    if (!formValues.priority) {
+      showNotification('error', 'Lỗi', 'Vui lòng chọn mức độ ưu tiên!');
+      return;
+    }
+    if (!formValues.status) {
+      showNotification('error', 'Lỗi', 'Vui lòng chọn trạng thái!');
+      return;
+    }
+
+    if (isEditMode) {
+      setTests(tests.map(test =>
+        test.id === selectedTest.id
+          ? { ...test, ...formValues, lastRun: dayjs().format('YYYY-MM-DD HH:mm:ss') }
+          : test
+      ));
+      showNotification('success', 'Thành công', 'Cập nhật test case thành công!');
+    } else {
+      const newTest = {
+        id: Date.now(),
+        ...formValues,
+        duration: '0s',
+        coverage: 0,
+        lastRun: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+        status: 'pending'
+      };
+      setTests([...tests, newTest]);
+      showNotification('success', 'Thành công', 'Thêm test case thành công!');
+    }
+    setIsModalVisible(false);
+    setFormValues({
+      name: '',
+      type: 'unit',
+      priority: 'medium',
+      status: 'pending',
+      description: '',
+      steps: '',
+      expectedResult: '',
+      environment: '',
+      browser: '',
+      os: ''
     });
+    setIsEditMode(false);
+    setSelectedTest(null);
   };
 
   const handleModalCancel = () => {
     setIsModalVisible(false);
-    form.resetFields();
+    setFormValues({
+      name: '',
+      type: 'unit',
+      priority: 'medium',
+      status: 'pending',
+      description: '',
+      steps: '',
+      expectedResult: '',
+      environment: '',
+      browser: '',
+      os: ''
+    });
     setIsEditMode(false);
     setSelectedTest(null);
   };
@@ -254,9 +304,9 @@ const Testing = () => {
       key: 'type',
       render: (type) => {
         const typeConfig = {
-          unit: { color: 'green', text: 'Unit Test', icon: <BugOutlined /> },
-          integration: { color: 'blue', text: 'Integration Test', icon: <SettingOutlined /> },
-          e2e: { color: 'purple', text: 'E2E Test', icon: <PlayCircleOutlined /> }
+          unit: { color: 'green', text: 'Unit Test', icon: <Bug className="h-4 w-4" /> },
+          integration: { color: 'blue', text: 'Integration Test', icon: <Settings className="h-4 w-4" /> },
+          e2e: { color: 'purple', text: 'E2E Test', icon: <PlayCircle className="h-4 w-4" /> }
         };
         const config = typeConfig[type] || { color: 'default', text: type };
         return (
@@ -286,10 +336,10 @@ const Testing = () => {
       key: 'status',
       render: (status) => {
         const statusConfig = {
-          passed: { color: 'green', text: 'Passed', icon: <CheckCircleOutlined /> },
-          failed: { color: 'red', text: 'Failed', icon: <ExclamationCircleOutlined /> },
-          pending: { color: 'orange', text: 'Pending', icon: <ClockCircleOutlined /> },
-          running: { color: 'blue', text: 'Running', icon: <PlayCircleOutlined /> }
+          passed: { color: 'green', text: 'Passed', icon: <CheckCircle2 className="h-4 w-4" /> },
+          failed: { color: 'red', text: 'Failed', icon: <XCircle className="h-4 w-4" /> },
+          pending: { color: 'orange', text: 'Pending', icon: <Clock className="h-4 w-4" /> },
+          running: { color: 'blue', text: 'Running', icon: <PlayCircle className="h-4 w-4" /> }
         };
         const config = statusConfig[status] || { color: 'default', text: status };
         return (
@@ -327,44 +377,55 @@ const Testing = () => {
       title: 'Thao tác',
       key: 'actions',
       render: (_, record) => (
-        <Space>
-          <Tooltip title="Chạy test">
+        <div className="flex items-center gap-2">
+          <Tooltip content="Chạy test">
             <Button
-              type="text"
-              icon={record.status === 'running' ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
-              size="small"
+              variant="ghost"
+              size="sm"
               className={styles['testing-button']}
               onClick={() => handleRunTest(record)}
-              loading={record.status === 'running'}
-            />
+              disabled={record.status === 'running'}
+            >
+              {record.status === 'running' ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <PlayCircle className="h-4 w-4" />
+              )}
+            </Button>
           </Tooltip>
-          <Tooltip title="Xem chi tiết">
+          <Tooltip content="Xem chi tiết">
             <Button
-              type="text"
-              icon={<EyeOutlined />}
-              size="small"
+              variant="ghost"
+              size="sm"
               onClick={() => handleViewTest(record)}
-            />
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
           </Tooltip>
-          <Tooltip title="Chỉnh sửa">
+          <Tooltip content="Chỉnh sửa">
             <Button
-              type="text"
-              icon={<EditOutlined />}
-              size="small"
+              variant="ghost"
+              size="sm"
               onClick={() => handleEditTest(record)}
-            />
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
           </Tooltip>
-          <Popconfirm
-            title="Bạn có chắc muốn xóa test case này?"
-            onConfirm={() => handleDeleteTest(record.id)}
-            okText="Có"
-            cancelText="Không"
-          >
-            <Tooltip title="Xóa">
-              <Button type="text" icon={<DeleteOutlined />} size="small" danger />
-            </Tooltip>
-          </Popconfirm>
-        </Space>
+          <Tooltip content="Xóa">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() => {
+                if (window.confirm('Bạn có chắc muốn xóa test case này?')) {
+                  handleDeleteTest(record.id);
+                }
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </Tooltip>
+        </div>
       )
     }
   ];
@@ -389,9 +450,9 @@ const Testing = () => {
       key: 'status',
       render: (status) => {
         const statusConfig = {
-          completed: { color: 'green', text: 'Hoàn thành', icon: <CheckCircleOutlined /> },
-          running: { color: 'blue', text: 'Đang chạy', icon: <PlayCircleOutlined /> },
-          failed: { color: 'red', text: 'Thất bại', icon: <ExclamationCircleOutlined /> }
+          completed: { color: 'green', text: 'Hoàn thành', icon: <CheckCircle2 className="h-4 w-4" /> },
+          running: { color: 'blue', text: 'Đang chạy', icon: <PlayCircle className="h-4 w-4" /> },
+          failed: { color: 'red', text: 'Thất bại', icon: <XCircle className="h-4 w-4" /> }
         };
         const config = statusConfig[status] || { color: 'default', text: status };
         return (
@@ -446,32 +507,55 @@ const Testing = () => {
       title: 'Thao tác',
       key: 'actions',
       render: (_, record) => (
-        <Space>
-          <Tooltip title="Xem chi tiết">
+        <div className="flex items-center gap-2">
+          <Tooltip content="Xem chi tiết">
             <Button
-              type="text"
-              icon={<EyeOutlined />}
-              size="small"
+              variant="ghost"
+              size="sm"
               onClick={() => handleViewTestRun(record)}
-            />
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
           </Tooltip>
-          <Tooltip title="Tải xuống">
-            <Button type="text" icon={<DownloadOutlined />} size="small" />
+          <Tooltip content="Tải xuống">
+            <Button variant="ghost" size="sm">
+              <Download className="h-4 w-4" />
+            </Button>
           </Tooltip>
-        </Space>
+        </div>
       )
     }
   ];
 
   return (
     <div className={styles['testing-container']}>
+      {/* Breadcrumb */}
+      <Breadcrumb
+        className="mb-4"
+        items={[
+          {
+            title: (
+              <span
+                onClick={() => navigate('/admin/dashboard')}
+                className="cursor-pointer hover:text-primary transition-colors"
+              >
+                <Home className="h-4 w-4" /> Dashboard
+              </span>
+            ),
+          },
+          {
+            title: 'Testing',
+          },
+        ]}
+      />
+
       <div className={styles['testing-header']}>
-        <Title level={2} className={styles['testing-title']}>
+        <h2 className={styles['testing-title']}>
           Quản lý testing
-        </Title>
-        <Text className={styles['testing-subtitle']}>
+        </h2>
+        <p className={styles['testing-subtitle']}>
           Quản lý test cases, test runs và báo cáo chất lượng
-        </Text>
+        </p>
       </div>
 
       <div className={styles['quick-stats']}>
@@ -489,202 +573,189 @@ const Testing = () => {
 
       <Card className={styles['testing-card']}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <Title level={4} style={{ margin: 0 }}>Test Management</Title>
-          <Space>
+          <h4 style={{ margin: 0 }}>Test Management</h4>
+          <div className="flex items-center gap-2">
             <Button
-              icon={<ReloadOutlined />}
               onClick={handleRunAllTests}
-              loading={loading}
+              disabled={loading}
+              variant="outline"
               className={styles['testing-button-secondary']}
             >
+              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RotateCw className="h-4 w-4 mr-2" />}
               Chạy tất cả
             </Button>
             <Button
-              type="primary"
-              icon={<PlusOutlined />}
               onClick={handleCreateTest}
-              className={styles['testing-button']}
+              className={styles['testing-button'] + ' bg-indigo-600 hover:bg-indigo-700 text-white'}
             >
+              <Plus className="h-4 w-4 mr-2" />
               + Thêm test case
             </Button>
-          </Space>
+          </div>
         </div>
 
-        <Tabs
-          defaultActiveKey="tests"
-          className={styles['testing-tabs']}
-          items={[
-            {
-              key: 'tests',
-              label: 'Test Cases',
-              children: (
+        <Tabs defaultValue="tests" className={styles['testing-tabs']}>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="tests">Test Cases</TabsTrigger>
+            <TabsTrigger value="runs">Test Runs</TabsTrigger>
+            <TabsTrigger value="coverage">Test Coverage</TabsTrigger>
+            <TabsTrigger value="reports">Báo cáo</TabsTrigger>
+          </TabsList>
+          <TabsContent value="tests">
                 <div>
-                  <Row gutter={16} style={{ marginBottom: 16 }}>
-                    <Col xs={24} sm={8}>
-                      <Input
-                        placeholder="Tìm kiếm test cases..."
-                        prefix={<BugOutlined />}
-                        value={searchText}
-                        onChange={(e) => setSearchText(e.target.value)}
-                      />
-                    </Col>
-                    <Col xs={24} sm={4}>
-                      <Select
-                        placeholder="Trạng thái"
-                        value={statusFilter}
-                        onChange={setStatusFilter}
-                        style={{ width: '100%' }}
-                      >
-                        <Option value="all">Tất cả trạng thái</Option>
-                        <Option value="passed">Passed</Option>
-                        <Option value="failed">Failed</Option>
-                        <Option value="pending">Pending</Option>
-                        <Option value="running">Running</Option>
-                      </Select>
-                    </Col>
-                    <Col xs={24} sm={4}>
-                      <Select
-                        placeholder="Loại test"
-                        value={typeFilter}
-                        onChange={setTypeFilter}
-                        style={{ width: '100%' }}
-                      >
-                        <Option value="all">Tất cả loại</Option>
-                        <Option value="unit">Unit Test</Option>
-                        <Option value="integration">Integration Test</Option>
-                        <Option value="e2e">E2E Test</Option>
-                      </Select>
-                    </Col>
-                    <Col xs={24} sm={4}>
-                      <Select
-                        placeholder="Ưu tiên"
-                        value={priorityFilter}
-                        onChange={setPriorityFilter}
-                        style={{ width: '100%' }}
-                      >
-                        <Option value="all">Tất cả ưu tiên</Option>
-                        <Option value="high">Cao</Option>
-                        <Option value="medium">Trung bình</Option>
-                        <Option value="low">Thấp</Option>
-                      </Select>
-                    </Col>
-                    <Col xs={24} sm={4}>
-                      <Button
-                        icon={<ReloadOutlined />}
-                        onClick={() => {
-                          setSearchText('');
-                          setStatusFilter('all');
-                          setTypeFilter('all');
-                          setPriorityFilter('all');
-                        }}
-                      >
-                        Reset
-                      </Button>
-                    </Col>
-                  </Row>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+                    <div className="sm:col-span-2">
+                      <div className="relative">
+                        <Bug className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                          placeholder="Tìm kiếm test cases..."
+                          value={searchText}
+                          onChange={(e) => setSearchText(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+                    <Select
+                      value={statusFilter}
+                      onValueChange={setStatusFilter}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Trạng thái" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                        <SelectItem value="passed">Passed</SelectItem>
+                        <SelectItem value="failed">Failed</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="running">Running</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={typeFilter}
+                      onValueChange={setTypeFilter}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Loại test" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tất cả loại</SelectItem>
+                        <SelectItem value="unit">Unit Test</SelectItem>
+                        <SelectItem value="integration">Integration Test</SelectItem>
+                        <SelectItem value="e2e">E2E Test</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={priorityFilter}
+                      onValueChange={setPriorityFilter}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Ưu tiên" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tất cả ưu tiên</SelectItem>
+                        <SelectItem value="high">Cao</SelectItem>
+                        <SelectItem value="medium">Trung bình</SelectItem>
+                        <SelectItem value="low">Thấp</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSearchText('');
+                        setStatusFilter('all');
+                        setTypeFilter('all');
+                        setPriorityFilter('all');
+                      }}
+                      className="w-full"
+                    >
+                      <RotateCw className="h-4 w-4 mr-2" />
+                      Reset
+                    </Button>
+                  </div>
 
-                  <Table
+                  <TableWrapper
                     columns={columns}
                     dataSource={getFilteredTests()}
                     rowKey="id"
-                    className={styles['testing-table']}
                     pagination={{
-                      total: getFilteredTests().length,
+                      current: 1,
                       pageSize: 10,
+                      total: getFilteredTests().length,
                       showSizeChanger: true,
                       showQuickJumper: true,
                       showTotal: (total, range) =>
                         `${range[0]}-${range[1]} của ${total} test cases`
                     }}
                   />
-                </div>
-              )
-            },
-            {
-              key: 'runs',
-              label: 'Test Runs',
-              children: (
-                <Table
+          </TabsContent>
+          <TabsContent value="runs">
+                <TableWrapper
                   columns={runColumns}
                   dataSource={testRuns}
                   rowKey="id"
-                  className={styles['testing-table']}
                   pagination={{
-                    total: testRuns.length,
+                    current: 1,
                     pageSize: 10,
+                    total: testRuns.length,
                     showSizeChanger: true,
                     showQuickJumper: true,
                     showTotal: (total, range) =>
                       `${range[0]}-${range[1]} của ${total} test runs`
                   }}
                 />
-              )
-            },
-            {
-              key: 'coverage',
-              label: 'Test Coverage',
-              children: (
+          </TabsContent>
+          <TabsContent value="coverage">
                 <div>
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <Card title="Coverage theo module" className={styles['testing-card']}>
-                        <List
-                          dataSource={[
-                            { module: 'Authentication', coverage: 95 },
-                            { module: 'Booking', coverage: 87 },
-                            { module: 'Payment', coverage: 82 },
-                            { module: 'Admin', coverage: 78 }
-                          ]}
-                          renderItem={(item) => (
-                            <List.Item>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                                <Text>{item.module}</Text>
-                                <div>
-                                  <Text strong>{item.coverage}%</Text>
-                                  <Progress
-                                    percent={item.coverage}
-                                    size="small"
-                                    className={styles['testing-progress']}
-                                    style={{ marginTop: 4 }}
-                                  />
-                                </div>
-                              </div>
-                            </List.Item>
-                          )}
-                        />
-                      </Card>
-                    </Col>
-                    <Col span={12}>
-                      <Card title="Test Execution Steps" className={styles['testing-card']}>
-                        <Steps
-                          direction="vertical"
-                          size="small"
-                          current={2}
-                          items={[
-                            { title: 'Setup Environment', description: 'Khởi tạo test environment' },
-                            { title: 'Run Unit Tests', description: 'Chạy unit tests' },
-                            { title: 'Run Integration Tests', description: 'Chạy integration tests' },
-                            { title: 'Run E2E Tests', description: 'Chạy end-to-end tests' },
-                            { title: 'Generate Report', description: 'Tạo báo cáo kết quả' }
-                          ]}
-                        />
-                      </Card>
-                    </Col>
-                  </Row>
-                </div>
-              )
-            },
-            {
-              key: 'reports',
-              label: 'Báo cáo',
-              children: (
-                <div style={{ textAlign: 'center', padding: '40px' }}>
-                  <Empty description="Chưa có báo cáo nào" />
-                </div>
-              )
-            }
-          ]}
-        />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Card className={styles['testing-card'] + ' p-4'}>
+                      <h4 className="mb-4 font-semibold">Coverage theo module</h4>
+                      <div className="space-y-3">
+                        {[
+                          { module: 'Authentication', coverage: 95 },
+                          { module: 'Booking', coverage: 87 },
+                          { module: 'Payment', coverage: 82 },
+                          { module: 'Admin', coverage: 78 }
+                        ].map((item, index) => (
+                          <div key={index} className="flex justify-between items-center">
+                            <span>{item.module}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold">{item.coverage}%</span>
+                              <Progress value={item.coverage} className="w-20 h-2" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </Card>
+                    <Card className={styles['testing-card'] + ' p-4'}>
+                      <h4 className="mb-4 font-semibold">Test Execution Steps</h4>
+                      <div className="space-y-4">
+                        {[
+                          { title: 'Setup Environment', description: 'Khởi tạo test environment', completed: true },
+                          { title: 'Run Unit Tests', description: 'Chạy unit tests', completed: true },
+                          { title: 'Run Integration Tests', description: 'Chạy integration tests', completed: false },
+                          { title: 'Run E2E Tests', description: 'Chạy end-to-end tests', completed: false },
+                          { title: 'Generate Report', description: 'Tạo báo cáo kết quả', completed: false }
+                        ].map((step, index) => (
+                          <div key={index} className="flex items-start gap-3">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${step.completed ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                              {step.completed ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
+                            </div>
+                            <div>
+                              <h5 className="font-semibold">{step.title}</h5>
+                              <p className="text-sm text-gray-500">{step.description}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </Card>
+                  </div>
+          </TabsContent>
+          <TabsContent value="reports">
+            <div className="text-center py-10">
+              <Empty description="Chưa có báo cáo nào" />
+            </div>
+          </TabsContent>
+        </Tabs>
       </Card>
 
       {/* Test Detail Drawer */}
@@ -722,18 +793,15 @@ const Testing = () => {
               </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="Trạng thái">
-              <Badge
-                status={
-                  selectedTest.status === 'passed' ? 'success' :
-                    selectedTest.status === 'failed' ? 'error' :
-                      selectedTest.status === 'running' ? 'processing' : 'default'
-                }
-                text={
-                  selectedTest.status === 'passed' ? 'Passed' :
-                    selectedTest.status === 'failed' ? 'Failed' :
-                      selectedTest.status === 'running' ? 'Running' : 'Pending'
-                }
-              />
+              <Tag color={
+                selectedTest.status === 'passed' ? 'green' :
+                  selectedTest.status === 'failed' ? 'red' :
+                    selectedTest.status === 'running' ? 'blue' : 'orange'
+              }>
+                {selectedTest.status === 'passed' ? 'Passed' :
+                  selectedTest.status === 'failed' ? 'Failed' :
+                    selectedTest.status === 'running' ? 'Running' : 'Pending'}
+              </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="Thời gian chạy">
               {selectedTest.duration}
@@ -754,7 +822,7 @@ const Testing = () => {
               {selectedTest.os}
             </Descriptions.Item>
             <Descriptions.Item label="Các bước thực hiện" span={1}>
-              <Text style={{ whiteSpace: 'pre-line' }}>{selectedTest.steps}</Text>
+              <p style={{ whiteSpace: 'pre-line' }}>{selectedTest.steps}</p>
             </Descriptions.Item>
             <Descriptions.Item label="Kết quả mong đợi" span={1}>
               {selectedTest.expectedResult}
@@ -780,28 +848,25 @@ const Testing = () => {
               {selectedTestRun.name}
             </Descriptions.Item>
             <Descriptions.Item label="Trạng thái">
-              <Badge
-                status={
-                  selectedTestRun.status === 'completed' ? 'success' :
-                    selectedTestRun.status === 'running' ? 'processing' : 'error'
-                }
-                text={
-                  selectedTestRun.status === 'completed' ? 'Hoàn thành' :
-                    selectedTestRun.status === 'running' ? 'Đang chạy' : 'Thất bại'
-                }
-              />
+              <Tag color={
+                selectedTestRun.status === 'completed' ? 'green' :
+                  selectedTestRun.status === 'running' ? 'blue' : 'red'
+              }>
+                {selectedTestRun.status === 'completed' ? 'Hoàn thành' :
+                  selectedTestRun.status === 'running' ? 'Đang chạy' : 'Thất bại'}
+              </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="Tổng tests">
               {selectedTestRun.totalTests}
             </Descriptions.Item>
             <Descriptions.Item label="Passed">
-              <Text type="success">{selectedTestRun.passed}</Text>
+              <span className="text-green-600 font-semibold">{selectedTestRun.passed}</span>
             </Descriptions.Item>
             <Descriptions.Item label="Failed">
-              <Text type="danger">{selectedTestRun.failed}</Text>
+              <span className="text-red-600 font-semibold">{selectedTestRun.failed}</span>
             </Descriptions.Item>
             <Descriptions.Item label="Skipped">
-              <Text type="secondary">{selectedTestRun.skipped}</Text>
+              <span className="text-gray-500">{selectedTestRun.skipped}</span>
             </Descriptions.Item>
             <Descriptions.Item label="Thời gian chạy">
               {selectedTestRun.duration}
@@ -844,115 +909,149 @@ const Testing = () => {
       <Modal
         title={isEditMode ? "Chỉnh sửa test case" : "Thêm test case mới"}
         open={isModalVisible}
-        onOk={handleModalOk}
         onCancel={handleModalCancel}
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={handleModalCancel}>
+              Hủy
+            </Button>
+            <Button onClick={handleModalOk} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+              {isEditMode ? 'Cập nhật' : 'Thêm'}
+            </Button>
+          </div>
+        }
         width={800}
         className={styles['testing-modal']}
       >
-        <Form form={form} layout="vertical" className={styles['testing-form']}>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="name"
-                label="Tên test case"
-                rules={[{ required: true, message: 'Vui lòng nhập tên test case!' }]}
+        <form onSubmit={(e) => { e.preventDefault(); handleModalOk(); }} className={styles['testing-form'] + ' space-y-4'}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block mb-2 font-semibold">
+                Tên test case <span className="text-red-500">*</span>
+              </label>
+              <Input
+                value={formValues.name}
+                onChange={(e) => setFormValues({ ...formValues, name: e.target.value })}
+                placeholder="Nhập tên test case"
+              />
+            </div>
+            <div>
+              <label className="block mb-2 font-semibold">
+                Loại test <span className="text-red-500">*</span>
+              </label>
+              <Select
+                value={formValues.type}
+                onValueChange={(value) => setFormValues({ ...formValues, type: value })}
               >
-                <Input placeholder="Nhập tên test case" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="type"
-                label="Loại test"
-                rules={[{ required: true, message: 'Vui lòng chọn loại test!' }]}
-              >
-                <Select placeholder="Chọn loại test" className={styles['testing-select']}>
-                  <Option value="unit">Unit Test</Option>
-                  <Option value="integration">Integration Test</Option>
-                  <Option value="e2e">E2E Test</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn loại test" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unit">Unit Test</SelectItem>
+                  <SelectItem value="integration">Integration Test</SelectItem>
+                  <SelectItem value="e2e">E2E Test</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item
-                name="priority"
-                label="Mức độ ưu tiên"
-                rules={[{ required: true, message: 'Vui lòng chọn mức độ ưu tiên!' }]}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block mb-2 font-semibold">
+                Mức độ ưu tiên <span className="text-red-500">*</span>
+              </label>
+              <Select
+                value={formValues.priority}
+                onValueChange={(value) => setFormValues({ ...formValues, priority: value })}
               >
-                <Select placeholder="Chọn mức độ ưu tiên" className={styles['testing-select']}>
-                  <Option value="high">Cao</Option>
-                  <Option value="medium">Trung bình</Option>
-                  <Option value="low">Thấp</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="status"
-                label="Trạng thái"
-                rules={[{ required: true, message: 'Vui lòng chọn trạng thái!' }]}
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn mức độ ưu tiên" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="high">Cao</SelectItem>
+                  <SelectItem value="medium">Trung bình</SelectItem>
+                  <SelectItem value="low">Thấp</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="block mb-2 font-semibold">
+                Trạng thái <span className="text-red-500">*</span>
+              </label>
+              <Select
+                value={formValues.status}
+                onValueChange={(value) => setFormValues({ ...formValues, status: value })}
               >
-                <Select placeholder="Chọn trạng thái" className={styles['testing-select']}>
-                  <Option value="pending">Pending</Option>
-                  <Option value="running">Running</Option>
-                  <Option value="passed">Passed</Option>
-                  <Option value="failed">Failed</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="environment"
-                label="Environment"
-              >
-                <Input placeholder="VD: Chrome 120.0.0" />
-              </Form.Item>
-            </Col>
-          </Row>
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="running">Running</SelectItem>
+                  <SelectItem value="passed">Passed</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="block mb-2 font-semibold">Environment</label>
+              <Input
+                value={formValues.environment}
+                onChange={(e) => setFormValues({ ...formValues, environment: e.target.value })}
+                placeholder="VD: Chrome 120.0.0"
+              />
+            </div>
+          </div>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="browser"
-                label="Browser"
-              >
-                <Input placeholder="VD: Chrome" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="os"
-                label="Operating System"
-              >
-                <Input placeholder="VD: Windows 10" />
-              </Form.Item>
-            </Col>
-          </Row>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block mb-2 font-semibold">Browser</label>
+              <Input
+                value={formValues.browser}
+                onChange={(e) => setFormValues({ ...formValues, browser: e.target.value })}
+                placeholder="VD: Chrome"
+              />
+            </div>
+            <div>
+              <label className="block mb-2 font-semibold">Operating System</label>
+              <Input
+                value={formValues.os}
+                onChange={(e) => setFormValues({ ...formValues, os: e.target.value })}
+                placeholder="VD: Windows 10"
+              />
+            </div>
+          </div>
 
-          <Form.Item
-            name="description"
-            label="Mô tả"
-          >
-            <TextArea rows={3} placeholder="Nhập mô tả test case" />
-          </Form.Item>
+          <div>
+            <label className="block mb-2 font-semibold">Mô tả</label>
+            <Textarea
+              value={formValues.description}
+              onChange={(e) => setFormValues({ ...formValues, description: e.target.value })}
+              rows={3}
+              placeholder="Nhập mô tả test case"
+            />
+          </div>
 
-          <Form.Item
-            name="steps"
-            label="Test Steps"
-          >
-            <TextArea rows={4} placeholder="Nhập các bước thực hiện test" />
-          </Form.Item>
+          <div>
+            <label className="block mb-2 font-semibold">Test Steps</label>
+            <Textarea
+              value={formValues.steps}
+              onChange={(e) => setFormValues({ ...formValues, steps: e.target.value })}
+              rows={4}
+              placeholder="Nhập các bước thực hiện test"
+            />
+          </div>
 
-          <Form.Item
-            name="expectedResult"
-            label="Kết quả mong đợi"
-          >
-            <TextArea rows={2} placeholder="Nhập kết quả mong đợi" />
-          </Form.Item>
-        </Form>
+          <div>
+            <label className="block mb-2 font-semibold">Kết quả mong đợi</label>
+            <Textarea
+              value={formValues.expectedResult}
+              onChange={(e) => setFormValues({ ...formValues, expectedResult: e.target.value })}
+              rows={2}
+              placeholder="Nhập kết quả mong đợi"
+            />
+          </div>
+        </form>
       </Modal>
     </div>
   );

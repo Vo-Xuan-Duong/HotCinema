@@ -6,14 +6,13 @@ import com.example.hotcinemas_be.dtos.payment.responses.PaymentResponse;
 import com.example.hotcinemas_be.enums.BookingStatus;
 import com.example.hotcinemas_be.enums.PaymentMethod;
 import com.example.hotcinemas_be.enums.PaymentStatus;
-import com.example.hotcinemas_be.enums.SeatStatus;
+import com.example.hotcinemas_be.exceptions.AppException;
+import com.example.hotcinemas_be.exceptions.ErrorCode;
 import com.example.hotcinemas_be.mappers.PaymentMapper;
 import com.example.hotcinemas_be.models.Booking;
 import com.example.hotcinemas_be.models.Payment;
-import com.example.hotcinemas_be.models.Ticket;
 import com.example.hotcinemas_be.repositorys.BookingRepository;
 import com.example.hotcinemas_be.repositorys.PaymentRepository;
-import com.example.hotcinemas_be.repositorys.TicketRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -33,19 +32,18 @@ public class PaymentService {
     private final PaymentMapper paymentMapper;
     private final BookingRepository bookingRepository;
     private final MomoService momoService;
-    private final TicketService ticketService;
-
 
     public PaymentResponse createPayment(PaymentRequest paymentRequest) {
         Booking booking = bookingRepository.findById(paymentRequest.getBookingId())
-                .orElseThrow(() -> new RuntimeException(STR."Booking not found with id: \{paymentRequest.getBookingId()}"));
+                .orElseThrow(() -> new AppException("Booking not found with id: " + paymentRequest.getBookingId(),
+                        ErrorCode.BOOKING_NOT_FOUND));
 
         Payment payment = Payment.builder()
                 .booking(booking)
                 .amount(booking.getTotalAmount())
                 .paymentMethod(paymentRequest.getPaymentMethod())
-                .bookingCode(booking.getBookingCode())
-                .status(PaymentStatus.PENDING)
+                .paymentStatus(PaymentStatus.PENDING)
+                .paymentDetails(paymentRequest.getPaymentDetails())
                 .build();
 
         Payment savedPayment = paymentRepository.save(payment);
@@ -55,7 +53,7 @@ public class PaymentService {
         if(paymentRequest.getPaymentMethod() == PaymentMethod.MOMO){
             long amount = booking.getTotalAmount().longValue();
             String orderId = booking.getBookingCode();
-            String orderInfo = STR."Payment for booking \{booking.getBookingCode()}";
+            String orderInfo = "Payment for booking " + booking.getBookingCode();
 
             MomoResponse momoResponse = momoService.createMethodMomo(orderId, amount, orderInfo);
             log.info("Momo Response: {}", momoResponse);
@@ -73,13 +71,15 @@ public class PaymentService {
     @Transactional(readOnly = true)
     public PaymentResponse getPaymentById(Long paymentId) {
         Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new RuntimeException("Payment not found with id: " + paymentId));
+                .orElseThrow(() -> new AppException("Payment not found with id: " + paymentId,
+                        ErrorCode.MODEL_NOT_FOUND));
         return paymentMapper.mapToResponse(payment);
     }
 
     public void deletePayment(Long paymentId) {
         Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new RuntimeException("Payment not found with id: " + paymentId));
+                .orElseThrow(() -> new AppException("Payment not found with id: " + paymentId,
+                        ErrorCode.MODEL_NOT_FOUND));
         paymentRepository.delete(payment);
     }
 
@@ -103,47 +103,47 @@ public class PaymentService {
 
     @Transactional(readOnly = true)
     public List<PaymentResponse> getPaymentsByStatus(PaymentStatus status) {
-        List<Payment> payments = paymentRepository.findByStatus(status);
+        List<Payment> payments = paymentRepository.findByPaymentStatus(status);
         return payments.stream().map(paymentMapper::mapToResponse).toList();
     }
 
     public PaymentResponse updatePaymentStatus(Long paymentId, PaymentStatus status) {
         Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new RuntimeException("Payment not found with id: " + paymentId));
+                .orElseThrow(() -> new AppException("Payment not found with id: " + paymentId,
+                        ErrorCode.MODEL_NOT_FOUND));
 
-        payment.setStatus(status);
+        payment.setPaymentStatus(status);
         Payment updatedPayment = paymentRepository.save(payment);
         return paymentMapper.mapToResponse(updatedPayment);
     }
 
     public PaymentResponse updateTransactionId(Long paymentId, String transactionId) {
         Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new RuntimeException("Payment not found with id: " + paymentId));
+                .orElseThrow(() -> new AppException("Payment not found with id: " + paymentId,
+                        ErrorCode.MODEL_NOT_FOUND));
 
-        payment.setBookingCode(transactionId);
+        payment.setTransactionId(transactionId);
         Payment updatedPayment = paymentRepository.save(payment);
         return paymentMapper.mapToResponse(updatedPayment);
     }
 
-    public void updateStatusByTransactionId(String transactionId, PaymentStatus status, String notes) {
-        Payment payment = paymentRepository.findByBookingCode(transactionId)
-                .orElseThrow(() -> new RuntimeException("Payment not found by transactionId: " + transactionId));
+    public void updateStatusByBookingCode(String bookingCode, PaymentStatus status, String transactionId) {
+        Payment payment = paymentRepository.findPaymentByBooking_BookingCode(bookingCode)
+                .orElseThrow(() -> new AppException("Payment not found for booking id: " + bookingCode,
+                        ErrorCode.MODEL_NOT_FOUND));
 
-        payment.setStatus(status);
+        payment.setPaymentStatus(status);
+        payment.setTransactionId(transactionId);
 
         paymentRepository.save(payment);
 
         Booking booking = payment.getBooking();
-        if (booking == null) {
-            return;
-        }
 
         if (status == PaymentStatus.SUCCESS) {
-            booking.setBookingStatus(BookingStatus.PAID);
+            booking.setStatus(BookingStatus.CONFIRMED);
             bookingRepository.save(booking);
-            ticketService.createTicketsForBooking(booking);
         } else if (status == PaymentStatus.FAILED) {
-            booking.setBookingStatus(BookingStatus.PENDING);
+            booking.setStatus(BookingStatus.PENDING);
             bookingRepository.save(booking);
 
         }

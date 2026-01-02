@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Spin, Result } from 'antd';
-import { LoadingOutlined } from '@ant-design/icons';
+import { Loader2 } from 'lucide-react';
 import paymentService from '../../../services/paymentService';
-import './PaymentCallback.css';
 
 const PaymentCallback = () => {
     const navigate = useNavigate();
@@ -17,7 +15,6 @@ const PaymentCallback = () => {
 
     const handlePaymentCallback = async () => {
         try {
-            // Lấy tất cả query parameters từ URL
             const params = {};
             searchParams.forEach((value, key) => {
                 params[key] = value;
@@ -25,44 +22,32 @@ const PaymentCallback = () => {
 
             console.log('Payment callback params:', params);
 
-            // Xác định loại cổng thanh toán
             const paymentGateway = getPaymentGateway(params);
             console.log('Payment gateway:', paymentGateway);
 
-            // Kiểm tra trạng thái thanh toán từ params
             const isSuccess = checkPaymentSuccess(params, paymentGateway);
             console.log('Payment success:', isSuccess);
 
             if (isSuccess) {
-                // Gọi API xử lý callback (tùy gateway)
                 let callbackResult;
 
-                // if (paymentGateway === 'momo') {
-                //     callbackResult = await paymentService.handleMoMoCallback(params);
-                // } else
                 if (paymentGateway === 'vnpay') {
-                    // TODO: Implement VNPay callback
                     callbackResult = { success: true };
                 } else if (paymentGateway === 'zalopay') {
-                    // TODO: Implement ZaloPay callback
                     callbackResult = { success: true };
                 }
 
-                // Lấy thông tin booking từ localStorage
                 const pendingPayment = localStorage.getItem('pendingPayment');
                 const bookingInfo = pendingPayment ? JSON.parse(pendingPayment) : {};
 
-                // Cập nhật thông tin với booking code từ callback
                 bookingInfo.bookingCode = params.orderId || params.vnp_TransactionNo || params.bookingCode;
                 bookingInfo.paymentStatus = 'success';
 
-                // Lưu vào lastBooking để hiển thị trang success
                 localStorage.setItem('lastBooking', JSON.stringify(bookingInfo));
                 localStorage.removeItem('pendingPayment');
 
                 setStatus('success');
 
-                // Chuyển đến trang success sau 1s
                 setTimeout(() => {
                     navigate(`/booking/success?bookingCode=${bookingInfo.bookingCode}`, {
                         replace: true
@@ -70,7 +55,6 @@ const PaymentCallback = () => {
                 }, 1000);
 
             } else {
-                // Thanh toán thất bại
                 const pendingPayment = localStorage.getItem('pendingPayment');
                 const bookingInfo = pendingPayment ? JSON.parse(pendingPayment) : {};
 
@@ -88,7 +72,6 @@ const PaymentCallback = () => {
 
                 setStatus('failed');
 
-                // Chuyển đến trang failed sau 1s
                 setTimeout(() => {
                     const bookingCode = params.orderId || params.vnp_TransactionNo || params.bookingCode || '';
                     navigate(`/booking/failed?bookingCode=${bookingCode}&error=${encodeURIComponent(errorData.errorMessage)}&reason=${encodeURIComponent(errorData.reason)}`, {
@@ -101,7 +84,6 @@ const PaymentCallback = () => {
             console.error('Error processing payment callback:', error);
             setStatus('error');
 
-            // Chuyển đến trang failed
             setTimeout(() => {
                 navigate('/booking/failed', {
                     state: {
@@ -118,7 +100,6 @@ const PaymentCallback = () => {
         }
     };
 
-    // Xác định cổng thanh toán từ params
     const getPaymentGateway = (params) => {
         if (params.partnerCode === 'MOMO' || params.partnerCode?.includes('MOMO')) {
             return 'momo';
@@ -130,7 +111,6 @@ const PaymentCallback = () => {
         return 'unknown';
     };
 
-    // Kiểm tra thanh toán thành công
     const checkPaymentSuccess = (params, gateway) => {
         switch (gateway) {
             case 'momo':
@@ -144,7 +124,6 @@ const PaymentCallback = () => {
         }
     };
 
-    // Lấy thông báo lỗi
     const getErrorMessage = (params, gateway) => {
         switch (gateway) {
             case 'momo':
@@ -158,7 +137,6 @@ const PaymentCallback = () => {
         }
     };
 
-    // Lấy lý do lỗi
     const getErrorReason = (params, gateway) => {
         switch (gateway) {
             case 'momo':
@@ -204,16 +182,15 @@ const PaymentCallback = () => {
     const { title, subtitle } = getStatusMessage();
 
     return (
-        <div className="payment-callback-page">
-            <div className="callback-container">
-                <div className="callback-spinner">
-                    <Spin
-                        indicator={<LoadingOutlined style={{ fontSize: 60 }} spin />}
-                        size="large"
-                    />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center py-10 px-5">
+            <div className="max-w-[1200px] mx-auto w-full">
+                <div className="text-center">
+                    <div className="mb-8">
+                        <Loader2 className="w-16 h-16 text-primary mx-auto animate-spin" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">{title}</h2>
+                    {subtitle && <p className="text-gray-600">{subtitle}</p>}
                 </div>
-                <h2 className="callback-title">{title}</h2>
-                {subtitle && <p className="callback-subtitle">{subtitle}</p>}
             </div>
         </div>
     );

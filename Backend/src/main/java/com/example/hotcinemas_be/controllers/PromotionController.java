@@ -2,7 +2,7 @@ package com.example.hotcinemas_be.controllers;
 
 import com.example.hotcinemas_be.dtos.common.DataResponse;
 import com.example.hotcinemas_be.dtos.promotion.requests.PromotionRequest;
-import com.example.hotcinemas_be.services.VoucherService;
+import com.example.hotcinemas_be.services.PromotionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Pageable;
@@ -12,127 +12,127 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 
 @RestController
-@RequestMapping("/api/v1/vouchers")
-@Tag(name = "Vouchers", description = "API for managing vouchers")
-public class VoucherController {
+@RequestMapping("/api/v1/promotions")
+@Tag(name = "Promotions", description = "API for managing Promotions")
+public class PromotionController {
 
-    private final VoucherService voucherService;
+    private final PromotionService promotionService;
 
-    public VoucherController(VoucherService voucherService) {
-        this.voucherService = voucherService;
+    public PromotionController(PromotionService promotionService) {
+        this.promotionService = promotionService;
     }
 
-    @Operation(summary = "Create a new voucher", description = "Allows an admin to create a new voucher.")
+    @Operation(summary = "Create a new Promotion", description = "Allows an admin to create a new Promotion.")
     @PostMapping
-    public ResponseEntity<?> createVoucher(@RequestBody PromotionRequest promotionRequest) {
+    public ResponseEntity<?> createPromotion(@RequestBody PromotionRequest promotionRequest) {
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(201)
-                .message("Voucher has been successfully created")
-                .data(voucherService.createVoucher(promotionRequest))
+                .message("Promotion has been successfully created")
+                .data(promotionService.createPromotion(promotionRequest))
                 .timestamp(LocalDateTime.now())
                 .build();
 
         return ResponseEntity.status(201).body(dataResponse);
     }
 
-    @Operation(summary = "Get all vouchers", description = "Retrieves all vouchers.")
+    @Operation(summary = "Get all Promotions", description = "Retrieves all Promotions.")
     @GetMapping
-    public ResponseEntity<?> getAllVouchers(Pageable pageable) {
+    public ResponseEntity<?> getAllPromotions(Pageable pageable) {
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(200)
-                .message("Vouchers retrieved successfully")
-                .data(voucherService.getAllVouchers(pageable))
+                .message("Promotions retrieved successfully")
+                .data(promotionService.getAllPromotions(pageable))
                 .timestamp(LocalDateTime.now())
                 .build();
 
         return ResponseEntity.ok(dataResponse);
     }
 
-    @Operation(summary = "Get a voucher by ID", description = "Retrieves a voucher by its ID.")
+    @Operation(summary = "Get a Promotion by ID", description = "Retrieves a Promotion by its ID.")
     @GetMapping("/{id}")
-    public ResponseEntity<?> getVoucherById(@PathVariable Long id) {
+    public ResponseEntity<?> getPromotionById(@PathVariable Long id) {
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(200)
-                .message("Voucher retrieved successfully")
-                .data(voucherService.getVoucherById(id))
+                .message("Promotion retrieved successfully")
+                .data(promotionService.getPromotionById(id))
                 .timestamp(LocalDateTime.now())
                 .build();
 
         return ResponseEntity.ok(dataResponse);
     }
 
-    @Operation(summary = "Update a voucher", description = "Allows an admin to update an existing voucher.")
+    @Operation(summary = "Update a Promotion", description = "Allows an admin to update an existing Promotion.")
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateVoucher(@PathVariable Long id, @RequestBody PromotionRequest promotionRequest) {
+    public ResponseEntity<?> updatePromotion(@PathVariable Long id, @RequestBody PromotionRequest promotionRequest) {
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(200)
-                .message("Voucher has been successfully updated")
-                .data(voucherService.updateVoucher(id, promotionRequest))
+                .message("Promotion has been successfully updated")
+                .data(promotionService.updatePromotion(id, promotionRequest))
                 .timestamp(LocalDateTime.now())
                 .build();
 
         return ResponseEntity.ok(dataResponse);
     }
 
-    @Operation(summary = "Delete a voucher", description = "Allows an admin to delete a voucher by its ID.")
+    @Operation(summary = "Delete a Promotion", description = "Allows an admin to delete a Promotion by its ID.")
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteVoucher(@PathVariable Long id) {
-        voucherService.deleteVoucher(id);
+    public ResponseEntity<?> deletePromotion(@PathVariable Long id) {
+        promotionService.deletePromotion(id);
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(200)
-                .message("Voucher has been successfully deleted")
+                .message("Promotion has been successfully deleted")
                 .timestamp(LocalDateTime.now())
                 .build();
 
         return ResponseEntity.ok(dataResponse);
     }
 
-    @Operation(summary = "Activate a voucher", description = "Allows an admin to activate a voucher by its ID.")
+    @Operation(summary = "Activate a Promotion", description = "Allows an admin to activate a Promotion by its ID.")
     @PostMapping("/{id}/activate")
-    public ResponseEntity<?> activateVoucher(@PathVariable Long id) {
-        voucherService.activateVoucher(id);
+    public ResponseEntity<?> activatePromotion(@PathVariable Long id) {
+        promotionService.activatePromotion(id);
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(200)
-                .message("Voucher has been successfully activated")
+                .message("Promotion has been successfully activated")
                 .timestamp(LocalDateTime.now())
                 .build();
 
         return ResponseEntity.ok(dataResponse);
     }
 
-    @Operation(summary = "Deactivate a voucher", description = "Allows an admin to deactivate a voucher by its ID.")
+    @Operation(summary = "Deactivate a Promotion", description = "Allows an admin to deactivate a Promotion by its ID.")
     @PostMapping("/{id}/deactivate")
-    public ResponseEntity<?> deactivateVoucher(@PathVariable Long id) {
-        voucherService.deactivateVoucher(id);
+    public ResponseEntity<?> deactivatePromotion(@PathVariable Long id) {
+        promotionService.deactivatePromotion(id);
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(200)
-                .message("Voucher has been successfully deactivated")
+                .message("Promotion has been successfully deactivated")
                 .timestamp(LocalDateTime.now())
                 .build();
 
         return ResponseEntity.ok(dataResponse);
     }
 
-    @Operation(summary = "Get a voucher by code", description = "Retrieves a voucher by its code.")
+    @Operation(summary = "Get a Promotion by code", description = "Retrieves a Promotion by its code.")
     @GetMapping("/code/{code}")
-    public ResponseEntity<?> getVoucherByCode(@PathVariable String code) {
+    public ResponseEntity<?> getPromotionByCode(@PathVariable String code) {
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(200)
-                .message("Voucher retrieved successfully")
-                .data(voucherService.getVoucherByCode(code))
+                .message("Promotion retrieved successfully")
+                .data(promotionService.getPromotionByCode(code))
                 .timestamp(LocalDateTime.now())
                 .build();
 
         return ResponseEntity.ok(dataResponse);
     }
 
-    @Operation(summary = "Get all active vouchers", description = "Retrieves all active vouchers.")
+    @Operation(summary = "Get all active Promotions", description = "Retrieves all active Promotions.")
     @GetMapping("/active")
-    public ResponseEntity<?> getAllActiveVouchers(Pageable pageable) {
+    public ResponseEntity<?> getAllActivePromotions(Pageable pageable) {
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(200)
-                .message("Active vouchers retrieved successfully")
-                .data(voucherService.getActiveVouchers(pageable))
+                .message("Active Promotions retrieved successfully")
+                .data(promotionService.getActivePromotions(pageable))
                 .timestamp(LocalDateTime.now())
                 .build();
 

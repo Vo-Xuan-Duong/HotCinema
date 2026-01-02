@@ -1,6 +1,6 @@
 package com.example.hotcinemas_be.controllers;
 
-import com.example.hotcinemas_be.dtos.common.ResponseData;
+import com.example.hotcinemas_be.dtos.common.DataResponse;
 import com.example.hotcinemas_be.dtos.permission.requests.PermissionRequest;
 import com.example.hotcinemas_be.dtos.permission.responses.PermissionResponse;
 import com.example.hotcinemas_be.services.PermissionService;
@@ -37,49 +37,49 @@ public class PermissionController {
             @ApiResponse(responseCode = "409", description = "Permission with this code/name already exists")
     })
     @PostMapping
-    public ResponseEntity<ResponseData<PermissionResponse>> createPermission(
+    public ResponseEntity<DataResponse<PermissionResponse>> createPermission(
             @Valid @RequestBody PermissionRequest permissionRequest) {
-        log.info("Creating new permission with code: {}", permissionRequest.getCode());
+        log.info("Creating new permission with name: {}", permissionRequest.getName());
         PermissionResponse permissionResponse = permissionService.createPermission(permissionRequest);
 
-        ResponseData<PermissionResponse> responseData = ResponseData.<PermissionResponse>builder()
+        DataResponse<PermissionResponse> dataResponse = DataResponse.<PermissionResponse>builder()
                 .status(HttpStatus.CREATED.value())
                 .message("Permission has been successfully created")
                 .data(permissionResponse)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.status(HttpStatus.CREATED).body(responseData);
+        return ResponseEntity.status(HttpStatus.CREATED).body(dataResponse);
     }
 
     @Operation(summary = "Get all permissions", description = "This endpoint retrieves all permissions with pagination.")
     @GetMapping
-    public ResponseEntity<ResponseData<Page<PermissionResponse>>> getAllPermissions(
+    public ResponseEntity<DataResponse<Page<PermissionResponse>>> getAllPermissions(
             @Parameter(description = "Pagination parameters") Pageable pageable) {
         log.info("Retrieving all permissions with pagination");
         Page<PermissionResponse> permissions = permissionService.getPermissions(pageable);
 
-        ResponseData<Page<PermissionResponse>> responseData = ResponseData.<Page<PermissionResponse>>builder()
+        DataResponse<Page<PermissionResponse>> dataResponse = DataResponse.<Page<PermissionResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Permissions retrieved successfully")
                 .data(permissions)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Get all permissions (no pagination)", description = "This endpoint retrieves all permissions without pagination.")
     @GetMapping("/all")
-    public ResponseEntity<ResponseData<List<PermissionResponse>>> getAllPermissionsList() {
+    public ResponseEntity<DataResponse<List<PermissionResponse>>> getAllPermissionsList() {
         log.info("Retrieving all permissions without pagination");
         List<PermissionResponse> permissions = permissionService.getAllPermissions();
 
-        ResponseData<List<PermissionResponse>> responseData = ResponseData.<List<PermissionResponse>>builder()
+        DataResponse<List<PermissionResponse>> dataResponse = DataResponse.<List<PermissionResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Permissions retrieved successfully")
                 .data(permissions)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Get a permission by ID", description = "This endpoint retrieves a permission by its ID.")
@@ -88,18 +88,18 @@ public class PermissionController {
             @ApiResponse(responseCode = "404", description = "Permission not found")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<ResponseData<PermissionResponse>> getPermissionById(
+    public ResponseEntity<DataResponse<PermissionResponse>> getPermissionById(
             @Parameter(description = "Permission ID") @PathVariable Long id) {
         log.info("Retrieving permission with ID: {}", id);
         PermissionResponse permission = permissionService.getPermissionById(id);
 
-        ResponseData<PermissionResponse> responseData = ResponseData.<PermissionResponse>builder()
+        DataResponse<PermissionResponse> dataResponse = DataResponse.<PermissionResponse>builder()
                 .status(HttpStatus.OK.value())
                 .message("Permission retrieved successfully")
                 .data(permission)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Update a permission", description = "This endpoint allows an admin to update an existing permission.")
@@ -109,19 +109,19 @@ public class PermissionController {
             @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<ResponseData<PermissionResponse>> updatePermission(
+    public ResponseEntity<DataResponse<PermissionResponse>> updatePermission(
             @Parameter(description = "Permission ID") @PathVariable Long id,
             @Valid @RequestBody PermissionRequest permissionRequest) {
         log.info("Updating permission with ID: {}", id);
         PermissionResponse permissionResponse = permissionService.updatePermission(id, permissionRequest);
 
-        ResponseData<PermissionResponse> responseData = ResponseData.<PermissionResponse>builder()
+        DataResponse<PermissionResponse> dataResponse = DataResponse.<PermissionResponse>builder()
                 .status(HttpStatus.OK.value())
                 .message("Permission has been successfully updated")
                 .data(permissionResponse)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Partially update a permission", description = "This endpoint allows an admin to partially update an existing permission.")
@@ -131,19 +131,19 @@ public class PermissionController {
             @ApiResponse(responseCode = "400", description = "Invalid input data")
     })
     @PatchMapping("/{id}")
-    public ResponseEntity<ResponseData<PermissionResponse>> partialUpdatePermission(
+    public ResponseEntity<DataResponse<PermissionResponse>> partialUpdatePermission(
             @Parameter(description = "Permission ID") @PathVariable Long id,
             @RequestBody PermissionRequest permissionRequest) {
         log.info("Partially updating permission with ID: {}", id);
         PermissionResponse permissionResponse = permissionService.updatePermission(id, permissionRequest);
 
-        ResponseData<PermissionResponse> responseData = ResponseData.<PermissionResponse>builder()
+        DataResponse<PermissionResponse> dataResponse = DataResponse.<PermissionResponse>builder()
                 .status(HttpStatus.OK.value())
                 .message("Permission has been partially updated")
                 .data(permissionResponse)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Delete a permission", description = "This endpoint allows an admin to delete a permission by its ID.")
@@ -152,54 +152,16 @@ public class PermissionController {
             @ApiResponse(responseCode = "404", description = "Permission not found")
     })
     @DeleteMapping("/{id}")
-    public ResponseEntity<ResponseData<Void>> deletePermission(
+    public ResponseEntity<DataResponse<Void>> deletePermission(
             @Parameter(description = "Permission ID") @PathVariable Long id) {
         log.info("Deleting permission with ID: {}", id);
         permissionService.deletePermission(id);
 
-        ResponseData<Void> responseData = ResponseData.<Void>builder()
+        DataResponse<Void> dataResponse = DataResponse.<Void>builder()
                 .status(HttpStatus.OK.value())
                 .message("Permission has been successfully deleted")
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
-    }
-
-    @Operation(summary = "Activate a permission", description = "This endpoint activates a permission.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Permission activated successfully"),
-            @ApiResponse(responseCode = "404", description = "Permission not found")
-    })
-    @PatchMapping("/{id}/activate")
-    public ResponseEntity<ResponseData<Void>> activatePermission(
-            @Parameter(description = "Permission ID") @PathVariable Long id) {
-        log.info("Activating permission with ID: {}", id);
-        permissionService.activatePermission(id);
-
-        ResponseData<Void> responseData = ResponseData.<Void>builder()
-                .status(HttpStatus.OK.value())
-                .message("Permission has been successfully activated")
-                .timestamp(LocalDateTime.now())
-                .build();
-        return ResponseEntity.ok(responseData);
-    }
-
-    @Operation(summary = "Deactivate a permission", description = "This endpoint deactivates a permission.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Permission deactivated successfully"),
-            @ApiResponse(responseCode = "404", description = "Permission not found")
-    })
-    @PatchMapping("/{id}/deactivate")
-    public ResponseEntity<ResponseData<Void>> deactivatePermission(
-            @Parameter(description = "Permission ID") @PathVariable Long id) {
-        log.info("Deactivating permission with ID: {}", id);
-        permissionService.deactivatePermission(id);
-
-        ResponseData<Void> responseData = ResponseData.<Void>builder()
-                .status(HttpStatus.OK.value())
-                .message("Permission has been successfully deactivated")
-                .timestamp(LocalDateTime.now())
-                .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 }

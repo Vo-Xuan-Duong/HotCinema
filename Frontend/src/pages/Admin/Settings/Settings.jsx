@@ -1,55 +1,100 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card } from '../../../components/ui/card';
+import { Tabs } from '../../../components/ui/tabs';
+import { SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select';
+import { Input } from '../../../components/ui/input';
+import { InputNumber } from '../../../components/ui/input-number';
+import { Button } from '../../../components/ui/button';
+import { Select } from '../../../components/ui/select';
+import { Textarea } from '../../../components/ui/textarea';
+import { Separator } from '../../../components/ui/separator';
+import { Alert } from '../../../components/ui/alert';
+import { Checkbox } from '../../../components/ui/checkbox';
+import { Breadcrumb } from '../../../components/ui/breadcrumb';
 import {
-    Card,
-    Tabs,
-    Form,
-    Input,
-    InputNumber,
-    Switch,
-    Button,
-    Row,
-    Col,
-    Select,
-    Space,
-    message,
-    Divider,
-    Upload,
-    Alert,
-    TimePicker,
-    Checkbox,
-    Typography,
-    Collapse,
-    Tag
-} from 'antd';
-import {
-    SettingOutlined,
-    DollarOutlined,
-    BuildOutlined,
-    MailOutlined,
-    ShoppingOutlined,
-    SecurityScanOutlined,
-    NotificationOutlined,
-    BarChartOutlined,
-    VideoCameraOutlined,
-    SaveOutlined,
-    UploadOutlined,
-    ReloadOutlined,
-    InfoCircleOutlined
-} from '@ant-design/icons';
+    Settings as SettingsIcon,
+    DollarSign,
+    ShoppingCart,
+    Video,
+    Save,
+    RotateCw,
+    Info,
+    Home,
+    Loader2,
+    Building2
+} from 'lucide-react';
 import dayjs from 'dayjs';
-import './Settings.css';
-
-const { Option } = Select;
-const { TextArea } = Input;
-const { Title, Text } = Typography;
+import useNotification from '../../../hooks/useNotification';
 
 const Settings = () => {
-    const [form] = Form.useForm();
+    const navigate = useNavigate();
+    const notification = useNotification();
     const [loading, setLoading] = useState(false);
     const [saveLoading, setSaveLoading] = useState(false);
     const [settings, setSettings] = useState({});
     const [activeTab, setActiveTab] = useState('pricing');
     const [hasChanges, setHasChanges] = useState(false);
+
+    // Form values state
+    const [formValues, setFormValues] = useState({
+        pricing: {
+            basePrice: 0,
+            weekendSurcharge: 0,
+            holidaySurcharge: 0,
+            vipSurcharge: 0,
+            premiumSurcharge: 0,
+            coupleSurcharge: 0,
+            childDiscount: 0,
+            studentDiscount: 0,
+            seniorDiscount: 0
+        },
+        company: {
+            name: '',
+            slogan: '',
+            email: '',
+            phone: '',
+            website: '',
+            address: '',
+            facebook: '',
+            instagram: '',
+            youtube: ''
+        },
+        booking: {
+            maxSeatsPerBooking: 10,
+            holdSeatDuration: 15,
+            advanceBookingDays: 30,
+            cancellationPolicy: {
+                enableCancellation: false,
+                cancellationDeadlineHours: 24,
+                refundPercentage: 100
+            },
+            payment: {
+                enabledMethods: [],
+                defaultMethod: 'vnpay',
+                autoRefundEnabled: false
+            }
+        },
+        system: {
+            maintenanceMode: false,
+            enableRegistration: true,
+            maintenanceMessage: '',
+            enableGuestBooking: false,
+            enableReviews: true,
+            enableRatings: true,
+            timezone: 'Asia/Ho_Chi_Minh',
+            dateFormat: 'DD/MM/YYYY',
+            currency: 'VND'
+        },
+        cinema: {
+            defaultOpenTime: '08:00',
+            defaultCloseTime: '23:00',
+            cleaningTimeBetweenShows: 30,
+            maxShowsPerDay: 10,
+            enableOnlineSeating: true,
+            enableFoodOrdering: true
+        }
+    });
 
     useEffect(() => {
         loadSettings();
@@ -62,56 +107,82 @@ const Settings = () => {
             const data = await response.json();
             setSettings(data);
 
-            // Set form values with proper formatting
-            form.setFieldsValue({
-                ...data,
-                pricing: {
-                    ...data.pricing,
-                    basePrice: data.pricing.basePrice,
-                    weekendSurcharge: data.pricing.weekendSurcharge,
-                    holidaySurcharge: data.pricing.holidaySurcharge
-                },
-                cinema: {
-                    ...data.cinema,
-                    defaultOpenTime: data.cinema.defaultOpenTime ? dayjs(data.cinema.defaultOpenTime, 'HH:mm') : null,
-                    defaultCloseTime: data.cinema.defaultCloseTime ? dayjs(data.cinema.defaultCloseTime, 'HH:mm') : null
-                }
-            });
-
+            // Update form values with loaded data
+            if (data) {
+                setFormValues(prev => ({
+                    ...prev,
+                    ...data,
+                    pricing: {
+                        ...prev.pricing,
+                        ...data.pricing
+                    },
+                    company: {
+                        ...prev.company,
+                        ...data.company
+                    },
+                    booking: {
+                        ...prev.booking,
+                        ...data.booking,
+                        cancellationPolicy: {
+                            ...prev.booking.cancellationPolicy,
+                            ...data.booking?.cancellationPolicy
+                        },
+                        payment: {
+                            ...prev.booking.payment,
+                            ...data.booking?.payment
+                        }
+                    },
+                    system: {
+                        ...prev.system,
+                        ...data.system
+                    },
+                    cinema: {
+                        ...prev.cinema,
+                        ...data.cinema,
+                        defaultOpenTime: data.cinema?.defaultOpenTime || '08:00',
+                        defaultCloseTime: data.cinema?.defaultCloseTime || '23:00'
+                    }
+                }));
+            }
         } catch (error) {
-            message.error('Lỗi khi tải cài đặt hệ thống');
+            notification.error('Lỗi khi tải cài đặt hệ thống');
             console.error('Error loading settings:', error);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSave = async () => {
+    const handleSave = async (e) => {
+        e?.preventDefault();
         try {
             setSaveLoading(true);
-            const values = await form.validateFields();
+
+            // Validation
+            if (!formValues.company?.name?.trim()) {
+                notification.error('Vui lòng nhập tên công ty!');
+                return;
+            }
+            if (!formValues.pricing?.basePrice || formValues.pricing.basePrice <= 0) {
+                notification.error('Vui lòng nhập giá vé cơ bản hợp lệ!');
+                return;
+            }
 
             // Format data before saving
             const formattedData = {
-                ...values,
-                cinema: {
-                    ...values.cinema,
-                    defaultOpenTime: values.cinema?.defaultOpenTime?.format('HH:mm'),
-                    defaultCloseTime: values.cinema?.defaultCloseTime?.format('HH:mm')
-                },
+                ...formValues,
                 lastUpdated: new Date().toISOString(),
                 updatedBy: 'admin'
             };
 
             setSettings(formattedData);
             setHasChanges(false);
-            message.success('Lưu cài đặt thành công');
+            notification.success('Lưu cài đặt thành công');
 
             // Here you would send the data to your backend API
             console.log('Saved settings:', formattedData);
 
         } catch (error) {
-            message.error('Có lỗi xảy ra khi lưu cài đặt');
+            notification.error('Có lỗi xảy ra khi lưu cài đặt');
             console.error('Error saving settings:', error);
         } finally {
             setSaveLoading(false);
@@ -119,395 +190,630 @@ const Settings = () => {
     };
 
     const handleReset = () => {
-        form.setFieldsValue(settings);
+        if (settings && Object.keys(settings).length > 0) {
+            setFormValues(prev => ({
+                ...prev,
+                ...settings
+            }));
+        }
         setHasChanges(false);
-        message.info('Đã khôi phục về cài đặt ban đầu');
+        notification.info('Đã khôi phục về cài đặt ban đầu');
     };
 
-    const handleFormChange = () => {
+    const handleFormChange = (path, value) => {
         setHasChanges(true);
+        if (path.includes('.')) {
+            const keys = path.split('.');
+            setFormValues(prev => {
+                const newValues = { ...prev };
+                let current = newValues;
+                for (let i = 0; i < keys.length - 1; i++) {
+                    if (!current[keys[i]]) {
+                        current[keys[i]] = {};
+                    }
+                    current = current[keys[i]];
+                }
+                current[keys[keys.length - 1]] = value;
+                return newValues;
+            });
+        } else {
+            setFormValues(prev => ({
+                ...prev,
+                [path]: value
+            }));
+        }
     };
 
     const pricingSection = (
-        <Card title="Cài đặt giá vé" className="settings-card">
-            <Row gutter={16}>
-                <Col span={8}>
-                    <Form.Item
-                        name={['pricing', 'basePrice']}
-                        label="Giá vé cơ bản"
-                        rules={[{ required: true, message: 'Vui lòng nhập giá vé cơ bản' }]}
-                    >
+        <Card className="mb-6 rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-indigo-600" />
+                Cài đặt giá vé
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Giá vé cơ bản <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
                         <InputNumber
                             min={0}
-                            style={{ width: '100%' }}
-                            formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                            parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
-                            addonAfter="đ"
+                            value={formValues.pricing?.basePrice || 0}
+                            onChange={(value) => handleFormChange('pricing.basePrice', value)}
+                            className="w-full pr-12"
                         />
-                    </Form.Item>
-                </Col>
-                <Col span={8}>
-                    <Form.Item
-                        name={['pricing', 'weekendSurcharge']}
-                        label="Phụ thu cuối tuần"
-                    >
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">đ</span>
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Phụ thu cuối tuần
+                    </label>
+                    <div className="relative">
                         <InputNumber
                             min={0}
-                            style={{ width: '100%' }}
-                            formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                            parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
-                            addonAfter="đ"
+                            value={formValues.pricing?.weekendSurcharge || 0}
+                            onChange={(value) => handleFormChange('pricing.weekendSurcharge', value)}
+                            className="w-full pr-12"
                         />
-                    </Form.Item>
-                </Col>
-                <Col span={8}>
-                    <Form.Item
-                        name={['pricing', 'holidaySurcharge']}
-                        label="Phụ thu ngày lễ"
-                    >
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">đ</span>
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Phụ thu ngày lễ
+                    </label>
+                    <div className="relative">
                         <InputNumber
                             min={0}
-                            style={{ width: '100%' }}
-                            formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                            parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
-                            addonAfter="đ"
+                            value={formValues.pricing?.holidaySurcharge || 0}
+                            onChange={(value) => handleFormChange('pricing.holidaySurcharge', value)}
+                            className="w-full pr-12"
                         />
-                    </Form.Item>
-                </Col>
-            </Row>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">đ</span>
+                    </div>
+                </div>
+            </div>
 
-            <Divider>Phụ thu theo loại ghế</Divider>
+            <Separator className="my-6">
+                <span className="text-sm text-gray-500 px-2 bg-white">Phụ thu theo loại ghế</span>
+            </Separator>
 
-            <Row gutter={16}>
-                <Col span={6}>
-                    <Form.Item name={['pricing', 'vipSurcharge']} label="Ghế VIP">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Ghế VIP</label>
+                    <div className="relative">
                         <InputNumber
                             min={0}
-                            style={{ width: '100%' }}
-                            addonAfter="đ"
+                            value={formValues.pricing?.vipSurcharge || 0}
+                            onChange={(value) => handleFormChange('pricing.vipSurcharge', value)}
+                            className="w-full pr-12"
                         />
-                    </Form.Item>
-                </Col>
-                <Col span={6}>
-                    <Form.Item name={['pricing', 'premiumSurcharge']} label="Ghế Premium">
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">đ</span>
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Ghế Premium</label>
+                    <div className="relative">
                         <InputNumber
                             min={0}
-                            style={{ width: '100%' }}
-                            addonAfter="đ"
+                            value={formValues.pricing?.premiumSurcharge || 0}
+                            onChange={(value) => handleFormChange('pricing.premiumSurcharge', value)}
+                            className="w-full pr-12"
                         />
-                    </Form.Item>
-                </Col>
-                <Col span={6}>
-                    <Form.Item name={['pricing', 'coupleSurcharge']} label="Ghế đôi">
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">đ</span>
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Ghế đôi</label>
+                    <div className="relative">
                         <InputNumber
                             min={0}
-                            style={{ width: '100%' }}
-                            addonAfter="đ"
+                            value={formValues.pricing?.coupleSurcharge || 0}
+                            onChange={(value) => handleFormChange('pricing.coupleSurcharge', value)}
+                            className="w-full pr-12"
                         />
-                    </Form.Item>
-                </Col>
-            </Row>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">đ</span>
+                    </div>
+                </div>
+            </div>
 
-            <Divider>Chiết khấu đặc biệt</Divider>
+            <Separator className="my-6">
+                <span className="text-sm text-gray-500 px-2 bg-white">Chiết khấu đặc biệt</span>
+            </Separator>
 
-            <Row gutter={16}>
-                <Col span={8}>
-                    <Form.Item name={['pricing', 'childDiscount']} label="Giảm giá trẻ em">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Giảm giá trẻ em</label>
+                    <div className="relative">
                         <InputNumber
                             min={0}
                             max={100}
-                            style={{ width: '100%' }}
-                            addonAfter="%"
+                            value={formValues.pricing?.childDiscount || 0}
+                            onChange={(value) => handleFormChange('pricing.childDiscount', value)}
+                            className="w-full pr-12"
                         />
-                    </Form.Item>
-                </Col>
-                <Col span={8}>
-                    <Form.Item name={['pricing', 'studentDiscount']} label="Giảm giá học sinh/sinh viên">
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">%</span>
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Giảm giá học sinh/sinh viên</label>
+                    <div className="relative">
                         <InputNumber
                             min={0}
                             max={100}
-                            style={{ width: '100%' }}
-                            addonAfter="%"
+                            value={formValues.pricing?.studentDiscount || 0}
+                            onChange={(value) => handleFormChange('pricing.studentDiscount', value)}
+                            className="w-full pr-12"
                         />
-                    </Form.Item>
-                </Col>
-                <Col span={8}>
-                    <Form.Item name={['pricing', 'seniorDiscount']} label="Giảm giá người cao tuổi">
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">%</span>
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Giảm giá người cao tuổi</label>
+                    <div className="relative">
                         <InputNumber
                             min={0}
                             max={100}
-                            style={{ width: '100%' }}
-                            addonAfter="%"
+                            value={formValues.pricing?.seniorDiscount || 0}
+                            onChange={(value) => handleFormChange('pricing.seniorDiscount', value)}
+                            className="w-full pr-12"
                         />
-                    </Form.Item>
-                </Col>
-            </Row>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">%</span>
+                    </div>
+                </div>
+            </div>
         </Card>
     );
 
     const companySection = (
-        <Card title="Thông tin công ty" className="settings-card">
-            <Row gutter={16}>
-                <Col span={12}>
-                    <Form.Item
-                        name={['company', 'name']}
-                        label="Tên công ty"
-                        rules={[{ required: true, message: 'Vui lòng nhập tên công ty' }]}
-                    >
-                        <Input />
-                    </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item name={['company', 'slogan']} label="Slogan">
-                        <Input />
-                    </Form.Item>
-                </Col>
-            </Row>
+        <Card className="mb-6 rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-indigo-600" />
+                Thông tin công ty
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Tên công ty <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                        value={formValues.company?.name || ''}
+                        onChange={(e) => handleFormChange('company.name', e.target.value)}
+                        placeholder="Nhập tên công ty"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Slogan</label>
+                    <Input
+                        value={formValues.company?.slogan || ''}
+                        onChange={(e) => handleFormChange('company.slogan', e.target.value)}
+                        placeholder="Nhập slogan"
+                    />
+                </div>
+            </div>
 
-            <Row gutter={16}>
-                <Col span={8}>
-                    <Form.Item
-                        name={['company', 'email']}
-                        label="Email"
-                        rules={[{ type: 'email', message: 'Email không hợp lệ' }]}
-                    >
-                        <Input />
-                    </Form.Item>
-                </Col>
-                <Col span={8}>
-                    <Form.Item name={['company', 'phone']} label="Số điện thoại">
-                        <Input />
-                    </Form.Item>
-                </Col>
-                <Col span={8}>
-                    <Form.Item name={['company', 'website']} label="Website">
-                        <Input />
-                    </Form.Item>
-                </Col>
-            </Row>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <Input
+                        type="email"
+                        value={formValues.company?.email || ''}
+                        onChange={(e) => handleFormChange('company.email', e.target.value)}
+                        placeholder="email@example.com"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Số điện thoại</label>
+                    <Input
+                        value={formValues.company?.phone || ''}
+                        onChange={(e) => handleFormChange('company.phone', e.target.value)}
+                        placeholder="0123456789"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Website</label>
+                    <Input
+                        value={formValues.company?.website || ''}
+                        onChange={(e) => handleFormChange('company.website', e.target.value)}
+                        placeholder="https://example.com"
+                    />
+                </div>
+            </div>
 
-            <Form.Item name={['company', 'address']} label="Địa chỉ">
-                <TextArea rows={3} />
-            </Form.Item>
+            <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Địa chỉ</label>
+                <Textarea
+                    rows={3}
+                    value={formValues.company?.address || ''}
+                    onChange={(e) => handleFormChange('company.address', e.target.value)}
+                    placeholder="Nhập địa chỉ công ty"
+                />
+            </div>
 
-            <Divider>Mạng xã hội</Divider>
+            <Separator className="my-6">
+                <span className="text-sm text-gray-500 px-2 bg-white">Mạng xã hội</span>
+            </Separator>
 
-            <Row gutter={16}>
-                <Col span={8}>
-                    <Form.Item name={['company', 'facebook']} label="Facebook">
-                        <Input />
-                    </Form.Item>
-                </Col>
-                <Col span={8}>
-                    <Form.Item name={['company', 'instagram']} label="Instagram">
-                        <Input />
-                    </Form.Item>
-                </Col>
-                <Col span={8}>
-                    <Form.Item name={['company', 'youtube']} label="YouTube">
-                        <Input />
-                    </Form.Item>
-                </Col>
-            </Row>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Facebook</label>
+                    <Input
+                        value={formValues.company?.facebook || ''}
+                        onChange={(e) => handleFormChange('company.facebook', e.target.value)}
+                        placeholder="https://facebook.com/..."
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Instagram</label>
+                    <Input
+                        value={formValues.company?.instagram || ''}
+                        onChange={(e) => handleFormChange('company.instagram', e.target.value)}
+                        placeholder="https://instagram.com/..."
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">YouTube</label>
+                    <Input
+                        value={formValues.company?.youtube || ''}
+                        onChange={(e) => handleFormChange('company.youtube', e.target.value)}
+                        placeholder="https://youtube.com/..."
+                    />
+                </div>
+            </div>
         </Card>
     );
 
     const bookingSection = (
-        <Card title="Cài đặt đặt vé" className="settings-card">
-            <Row gutter={16}>
-                <Col span={8}>
-                    <Form.Item name={['booking', 'maxSeatsPerBooking']} label="Số ghế tối đa/lần đặt">
-                        <InputNumber min={1} max={20} style={{ width: '100%' }} />
-                    </Form.Item>
-                </Col>
-                <Col span={8}>
-                    <Form.Item name={['booking', 'holdSeatDuration']} label="Thời gian giữ chỗ (phút)">
-                        <InputNumber min={5} max={60} style={{ width: '100%' }} />
-                    </Form.Item>
-                </Col>
-                <Col span={8}>
-                    <Form.Item name={['booking', 'advanceBookingDays']} label="Đặt vé trước (ngày)">
-                        <InputNumber min={1} max={90} style={{ width: '100%' }} />
-                    </Form.Item>
-                </Col>
-            </Row>
+        <Card className="mb-6 rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5 text-indigo-600" />
+                Cài đặt đặt vé
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Số ghế tối đa/lần đặt</label>
+                    <InputNumber
+                        min={1}
+                        max={20}
+                        value={formValues.booking?.maxSeatsPerBooking || 10}
+                        onChange={(value) => handleFormChange('booking.maxSeatsPerBooking', value)}
+                        className="w-full"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Thời gian giữ chỗ (phút)</label>
+                    <InputNumber
+                        min={5}
+                        max={60}
+                        value={formValues.booking?.holdSeatDuration || 15}
+                        onChange={(value) => handleFormChange('booking.holdSeatDuration', value)}
+                        className="w-full"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Đặt vé trước (ngày)</label>
+                    <InputNumber
+                        min={1}
+                        max={90}
+                        value={formValues.booking?.advanceBookingDays || 30}
+                        onChange={(value) => handleFormChange('booking.advanceBookingDays', value)}
+                        className="w-full"
+                    />
+                </div>
+            </div>
 
-            <Divider>Chính sách hủy vé</Divider>
+            <Separator className="my-6">
+                <span className="text-sm text-gray-500 px-2 bg-white">Chính sách hủy vé</span>
+            </Separator>
 
-            <Row gutter={16}>
-                <Col span={8}>
-                    <Form.Item name={['booking', 'cancellationPolicy', 'enableCancellation']} valuePropName="checked">
-                        <Switch checkedChildren="Cho phép hủy" unCheckedChildren="Không cho phép" />
-                    </Form.Item>
-                </Col>
-                <Col span={8}>
-                    <Form.Item name={['booking', 'cancellationPolicy', 'cancellationDeadlineHours']} label="Hạn hủy (giờ trước chiếu)">
-                        <InputNumber min={1} max={24} style={{ width: '100%' }} />
-                    </Form.Item>
-                </Col>
-                <Col span={8}>
-                    <Form.Item name={['booking', 'cancellationPolicy', 'refundPercentage']} label="% hoàn tiền">
-                        <InputNumber min={0} max={100} style={{ width: '100%' }} addonAfter="%" />
-                    </Form.Item>
-                </Col>
-            </Row>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="flex items-center gap-2">
+                    <Checkbox
+                        checked={formValues.booking?.cancellationPolicy?.enableCancellation || false}
+                        onCheckedChange={(checked) => handleFormChange('booking.cancellationPolicy.enableCancellation', checked)}
+                    />
+                    <label className="text-sm font-medium text-gray-700">Cho phép hủy vé</label>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Hạn hủy (giờ trước chiếu)</label>
+                    <InputNumber
+                        min={1}
+                        max={24}
+                        value={formValues.booking?.cancellationPolicy?.cancellationDeadlineHours || 24}
+                        onChange={(value) => handleFormChange('booking.cancellationPolicy.cancellationDeadlineHours', value)}
+                        className="w-full"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">% hoàn tiền</label>
+                    <div className="relative">
+                        <InputNumber
+                            min={0}
+                            max={100}
+                            value={formValues.booking?.cancellationPolicy?.refundPercentage || 100}
+                            onChange={(value) => handleFormChange('booking.cancellationPolicy.refundPercentage', value)}
+                            className="w-full pr-12"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">%</span>
+                    </div>
+                </div>
+            </div>
 
-            <Divider>Phương thức thanh toán</Divider>
+            <Separator className="my-6">
+                <span className="text-sm text-gray-500 px-2 bg-white">Phương thức thanh toán</span>
+            </Separator>
 
-            <Form.Item name={['booking', 'payment', 'enabledMethods']} label="Phương thức được kích hoạt">
-                <Checkbox.Group>
-                    <Checkbox value="momo">MoMo</Checkbox>
-                    <Checkbox value="vnpay">VNPay</Checkbox>
-                    <Checkbox value="banking">Chuyển khoản</Checkbox>
-                    <Checkbox value="cash">Tiền mặt</Checkbox>
-                </Checkbox.Group>
-            </Form.Item>
+            <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Phương thức được kích hoạt</label>
+                <div className="flex flex-wrap gap-4">
+                    <div className="flex items-center gap-2">
+                        <Checkbox
+                            checked={formValues.booking?.payment?.enabledMethods?.includes('momo') || false}
+                            onCheckedChange={(checked) => {
+                                const methods = formValues.booking?.payment?.enabledMethods || [];
+                                if (checked) {
+                                    handleFormChange('booking.payment.enabledMethods', [...methods, 'momo']);
+                                } else {
+                                    handleFormChange('booking.payment.enabledMethods', methods.filter(m => m !== 'momo'));
+                                }
+                            }}
+                        />
+                        <label className="text-sm text-gray-700">MoMo</label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Checkbox
+                            checked={formValues.booking?.payment?.enabledMethods?.includes('vnpay') || false}
+                            onCheckedChange={(checked) => {
+                                const methods = formValues.booking?.payment?.enabledMethods || [];
+                                if (checked) {
+                                    handleFormChange('booking.payment.enabledMethods', [...methods, 'vnpay']);
+                                } else {
+                                    handleFormChange('booking.payment.enabledMethods', methods.filter(m => m !== 'vnpay'));
+                                }
+                            }}
+                        />
+                        <label className="text-sm text-gray-700">VNPay</label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Checkbox
+                            checked={formValues.booking?.payment?.enabledMethods?.includes('banking') || false}
+                            onCheckedChange={(checked) => {
+                                const methods = formValues.booking?.payment?.enabledMethods || [];
+                                if (checked) {
+                                    handleFormChange('booking.payment.enabledMethods', [...methods, 'banking']);
+                                } else {
+                                    handleFormChange('booking.payment.enabledMethods', methods.filter(m => m !== 'banking'));
+                                }
+                            }}
+                        />
+                        <label className="text-sm text-gray-700">Chuyển khoản</label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Checkbox
+                            checked={formValues.booking?.payment?.enabledMethods?.includes('cash') || false}
+                            onCheckedChange={(checked) => {
+                                const methods = formValues.booking?.payment?.enabledMethods || [];
+                                if (checked) {
+                                    handleFormChange('booking.payment.enabledMethods', [...methods, 'cash']);
+                                } else {
+                                    handleFormChange('booking.payment.enabledMethods', methods.filter(m => m !== 'cash'));
+                                }
+                            }}
+                        />
+                        <label className="text-sm text-gray-700">Tiền mặt</label>
+                    </div>
+                </div>
+            </div>
 
-            <Row gutter={16}>
-                <Col span={12}>
-                    <Form.Item name={['booking', 'payment', 'defaultMethod']} label="Phương thức mặc định">
-                        <Select>
-                            <Option value="momo">MoMo</Option>
-                            <Option value="vnpay">VNPay</Option>
-                            <Option value="banking">Chuyển khoản</Option>
-                            <Option value="cash">Tiền mặt</Option>
-                        </Select>
-                    </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item name={['booking', 'payment', 'autoRefundEnabled']} valuePropName="checked">
-                        <Switch checkedChildren="Tự động hoàn tiền" unCheckedChildren="Hoàn tiền thủ công" />
-                    </Form.Item>
-                </Col>
-            </Row>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Phương thức mặc định</label>
+                    <Select
+                        value={formValues.booking?.payment?.defaultMethod || 'vnpay'}
+                        onValueChange={(value) => handleFormChange('booking.payment.defaultMethod', value)}
+                    >
+                        <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Chọn phương thức" />
+                        </SelectTrigger>
+                        <SelectContent position="popper">
+                            <SelectItem value="momo">MoMo</SelectItem>
+                            <SelectItem value="vnpay">VNPay</SelectItem>
+                            <SelectItem value="banking">Chuyển khoản</SelectItem>
+                            <SelectItem value="cash">Tiền mặt</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Checkbox
+                        checked={formValues.booking?.payment?.autoRefundEnabled || false}
+                        onCheckedChange={(checked) => handleFormChange('booking.payment.autoRefundEnabled', checked)}
+                    />
+                    <label className="text-sm font-medium text-gray-700">Tự động hoàn tiền</label>
+                </div>
+            </div>
         </Card>
     );
 
     const systemSection = (
-        <Card title="Cài đặt hệ thống" className="settings-card">
-            <Row gutter={16}>
-                <Col span={12}>
-                    <Form.Item name={['system', 'maintenanceMode']} valuePropName="checked">
-                        <Switch
-                            checkedChildren="Bảo trì"
-                            unCheckedChildren="Hoạt động"
-                            style={{ marginRight: 8 }}
-                        />
-                        <span>Chế độ bảo trì</span>
-                    </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item name={['system', 'enableRegistration']} valuePropName="checked">
-                        <Switch
-                            checkedChildren="Cho phép"
-                            unCheckedChildren="Tắt"
-                            style={{ marginRight: 8 }}
-                        />
-                        <span>Đăng ký tài khoản mới</span>
-                    </Form.Item>
-                </Col>
-            </Row>
+        <Card className="mb-6 rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <SettingsIcon className="h-5 w-5 text-indigo-600" />
+                Cài đặt hệ thống
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="flex items-center gap-2">
+                    <Checkbox
+                        checked={formValues.system?.maintenanceMode || false}
+                        onCheckedChange={(checked) => handleFormChange('system.maintenanceMode', checked)}
+                    />
+                    <label className="text-sm font-medium text-gray-700">Chế độ bảo trì</label>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Checkbox
+                        checked={formValues.system?.enableRegistration !== false}
+                        onCheckedChange={(checked) => handleFormChange('system.enableRegistration', checked)}
+                    />
+                    <label className="text-sm font-medium text-gray-700">Đăng ký tài khoản mới</label>
+                </div>
+            </div>
 
-            <Form.Item name={['system', 'maintenanceMessage']} label="Thông báo bảo trì">
-                <TextArea rows={3} />
-            </Form.Item>
+            <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Thông báo bảo trì</label>
+                <Textarea
+                    rows={3}
+                    value={formValues.system?.maintenanceMessage || ''}
+                    onChange={(e) => handleFormChange('system.maintenanceMessage', e.target.value)}
+                    placeholder="Nhập thông báo bảo trì"
+                />
+            </div>
 
-            <Row gutter={16}>
-                <Col span={8}>
-                    <Form.Item name={['system', 'enableGuestBooking']} valuePropName="checked">
-                        <Switch checkedChildren="Cho phép" unCheckedChildren="Không cho phép" />
-                        <span style={{ marginLeft: 8 }}>Đặt vé không cần đăng ký</span>
-                    </Form.Item>
-                </Col>
-                <Col span={8}>
-                    <Form.Item name={['system', 'enableReviews']} valuePropName="checked">
-                        <Switch checkedChildren="Bật" unCheckedChildren="Tắt" />
-                        <span style={{ marginLeft: 8 }}>Đánh giá phim</span>
-                    </Form.Item>
-                </Col>
-                <Col span={8}>
-                    <Form.Item name={['system', 'enableRatings']} valuePropName="checked">
-                        <Switch checkedChildren="Bật" unCheckedChildren="Tắt" />
-                        <span style={{ marginLeft: 8 }}>Xếp hạng phim</span>
-                    </Form.Item>
-                </Col>
-            </Row>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="flex items-center gap-2">
+                    <Checkbox
+                        checked={formValues.system?.enableGuestBooking || false}
+                        onCheckedChange={(checked) => handleFormChange('system.enableGuestBooking', checked)}
+                    />
+                    <label className="text-sm font-medium text-gray-700">Đặt vé không cần đăng ký</label>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Checkbox
+                        checked={formValues.system?.enableReviews !== false}
+                        onCheckedChange={(checked) => handleFormChange('system.enableReviews', checked)}
+                    />
+                    <label className="text-sm font-medium text-gray-700">Đánh giá phim</label>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Checkbox
+                        checked={formValues.system?.enableRatings !== false}
+                        onCheckedChange={(checked) => handleFormChange('system.enableRatings', checked)}
+                    />
+                    <label className="text-sm font-medium text-gray-700">Xếp hạng phim</label>
+                </div>
+            </div>
 
-            <Divider>Cài đặt định dạng</Divider>
+            <Separator className="my-6">
+                <span className="text-sm text-gray-500 px-2 bg-white">Cài đặt định dạng</span>
+            </Separator>
 
-            <Row gutter={16}>
-                <Col span={8}>
-                    <Form.Item name={['system', 'timezone']} label="Múi giờ">
-                        <Select>
-                            <Option value="Asia/Ho_Chi_Minh">Việt Nam (UTC+7)</Option>
-                            <Option value="Asia/Bangkok">Bangkok (UTC+7)</Option>
-                            <Option value="Asia/Singapore">Singapore (UTC+8)</Option>
-                        </Select>
-                    </Form.Item>
-                </Col>
-                <Col span={8}>
-                    <Form.Item name={['system', 'dateFormat']} label="Định dạng ngày">
-                        <Select>
-                            <Option value="DD/MM/YYYY">DD/MM/YYYY</Option>
-                            <Option value="MM/DD/YYYY">MM/DD/YYYY</Option>
-                            <Option value="YYYY-MM-DD">YYYY-MM-DD</Option>
-                        </Select>
-                    </Form.Item>
-                </Col>
-                <Col span={8}>
-                    <Form.Item name={['system', 'currency']} label="Tiền tệ">
-                        <Select>
-                            <Option value="VND">VND (Việt Nam Đồng)</Option>
-                            <Option value="USD">USD (US Dollar)</Option>
-                        </Select>
-                    </Form.Item>
-                </Col>
-            </Row>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Múi giờ</label>
+                    <Select
+                        value={formValues.system?.timezone || 'Asia/Ho_Chi_Minh'}
+                        onValueChange={(value) => handleFormChange('system.timezone', value)}
+                    >
+                        <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Chọn múi giờ" />
+                        </SelectTrigger>
+                        <SelectContent position="popper">
+                            <SelectItem value="Asia/Ho_Chi_Minh">Việt Nam (UTC+7)</SelectItem>
+                            <SelectItem value="Asia/Bangkok">Bangkok (UTC+7)</SelectItem>
+                            <SelectItem value="Asia/Singapore">Singapore (UTC+8)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Định dạng ngày</label>
+                    <Select
+                        value={formValues.system?.dateFormat || 'DD/MM/YYYY'}
+                        onValueChange={(value) => handleFormChange('system.dateFormat', value)}
+                    >
+                        <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Chọn định dạng" />
+                        </SelectTrigger>
+                        <SelectContent position="popper">
+                            <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
+                            <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
+                            <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tiền tệ</label>
+                    <Select
+                        value={formValues.system?.currency || 'VND'}
+                        onValueChange={(value) => handleFormChange('system.currency', value)}
+                    >
+                        <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Chọn tiền tệ" />
+                        </SelectTrigger>
+                        <SelectContent position="popper">
+                            <SelectItem value="VND">VND (Việt Nam Đồng)</SelectItem>
+                            <SelectItem value="USD">USD (US Dollar)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
         </Card>
     );
 
     const cinemaSection = (
-        <Card title="Cài đặt rạp chiếu" className="settings-card">
-            <Row gutter={16}>
-                <Col span={12}>
-                    <Form.Item name={['cinema', 'defaultOpenTime']} label="Giờ mở cửa mặc định">
-                        <TimePicker format="HH:mm" style={{ width: '100%' }} />
-                    </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item name={['cinema', 'defaultCloseTime']} label="Giờ đóng cửa mặc định">
-                        <TimePicker format="HH:mm" style={{ width: '100%' }} />
-                    </Form.Item>
-                </Col>
-            </Row>
+        <Card className="mb-6 rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <Video className="h-5 w-5 text-indigo-600" />
+                Cài đặt rạp chiếu
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Giờ mở cửa mặc định</label>
+                    <Input
+                        type="time"
+                        value={formValues.cinema?.defaultOpenTime || '08:00'}
+                        onChange={(e) => handleFormChange('cinema.defaultOpenTime', e.target.value)}
+                        className="w-full"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Giờ đóng cửa mặc định</label>
+                    <Input
+                        type="time"
+                        value={formValues.cinema?.defaultCloseTime || '23:00'}
+                        onChange={(e) => handleFormChange('cinema.defaultCloseTime', e.target.value)}
+                        className="w-full"
+                    />
+                </div>
+            </div>
 
-            <Row gutter={16}>
-                <Col span={8}>
-                    <Form.Item name={['cinema', 'cleaningTimeBetweenShows']} label="Thời gian dọn dẹp (phút)">
-                        <InputNumber min={15} max={60} style={{ width: '100%' }} />
-                    </Form.Item>
-                </Col>
-                <Col span={8}>
-                    <Form.Item name={['cinema', 'maxShowsPerDay']} label="Số suất chiếu tối đa/ngày">
-                        <InputNumber min={4} max={20} style={{ width: '100%' }} />
-                    </Form.Item>
-                </Col>
-            </Row>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Thời gian dọn dẹp (phút)</label>
+                    <InputNumber
+                        min={15}
+                        max={60}
+                        value={formValues.cinema?.cleaningTimeBetweenShows || 30}
+                        onChange={(value) => handleFormChange('cinema.cleaningTimeBetweenShows', value)}
+                        className="w-full"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Số suất chiếu tối đa/ngày</label>
+                    <InputNumber
+                        min={4}
+                        max={20}
+                        value={formValues.cinema?.maxShowsPerDay || 10}
+                        onChange={(value) => handleFormChange('cinema.maxShowsPerDay', value)}
+                        className="w-full"
+                    />
+                </div>
+            </div>
 
-            <Row gutter={16}>
-                <Col span={12}>
-                    <Form.Item name={['cinema', 'enableOnlineSeating']} valuePropName="checked">
-                        <Switch checkedChildren="Bật" unCheckedChildren="Tắt" />
-                        <span style={{ marginLeft: 8 }}>Chọn chỗ ngồi online</span>
-                    </Form.Item>
-                </Col>
-                <Col span={12}>
-                    <Form.Item name={['cinema', 'enableFoodOrdering']} valuePropName="checked">
-                        <Switch checkedChildren="Bật" unCheckedChildren="Tắt" />
-                        <span style={{ marginLeft: 8 }}>Đặt đồ ăn online</span>
-                    </Form.Item>
-                </Col>
-            </Row>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center gap-2">
+                    <Checkbox
+                        checked={formValues.cinema?.enableOnlineSeating !== false}
+                        onCheckedChange={(checked) => handleFormChange('cinema.enableOnlineSeating', checked)}
+                    />
+                    <label className="text-sm font-medium text-gray-700">Chọn chỗ ngồi online</label>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Checkbox
+                        checked={formValues.cinema?.enableFoodOrdering !== false}
+                        onCheckedChange={(checked) => handleFormChange('cinema.enableFoodOrdering', checked)}
+                    />
+                    <label className="text-sm font-medium text-gray-700">Đặt đồ ăn online</label>
+                </div>
+            </div>
         </Card>
     );
 
@@ -515,8 +821,8 @@ const Settings = () => {
         {
             key: 'pricing',
             label: (
-                <span>
-                    <DollarOutlined />
+                <span className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" />
                     Giá vé
                 </span>
             ),
@@ -525,8 +831,8 @@ const Settings = () => {
         {
             key: 'company',
             label: (
-                <span>
-                    <BuildOutlined />
+                <span className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
                     Công ty
                 </span>
             ),
@@ -535,8 +841,8 @@ const Settings = () => {
         {
             key: 'booking',
             label: (
-                <span>
-                    <ShoppingOutlined />
+                <span className="flex items-center gap-2">
+                    <ShoppingCart className="h-4 w-4" />
                     Đặt vé
                 </span>
             ),
@@ -545,8 +851,8 @@ const Settings = () => {
         {
             key: 'system',
             label: (
-                <span>
-                    <SettingOutlined />
+                <span className="flex items-center gap-2">
+                    <SettingsIcon className="h-4 w-4" />
                     Hệ thống
                 </span>
             ),
@@ -555,8 +861,8 @@ const Settings = () => {
         {
             key: 'cinema',
             label: (
-                <span>
-                    <VideoCameraOutlined />
+                <span className="flex items-center gap-2">
+                    <Video className="h-4 w-4" />
                     Rạp chiếu
                 </span>
             ),
@@ -564,59 +870,81 @@ const Settings = () => {
         }
     ];
 
+    if (loading) {
+        return (
+            <div className="p-6 bg-gray-50 min-h-screen flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+            </div>
+        );
+    }
+
     return (
-        <div className="settings-page">
-            <div className="settings-header">
-                <Title level={2}>
-                    <SettingOutlined /> Cài đặt hệ thống
-                </Title>
-                <Space>
+        <div className="min-h-screen">
+            {/* Breadcrumb */}
+            <Breadcrumb
+                className="mb-6"
+                items={[
+                    {
+                        title: 'Dashboard',
+                        icon: <Home className="h-4 w-4" />,
+                        href: '/admin/dashboard'
+                    },
+                    {
+                        title: 'Cài đặt',
+                        icon: <SettingsIcon className="h-4 w-4" />
+                    }
+                ]}
+            />
+
+            <div className="flex justify-between items-center mb-6 p-4 bg-white rounded-lg shadow-md">
+                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                    <div className="p-2 bg-indigo-100 rounded-lg">
+                        <SettingsIcon className="h-5 w-5 text-indigo-600" />
+                    </div>
+                    Cài đặt hệ thống
+                </h2>
+                <div className="flex items-center gap-3">
                     {hasChanges && (
-                        <Alert
-                            message="Có thay đổi chưa lưu"
-                            type="warning"
-                            showIcon
-                            style={{ marginRight: 16 }}
-                        />
+                        <Alert className="mr-2">
+                            <Info className="h-4 w-4" />
+                            <span>Có thay đổi chưa lưu</span>
+                        </Alert>
                     )}
                     <Button
-                        icon={<ReloadOutlined />}
+                        variant="outline"
                         onClick={handleReset}
                         disabled={!hasChanges}
                     >
+                        <RotateCw className="h-4 w-4 mr-2" />
                         Khôi phục
                     </Button>
                     <Button
-                        type="primary"
-                        icon={<SaveOutlined />}
-                        loading={saveLoading}
+                        className="bg-indigo-600 hover:bg-indigo-700"
                         onClick={handleSave}
-                        disabled={!hasChanges}
+                        disabled={!hasChanges || saveLoading}
                     >
+                        {saveLoading ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                            <Save className="h-4 w-4 mr-2" />
+                        )}
                         Lưu cài đặt
                     </Button>
-                </Space>
+                </div>
             </div>
 
-            <Form
-                form={form}
-                layout="vertical"
-                onValuesChange={handleFormChange}
-            >
-                <Tabs
-                    activeKey={activeTab}
-                    onChange={setActiveTab}
-                    items={tabItems}
-                    type="card"
-                    className="settings-tabs"
-                />
-            </Form>
+            <Tabs
+                value={activeTab}
+                onValueChange={setActiveTab}
+                items={tabItems}
+                className="bg-white rounded-lg shadow-md overflow-hidden p-4"
+            />
 
-            <div className="settings-footer">
-                <Text type="secondary">
+            <div className="text-center p-4 bg-white rounded-lg shadow-md mt-6">
+                <p className="text-sm text-gray-500">
                     Cập nhật lần cuối: {settings.lastUpdated ? dayjs(settings.lastUpdated).format('DD/MM/YYYY HH:mm') : 'Chưa có'}
                     {settings.updatedBy && ` bởi ${settings.updatedBy}`}
-                </Text>
+                </p>
             </div>
         </div>
     );

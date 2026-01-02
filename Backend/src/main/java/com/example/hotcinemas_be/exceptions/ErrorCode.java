@@ -5,73 +5,101 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 public enum ErrorCode {
-    ERROR_UNCATEGORIZED("CINEMA_001", "Error Unauthorized Access", HttpStatus.INTERNAL_SERVER_ERROR),
-    ERROR_INVALID_REQUEST("CINEMA_002", "Invalid request", HttpStatus.BAD_REQUEST),
-    ERROR_BAD_CREDENTIALS("CINEMA_003", "Bad credentials", HttpStatus.UNAUTHORIZED),
-    ERROR_TOKEN_EXPIRED("CINEMA_004", "Token expired", HttpStatus.UNAUTHORIZED),
-    ERROR_TOKEN_NOT_FOUND("CINEMA_005", "Token not found", HttpStatus.UNAUTHORIZED),
-    ERROR_INVALID_TOKEN("CINEMA_006", "Invalid token", HttpStatus.UNAUTHORIZED),
+    // COMMON / SYSTEM
+    UNCATEGORIZED(HttpStatus.INTERNAL_SERVER_ERROR, "Error Unauthorized Access"),
+    INVALID_REQUEST(HttpStatus.BAD_REQUEST, "Invalid request"),
+    NOT_IMPLEMENTED(HttpStatus.NOT_IMPLEMENTED, "Not implemented"),
+    SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Service unavailable"),
+    DATABASE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Database error"),
+    REDIS_OPERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Redis operation failed"),
+    DEPENDENCY_FAILURE(HttpStatus.FAILED_DEPENDENCY, "Downstream dependency failure"),
+    REQUEST_TIMEOUT(HttpStatus.REQUEST_TIMEOUT, "Request timeout"),
+    JSON_PARSE(HttpStatus.BAD_REQUEST, "Malformed JSON request"),
+    MEDIA_TYPE_NOT_SUPPORTED(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported media type"),
+    METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "Method not allowed"),
+    RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "Too many requests"),
 
-    ERROR_MODEL_NOT_FOUND("CINEMA_010", "Model not found", HttpStatus.NOT_FOUND),
-    ERROR_MODEL_ALREADY_EXISTS("CINEMA_011", "Model already exists", HttpStatus.CONFLICT),
-    PASSWORD_NOT_MATCH("CINEMA_012", "Password does not match", HttpStatus.BAD_REQUEST),
-    CONFIRM_PASSWORD_AND_PASSWORD_NOT_MATCH("CINEMA_013", "Confirm password and password does not match",
-            HttpStatus.BAD_REQUEST),
-    ERROR_REGISTRATION_FAILED("CINEMA_014", "Registration failed", HttpStatus.BAD_REQUEST),
-    ERROR_UNAUTHORIZED("CINEMA_015", "Unauthorized access", HttpStatus.UNAUTHORIZED),
-    ERROR_ACCESS_DENIED("CINEMA_016", "Access denied", HttpStatus.FORBIDDEN),
-    ERROR_FORBIDDEN_OPERATION("CINEMA_017", "Forbidden operation", HttpStatus.FORBIDDEN),
-    ERROR_RESOURCE_CONFLICT("CINEMA_018", "Resource conflict", HttpStatus.CONFLICT),
-    ERROR_METHOD_NOT_ALLOWED("CINEMA_019", "Method not allowed", HttpStatus.METHOD_NOT_ALLOWED),
-    ERROR_NOT_IMPLEMENTED("CINEMA_020", "Not implemented", HttpStatus.NOT_IMPLEMENTED),
-    ERROR_SERVICE_UNAVAILABLE("CINEMA_021", "Service unavailable", HttpStatus.SERVICE_UNAVAILABLE),
-    ERROR_DATABASE_ERROR("CINEMA_022", "Database error", HttpStatus.INTERNAL_SERVER_ERROR),
-    ERROR_VALIDATION_FAILED("CINEMA_023", "Validation failed", HttpStatus.BAD_REQUEST),
-    ERROR_RATE_LIMITED("CINEMA_024", "Too many requests", HttpStatus.TOO_MANY_REQUESTS),
-    ERROR_FILE_UPLOAD_FAILED("CINEMA_025", "File upload failed", HttpStatus.BAD_REQUEST),
-    ERROR_CLOUDINARY_UPLOAD_FAILED("CINEMA_026", "Cloudinary upload failed", HttpStatus.INTERNAL_SERVER_ERROR),
-    ERROR_REDIS_OPERATION_FAILED("CINEMA_027", "Redis operation failed", HttpStatus.INTERNAL_SERVER_ERROR),
-    ERROR_PERMISSION_NOT_FOUND("CINEMA_028", "Permission not found", HttpStatus.NOT_FOUND),
-    ERROR_ROLE_NOT_FOUND("CINEMA_029", "Role not found", HttpStatus.NOT_FOUND),
-    ERROR_MOVIE_NOT_FOUND("CINEMA_030", "Movie not found", HttpStatus.NOT_FOUND),
-    ERROR_CINEMA_NOT_FOUND("CINEMA_031", "Cinema not found", HttpStatus.NOT_FOUND),
-    ERROR_ROOM_NOT_FOUND("CINEMA_032", "Room not found", HttpStatus.NOT_FOUND),
-    ERROR_SEAT_NOT_FOUND("CINEMA_033", "Seat not found", HttpStatus.NOT_FOUND),
-    ERROR_SHOWTIME_NOT_FOUND("CINEMA_034", "Showtime not found", HttpStatus.NOT_FOUND),
-    ERROR_BOOKING_NOT_FOUND("CINEMA_035", "Booking not found", HttpStatus.NOT_FOUND),
-    ERROR_PAYMENT_FAILED("CINEMA_036", "Payment failed", HttpStatus.BAD_REQUEST),
-    ERROR_TICKET_NOT_FOUND("CINEMA_037", "Ticket not found", HttpStatus.NOT_FOUND),
-    ERROR_VOUCHER_NOT_FOUND("CINEMA_038", "Voucher not found", HttpStatus.NOT_FOUND),
-    ERROR_GENRE_NOT_FOUND("CINEMA_039", "Genre not found", HttpStatus.NOT_FOUND),
-    ERROR_REVIEW_NOT_FOUND("CINEMA_040", "Review not found", HttpStatus.NOT_FOUND),
-    ERROR_DUPLICATE_RESOURCE("CINEMA_041", "Duplicate resource", HttpStatus.CONFLICT),
-    ERROR_REFRESH_TOKEN_EXPIRED("CINEMA_042", "Refresh token expired", HttpStatus.UNAUTHORIZED),
-    ERROR_REFRESH_TOKEN_REVOKED("CINEMA_043", "Refresh token revoked", HttpStatus.UNAUTHORIZED),
-    ERROR_ACCOUNT_INACTIVE("CINEMA_044", "Account is inactive", HttpStatus.FORBIDDEN),
-    ERROR_ACCOUNT_LOCKED("CINEMA_045", "Account is locked", HttpStatus.LOCKED),
-    ERROR_PASSWORD_WEAK("CINEMA_046", "Weak password", HttpStatus.BAD_REQUEST),
-    ERROR_JSON_PARSE("CINEMA_047", "Malformed JSON request", HttpStatus.BAD_REQUEST),
-    ERROR_MEDIA_TYPE_NOT_SUPPORTED("CINEMA_048", "Unsupported media type", HttpStatus.UNSUPPORTED_MEDIA_TYPE),
-    ERROR_REQUEST_TIMEOUT("CINEMA_049", "Request timeout", HttpStatus.REQUEST_TIMEOUT),
-    ERROR_DEPENDENCY_FAILURE("CINEMA_050", "Downstream dependency failure", HttpStatus.FAILED_DEPENDENCY),
-    ERROR_CINEMA_CLUSTER_NOT_FOUND("CINEMA_051", "Cinema cluster not found", HttpStatus.NOT_FOUND),
-    ERROR_SHOWTIME_CONFLICT("CINEMA_052", "Showtime overlaps with an existing showtime in the same room", HttpStatus.CONFLICT),
-    ERROR_INVALID_OPERATION("CINEMA_053", "Invalid operation" , HttpStatus.BAD_REQUEST),
-    ERROR_MOVIE_CONFLICT("CINEMA_054", "Movie conflict", HttpStatus.CONFLICT),
+    // AUTH / SECURITY
+    BAD_CREDENTIALS(HttpStatus.UNAUTHORIZED, "Bad credentials"),
+    TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "Token expired"),
+    TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED, "Token not found"),
+    INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "Invalid token"),
+    UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "Unauthorized access"),
+    AUTHENTICATION_REQUIRED(HttpStatus.UNAUTHORIZED, "Authentication required"),
+    ACCESS_DENIED(HttpStatus.FORBIDDEN, "Access denied"),
+    FORBIDDEN_OPERATION(HttpStatus.FORBIDDEN, "Forbidden operation"),
+    REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "Refresh token expired"),
+    REFRESH_TOKEN_REVOKED(HttpStatus.UNAUTHORIZED, "Refresh token revoked"),
 
-    ERROR_VOUCHER_INVALID("CINEMA_055", "", HttpStatus.BAD_REQUEST),
-    ERROR_VOUCHER_OUT_OF_STOCK("CINEMA_056", "", HttpStatus.BAD_REQUEST),
-    ERROR_SEAT_ALREADY_LOCKED("CINEMA_057","" , HttpStatus.CONFLICT )
-    ;
+    // ACCOUNT / USER
+    REGISTRATION_FAILED(HttpStatus.BAD_REQUEST, "Registration failed"),
+    ACCOUNT_INACTIVE(HttpStatus.FORBIDDEN, "Account is inactive"),
+    ACCOUNT_LOCKED(HttpStatus.LOCKED, "Account is locked"),
+    PASSWORD_NOT_MATCH(HttpStatus.BAD_REQUEST, "Password does not match"),
+    CONFIRM_PASSWORD_AND_PASSWORD_NOT_MATCH(HttpStatus.BAD_REQUEST, "Confirm password and password does not match"),
+    PASSWORD_WEAK(HttpStatus.BAD_REQUEST, "Weak password"),
+    EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "Email already exists"),
+    USER_ALREADY_ACTIVE(HttpStatus.BAD_REQUEST, "User is already active"),
+    USER_ALREADY_INACTIVE(HttpStatus.BAD_REQUEST, "User is already inactive"),
 
-    private final String code;
-    private final String message;
+    // VALIDATION / OPERATION
+    VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "Validation failed"),
+    INVALID_OPERATION(HttpStatus.BAD_REQUEST, "Invalid operation"),
+
+    // PERMISSION / ROLE
+    PERMISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "Permission not found"),
+    ROLE_NOT_FOUND(HttpStatus.NOT_FOUND, "Role not found"),
+
+    // RESOURCE NOT FOUND (DOMAIN)
+    MODEL_NOT_FOUND(HttpStatus.NOT_FOUND, "Model not found"),
+    MOVIE_NOT_FOUND(HttpStatus.NOT_FOUND, "Movie not found"),
+    MOVIE_CONFLICT(HttpStatus.CONFLICT, "Movie conflict"),
+    CINEMA_NOT_FOUND(HttpStatus.NOT_FOUND, "Cinema not found"),
+    CINEMA_CLUSTER_NOT_FOUND(HttpStatus.NOT_FOUND, "Cinema cluster not found"),
+    ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "Room not found"),
+    SEAT_NOT_FOUND(HttpStatus.NOT_FOUND, "Seat not found"),
+    SHOWTIME_NOT_FOUND(HttpStatus.NOT_FOUND, "Showtime not found"),
+    SHOWTIME_CONFLICT(HttpStatus.CONFLICT, "Showtime overlaps with an existing showtime in the same room"),
+    BOOKING_NOT_FOUND(HttpStatus.NOT_FOUND, "Booking not found"),
+    TICKET_NOT_FOUND(HttpStatus.NOT_FOUND, "Ticket not found"),
+    VOUCHER_NOT_FOUND(HttpStatus.NOT_FOUND, "Voucher not found"),
+    GENRE_NOT_FOUND(HttpStatus.NOT_FOUND, "Genre not found"),
+    REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "Review not found"),
+    USER_ROLE_NOT_FOUND(HttpStatus.NOT_FOUND, "UserRole not found"),
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "User not found"),
+    PROMOTION_NOT_FOUND(HttpStatus.NOT_FOUND, "Promotion not found"),
+    PROMOTION_INVALID(HttpStatus.BAD_REQUEST, "Promotion is invalid"),
+
+    // RESOURCE CONFLICT / DUPLICATE
+    MODEL_ALREADY_EXISTS(HttpStatus.CONFLICT, "Model already exists"),
+    ROLE_ALREADY_EXISTS(HttpStatus.CONFLICT, "Role already exists"),
+    RESOURCE_CONFLICT(HttpStatus.CONFLICT, "Resource conflict"),
+    DUPLICATE_RESOURCE(HttpStatus.CONFLICT, "Duplicate resource"),
+    CITY_NAME_ALREADY_EXISTS(HttpStatus.CONFLICT, "City name already exists"),
+    CITY_CODE_ALREADY_EXISTS(HttpStatus.CONFLICT, "City code already exists"),
+    DISTRICT_NAME_ALREADY_EXISTS(HttpStatus.CONFLICT, "District name already exists in this city"),
+    PROMOTION_ALREADY_EXISTS(HttpStatus.CONFLICT, "Promotion code already exists"),
+
+    // FILE / MEDIA
+    FILE_UPLOAD_FAILED(HttpStatus.BAD_REQUEST, "File upload failed"),
+    CLOUDINARY_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Cloudinary upload failed"),
+
+    // BOOKING / PAYMENT / VOUCHER / SEAT LOCK
+    PAYMENT_FAILED(HttpStatus.BAD_REQUEST, "Payment failed"),
+    VOUCHER_INVALID(HttpStatus.BAD_REQUEST, "Voucher không hợp lệ"),
+    VOUCHER_OUT_OF_STOCK(HttpStatus.BAD_REQUEST, "Voucher đã hết lượt hoặc hết hạn"),
+    SEAT_ALREADY_LOCKED(HttpStatus.CONFLICT, "Ghế đang được giữ bởi người dùng khác"),
+
+
+    SEAT_NOT_LOCKED_BY_USER(HttpStatus.BAD_REQUEST, "Ghế không được giữ bởi người dùng"),;
+
+
     private final HttpStatus httpStatus;
+    private final String message;
 
-    ErrorCode(String code, String message, HttpStatus httpStatus) {
-        this.code = code;
-        this.message = message;
+    ErrorCode(HttpStatus httpStatus, String message) {
         this.httpStatus = httpStatus;
+        this.message = message;
     }
 
 }

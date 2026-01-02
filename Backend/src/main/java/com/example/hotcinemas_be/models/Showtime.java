@@ -2,19 +2,21 @@ package com.example.hotcinemas_be.models;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
-import com.example.hotcinemas_be.enums.MovieFormat;
-import com.example.hotcinemas_be.enums.ShowTimeStatus;
+import com.example.hotcinemas_be.enums.AudioType;
+import com.example.hotcinemas_be.enums.Format;
+import com.example.hotcinemas_be.enums.ShowtimeStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Table(name = "showtimes")
@@ -35,14 +37,19 @@ public class Showtime {
     private Movie movie;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "room_id", nullable = false)
-    private Room room;
+    @JoinColumn(name = "theater_id", nullable = false)
+    private Theater theater;
 
-    @OneToMany(mappedBy = "showtime", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Ticket> tickets;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "format", length = 20)
+    private Format format;
 
-    @Column(name = "date", nullable = false)
-    private LocalDate date;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "audio_type", length = 20)
+    private AudioType audioType;
+
+    @Column(name = "show_date", nullable = false)
+    private LocalDate showDate;
 
     @Column(name = "start_time", nullable = false)
     private LocalTime startTime;
@@ -50,14 +57,20 @@ public class Showtime {
     @Column(name = "end_time", nullable = false)
     private LocalTime endTime;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private ShowTimeStatus status;
+    @Column(name = "base_price", nullable = false, precision = 10, scale = 2)
+    @Builder.Default
+    private BigDecimal basePrice = new BigDecimal("45000.00");
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "movie_format", nullable = false)
-    private MovieFormat movieFormat;
+    @Column(name = "status", length = 20)
+    @Builder.Default
+    private ShowtimeStatus status = ShowtimeStatus.UPCOMING;
 
-    @Column(name = "ticket_price", nullable = false)
-    private BigDecimal ticketPrice;
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @OneToMany(mappedBy = "showtime", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<Booking> bookings = new ArrayList<>();
 }

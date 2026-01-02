@@ -35,7 +35,7 @@ const seatService = {
      * @returns {Promise<Array>} Danh sách ghế
      */
     async getSeatsByRoomId(roomId) {
-        return apiClient.get(`${ENDPOINTS.SEATS}/room/${roomId}`);
+        return apiClient.get(`${ENDPOINTS.SEATS}/theater/${roomId}`);
     },
 
     /**
@@ -44,7 +44,7 @@ const seatService = {
      * @returns {Promise<Array>} Danh sách ghế đang hoạt động
      */
     async getActiveSeatsByRoomId(roomId) {
-        return apiClient.get(`${ENDPOINTS.SEATS}/room/${roomId}/active`);
+        return apiClient.get(`${ENDPOINTS.SEATS}/theater/${roomId}/active`);
     },
 
     /**
@@ -63,7 +63,7 @@ const seatService = {
      * @returns {Promise<Array>} Danh sách ghế
      */
     async getSeatsByRoomAndType(roomId, seatType) {
-        return apiClient.get(`${ENDPOINTS.SEATS}/room/${roomId}/type/${seatType}`);
+        return apiClient.get(`${ENDPOINTS.SEATS}/theater/${roomId}/type/${seatType}`);
     },
 
     /**
@@ -83,7 +83,7 @@ const seatService = {
      * @returns {Promise<Object>} Thông tin ghế
      */
     async getSeatByPosition(roomId, rowLabel, seatNumber) {
-        return apiClient.get(`${ENDPOINTS.SEATS}/room/${roomId}/position/${rowLabel}/${seatNumber}`);
+        return apiClient.get(`${ENDPOINTS.SEATS}/theater/${roomId}/position/${rowLabel}/${seatNumber}`);
     },
 
     /**
@@ -147,7 +147,7 @@ const seatService = {
      */
     async createBulkSeatsForRoom(roomId, rowsCount, seatsPerRow) {
         return apiClient.post(
-            `${ENDPOINTS.SEATS}/room/${roomId}/create-bulk`,
+            `${ENDPOINTS.SEATS}/theater/${roomId}/create-bulk`,
             null,
             {
                 params: {
@@ -164,7 +164,7 @@ const seatService = {
      * @returns {Promise<void>}
      */
     async deleteAllSeatsByRoomId(roomId) {
-        return apiClient.delete(`${ENDPOINTS.SEATS}/room/${roomId}`);
+        return apiClient.delete(`${ENDPOINTS.SEATS}/theater/${roomId}`);
     }
 };
 

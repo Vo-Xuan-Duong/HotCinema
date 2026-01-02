@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Builder
@@ -18,16 +19,16 @@ import java.util.List;
 public class MovieListItemResponse {
     private Long id;
     private String title;
-    private String overview;
+    private String originalTitle;
+    private Integer durationMinutes;
+    private String durationFormatted;
     private LocalDate releaseDate;
-    private String posterPath;
-    private String backdropPath;
+    private String rating;
+    private String posterUrl;
+    private String backdropUrl;
     private String trailerUrl;
-    private Integer duration; // in minutes
     private List<GenreResponse> genres;
-    private String format;
-    private String ageRating;
-    private BigDecimal voteAverage;
     private MovieStatus status;
-    private Boolean isActive;
+    private Double averageRating;
+    private LocalDateTime createdAt;
 }

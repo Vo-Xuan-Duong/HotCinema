@@ -9,7 +9,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 @Builder
@@ -21,13 +23,18 @@ public class BookingItemResponse {
     private Long id;
     private Long showtimeId;
     private String bookingCode;
-    private String userId;
+    private Long userId;
     private String userFullName;
     private String userEmail;
-    private BigDecimal originalPrice;
-    private BigDecimal discountAmount;
-    private BigDecimal totalAmount;
+    private String movieTitle;
+    private String posterUrl;
+    private String cinemaName;
+    private String roomName;
+    private LocalDate showDate;
+    private LocalTime startTime;
+    private LocalTime endTime;
+    private BigDecimal finalAmount;
     private BookingStatus bookingStatus;
-    private List<SeatSnapshot> seatSnapshots;
+    private List<SeatSnapshot> seats;
     private LocalDateTime bookingDate;
 }

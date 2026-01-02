@@ -1,40 +1,30 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { TableWrapper } from '../../components/ui/table-wrapper';
+import { Button } from '../../components/ui/button';
+import { Modal } from '../../components/ui/modal';
+import { Input } from '../../components/ui/input';
+import { Select } from '../../components/ui/select';
+import { Tag } from '../../components/ui/tag';
+import { Card } from '../../components/ui/card';
+import { Statistic } from '../../components/ui/statistic';
+import { Avatar } from '../../components/ui/avatar';
+import { DatePicker } from '../../components/ui/date-picker';
+import { InputNumber } from '../../components/ui/input-number';
+import { Descriptions } from '../../components/ui/descriptions';
 import {
-  Table,
-  Button,
-  Modal,
-  Form,
-  Input,
-  Select,
-  Tag,
-  Space,
-  Popconfirm,
-  message,
-  Row,
-  Col,
-  Card,
-  Statistic,
-  Avatar,
-  DatePicker,
-  InputNumber,
-  Descriptions,
-  Spin
-} from 'antd';
-import {
-  UserOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  PlusOutlined,
-  EyeOutlined,
-  TeamOutlined,
-  CrownOutlined,
-  StopOutlined,
-  CheckCircleOutlined
-} from '@ant-design/icons';
+  User,
+  Edit,
+  Trash2,
+  Plus,
+  Eye,
+  Users,
+  Crown,
+  Ban,
+  CheckCircle2,
+  Loader2
+} from 'lucide-react';
 import userService from '../../services/userService';
-import './UsersAntd.css';
-
-const { Option } = Select;
+import useNotification from '../../hooks/useNotification';
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -43,7 +33,8 @@ const Users = () => {
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [form] = Form.useForm();
+  const notification = useNotification();
+  const [form] = useState({});
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -102,7 +93,7 @@ const Users = () => {
       }
     } catch (error) {
       console.error('Error fetching users:', error);
-      message.error('Không thể tải danh sách người dùng!');
+      notification.error('Không thể tải danh sách người dùng!');
       setUsers([]);
     } finally {
       setLoading(false);
@@ -145,13 +136,13 @@ const Users = () => {
     setLoading(true);
     try {
       const response = await userService.createUser(values);
-      message.success('Thêm người dùng thành công!');
+      notification.success('Thêm người dùng thành công!');
       setIsAddModalVisible(false);
       form.resetFields();
       fetchUsers(); // Reload danh sách
     } catch (error) {
       console.error('Error adding user:', error);
-      message.error(error.response?.data?.message || 'Không thể thêm người dùng!');
+      notification.error(error.response?.data?.message || 'Không thể thêm người dùng!');
     } finally {
       setLoading(false);
     }
@@ -162,14 +153,14 @@ const Users = () => {
     setLoading(true);
     try {
       await userService.updateUser(selectedUser.userId || selectedUser.id, values);
-      message.success('Cập nhật người dùng thành công!');
+      notification.success('Cập nhật người dùng thành công!');
       setIsEditModalVisible(false);
       setSelectedUser(null);
       form.resetFields();
       fetchUsers(); // Reload danh sách
     } catch (error) {
       console.error('Error updating user:', error);
-      message.error(error.response?.data?.message || 'Không thể cập nhật người dùng!');
+      notification.error(error.response?.data?.message || 'Không thể cập nhật người dùng!');
     } finally {
       setLoading(false);
     }
@@ -180,11 +171,11 @@ const Users = () => {
     setLoading(true);
     try {
       await userService.deleteUser(userId);
-      message.success('Xóa người dùng thành công!');
+      notification.success('Xóa người dùng thành công!');
       fetchUsers(); // Reload danh sách
     } catch (error) {
       console.error('Error deleting user:', error);
-      message.error(error.response?.data?.message || 'Không thể xóa người dùng!');
+      notification.error(error.response?.data?.message || 'Không thể xóa người dùng!');
     } finally {
       setLoading(false);
     }
@@ -200,11 +191,11 @@ const Users = () => {
       } else {
         await userService.deactivateUser(userId);
       }
-      message.success(`Đã ${newStatus === 'active' ? 'kích hoạt' : 'vô hiệu hóa'} người dùng!`);
+      notification.success(`Đã ${newStatus === 'active' ? 'kích hoạt' : 'vô hiệu hóa'} người dùng!`);
       fetchUsers(); // Reload danh sách
     } catch (error) {
       console.error('Error updating user status:', error);
-      message.error(error.response?.data?.message || 'Không thể cập nhật trạng thái!');
+      notification.error(error.response?.data?.message || 'Không thể cập nhật trạng thái!');
     } finally {
       setLoading(false);
     }
@@ -397,21 +388,23 @@ const Users = () => {
   ];
 
   return (
-    <div className="users-container">
-      <div className="users-header">
-        <h1>Quản lý người dùng</h1>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={showAddModal}
-          size="large"
-        >
-          Thêm người dùng
-        </Button>
-      </div>
+    <div className="min-h-screen bg-gray-50bg-gray-900 py-8 px-4">
+      <div className="max-w-[1200px] mx-auto">
+        <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+          <h1 className="text-3xl font-bold text-gray-900text-white">Quản lý người dùng</h1>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={showAddModal}
+            size="large"
+            className="rounded-lg"
+          >
+            Thêm người dùng
+          </Button>
+        </div>
 
-      {/* Bộ lọc */}
-      <Card className="filter-card">
+        {/* Bộ lọc */}
+        <Card className="bg-whitebg-gray-800 rounded-xl shadow-md border border-gray-200border-gray-700 mb-6">
         <Row gutter={[16, 16]}>
           <Col xs={24} md={8}>
             <Input.Search
@@ -419,6 +412,7 @@ const Users = () => {
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               allowClear
+              className="rounded-lg"
             />
           </Col>
           <Col xs={24} md={8}>
@@ -426,7 +420,7 @@ const Users = () => {
               placeholder="Lọc theo trạng thái"
               value={statusFilter}
               onChange={setStatusFilter}
-              style={{ width: '100%' }}
+              className="w-full rounded-lg"
             >
               <Option value="all">Tất cả trạng thái</Option>
               <Option value="active">Hoạt động</Option>
@@ -438,7 +432,7 @@ const Users = () => {
               placeholder="Lọc theo vai trò"
               value={roleFilter}
               onChange={setRoleFilter}
-              style={{ width: '100%' }}
+              className="w-full rounded-lg"
             >
               <Option value="all">Tất cả vai trò</Option>
               <Option value="ADMIN">Quản trị viên</Option>
@@ -451,7 +445,7 @@ const Users = () => {
       </Card>
 
       {/* Bảng người dùng */}
-      <Card>
+      <Card className="bg-whitebg-gray-800 rounded-xl shadow-md border border-gray-200border-gray-700">
         <Spin spinning={loading}>
           <Table
             columns={columns}
@@ -474,6 +468,7 @@ const Users = () => {
               }
             }}
             scroll={{ x: 1200 }}
+            className="[&_.ant-table]:bg-white[&_.ant-table]:bg-gray-800"
           />
         </Spin>
       </Card>

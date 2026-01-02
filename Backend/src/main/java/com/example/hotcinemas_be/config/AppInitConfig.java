@@ -29,7 +29,6 @@ public class AppInitConfig {
             Role adminRole;
             if (roleRepository.findByName("Admin").isEmpty()) {
                 adminRole = new Role();
-                adminRole.setCode("ADMIN");
                 adminRole.setName("Admin");
                 adminRole.setDescription("Admin");
                 roleRepository.save(adminRole);
@@ -37,12 +36,28 @@ public class AppInitConfig {
             } else {
                 adminRole = roleRepository.findByName("Admin").get();
             }
+            if (roleRepository.findByName("User").isEmpty()) {
+                adminRole = new Role();
+                adminRole.setName("User");
+                adminRole.setDescription("User");
+                roleRepository.save(adminRole);
+                System.out.println("ROLE 'user' has been created");
+            }
+            if (roleRepository.findByName("Staff").isEmpty()) {
+                adminRole = new Role();
+                adminRole.setName("Staff");
+                adminRole.setDescription("Staff");
+                roleRepository.save(adminRole);
+                System.out.println("ROLE 'Staff' has been created");
+            }
 
-            if (userRepository.findByUsername("admin").isEmpty()) {
+
+
+
+
+            if (userRepository.findByEmail("admin@gmail.com").isEmpty()) {
                 User adminUser = new User();
-                adminUser.setUsername("admin");
-                adminUser.setPassword(passwordEncoder.encode("admin123")); // This should be
-                // encoded in a real application
+                adminUser.setPassword(passwordEncoder.encode("admin123")); // This should be changed to a secure password
                 adminUser.setEmail("admin@gmail.com");
                 adminUser.setFullName("Admin User");
                 adminUser.setPhone("1234567890");

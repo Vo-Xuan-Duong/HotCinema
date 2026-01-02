@@ -1,6 +1,6 @@
 package com.example.hotcinemas_be.controllers;
 
-import com.example.hotcinemas_be.dtos.common.ResponseData;
+import com.example.hotcinemas_be.dtos.common.DataResponse;
 import com.example.hotcinemas_be.dtos.revenue.requests.RevenueFilterRequest;
 import com.example.hotcinemas_be.dtos.revenue.responses.*;
 import com.example.hotcinemas_be.services.RevenueService;
@@ -35,7 +35,7 @@ public class RevenueController {
             @ApiResponse(responseCode = "400", description = "Invalid date parameters")
     })
     @GetMapping("/summary")
-    public ResponseEntity<ResponseData<RevenueSummaryResponse>> getRevenueSummary(
+    public ResponseEntity<DataResponse<RevenueSummaryResponse>> getRevenueSummary(
             @Parameter(description = "Start date (YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @Parameter(description = "End date (YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         // Default to last 30 days if dates not provided
@@ -49,13 +49,13 @@ public class RevenueController {
         log.info("Getting revenue summary from {} to {}", startDate, endDate);
         RevenueSummaryResponse summary = revenueService.getRevenueSummary(startDate, endDate);
 
-        ResponseData<RevenueSummaryResponse> responseData = ResponseData.<RevenueSummaryResponse>builder()
+        DataResponse<RevenueSummaryResponse> dataResponse = DataResponse.<RevenueSummaryResponse>builder()
                 .status(HttpStatus.OK.value())
                 .message("Revenue summary retrieved successfully")
                 .data(summary)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Get revenue by date", description = "Get daily revenue breakdown for a date range")
@@ -64,7 +64,7 @@ public class RevenueController {
             @ApiResponse(responseCode = "400", description = "Invalid date parameters")
     })
     @GetMapping("/by-date")
-    public ResponseEntity<ResponseData<List<RevenueByDateResponse>>> getRevenueByDate(
+    public ResponseEntity<DataResponse<List<RevenueByDateResponse>>> getRevenueByDate(
             @Parameter(description = "Start date (YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @Parameter(description = "End date (YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         // Default to last 30 days if dates not provided
@@ -78,13 +78,13 @@ public class RevenueController {
         log.info("Getting revenue by date from {} to {}", startDate, endDate);
         List<RevenueByDateResponse> revenueByDate = revenueService.getRevenueByDate(startDate, endDate);
 
-        ResponseData<List<RevenueByDateResponse>> responseData = ResponseData.<List<RevenueByDateResponse>>builder()
+        DataResponse<List<RevenueByDateResponse>> dataResponse = DataResponse.<List<RevenueByDateResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Revenue by date retrieved successfully")
                 .data(revenueByDate)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Get revenue by movie", description = "Get revenue breakdown by movie with optional filters")
@@ -93,7 +93,7 @@ public class RevenueController {
             @ApiResponse(responseCode = "400", description = "Invalid parameters")
     })
     @GetMapping("/by-movie")
-    public ResponseEntity<ResponseData<List<RevenueByMovieResponse>>> getRevenueByMovie(
+    public ResponseEntity<DataResponse<List<RevenueByMovieResponse>>> getRevenueByMovie(
             @Parameter(description = "Start date (YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @Parameter(description = "End date (YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @Parameter(description = "Cinema ID filter") @RequestParam(required = false) Long cinemaId,
@@ -109,14 +109,14 @@ public class RevenueController {
         log.info("Getting revenue by movie with filter: {}", filter);
         List<RevenueByMovieResponse> revenueByMovie = revenueService.getRevenueByMovie(filter, limit);
 
-        ResponseData<List<RevenueByMovieResponse>> responseData = ResponseData
+        DataResponse<List<RevenueByMovieResponse>> dataResponse = DataResponse
                 .<List<RevenueByMovieResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Revenue by movie retrieved successfully")
                 .data(revenueByMovie)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Get revenue by cinema", description = "Get revenue breakdown by cinema with optional filters")
@@ -125,7 +125,7 @@ public class RevenueController {
             @ApiResponse(responseCode = "400", description = "Invalid parameters")
     })
     @GetMapping("/by-cinema")
-    public ResponseEntity<ResponseData<List<RevenueByCinemaResponse>>> getRevenueByCinema(
+    public ResponseEntity<DataResponse<List<RevenueByCinemaResponse>>> getRevenueByCinema(
             @Parameter(description = "Start date (YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @Parameter(description = "End date (YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @Parameter(description = "Movie ID filter") @RequestParam(required = false) Long movieId,
@@ -141,14 +141,14 @@ public class RevenueController {
         log.info("Getting revenue by cinema with filter: {}", filter);
         List<RevenueByCinemaResponse> revenueByCinema = revenueService.getRevenueByCinema(filter, limit);
 
-        ResponseData<List<RevenueByCinemaResponse>> responseData = ResponseData
+        DataResponse<List<RevenueByCinemaResponse>> dataResponse = DataResponse
                 .<List<RevenueByCinemaResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Revenue by cinema retrieved successfully")
                 .data(revenueByCinema)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Get revenue by payment method", description = "Get revenue breakdown by payment method")
@@ -157,7 +157,7 @@ public class RevenueController {
             @ApiResponse(responseCode = "400", description = "Invalid date parameters")
     })
     @GetMapping("/by-payment-method")
-    public ResponseEntity<ResponseData<List<RevenueByPaymentMethodResponse>>> getRevenueByPaymentMethod(
+    public ResponseEntity<DataResponse<List<RevenueByPaymentMethodResponse>>> getRevenueByPaymentMethod(
             @Parameter(description = "Start date (YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @Parameter(description = "End date (YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         // Default to last 30 days if dates not provided
@@ -172,14 +172,14 @@ public class RevenueController {
         List<RevenueByPaymentMethodResponse> revenueByPaymentMethod = revenueService
                 .getRevenueByPaymentMethod(startDate, endDate);
 
-        ResponseData<List<RevenueByPaymentMethodResponse>> responseData = ResponseData
+        DataResponse<List<RevenueByPaymentMethodResponse>> dataResponse = DataResponse
                 .<List<RevenueByPaymentMethodResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Revenue by payment method retrieved successfully")
                 .data(revenueByPaymentMethod)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Get top movies by revenue", description = "Get top performing movies by revenue")
@@ -188,7 +188,7 @@ public class RevenueController {
             @ApiResponse(responseCode = "400", description = "Invalid parameters")
     })
     @GetMapping("/top-movies")
-    public ResponseEntity<ResponseData<List<RevenueByMovieResponse>>> getTopMoviesByRevenue(
+    public ResponseEntity<DataResponse<List<RevenueByMovieResponse>>> getTopMoviesByRevenue(
             @Parameter(description = "Start date (YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @Parameter(description = "End date (YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @Parameter(description = "Number of top movies to return") @RequestParam(required = false, defaultValue = "10") int limit) {
@@ -203,14 +203,14 @@ public class RevenueController {
         log.info("Getting top {} movies by revenue from {} to {}", limit, startDate, endDate);
         List<RevenueByMovieResponse> topMovies = revenueService.getTopMoviesByRevenue(startDate, endDate, limit);
 
-        ResponseData<List<RevenueByMovieResponse>> responseData = ResponseData
+        DataResponse<List<RevenueByMovieResponse>> dataResponse = DataResponse
                 .<List<RevenueByMovieResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Top movies by revenue retrieved successfully")
                 .data(topMovies)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 
     @Operation(summary = "Get top cinemas by revenue", description = "Get top performing cinemas by revenue")
@@ -219,7 +219,7 @@ public class RevenueController {
             @ApiResponse(responseCode = "400", description = "Invalid parameters")
     })
     @GetMapping("/top-cinemas")
-    public ResponseEntity<ResponseData<List<RevenueByCinemaResponse>>> getTopCinemasByRevenue(
+    public ResponseEntity<DataResponse<List<RevenueByCinemaResponse>>> getTopCinemasByRevenue(
             @Parameter(description = "Start date (YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @Parameter(description = "End date (YYYY-MM-DD)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @Parameter(description = "Number of top cinemas to return") @RequestParam(required = false, defaultValue = "10") int limit) {
@@ -234,13 +234,13 @@ public class RevenueController {
         log.info("Getting top {} cinemas by revenue from {} to {}", limit, startDate, endDate);
         List<RevenueByCinemaResponse> topCinemas = revenueService.getTopCinemasByRevenue(startDate, endDate, limit);
 
-        ResponseData<List<RevenueByCinemaResponse>> responseData = ResponseData
+        DataResponse<List<RevenueByCinemaResponse>> dataResponse = DataResponse
                 .<List<RevenueByCinemaResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Top cinemas by revenue retrieved successfully")
                 .data(topCinemas)
                 .timestamp(LocalDateTime.now())
                 .build();
-        return ResponseEntity.ok(responseData);
+        return ResponseEntity.ok(dataResponse);
     }
 }

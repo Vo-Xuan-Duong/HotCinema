@@ -1,4 +1,4 @@
-package com.example.hotcinemas_be.dtos.comment.request;
+package com.example.hotcinemas_be.dtos.review.request;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class CommentRequest {
+public class ReviewRequest {
     private Long movieId;
     private String comment;
     private Integer rating;

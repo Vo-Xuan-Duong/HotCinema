@@ -3,6 +3,8 @@ package com.example.hotcinemas_be.services;
 import com.example.hotcinemas_be.dtos.momo.MomoIpnRequest;
 import com.example.hotcinemas_be.dtos.momo.MomoRequest;
 import com.example.hotcinemas_be.dtos.momo.MomoResponse;
+import com.example.hotcinemas_be.exceptions.AppException;
+import com.example.hotcinemas_be.exceptions.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -48,7 +50,7 @@ public class MomoService {
 
         final String REQUEST_TYPE = "captureWallet";
 
-        String rawSignature = STR."accessKey=\{ACCESS_KEY}&amount=\{amount}&extraData=\{extraData}&ipnUrl=\{IPN_URL}&orderId=\{orderId}&orderInfo=\{orderInfo}&partnerCode=\{PARTNER_CODE}&redirectUrl=\{REDIRECT_URL}&requestId=\{requestId}&requestType=\{REQUEST_TYPE}";
+        String rawSignature = "accessKey=" + ACCESS_KEY + "&amount=" + amount + "&extraData=" + extraData + "&ipnUrl=" + IPN_URL + "&orderId=" + orderId + "&orderInfo=" + orderInfo + "&partnerCode=" + PARTNER_CODE + "&redirectUrl=" + REDIRECT_URL + "&requestId=" + requestId + "&requestType=" + REQUEST_TYPE;
 
         String signature = hmacSHA256(rawSignature, SECRET_KEY);
 
@@ -91,7 +93,7 @@ public class MomoService {
             }
             return hex.toString();
         } catch (Exception e) {
-            throw new RuntimeException("HMAC error", e);
+            throw new AppException("HMAC error", ErrorCode.PAYMENT_FAILED);
         }
     }
 
@@ -138,7 +140,7 @@ public class MomoService {
         String message = ipn.getMessage() == null ? "" : ipn.getMessage();
         String orderInfo = ipn.getOrderInfo() == null ? "" : ipn.getOrderInfo();
 
-        return STR."accessKey=\{accessKey}&amount=\{ipn.getAmount()}&extraData=\{extraData}&message=\{message}&orderId=\{ipn.getOrderId()}&orderInfo=\{orderInfo}&orderType=\{ipn.getOrderType()}&partnerCode=\{ipn.getPartnerCode()}&payType=\{ipn.getPayType()}&requestId=\{ipn.getRequestId()}&responseTime=\{ipn.getResponseTime()}&resultCode=\{ipn.getResultCode()}&transId=\{ipn.getTransId()}";
+        return "accessKey=" + accessKey + "&amount=" + ipn.getAmount() + "&extraData=" + extraData + "&message=" + message + "&orderId=" + ipn.getOrderId() + "&orderInfo=" + orderInfo + "&orderType=" + ipn.getOrderType() + "&partnerCode=" + ipn.getPartnerCode() + "&payType=" + ipn.getPayType() + "&requestId=" + ipn.getRequestId() + "&responseTime=" + ipn.getResponseTime() + "&resultCode=" + ipn.getResultCode() + "&transId=" + ipn.getTransId();
     }
 
     public boolean verifyIpnSignatureStrict(MomoIpnRequest ipn, String accessKey, String secretKey) {
