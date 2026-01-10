@@ -3,6 +3,8 @@ package com.example.hotcinemas_be.exceptions;
 import java.time.LocalDateTime;
 
 import com.example.hotcinemas_be.dtos.common.ErrorResponse;
+import com.example.hotcinemas_be.services.EmailService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +18,10 @@ import lombok.extern.slf4j.Slf4j;
 
 @RestControllerAdvice
 @Slf4j
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+    private final EmailService emailService;
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> handleValidationExceptions(MethodArgumentNotValidException ex,
@@ -26,6 +31,8 @@ public class GlobalExceptionHandler {
         String errorMessages = ex.getBindingResult().getAllErrors().stream()
                 .map(DefaultMessageSourceResolvable::getDefaultMessage)
                 .reduce("", (msg1, msg2) -> msg1 + "; " + msg2);
+
+        emailService.sendMailToAdmin("Lỗi hệ thống", "Có lỗi Validation xảy ra: " + errorMessages);
 
         ErrorResponse error = ErrorResponse.builder()
                 .status(HttpStatus.BAD_REQUEST.value())
@@ -43,6 +50,8 @@ public class GlobalExceptionHandler {
         log.error("Runtime exception at [{} {}]: {}", request.getMethod(), request.getRequestURI(), ex.getMessage(),
                 ex);
 
+        emailService.sendMailToAdmin("Lỗi hệ thống", "Có lỗi RuntimeException xảy ra: " + ex.getMessage());
+
         ErrorResponse error = ErrorResponse.builder()
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .error("RUNTIME_EXCEPTION")
@@ -58,6 +67,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleErrorException(AppException ex, HttpServletRequest request) {
         ErrorCode errorCode = ex.getErrorCode();
         log.error("ErrorException at [{} {}] message={}", request.getMethod(), request.getRequestURI(), ex.getMessage(), ex);
+
+
+
         ErrorResponse error = ErrorResponse.builder()
                 .status(errorCode.getHttpStatus().value())
                 .error(errorCode.name())

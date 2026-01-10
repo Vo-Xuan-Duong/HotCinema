@@ -34,8 +34,8 @@ public class ShowtimeMapper {
                 .audioType(showtime.getAudioType())
                 .audioTypeLabel(showtime.getAudioType() != null ? showtime.getAudioType().getValue() : null)
                 .status(showtime.getStatus())
-                .totalSeats(showtime.getTheater() != null ? showtime.getTheater().getTotalSeats() : 0)
-                .seatsBooked(bookingSeatService.countBookedSeatsByShowtimeId(showtime.getId()))
+                .totalSeat(showtime.getTotalSeat())
+                .usedSeat(showtime.getUsedSeat())
                 .build();
     }
 
@@ -51,6 +51,8 @@ public class ShowtimeMapper {
                 .theaterName(showtime.getTheater().getName())
                 .price(showtime.getBasePrice())
                 .status(showtime.getStatus())
+                .totalSeat(showtime.getTotalSeat())
+                .usedSeat(showtime.getUsedSeat())
                 .build();
     }
 

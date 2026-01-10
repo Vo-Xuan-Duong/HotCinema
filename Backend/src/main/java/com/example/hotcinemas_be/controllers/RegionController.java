@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.http.protocol.ResponseDate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,6 +20,7 @@ public class RegionController {
     private final RegionService regionService;
 
     @PostMapping
+    @PreAuthorize("hasAuthority('REGION_CREATE')")
     public ResponseEntity<?> createRegion(@RequestBody RegionRequest regionRequest) {
         DataResponse<?> response = DataResponse.<Object>builder()
                 .status(HttpStatus.CREATED.value())
@@ -29,6 +31,7 @@ public class RegionController {
     }
 
     @PutMapping("/{regionSlug}")
+    @PreAuthorize("hasAuthority('REGION_UPDATE')")
     public ResponseEntity<?> updateRegion(@PathVariable String regionSlug, @RequestBody RegionRequest regionRequest) {
         DataResponse<?> response = DataResponse.<Object>builder()
                 .status(HttpStatus.OK.value())
@@ -68,6 +71,5 @@ public class RegionController {
                 .build();
         return ResponseEntity.ok(response);
     }
-
 
 }

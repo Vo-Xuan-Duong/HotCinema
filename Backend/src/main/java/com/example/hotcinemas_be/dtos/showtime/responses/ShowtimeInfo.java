@@ -20,6 +20,8 @@ public class ShowtimeInfo {
     private Long theaterId;
     private String theaterName;
     private BigDecimal price;
+    private Integer totalSeat;
+    private Integer usedSeat;
     private ShowtimeStatus status;
 }
 

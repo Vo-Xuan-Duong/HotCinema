@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -59,6 +60,7 @@ public class ReviewController {
     }
 
     @GetMapping("/{reviewId}")
+    @PreAuthorize("hasAuthority('REVIEW_READ')")
     public ResponseEntity<?> getReview(@PathVariable Long reviewId) {
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(200)
@@ -69,7 +71,8 @@ public class ReviewController {
     }
 
     @GetMapping("/movie/{movieId}")
-    public ResponseEntity<?> getReviewsByMovie(@PathVariable Long movieId, @PageableDefault(size = 5, page = 0) Pageable pageable) {
+    public ResponseEntity<?> getReviewsByMovie(@PathVariable Long movieId,
+            @PageableDefault(size = 5, page = 0) Pageable pageable) {
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(200)
                 .message("Reviews retrieved successfully")

@@ -39,7 +39,6 @@ public class ShowtimeService {
     private final CinemaRepository cinemaRepository;
     private final RedisService redisService;
     private final WebSocketService webSocketService;
-    private final AuthService authService;
     private final BookingSeatService bookingSeatService;
 
     @Caching(evict = {
@@ -74,6 +73,8 @@ public class ShowtimeService {
         showtime.setBasePrice(showtimeRequest.getBasePrice());
         showtime.setFormat(showtimeRequest.getFormat());
         showtime.setAudioType(showtimeRequest.getAudioType());
+        showtime.setTotalSeat(theater.getTotalSeats());
+        showtime.setUsedSeat(0);
         showtime.setStatus(ShowtimeStatus.UPCOMING);
 
         showtime = showtimeRepository.save(showtime);
@@ -111,6 +112,8 @@ public class ShowtimeService {
         showtime.setBasePrice(showtimeRequest.getBasePrice());
         showtime.setFormat(showtimeRequest.getFormat());
         showtime.setAudioType(showtimeRequest.getAudioType());
+        showtime.setTotalSeat(theater.getTotalSeats());
+        showtime.setUsedSeat(0);
         showtime.setStatus(showtimeRequest.getStatus());
 
         showtime = showtimeRepository.save(showtime);
@@ -291,30 +294,108 @@ public class ShowtimeService {
                 movieIdsPage.getTotalElements());
     }
 
-    // Scheduler: update showtime statuses by time
+    // Scheduler: update showtime statuses by time and occupancy
     @Transactional
     @Scheduled(fixedDelay = 60000) // Run every minute
     public void updateShowtimeStatusesJob() {
         LocalTime now = LocalTime.now();
         LocalDate today = LocalDate.now();
 
-        // OPEN_FOR_BOOKING -> BOOKING_CLOSED (30 minutes before start time)
-        LocalTime bookingCutoffTime = now.plusMinutes(30);
-        List<Showtime> toBookingClosed = showtimeRepository.findByStatusAndShowDateAndStartTimeLessThanEqual(
-                ShowtimeStatus.AVAILABLE, today, bookingCutoffTime);
-        toBookingClosed.forEach(s -> s.setStatus(ShowtimeStatus.SALES_ENDED));
-        if (!toBookingClosed.isEmpty()) {
-            showtimeRepository.saveAll(toBookingClosed);
-            log.info("Updated {} showtime to BOOKING_CLOSED", toBookingClosed.size());
+        // 1. Time-based: UPCOMING -> AVAILABLE (e.g., if showDate is within next 7
+        // days)
+        // Adjust logic as needed. For now, let's say if it's UPCOMING and showDate <=
+        // today + 7
+        List<Showtime> upcoming = showtimeRepository.findByStatusIn(List.of(ShowtimeStatus.UPCOMING));
+        for (Showtime s : upcoming) {
+            if (!s.getShowDate().isAfter(today.plusDays(7))) {
+                s.setStatus(ShowtimeStatus.AVAILABLE);
+            }
+        }
+        if (!upcoming.isEmpty()) {
+            showtimeRepository.saveAll(upcoming);
         }
 
+        // 2. Time-based: (AVAILABLE, ALMOST_FULL, FULL) -> SALES_ENDED (30 minutes
+        // before start time)
+        LocalTime bookingCutoffTime = now.plusMinutes(30);
+        // We check specific statuses that are valid for sale
+        List<ShowtimeStatus> saleStatuses = List.of(ShowtimeStatus.AVAILABLE, ShowtimeStatus.ALMOST_FULL,
+                ShowtimeStatus.FULL);
+
+        // Note: Repository methods need to handle checking multiple statuses if we want
+        // efficiency.
+        // Or we can just fetch active showtimes for today.
+        // Based on existing repo method
+        // findByStatusAndShowDateAndStartTimeLessThanEqual only takes one status.
+        // Let's iterate or assume mostly AVAILABLE.
+        // For simplicity/safety, let's iterate the relevant statuses.
+        for (ShowtimeStatus status : saleStatuses) {
+            List<Showtime> toBookingClosed = showtimeRepository.findByStatusAndShowDateAndStartTimeLessThanEqual(
+                    status, today, bookingCutoffTime);
+            toBookingClosed.forEach(s -> s.setStatus(ShowtimeStatus.SALES_ENDED));
+            if (!toBookingClosed.isEmpty()) {
+                showtimeRepository.saveAll(toBookingClosed);
+                log.info("Updated {} showtime(s) from {} to SALES_ENDED", toBookingClosed.size(), status);
+            }
+        }
+
+        // 3. Time-based: SALES_ENDED -> COMPLETED (when endTime passed)
         List<Showtime> toFinished = showtimeRepository
                 .findByStatusAndShowDateAndEndTimeLessThanEqual(
                         ShowtimeStatus.SALES_ENDED, today, now);
         toFinished.forEach(s -> s.setStatus(ShowtimeStatus.COMPLETED));
         if (!toFinished.isEmpty()) {
             showtimeRepository.saveAll(toFinished);
-            log.info("Updated {} showtime to FINISHED", toFinished.size());
+            log.info("Updated {} showtime(s) to COMPLETED", toFinished.size());
+        }
+
+        // 4. Time-based: cleanup old showtimes from previous dates (ANY status except
+        // CANCELLED/COMPLETED) -> COMPLETED
+        // This catches "SALES_ENDED" from yesterday that didn't get closed, or
+        // "AVAILABLE" from yesterday etc.
+        List<ShowtimeStatus> activeStatuses = List.of(
+                ShowtimeStatus.UPCOMING, ShowtimeStatus.AVAILABLE,
+                ShowtimeStatus.ALMOST_FULL, ShowtimeStatus.FULL,
+                ShowtimeStatus.SALES_ENDED);
+        for (ShowtimeStatus status : activeStatuses) {
+            List<Showtime> pastShowtimes = showtimeRepository.findByStatusAndShowDateBefore(status, today);
+            pastShowtimes.forEach(s -> s.setStatus(ShowtimeStatus.COMPLETED));
+            if (!pastShowtimes.isEmpty()) {
+                showtimeRepository.saveAll(pastShowtimes);
+                log.info("Updated {} past showtime(s) of status {} to COMPLETED", pastShowtimes.size(), status);
+            }
+        }
+
+        // 5. Occupancy-based: Update between AVAILABLE <-> ALMOST_FULL <-> FULL
+        // Only valid for showtimes that are currently selling tickets
+        List<Showtime> activeShowtimes = showtimeRepository.findByStatusIn(
+                List.of(ShowtimeStatus.AVAILABLE, ShowtimeStatus.ALMOST_FULL, ShowtimeStatus.FULL));
+
+        for (Showtime s : activeShowtimes) {
+            updateShowtimeOccupancyStatus(s);
+        }
+        showtimeRepository.saveAll(activeShowtimes);
+    }
+
+    private void updateShowtimeOccupancyStatus(Showtime s) {
+        if (s.getTotalSeat() == null || s.getTotalSeat() == 0)
+            return;
+
+        double occupancy = (double) s.getUsedSeat() / s.getTotalSeat();
+        ShowtimeStatus newStatus = s.getStatus();
+
+        if (s.getUsedSeat() >= s.getTotalSeat()) {
+            newStatus = ShowtimeStatus.FULL;
+        } else if (occupancy >= 0.9) { // 90%
+            newStatus = ShowtimeStatus.ALMOST_FULL;
+        } else {
+            newStatus = ShowtimeStatus.AVAILABLE;
+        }
+
+        if (newStatus != s.getStatus()) {
+            log.info("Updating occupancy status for showtime {}: {} -> {} ({}/{} seats)",
+                    s.getId(), s.getStatus(), newStatus, s.getUsedSeat(), s.getTotalSeat());
+            s.setStatus(newStatus);
         }
     }
 

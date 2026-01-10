@@ -35,6 +35,7 @@ public class BookingService {
     private final BookingMapper bookingMapper;
     private final AuthService authService;
     private final PromotionService promotionService;
+    private final RedisService redisService;
 
     public BookingResponse createBooking(BookingRequest bookingRequest) {
         log.info("Creating booking for showtime: {} with seats: {}",
@@ -45,9 +46,19 @@ public class BookingService {
         Showtime showtime = showtimeRepository.findById(bookingRequest.getShowtimeId())
                 .orElseThrow(() -> new AppException("Showtime not found", ErrorCode.SHOWTIME_NOT_FOUND));
 
+        // Validate seat locks
+        for (Long seatId : bookingRequest.getSeatIds()) {
+            String key = "seat_lock:showtime_" + showtime.getId() + ":seat_" + seatId;
+            Object lockedBy = redisService.get(key);
+            if (lockedBy == null || !lockedBy.toString().equals(currentUser.getId().toString())) {
+                throw new AppException("Seat " + seatId + " is not locked by you or lock has expired",
+                        ErrorCode.SEAT_NOT_LOCKED_BY_USER);
+            }
+        }
+
         BigDecimal totalAmount = totalAmountSeats(bookingRequest.getSeatIds(), showtime);
 
-        BigDecimal discountAmount =  promotionService.calculateDiscount(bookingRequest.getPromotionCode(), totalAmount);
+        BigDecimal discountAmount = promotionService.calculateDiscount(bookingRequest.getPromotionCode(), totalAmount);
 
         BigDecimal finalAmount = totalAmount.subtract(discountAmount);
 
@@ -61,8 +72,7 @@ public class BookingService {
                             .price(getPriceForSeat(seat, showtime))
                             .seatType(seat.getSeatType().name())
                             .build();
-                }
-        ).toList();
+                }).toList();
 
         Booking booking = Booking.builder()
                 .user(currentUser)
@@ -77,7 +87,7 @@ public class BookingService {
                 .build();
         booking = bookingRepository.save(booking);
 
-        try{
+        try {
             return bookingMapper.mapToResponse(booking);
         } catch (Exception e) {
             throw new AppException("Error mapping booking to response", ErrorCode.BOOKING_NOT_FOUND);
@@ -88,7 +98,7 @@ public class BookingService {
     public BookingResponse getBookingById(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new AppException("Booking not found", ErrorCode.BOOKING_NOT_FOUND));
-        try{
+        try {
             return bookingMapper.mapToResponse(booking);
         } catch (Exception e) {
             throw new AppException("Error mapping booking to response", ErrorCode.BOOKING_NOT_FOUND);
@@ -99,7 +109,7 @@ public class BookingService {
     public BookingResponse getBookingByCode(String bookingCode) {
         Booking booking = bookingRepository.findByBookingCode(bookingCode)
                 .orElseThrow(() -> new AppException("Booking not found", ErrorCode.BOOKING_NOT_FOUND));
-        try{
+        try {
             return bookingMapper.mapToResponse(booking);
         } catch (Exception e) {
             throw new AppException("Error mapping booking to response", ErrorCode.BOOKING_NOT_FOUND);
@@ -116,8 +126,7 @@ public class BookingService {
                     } catch (Exception e) {
                         throw new AppException("Error mapping booking to response", ErrorCode.BOOKING_NOT_FOUND);
                     }
-                }
-        );
+                });
     }
 
     @Transactional(readOnly = true)
@@ -130,8 +139,7 @@ public class BookingService {
                     } catch (Exception e) {
                         throw new AppException("Error mapping booking to response", ErrorCode.BOOKING_NOT_FOUND);
                     }
-                }
-        ).toList();
+                }).toList();
     }
 
     @Transactional(readOnly = true)
@@ -144,8 +152,7 @@ public class BookingService {
                     } catch (Exception e) {
                         throw new AppException("Error mapping booking to response", ErrorCode.BOOKING_NOT_FOUND);
                     }
-                }
-        ).toList();
+                }).toList();
     }
 
     @Transactional(readOnly = true)
@@ -158,8 +165,7 @@ public class BookingService {
                     } catch (Exception e) {
                         throw new AppException("Error mapping booking to response", ErrorCode.BOOKING_NOT_FOUND);
                     }
-                }
-        ).toList();
+                }).toList();
     }
 
     private BigDecimal totalAmountSeats(List<Long> seatIds, Showtime showtime) {
@@ -172,9 +178,9 @@ public class BookingService {
     }
 
     public BigDecimal getPriceForSeat(Seat seat, Showtime showtime) {
-        if(seat.getSeatType() == SeatType.COUPLE) {
+        if (seat.getSeatType() == SeatType.COUPLE) {
             return showtime.getBasePrice().multiply(BigDecimal.valueOf(2));
-        } else if(seat.getSeatType() == SeatType.VIP) {
+        } else if (seat.getSeatType() == SeatType.VIP) {
             BigDecimal price = showtime.getBasePrice();
             return price.multiply(new BigDecimal("1.1"));
         } else {
@@ -193,14 +199,15 @@ public class BookingService {
     }
 
     public BookingResponse updateBookingStatus(Long id, BookingStatus status) {
-        Booking booking = bookingRepository.findById(id).orElseThrow(() -> new AppException("Booking not found", ErrorCode.BOOKING_NOT_FOUND));
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new AppException("Booking not found", ErrorCode.BOOKING_NOT_FOUND));
         if (booking.getStatus() != BookingStatus.PENDING) {
             throw new AppException("Cannot update booking status", ErrorCode.INVALID_REQUEST);
         }
         booking.setStatus(status);
         booking = bookingRepository.save(booking);
         log.info("Booking {} updated successfully", booking.getId());
-        try{
+        try {
             return bookingMapper.mapToResponse(booking);
         } catch (Exception e) {
             throw new AppException("Error mapping booking to response", ErrorCode.BOOKING_NOT_FOUND);
@@ -208,7 +215,8 @@ public class BookingService {
     }
 
     public void deleteBooking(Long id) {
-        Booking booking = bookingRepository.findById(id).orElseThrow(() -> new AppException("Booking not found", ErrorCode.BOOKING_NOT_FOUND));
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new AppException("Booking not found", ErrorCode.BOOKING_NOT_FOUND));
         bookingRepository.delete(booking);
     }
 
@@ -221,7 +229,6 @@ public class BookingService {
                     } catch (Exception e) {
                         throw new AppException("Error mapping booking to response", ErrorCode.BOOKING_NOT_FOUND);
                     }
-                }
-        );
+                });
     }
 }

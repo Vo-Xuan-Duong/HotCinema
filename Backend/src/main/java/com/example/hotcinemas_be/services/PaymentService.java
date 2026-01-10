@@ -32,6 +32,7 @@ public class PaymentService {
     private final PaymentMapper paymentMapper;
     private final BookingRepository bookingRepository;
     private final MomoService momoService;
+    private final BookingSeatService bookingSeatService;
 
     public PaymentResponse createPayment(PaymentRequest paymentRequest) {
         Booking booking = bookingRepository.findById(paymentRequest.getBookingId())
@@ -50,7 +51,7 @@ public class PaymentService {
 
         PaymentResponse response = paymentMapper.mapToResponse(savedPayment);
 
-        if(paymentRequest.getPaymentMethod() == PaymentMethod.MOMO){
+        if (paymentRequest.getPaymentMethod() == PaymentMethod.MOMO) {
             long amount = booking.getTotalAmount().longValue();
             String orderId = booking.getBookingCode();
             String orderInfo = "Payment for booking " + booking.getBookingCode();
@@ -59,10 +60,10 @@ public class PaymentService {
             log.info("Momo Response: {}", momoResponse);
 
             response.setPaymentUrl(momoResponse.getPayUrl());
-        }else if(paymentRequest.getPaymentMethod() == PaymentMethod.VNPAY){
+        } else if (paymentRequest.getPaymentMethod() == PaymentMethod.VNPAY) {
             // Implement VNPAY payment method handling here
 
-        }else{
+        } else {
             // Handle other payment methods if necessary
         }
         return response;
@@ -140,8 +141,11 @@ public class PaymentService {
         Booking booking = payment.getBooking();
 
         if (status == PaymentStatus.SUCCESS) {
-            booking.setStatus(BookingStatus.CONFIRMED);
-            bookingRepository.save(booking);
+            if (booking.getStatus() != BookingStatus.CONFIRMED) {
+                bookingSeatService.createBookingSeats(booking.getId());
+                booking.setStatus(BookingStatus.CONFIRMED);
+                bookingRepository.save(booking);
+            }
         } else if (status == PaymentStatus.FAILED) {
             booking.setStatus(BookingStatus.PENDING);
             bookingRepository.save(booking);

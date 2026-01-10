@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -22,6 +23,7 @@ public class TheaterController {
 
     @Operation(summary = "Get all rooms", description = "Retrieve a list of all rooms in the cinema system")
     @GetMapping
+    @PreAuthorize("hasAuthority('THEATER_LIST')")
     public ResponseEntity<?> getAllRooms(Pageable pageable) {
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(200)
@@ -33,6 +35,7 @@ public class TheaterController {
 
     @Operation(summary = "Get room by ID", description = "Retrieve a specific room by its ID")
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('THEATER_READ')")
     public ResponseEntity<?> getRoomById(@PathVariable Long id) {
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(200)
@@ -44,6 +47,7 @@ public class TheaterController {
 
     @Operation(summary = "Get rooms by cinema ID", description = "Retrieve all rooms associated with a specific cinema ID")
     @GetMapping("/cinema/{cinemaId}")
+    @PreAuthorize("hasAuthority('THEATER_LIST')")
     public ResponseEntity<?> getRoomsByCinemaId(@PathVariable Long cinemaId) {
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(200)

@@ -2,7 +2,6 @@ package com.example.hotcinemas_be.dtos.showtime.responses;
 
 import com.example.hotcinemas_be.enums.AudioType;
 import com.example.hotcinemas_be.enums.Format;
-import com.example.hotcinemas_be.enums.MovieFormat;
 import com.example.hotcinemas_be.enums.ShowtimeStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,7 +30,7 @@ public class ShowtimeResponse {
     private AudioType audioType;
     private String audioTypeLabel;
     private ShowtimeStatus status;
-    private Integer totalSeats;
-    private Integer seatsBooked;
+    private Integer totalSeat;
+    private Integer usedSeat;
     private Boolean isActive ;
 }

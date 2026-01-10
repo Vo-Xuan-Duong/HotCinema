@@ -41,6 +41,11 @@ public class BookingSeatService {
                 () -> new AppException("Booking not found", ErrorCode.BOOKING_NOT_FOUND)
         );
 
+        Showtime showtime = booking.getShowtime();
+
+        showtime.setUsedSeat(showtime.getUsedSeat() + booking.getSeatSnapshots().size());
+        showtimeRepository.save(showtime);
+
         List<SeatSnapshot> seatSnapshots = booking.getSeatSnapshots();
 
         for (SeatSnapshot seatSnapshot : seatSnapshots) {

@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -24,6 +25,7 @@ public class PromotionController {
 
     @Operation(summary = "Create a new Promotion", description = "Allows an admin to create a new Promotion.")
     @PostMapping
+    @PreAuthorize("hasAuthority('PROMOTION_CREATE')")
     public ResponseEntity<?> createPromotion(@RequestBody PromotionRequest promotionRequest) {
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(201)
@@ -37,6 +39,7 @@ public class PromotionController {
 
     @Operation(summary = "Get all Promotions", description = "Retrieves all Promotions.")
     @GetMapping
+    @PreAuthorize("hasAuthority('PROMOTION_LIST')")
     public ResponseEntity<?> getAllPromotions(Pageable pageable) {
         DataResponse<?> dataResponse = DataResponse.builder()
                 .status(200)

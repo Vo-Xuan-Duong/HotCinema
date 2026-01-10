@@ -13,6 +13,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -299,6 +300,7 @@ public class UserController {
                         @ApiResponse(responseCode = "404", description = "User not found")
         })
         @PutMapping("/{id}/activate")
+        @PreAuthorize("hasAuthority('USER_ACTIVATE')")
         public ResponseEntity<DataResponse<Boolean>> activateUser(
                         @Parameter(description = "User ID") @PathVariable Long id) {
                 log.info("Activating user ID: {}", id);
@@ -320,6 +322,7 @@ public class UserController {
                         @ApiResponse(responseCode = "404", description = "User not found")
         })
         @PutMapping("/{id}/deactivate")
+        @PreAuthorize("hasAuthority('USER_DEACTIVATE')")
         public ResponseEntity<DataResponse<Boolean>> deactivateUser(
                         @Parameter(description = "User ID") @PathVariable Long id) {
                 log.info("Deactivating user ID: {}", id);
@@ -340,6 +343,7 @@ public class UserController {
                         @ApiResponse(responseCode = "200", description = "Users retrieved successfully")
         })
         @GetMapping("/role/{code}")
+        @PreAuthorize("hasAuthority('USER_LIST')")
         public ResponseEntity<DataResponse<Page<UserResponse>>> getUsersByRole(
                         @Parameter(description = "Role code") @PathVariable String code,
                         @PageableDefault(page = 0, size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
@@ -370,7 +374,8 @@ public class UserController {
         }
 
         @GetMapping("/staffs")
-        public ResponseEntity<DataResponse<Page<UserResponse>>> getAllUsersWithoutPagination(@PageableDefault(page = 0, size = 1000, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        public ResponseEntity<DataResponse<Page<UserResponse>>> getAllUsersWithoutPagination(
+                        @PageableDefault(page = 0, size = 1000, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
                 log.info("Getting all users without pagination");
                 Page<UserResponse> users = userService.getAllUsersWithoutPagination(pageable);
 
@@ -385,15 +390,16 @@ public class UserController {
         }
 
         @GetMapping("/customers")
-        public ResponseEntity<DataResponse<Page<UserResponse>>> getAllCustomersWithoutPagination(@PageableDefault(page = 0, size = 1000, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        public ResponseEntity<DataResponse<Page<UserResponse>>> getAllCustomersWithoutPagination(
+                        @PageableDefault(page = 0, size = 1000, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
                 log.info("Getting all customers without pagination");
                 Page<UserResponse> users = userService.getAllCustomersWithoutPagination(pageable);
                 DataResponse<Page<UserResponse>> dataResponse = DataResponse.<Page<UserResponse>>builder()
-                        .status(HttpStatus.OK.value())
-                        .message("Customers retrieved successfully")
-                        .data(users)
-                        .timestamp(LocalDateTime.now())
-                        .build();
+                                .status(HttpStatus.OK.value())
+                                .message("Customers retrieved successfully")
+                                .data(users)
+                                .timestamp(LocalDateTime.now())
+                                .build();
                 return ResponseEntity.ok(dataResponse);
         }
 }

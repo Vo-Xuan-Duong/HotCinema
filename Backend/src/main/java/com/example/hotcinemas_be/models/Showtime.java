@@ -61,6 +61,12 @@ public class Showtime {
     @Builder.Default
     private BigDecimal basePrice = new BigDecimal("45000.00");
 
+    @Column(name = "total_seat", nullable = false)
+    private Integer totalSeat;
+
+    @Column(name = "used_seat", nullable = false)
+    private Integer usedSeat;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 20)
     @Builder.Default
