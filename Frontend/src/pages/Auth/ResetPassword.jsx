@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Lock, CheckCircle2, ArrowLeft, X } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { InputPassword } from '../../components/ui/input-password';
@@ -11,44 +11,17 @@ const ResetPassword = () => {
     const [formData, setFormData] = useState({ password: '', confirmPassword: '' });
     const [errors, setErrors] = useState({});
     const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
+    const location = useLocation();
+    const { email, otpCode } = location.state || {};
     const [loading, setLoading] = useState(false);
     const [resetSuccess, setResetSuccess] = useState(false);
-    const [tokenValid, setTokenValid] = useState(true);
-    const [verifyingToken, setVerifyingToken] = useState(true);
     const notification = useNotification();
 
-    const token = searchParams.get('token');
-
     useEffect(() => {
-        const verifyToken = async () => {
-            if (!token) {
-                setTokenValid(false);
-                setVerifyingToken(false);
-                notification.error('Liên kết không hợp lệ!');
-                return;
-            }
-
-            try {
-                // TODO: Gọi API verify token
-                // await authService.verifyResetToken(token);
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                setTokenValid(true);
-            } catch (error) {
-                console.error('Token verification error:', error);
-                setTokenValid(false);
-                if (error.response?.status === 410) {
-                    notification.error('Liên kết đã hết hạn!');
-                } else {
-                    notification.error('Liên kết không hợp lệ hoặc đã được sử dụng!');
-                }
-            } finally {
-                setVerifyingToken(false);
-            }
-        };
-
-        verifyToken();
-    }, [token, notification]);
+        if (!email || !otpCode) {
+            navigate('/forgot-password');
+        }
+    }, [email, otpCode, navigate]);
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -66,13 +39,13 @@ const ResetPassword = () => {
         } else if (formData.password.length > 100) {
             newErrors.password = 'Mật khẩu không được vượt quá 100 ký tự!';
         }
-        
+
         if (!formData.confirmPassword) {
             newErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu!';
         } else if (formData.password !== formData.confirmPassword) {
             newErrors.confirmPassword = 'Mật khẩu xác nhận không khớp!';
         }
-        
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -83,9 +56,7 @@ const ResetPassword = () => {
 
         setLoading(true);
         try {
-            // TODO: Gọi API reset password
-            // await authService.resetPassword(token, formData.password);
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            await authService.resetPassword(email, otpCode, formData.password);
 
             setResetSuccess(true);
             notification.success('Đặt lại mật khẩu thành công!');
@@ -97,14 +68,7 @@ const ResetPassword = () => {
             console.error('Reset password error:', error);
             if (error.response) {
                 const { data, status } = error.response;
-                if (status === 400) {
-                    notification.error(data.message || 'Mật khẩu không hợp lệ!');
-                } else if (status === 410) {
-                    notification.error('Liên kết đã hết hạn. Vui lòng yêu cầu lại!');
-                    setTokenValid(false);
-                } else {
-                    notification.error(data.message || 'Không thể đặt lại mật khẩu. Vui lòng thử lại!');
-                }
+                notification.error(data.message || 'Không thể đặt lại mật khẩu. Vui lòng thử lại!');
             } else {
                 notification.error('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng!');
             }

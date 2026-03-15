@@ -183,6 +183,15 @@ public class UserService {
         userRepository.save(user);
     }
 
+    public void changePasswordByEmail(String email, String newPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException("User not found when change password",
+                        ErrorCode.MODEL_NOT_FOUND));
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
     public UserResponse updateInfoUser(UserUpdateRequest userUpdateRequest) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
@@ -268,7 +277,7 @@ public class UserService {
             user.setRole(defaultRole);
 
             user = userRepository.save(user);
-        }else{
+        } else {
             user.setFullName(name);
             user.setAvatarUrl(pictureUrl);
             user = userRepository.save(user);
@@ -301,12 +310,12 @@ public class UserService {
     }
 
     public Page<UserResponse> getAllUsersWithoutPagination(Pageable pageable) {
-        Page<User> userPage = userRepository.findUsersByRole_NameNot("User" , pageable);
+        Page<User> userPage = userRepository.findUsersByRole_NameNot("User", pageable);
         return userPage.map(userMapper::mapToResponse);
     }
 
     public Page<UserResponse> getAllCustomersWithoutPagination(Pageable pageable) {
-        Page<User> userPage = userRepository.findUsersByRole_Name("User" , pageable);
+        Page<User> userPage = userRepository.findUsersByRole_Name("User", pageable);
         return userPage.map(userMapper::mapToResponse);
     }
 }

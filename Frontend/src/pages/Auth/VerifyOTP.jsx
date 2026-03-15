@@ -76,7 +76,8 @@ const VerifyOTP = () => {
         inputRefs.current[lastIndex]?.focus();
     };
 
-    const handleVerify = async () => {
+    const handleVerify = async (e) => {
+        e.preventDefault();
         const otpCode = otp.join('');
 
         if (otpCode.length !== 6) {
@@ -86,15 +87,9 @@ const VerifyOTP = () => {
 
         setLoading(true);
         try {
-            // TODO: Gọi API xác thực OTP
-            // const response = await authService.verifyOTP(email, otpCode);
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            notification.success('Xác thực thành công! Đang chuyển hướng...');
-
-            setTimeout(() => {
-                navigate('/login', { state: { verified: true } });
-            }, 1000);
+            await authService.verifyPasswordOtp(email, otpCode);
+            notification.success('Xác thực thành công!');
+            navigate('/reset-password', { state: { email, otpCode } });
         } catch (error) {
             console.error('OTP verification error:', error);
             notification.error(error.response?.data?.message || 'Mã OTP không đúng hoặc đã hết hạn!');
@@ -108,10 +103,7 @@ const VerifyOTP = () => {
     const handleResend = async () => {
         setResendLoading(true);
         try {
-            // TODO: Gọi API gửi lại OTP
-            // await authService.resendOTP(email);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
+            await authService.forgotPassword(email);
             notification.success('Đã gửi lại mã xác thực!');
             setCanResend(false);
             setCountdownEnd(Date.now() + 60 * 1000);

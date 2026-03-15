@@ -94,7 +94,7 @@ public class ShowtimeController {
         }
 
         @Operation(summary = "Get showtimes with filters", description = "Retrieves showtimes with filters.")
-        @GetMapping("/filters")
+        @PostMapping("/filters")
         public ResponseEntity<?> getShowtimesWithFilters(
                         @RequestBody ShowtimeFilterRequest filterRequest) {
                 DataResponse<?> dataResponse = DataResponse.builder()

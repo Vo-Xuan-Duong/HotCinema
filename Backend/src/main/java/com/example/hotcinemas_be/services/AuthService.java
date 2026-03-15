@@ -57,7 +57,8 @@ public class AuthService {
 
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-//        UserDetails userDetails = userDetailsService.loadUserByUsername(loginRequest.getEmail());
+        // UserDetails userDetails =
+        // userDetailsService.loadUserByUsername(loginRequest.getEmail());
         userService.setLastLogin(loginRequest.getEmail());
 
         String accessToken = jwtService.generateToken(TokenType.ACCESS, userDetails);
@@ -151,7 +152,16 @@ public class AuthService {
     }
 
     public Boolean changePassword(NewPassword newPassword) {
-        userService.changePassword(newPassword.getNewPassword());
+        if (newPassword.getEmail() != null && newPassword.getOtpCode() != null) {
+            // Forgot password flow
+            if (!otpService.validateOTP(newPassword.getOtpCode(), newPassword.getEmail())) {
+                throw new AppException("Invalid OTP", ErrorCode.INVALID_REQUEST);
+            }
+            userService.changePasswordByEmail(newPassword.getEmail(), newPassword.getNewPassword());
+        } else {
+            // Logged in flow
+            userService.changePassword(newPassword.getNewPassword());
+        }
         return true;
     }
 
@@ -190,7 +200,8 @@ public class AuthService {
 
             String idTokenString = (String) response.get("id_token");
 
-            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(),
+                    new GsonFactory())
                     .setAudience(Collections.singletonList(googleClientId))
                     .build();
 
@@ -205,8 +216,8 @@ public class AuthService {
 
                 UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-                String accessToken = jwtService.generateToken(TokenType.ACCESS ,userDetails);
-                String refreshToken = jwtService.generateToken(TokenType.ACCESS ,userDetails);
+                String accessToken = jwtService.generateToken(TokenType.ACCESS, userDetails);
+                String refreshToken = jwtService.generateToken(TokenType.ACCESS, userDetails);
 
                 return AuthResponse.builder()
                         .accessToken(accessToken)

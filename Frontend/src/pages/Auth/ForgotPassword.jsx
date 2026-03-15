@@ -40,13 +40,9 @@ const ForgotPassword = () => {
 
         setLoading(true);
         try {
-            // TODO: Gọi API gửi email reset password
-            // await authService.forgotPassword(formData.email);
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            setSentEmail(formData.email);
-            setEmailSent(true);
-            notification.success('Email khôi phục mật khẩu đã được gửi!');
+            await authService.forgotPassword(formData.email);
+            notification.success('Mã OTP đã được gửi đến email của bạn!');
+            navigate('/verify-otp', { state: { email: formData.email } });
         } catch (error) {
             console.error('Forgot password error:', error);
             if (error.response) {

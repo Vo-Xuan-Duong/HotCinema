@@ -26,6 +26,10 @@ class ShowtimeService {
         return apiClient.get(`${ENDPOINTS.SHOWTIME}/movie/${movieId}/date/${date}`, { params });
     }
 
+    async getShowtimesWithFilters(filters) {
+        return apiClient.post(`${ENDPOINTS.SHOWTIME}/filters`, filters);
+    }
+
     async getShowtimeById(id) {
         return apiClient.get(`${ENDPOINTS.SHOWTIME}/${id}`);
     }

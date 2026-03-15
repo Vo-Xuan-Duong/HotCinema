@@ -18,16 +18,18 @@ const Notifications = () => {
         const fetchNotifications = async () => {
             setLoading(true);
             try {
-                const data = await notificationService.list();
-                const items = Array.isArray(data) ? data : (data?.items || []);
+                const response = await notificationService.list();
+                // Response structure: { data: { content: [...] } }
+                const items = response?.data?.content || response?.content || [];
+
                 setNotifications(items.map(n => ({
-                    id: n.id ?? n._id,
+                    id: n.id,
                     type: n.type || 'system',
-                    title: n.title || 'Thông báo',
-                    message: n.message || n.content || '',
-                    time: n.time || n.createdAt || '',
-                    read: !!(n.read ?? n.isRead),
-                    priority: n.priority || 'low'
+                    title: n.title,
+                    message: n.message,
+                    time: n.createdAt ? new Date(n.createdAt).toLocaleString('vi-VN') : '',
+                    read: n.isRead,
+                    priority: 'medium' // Backend doesn't return priority yet, default to medium
                 })));
             } catch (err) {
                 notification.error(err.message || 'Không tải được danh sách thông báo');
@@ -126,19 +128,17 @@ const Notifications = () => {
                                 key: notification.id,
                                 content: (
                                     <Card
-                                        className={`w-full rounded-lg shadow-sm border transition-all duration-300 ${
-                                            !notification.read
+                                        className={`w-full rounded-lg shadow-sm border transition-all duration-300 ${!notification.read
                                                 ? 'bg-blue-50 border-blue-200 hover:shadow-md'
                                                 : 'bg-white border-gray-200 hover:shadow-md'
-                                        }`}
+                                            }`}
                                     >
                                         <div className="flex gap-4 p-4">
-                                            <Avatar className={`text-2xl ${
-                                                notification.type === 'booking' ? 'bg-blue-100' :
-                                                notification.type === 'promotion' ? 'bg-pink-100' :
-                                                notification.type === 'reminder' ? 'bg-yellow-100' :
-                                                'bg-gray-100'
-                                            }`}>
+                                            <Avatar className={`text-2xl ${notification.type === 'booking' ? 'bg-blue-100' :
+                                                    notification.type === 'promotion' ? 'bg-pink-100' :
+                                                        notification.type === 'reminder' ? 'bg-yellow-100' :
+                                                            'bg-gray-100'
+                                                }`}>
                                                 {getNotificationIcon(notification.type)}
                                             </Avatar>
                                             <div className="flex-1">

@@ -11,5 +11,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class NewPassword {
     private String newPassword;
+    private String email;
+    private String otpCode;
 }
-

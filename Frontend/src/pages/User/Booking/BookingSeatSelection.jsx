@@ -20,6 +20,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '../../../components/ui/
 import dayjs from 'dayjs';
 import ContentLoader from '../../../components/Loading/ContentLoader';
 import useNotification from '../../../hooks/useNotification';
+import promotionService from '../../../services/promotionService';
 import showtimeService from '../../../services/showtimeService';
 import bookingService from '../../../services/bookingService';
 import useSeatWebSocket from '../../../hooks/useSeatWebSocket';
@@ -536,34 +537,71 @@ const BookingSeatSelection = () => {
 
         setIsValidatingPromotion(true);
         try {
-            // TODO: Implement promotion code validation API call
-            // For now, we'll just accept any code and set a mock discount
-            // const response = await promotionService.validatePromotionCode(promotionCode, showtimeId);
+            // Call API to validate code
+            const response = await promotionService.getPromotionByCode(promotionCode);
+            const promotion = response?.data || response;
 
-            // Mock validation - replace with actual API call
-            const mockDiscount = promotionCode.toUpperCase().includes('VIP') ? 50000 :
-                promotionCode.toUpperCase().includes('10') ? calculateSubtotal() * 0.1 :
-                    promotionCode.toUpperCase().includes('20') ? calculateSubtotal() * 0.2 : 0;
-
-            if (mockDiscount > 0) {
-                setPromotionDiscount(mockDiscount);
-                setPromotionInfo({
-                    code: promotionCode.toUpperCase(),
-                    discount: mockDiscount,
-                    discountPercent: promotionCode.toUpperCase().includes('10') ? 10 :
-                        promotionCode.toUpperCase().includes('20') ? 20 : 0
-                });
-                notification.success('Áp dụng mã giảm giá thành công!');
-            } else {
+            if (!promotion) {
+                notification.error('Mã giảm giá không tồn tại');
                 setPromotionDiscount(0);
                 setPromotionInfo(null);
-                notification.error('Mã giảm giá không hợp lệ hoặc đã hết hạn');
+                return;
             }
+
+            // Client-side validation
+            const now = dayjs();
+            const startDate = dayjs(promotion.startDate);
+            const endDate = dayjs(promotion.endDate);
+
+            if (promotion.status !== 'ACTIVE' && promotion.status !== true) {
+                notification.error('Mã giảm giá này hiện không hoạt động');
+                return;
+            }
+
+            if (now.isBefore(startDate)) {
+                notification.error(`Mã giảm giá chưa đến ngày áp dụng (bắt đầu từ ${startDate.format('DD/MM/YYYY')})`);
+                return;
+            }
+
+            if (now.isAfter(endDate)) {
+                notification.error('Mã giảm giá đã hết hạn');
+                return;
+            }
+
+            // Calculate discount
+            const subTotal = calculateSubtotal();
+            let discountAmount = 0;
+
+            if (promotion.discountType === 'PERCENTAGE') {
+                discountAmount = (subTotal * promotion.discountValue) / 100;
+            } else {
+                discountAmount = promotion.discountValue;
+            }
+
+            // Ensure discount doesn't exceed subtotal
+            if (discountAmount > subTotal) {
+                discountAmount = subTotal;
+            }
+
+            setPromotionDiscount(discountAmount);
+            setPromotionInfo({
+                id: promotion.id,
+                code: promotion.code,
+                discount: discountAmount,
+                discountPercent: promotion.discountType === 'PERCENTAGE' ? promotion.discountValue : 0,
+                discountType: promotion.discountType
+            });
+            notification.success('Áp dụng mã giảm giá thành công!');
+
         } catch (error) {
             console.error('Error validating promotion code:', error);
             setPromotionDiscount(0);
             setPromotionInfo(null);
-            notification.error('Không thể kiểm tra mã giảm giá. Vui lòng thử lại.');
+            if (error.response?.status === 404) {
+                notification.error('Mã giảm giá không tồn tại');
+            } else {
+                notification.error('Không thể kiểm tra mã giảm giá. Vui lòng thử lại.');
+            }
         } finally {
             setIsValidatingPromotion(false);
         }

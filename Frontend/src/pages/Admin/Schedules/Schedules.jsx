@@ -158,29 +158,41 @@ const Schedules = () => {
     const loadSchedules = async (page = currentPage, size = pageSize) => {
         try {
             setLoading(true);
-            // Gọi API với tham số phân trang (page bắt đầu từ 0)
-            const response = await showtimeService.getAllShowtimes(page - 1, size);
-
-            // Xử lý response - có thể là pagination hoặc array trực tiếp
             let schedulesData = [];
             let total = 0;
 
-            if (response?.data?.content) {
-                // Paginated response: { data: { content: [], totalElements, ... } }
-                schedulesData = response.data.content;
-                total = response.data.totalElements || 0;
-            } else if (response?.content) {
-                // Direct paginated: { content: [], totalElements, ... }
-                schedulesData = response.content;
-                total = response.totalElements || 0;
-            } else if (Array.isArray(response?.data)) {
-                // Direct array: { data: [...] }
-                schedulesData = response.data;
-                total = response.data.length;
-            } else if (Array.isArray(response)) {
-                // Direct array without wrapper
-                schedulesData = response;
-                total = response.length;
+            const hasBackendFilters = movieFilter !== 'all' || cinemaFilter !== 'all';
+
+            if (hasBackendFilters) {
+                const filterRequest = {};
+                if (movieFilter !== 'all') filterRequest.movieId = parseInt(movieFilter);
+                if (cinemaFilter !== 'all') filterRequest.cinemaId = parseInt(cinemaFilter);
+
+                // Call backend filter API
+                const response = await showtimeService.getShowtimesWithFilters(filterRequest);
+                const data = response?.data || response;
+
+                if (Array.isArray(data)) {
+                    schedulesData = data;
+                    total = data.length;
+                }
+            } else {
+                // Call API với tham số phân trang (page bắt đầu từ 0)
+                const response = await showtimeService.getAllShowtimes(page - 1, size);
+
+                if (response?.data?.content) {
+                    schedulesData = response.data.content;
+                    total = response.data.totalElements || 0;
+                } else if (response?.content) {
+                    schedulesData = response.content;
+                    total = response.totalElements || 0;
+                } else if (Array.isArray(response?.data)) {
+                    schedulesData = response.data;
+                    total = response.data.length;
+                } else if (Array.isArray(response)) {
+                    schedulesData = response;
+                    total = response.length;
+                }
             }
 
             setSchedules(schedulesData);
@@ -726,8 +738,8 @@ const Schedules = () => {
             schedules.reduce((sum, s) => sum + getBookingRate(s.seatsBooked, s.totalSeats), 0) / schedules.length : 0
     };
 
-    // TODO: Chuyển filtering sang backend API
-    // Hiện tại vẫn filter phía client cho trang hiện tại
+    // Filter phía client cho status, dateRange và searchText
+    // Backend API filters are used for movieId and cinemaId in loadSchedules
     const filteredSchedules = schedules.filter(schedule => {
         const movieTitle = getMovieTitle(schedule.movieId).toLowerCase();
         const cinemaName = getCinemaName(schedule.cinemaId).toLowerCase();

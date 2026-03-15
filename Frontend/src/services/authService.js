@@ -34,15 +34,15 @@ export const authService = {
     },
 
     forgotPassword: async (email) => {
-        return api.post(`/auth/forgot-password?email=${email}`);
+        return api.get(`/auth/forget-password?email=${encodeURIComponent(email)}`);
     },
 
     verifyPasswordOtp: async (email, otp) => {
-        return api.post('/auth/verify-password-otp', { email, otp });
+        return api.get(`/auth/verify-otp-change-password?email=${encodeURIComponent(email)}&otpCode=${encodeURIComponent(otp)}`);
     },
 
-    resetPassword: async (email, newPassword) => {
-        return api.patch('/auth/set-password', { email, newPassword });
+    resetPassword: async (email, otpCode, newPassword) => {
+        return api.patch('/auth/change-password', { email, otpCode, newPassword });
     },
 
     verifyEmail: async (token) => {
