@@ -3,14 +3,16 @@ package com.example.hotcinemas_be.enums;
 import lombok.Getter;
 
 @Getter
-public enum AudioType {
-    SUBTITLE("Phụ đề"),
-    DUBBED("Lồng tiếng"),
-    ORIGINAL("Nguyên gốc");
+public enum SoundSystem {
+    DOLBY_ATMOS("Dolby Atmos"),
+    DOLBY_7_1("Dolby 7.1"),
+    DTS_X("DTS:X"),
+    SURROUND_5_1("Surround 5.1"),
+    STEREO("Stereo");
 
-    private final String value;
+    private final String displayName;
 
-    AudioType(String value) {
-        this.value = value;
+    SoundSystem(String displayName) {
+        this.displayName = displayName;
     }
 }
