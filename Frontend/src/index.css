@@ -343,8 +343,8 @@ body:has([class*="admin-layout"]) {
   background-color: var(--primary-bg);
   overflow-x: hidden;
   /* Ensure scrollbar is at the edge - no padding/margin */
-  padding-right: 0 !important;
-  margin-right: 0 !important;
+  padding-right: 0;
+  margin-right: 0;
   box-sizing: border-box;
 }
 
@@ -413,7 +413,7 @@ textarea:focus,
 textarea:focus-visible,
 select:focus,
 select:focus-visible {
-  outline: none !important;
+  outline: none;
 }
 
 /* Modern scrollbar */
@@ -501,25 +501,25 @@ select:focus-visible {
 /* Prevent Modal from causing scrollbar flicker */
 /* Use auto instead of scroll - scrollbar will overlay, not take space */
 html {
-  overflow-y: auto !important;
-  padding-right: 0 !important;
-  margin-right: 0 !important;
-  width: 100% !important;
-  max-width: 100% !important;
+  overflow-y: auto;
+  padding-right: 0;
+  margin-right: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 body {
-  overflow-y: auto !important;
-  padding-right: 0 !important;
-  margin-right: 0 !important;
-  width: 100% !important;
-  max-width: 100% !important;
+  overflow-y: auto;
+  padding-right: 0;
+  margin-right: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 /* Ensure root element doesn't push scrollbar */
 #root {
-  padding-right: 0 !important;
-  margin-right: 0 !important;
+  padding-right: 0;
+  margin-right: 0;
 }
 
 /* Global fix to prevent horizontal overflow and white space */

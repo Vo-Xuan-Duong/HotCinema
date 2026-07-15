@@ -37,4 +37,3 @@ const InputPassword = React.forwardRef(({ className, ...props }, ref) => {
 InputPassword.displayName = "InputPassword"
 
 export { InputPassword }
-

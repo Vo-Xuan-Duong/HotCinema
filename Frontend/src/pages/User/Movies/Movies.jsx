@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Search, Play, Calendar, Clock, Star, Heart, Share2, Ticket, Filter, Grid, List, SortAsc, SortDesc, ArrowUp, Eye } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
@@ -21,7 +21,6 @@ import ContentLoader from '../../../components/Loading/ContentLoader';
 const Movies = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const [movies, setMovies] = useState([]);
     const [filteredMovies, setFilteredMovies] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchText, setSearchText] = useState('');
@@ -31,12 +30,11 @@ const Movies = () => {
     const [selectedYear, setSelectedYear] = useState('all');
     const [sortBy, setSortBy] = useState('id');
     const [sortOrder, setSortOrder] = useState('desc');
-    const [viewMode, setViewMode] = useState('grid');
+    const [viewMode] = useState('grid');
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(15);
     const [totalMovies, setTotalMovies] = useState(0);
     const [likedMovies, setLikedMovies] = useState(new Set());
-    const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [genres, setGenres] = useState([]);
 
     useEffect(() => {
@@ -58,6 +56,7 @@ const Movies = () => {
         return () => clearTimeout(timer);
     }, [searchText]);
 
+     
     useEffect(() => {
         loadMovies();
     }, [currentPage, pageSize, sortBy, sortOrder, debouncedSearch, selectedGenre, selectedYear]);
@@ -71,6 +70,7 @@ const Movies = () => {
         return () => clearTimeout(timer);
     }, [currentPage, pageSize]);
 
+     
     useEffect(() => {
         if (debouncedSearch || selectedGenre !== 'all' || selectedStatus !== 'all' || selectedYear !== 'all') {
             if (currentPage !== 1) {
@@ -169,12 +169,10 @@ const Movies = () => {
                 };
             });
 
-            setMovies(processed);
             setFilteredMovies(processed);
             setTotalMovies(total);
         } catch (err) {
             console.error('Failed to fetch movies', err);
-            setMovies([]);
             setFilteredMovies([]);
             setTotalMovies(0);
         } finally {
@@ -205,20 +203,6 @@ const Movies = () => {
         return releaseYear > currentYear ? 'upcoming' : 'now-showing';
     };
 
-    const getMovieYear = (movie) => {
-        if (!movie.releaseDateRaw) return 'unknown';
-
-        if (typeof movie.releaseDateRaw === 'string') {
-            const date = new Date(movie.releaseDateRaw);
-            if (!isNaN(date.getTime())) {
-                return date.getFullYear().toString();
-            }
-        } else if (movie.releaseDateRaw.year) {
-            return movie.releaseDateRaw.year.toString();
-        }
-
-        return 'unknown';
-    };
 
     const handleLike = (movieId, event) => {
         event.preventDefault();
@@ -238,11 +222,6 @@ const Movies = () => {
         console.log('Sharing movie:', movie.title);
     };
 
-    const handleTrailer = (movie, event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        console.log('Playing trailer for:', movie.title);
-    };
 
     const resetFilters = () => {
         setSearchText('');

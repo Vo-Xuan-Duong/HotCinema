@@ -1,0 +1,36 @@
+services:
+  app:
+    build: ./Backend
+    container_name: hotcinema-app
+    image: hotcinema:1.0.0
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./Backend/.env
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/api-docs" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    container_name: hotcinema-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis_data:

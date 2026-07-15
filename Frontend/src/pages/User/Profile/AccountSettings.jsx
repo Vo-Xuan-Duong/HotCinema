@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { User, Lock, Bell, Clock, Edit, Camera, CheckCircle2, XCircle, Download, Printer, Loader2, Copy } from 'lucide-react';
 import QRCode from 'qrcode';
 import dayjs from 'dayjs';
@@ -23,7 +22,6 @@ import { uploadAvatar } from '../../../utils/cloudinary';
 import { useForm } from 'react-hook-form';
 
 const AccountSettings = () => {
-    const navigate = useNavigate();
     const { user, updateProfile } = useAuth();
     const notification = useNotification();
     const form = useForm({
@@ -66,12 +64,14 @@ const AccountSettings = () => {
         }
     }, [user, form]);
 
+     
     useEffect(() => {
         if (activeMenu === 'history' && user?.id) {
             loadBookingHistory();
         }
     }, [activeMenu, user]);
 
+     
     useEffect(() => {
         if (activeMenu === 'history' && user?.id && bookingPagination.page > 0) {
             loadMoreBookings();
@@ -307,7 +307,7 @@ const AccountSettings = () => {
             notification.success('Đổi mật khẩu thành công!');
             passwordForm.reset();
             setIsEditingPassword(false);
-        } catch (error) {
+        } catch (_error) {
             notification.error('Có lỗi xảy ra khi đổi mật khẩu!');
         } finally {
             setLoading(false);
@@ -654,8 +654,8 @@ const AccountSettings = () => {
                                                         year: 'numeric'
                                                     });
                                                     dateTimeStr = `${booking.startTime} - ${dateStr}`;
-                                                } catch (e) {
-                                                    console.error('Date format error:', e);
+                                                } catch (_e) {
+                                                    console.error('Date format error:', _e);
                                                 }
                                             }
 
@@ -937,7 +937,7 @@ const AccountSettings = () => {
                                                     month: '2-digit',
                                                     year: 'numeric'
                                                 });
-                                            } catch (e) {
+                                            } catch (_e) {
                                                 return 'N/A';
                                             }
                                         })() : 'N/A'}
@@ -962,7 +962,7 @@ const AccountSettings = () => {
                                                         if (time.isValid()) {
                                                             return time.format('HH:mm');
                                                         }
-                                                    } catch (e) {
+                                                    } catch (_e) {
                                                         return timeStr;
                                                     }
                                                 }
@@ -1045,7 +1045,7 @@ const AccountSettings = () => {
                                                     hour: '2-digit',
                                                     minute: '2-digit'
                                                 });
-                                            } catch (e) {
+                                            } catch (_e) {
                                                 return selectedBooking.bookingDate;
                                             }
                                         })() : 'N/A'}

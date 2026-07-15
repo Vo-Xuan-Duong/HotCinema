@@ -204,7 +204,7 @@ const Notifications = () => {
           >
             <Trash2 className="h-4 w-4" />
           </Button>
-        </Space>
+        </div>
       ),
     },
   ];
@@ -214,9 +214,9 @@ const Notifications = () => {
     setModalType('view');
     // Form values will be set via form state
     // form.setFieldsValue({
-      ...record,
-      schedule: formatDateTimeForInput(record.schedule)
-    });
+    //   ...record,
+    //   schedule: formatDateTimeForInput(record.schedule)
+    // });
     setIsModalVisible(true);
   };
 
@@ -225,9 +225,9 @@ const Notifications = () => {
     setModalType('edit');
     // Form values will be set via form state
     // form.setFieldsValue({
-      ...record,
-      schedule: formatDateTimeForInput(record.schedule)
-    });
+    //   ...record,
+    //   schedule: formatDateTimeForInput(record.schedule)
+    // });
     setIsModalVisible(true);
   };
 
@@ -260,8 +260,7 @@ const Notifications = () => {
     // Form validation will be handled manually
     // templateForm.validateFields().then(values => {
     const values = {}; // Get from form state
-    {
-      if (templateModalType === 'create') {
+    if (templateModalType === 'create') {
         const newTemplate = {
           ...values,
           id: Date.now()
@@ -275,10 +274,10 @@ const Notifications = () => {
         setTemplateList(updatedList);
         notification.success('Cập nhật template thành công!');
       }
-      setIsTemplateModalVisible(false);
-      setSelectedTemplate(null);
-      if (templateForm.resetFields) templateForm.resetFields();
-    });
+    setIsTemplateModalVisible(false);
+    setSelectedTemplate(null);
+    if (templateForm.resetFields) templateForm.resetFields();
+    // });
   };
 
   const handleTemplateModalCancel = () => {
@@ -293,9 +292,9 @@ const Notifications = () => {
     setIsModalVisible(true);
     // Form values will be set via form state
     // form.setFieldsValue({
-      ...template,
-      schedule: null
-    });
+    //   ...template,
+    //   schedule: null
+    // });
   };
 
   return (

@@ -247,15 +247,13 @@ const RegisterForm = ({ onSwitchToLogin, onSwitchToOTP, onClose }) => {
                     <FormItem>
                         <FormLabel>Mật khẩu</FormLabel>
                         <FormControl>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                <InputPassword
-                                    placeholder="Mật khẩu"
-                                    value={formData.password}
-                                    onChange={(e) => handleChange('password', e.target.value)}
-                                    className="pl-10 h-10 rounded-lg border-gray-200 hover:border-primary/60 focus:border-primary transition-all"
-                                />
-                            </div>
+                            <InputPassword
+                                prefix={<Lock className="h-5 w-5" />}
+                                placeholder="Mật khẩu"
+                                value={formData.password}
+                                onChange={(e) => handleChange('password', e.target.value)}
+                                className="h-12 rounded-xl border-gray-200 bg-gray-50 hover:bg-white hover:border-primary/50 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-base"
+                            />
                         </FormControl>
                         {errors.password && <FormMessage>{errors.password}</FormMessage>}
                     </FormItem>
@@ -263,15 +261,13 @@ const RegisterForm = ({ onSwitchToLogin, onSwitchToOTP, onClose }) => {
                     <FormItem>
                         <FormLabel>Xác nhận mật khẩu</FormLabel>
                         <FormControl>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                <InputPassword
-                                    placeholder="Xác nhận mật khẩu"
-                                    value={formData.confirmPassword}
-                                    onChange={(e) => handleChange('confirmPassword', e.target.value)}
-                                    className="pl-10 h-10 rounded-lg border-gray-200 hover:border-primary/60 focus:border-primary transition-all"
-                                />
-                            </div>
+                            <InputPassword
+                                prefix={<Lock className="h-5 w-5" />}
+                                placeholder="Xác nhận mật khẩu"
+                                value={formData.confirmPassword}
+                                onChange={(e) => handleChange('confirmPassword', e.target.value)}
+                                className="h-12 rounded-xl border-gray-200 bg-gray-50 hover:bg-white hover:border-primary/50 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-base"
+                            />
                         </FormControl>
                         {errors.confirmPassword && <FormMessage>{errors.confirmPassword}</FormMessage>}
                     </FormItem>

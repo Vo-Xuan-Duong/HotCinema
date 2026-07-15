@@ -687,6 +687,7 @@ const Testing = () => {
                         `${range[0]}-${range[1]} của ${total} test cases`
                     }}
                   />
+                </div>
           </TabsContent>
           <TabsContent value="runs">
                 <TableWrapper
@@ -749,6 +750,7 @@ const Testing = () => {
                       </div>
                     </Card>
                   </div>
+                </div>
           </TabsContent>
           <TabsContent value="reports">
             <div className="text-center py-10">

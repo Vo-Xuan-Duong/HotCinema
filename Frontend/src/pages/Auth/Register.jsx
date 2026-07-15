@@ -1,8 +1,8 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { X } from 'lucide-react';
-import { Button } from '../../components/ui/button';
 import RegisterForm from '../../components/Auth/RegisterForm';
+import sideBannerImage from '../../assets/banner.png';
+import { ChevronLeft } from 'lucide-react';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -22,82 +22,55 @@ const Register = () => {
   };
 
   return (
-    <div className="h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="bg-white rounded-2xl shadow-xl overflow-hidden flex max-h-[90vh] lg:max-w-5xl max-w-[450px]">
-        {/* Form Section */}
-        <div className="w-full lg:flex-1 lg:max-w-[450px] p-6 lg:p-8 overflow-y-auto">
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-primary to-red-600 rounded-xl shadow-lg flex-shrink-0">
-                  <span className="text-2xl">🎬</span>
-                </div>
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-extrabold m-0 bg-gradient-to-r from-primary via-red-600 to-orange-500 bg-clip-text text-transparent leading-tight">
-                    HotCinemas
-                  </h1>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/')}
-                className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 h-8 w-8 rounded-lg"
-                title="Hủy"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <p className="text-gray-600 text-sm font-medium text-center">Tạo tài khoản mới</p>
-          </div>
-          <RegisterForm
-            onSwitchToLogin={handleSwitchToLogin}
-            onSwitchToOTP={handleSwitchToOTP}
-            onClose={handleClose}
-          />
+    <div className="flex min-h-screen bg-white">
+      {/* Left Form Section */}
+      <div className="w-full lg:w-1/2 flex flex-col relative overflow-y-auto">
+        {/* Back Button */}
+        <div className="absolute top-6 left-6 z-10">
+          <button 
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 text-gray-500 hover:text-primary transition-colors font-medium text-sm bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Trở về trang chủ
+          </button>
         </div>
 
-        {/* Information Section */}
-        <div className="hidden lg:flex flex-1 max-w-md items-center justify-center bg-gradient-to-br from-primary via-red-600 to-orange-500 p-6 relative overflow-hidden">
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-10 left-10 w-48 h-48 bg-white rounded-full blur-3xl"></div>
-            <div className="absolute bottom-10 right-10 w-64 h-64 bg-white rounded-full blur-3xl"></div>
-          </div>
-          <div className="relative z-10 text-white max-w-md">
-            <h2 className="text-3xl font-bold mb-4">Tham gia cùng chúng tôi!</h2>
-            <p className="text-base mb-6 text-white/90 leading-relaxed">
-              Tạo tài khoản để trải nghiệm dịch vụ đặt vé xem phim tốt nhất với nhiều ưu đãi hấp dẫn.
-            </p>
-            <div className="space-y-2.5">
-              <div className="flex items-start gap-2">
-                <span className="text-lg mt-0.5">✓</span>
-                <div>
-                  <h3 className="font-semibold text-sm mb-0.5">Đăng ký miễn phí</h3>
-                  <p className="text-white/80 text-xs">Tạo tài khoản không mất phí, dễ dàng và nhanh chóng</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-lg mt-0.5">✓</span>
-                <div>
-                  <h3 className="font-semibold text-sm mb-0.5">Tích điểm thưởng</h3>
-                  <p className="text-white/80 text-xs">Mỗi lần đặt vé bạn sẽ nhận được điểm thưởng</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-lg mt-0.5">✓</span>
-                <div>
-                  <h3 className="font-semibold text-sm mb-0.5">Thông báo ưu đãi</h3>
-                  <p className="text-white/80 text-xs">Nhận thông báo về các chương trình khuyến mãi đặc biệt</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-lg mt-0.5">✓</span>
-                <div>
-                  <h3 className="font-semibold text-sm mb-0.5">Hỗ trợ 24/7</h3>
-                  <p className="text-white/80 text-xs">Đội ngũ hỗ trợ luôn sẵn sàng giúp đỡ bạn</p>
-                </div>
-              </div>
+        <div className="flex-1 flex items-center justify-center p-8 sm:p-12 lg:p-16 w-full max-w-[600px] mx-auto min-h-screen">
+          <div className="w-full py-12">
+            <div className="mb-8">
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-3 tracking-tight">
+                Tạo tài khoản mới ✨
+              </h2>
+              <p className="text-gray-500 text-base">
+                Gia nhập cộng đồng HotCinemas để không bỏ lỡ bất kỳ siêu phẩm điện ảnh nào.
+              </p>
             </div>
+
+            <RegisterForm
+              onSwitchToLogin={handleSwitchToLogin}
+              onSwitchToOTP={handleSwitchToOTP}
+              onClose={handleClose}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Right Image Section */}
+      <div className="hidden lg:block lg:w-1/2 relative bg-gray-900 overflow-hidden sticky top-0 h-screen">
+        <img
+          src={sideBannerImage}
+          alt="HotCinemas banner"
+          className="absolute inset-0 w-full h-full object-cover opacity-60 hover:opacity-80 transition-opacity duration-700"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+        
+        <div className="absolute bottom-12 left-12 right-12 text-white">
+          <div className="bg-primary/20 backdrop-blur-md border border-white/20 p-8 rounded-3xl max-w-xl">
+            <h3 className="text-3xl font-bold mb-4">Trải nghiệm vượt chuẩn</h3>
+            <p className="text-gray-200 text-lg">
+              Chỉ với một tài khoản duy nhất, mở khóa toàn bộ đặc quyền hội viên, tích điểm đổi quà và tận hưởng hệ sinh thái giải trí đỉnh cao.
+            </p>
           </div>
         </div>
       </div>
