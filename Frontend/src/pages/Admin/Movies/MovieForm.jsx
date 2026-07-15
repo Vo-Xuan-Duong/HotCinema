@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Card } from '../../../components/ui/card';
-import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
-import { InputNumber } from '../../../components/ui/input-number';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select';
-import { Textarea } from '../../../components/ui/textarea';
-import { Separator } from '../../../components/ui/separator';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
-import { Checkbox } from '../../../components/ui/checkbox';
-import { Tag } from '../../../components/ui/tag';
-import { Popover, PopoverContent, PopoverTrigger } from '../../../components/ui/popover';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { InputNumber } from '@/components/ui/input-number';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Tag } from '@/components/ui/tag';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
     ArrowLeft,
     Save,
@@ -22,9 +22,9 @@ import {
     Check,
     Film
 } from 'lucide-react';
-import movieService from '../../../services/movieService';
-import genreService from '../../../services/genreService';
-import { useNotification } from '../../../hooks/useNotification';
+import movieService from '@/services/movieService';
+import genreService from '@/services/genreService';
+import { useNotification } from '@/hooks/useNotification';
 
 const MovieForm = () => {
     const navigate = useNavigate();

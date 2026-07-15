@@ -1,22 +1,22 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '../../../components/ui/card';
-import { TableWrapper } from '../../../components/ui/table-wrapper';
-import { Button } from '../../../components/ui/button';
-import { Modal } from '../../../components/ui/modal';
-import { Input } from '../../../components/ui/input';
-import { Select } from '../../../components/ui/select';
-import { InputNumber } from '../../../components/ui/input-number';
-import { Rate } from '../../../components/ui/rate';
-import { Tag } from '../../../components/ui/tag';
-import { Tabs } from '../../../components/ui/tabs';
-import { Separator } from '../../../components/ui/separator';
-import { Badge } from '../../../components/ui/badge-count';
-import { Progress } from '../../../components/ui/progress';
-import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '../../../components/ui/tooltip';
-import { Empty } from '../../../components/ui/empty';
-import { Descriptions } from '../../../components/ui/descriptions';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
+import { Card } from '@/components/ui/card';
+import { TableWrapper } from '@/components/ui/table-wrapper';
+import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/modal';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { InputNumber } from '@/components/ui/input-number';
+import { Rate } from '@/components/ui/rate';
+import { Tag } from '@/components/ui/tag';
+import { Tabs } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge-count';
+import { Progress } from '@/components/ui/progress';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Empty } from '@/components/ui/empty';
+import { Descriptions } from '@/components/ui/descriptions';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import {
   Coffee,
   Plus,
@@ -29,10 +29,10 @@ import {
   ShoppingCart,
   Home
 } from 'lucide-react';
-import { SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select';
-import { Textarea } from '../../../components/ui/textarea';
-import { Checkbox } from '../../../components/ui/checkbox';
-import useNotification from '../../../hooks/useNotification';
+import { SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import useNotification from '@/hooks/useNotification';
 
 const FoodBeverage = () => {
   const navigate = useNavigate();

@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '../../../components/ui/card';
-import { TableWrapper } from '../../../components/ui/table-wrapper';
-import { Button } from '../../../components/ui/button';
-import { Modal } from '../../../components/ui/modal';
-import { Input } from '../../../components/ui/input';
-import { Select } from '../../../components/ui/select';
-import { Textarea } from '../../../components/ui/textarea';
-import { Tag } from '../../../components/ui/tag';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
-import { List } from '../../../components/ui/list';
-import { Badge } from '../../../components/ui/badge-count';
-import { Progress } from '../../../components/ui/progress';
-import { Tooltip } from '../../../components/ui/tooltip';
-import { Empty } from '../../../components/ui/empty';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
+import { Card } from '@/components/ui/card';
+import { TableWrapper } from '@/components/ui/table-wrapper';
+import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/modal';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Tag } from '@/components/ui/tag';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { List } from '@/components/ui/list';
+import { Badge } from '@/components/ui/badge-count';
+import { Progress } from '@/components/ui/progress';
+import { Tooltip } from '@/components/ui/tooltip';
+import { Empty } from '@/components/ui/empty';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import {
   Bell,
   Plus,
@@ -25,7 +25,7 @@ import {
   Home,
   Loader2
 } from 'lucide-react';
-import useNotification from '../../../hooks/useNotification';
+import useNotification from '@/hooks/useNotification';
 
 const Notifications = () => {
   const navigate = useNavigate();

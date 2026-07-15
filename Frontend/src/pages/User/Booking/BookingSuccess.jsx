@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, Download, Mail, Calendar } from 'lucide-react';
-import { Button } from '../../../components/ui/button';
-import { Card } from '../../../components/ui/card';
-import ContentLoader from '../../../components/Loading/ContentLoader';
-import useNotification from '../../../hooks/useNotification';
-import paymentService from '../../../services/paymentService';
-import bookingService from '../../../services/bookingService';
-import ticketService from '../../../services/ticketService';
-import emailService from '../../../services/emailService';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import ContentLoader from '@/components/Loading/ContentLoader';
+import useNotification from '@/hooks/useNotification';
+import paymentService from '@/services/paymentService';
+import bookingService from '@/services/bookingService';
+import ticketService from '@/services/ticketService';
+import emailService from '@/services/emailService';
 import QRCode from 'qrcode';
 import dayjs from 'dayjs';
 

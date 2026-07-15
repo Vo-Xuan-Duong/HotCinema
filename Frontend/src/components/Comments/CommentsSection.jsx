@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import useAuth from '../../hooks/useAuth';
-import reviewService from '../../services/reviewService';
-import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
-import { Button } from '../ui/button';
-import { Textarea } from '../ui/textarea';
-import { Card } from '../ui/card';
-import { Badge } from '../ui/badge-count';
-import { Separator } from '../ui/separator';
-import { Rate } from '../ui/rate';
+import useAuth from '@/hooks/useAuth';
+import reviewService from '@/services/reviewService';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge-count';
+import { Separator } from '@/components/ui/separator';
+import { Rate } from '@/components/ui/rate';
 import {
   Star,
   Send,
@@ -21,7 +21,7 @@ import {
   User,
   Loader2
 } from 'lucide-react';
-import useNotification from '../../hooks/useNotification';
+import useNotification from '@/hooks/useNotification';
 
 const CommentsSection = ({ movieId }) => {
   const [comments, setComments] = useState([]);

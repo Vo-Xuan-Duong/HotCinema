@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Modal } from '../ui/modal';
-import { Textarea } from '../ui/textarea';
-import { Button } from '../ui/button';
-import { Avatar } from '../ui/avatar';
+import { Modal } from '@/components/ui/modal';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Avatar } from '@/components/ui/avatar';
 import { Send, Bot, User, X } from 'lucide-react';
-import useNotification from '../../hooks/useNotification';
+import useNotification from '@/hooks/useNotification';
 
 const ChatModal = ({ open, onClose }) => {
     const notification = useNotification();

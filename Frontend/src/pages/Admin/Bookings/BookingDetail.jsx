@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Card } from '../../../components/ui/card';
-import { Button } from '../../../components/ui/button';
-import { Tag } from '../../../components/ui/tag';
-import { Descriptions } from '../../../components/ui/descriptions';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tag } from '@/components/ui/tag';
+import { Descriptions } from '@/components/ui/descriptions';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import {
   Calendar,
   CheckCircle2,
@@ -18,8 +18,8 @@ import {
   User,
   DollarSign
 } from 'lucide-react';
-import bookingService from '../../../services/bookingService';
-import { useNotification } from '../../../hooks/useNotification';
+import bookingService from '@/services/bookingService';
+import { useNotification } from '@/hooks/useNotification';
 
 const BookingDetail = () => {
   const navigate = useNavigate();

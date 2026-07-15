@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Upload as UploadIcon, X } from "lucide-react"
-import { cn } from "../../lib/utils"
-import { Button } from "./button"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 
 const Upload = ({ 
   beforeUpload,

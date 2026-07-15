@@ -1,6 +1,6 @@
-import { apiClient } from '../utils/apiClient';
-import { ENDPOINTS } from '../utils/constants';
-import roomService from './roomService';
+import { apiClient } from '@/utils/apiClient';
+import { ENDPOINTS } from '@/utils/constants';
+import roomService from '@/services/roomService';
 
 /**
  * Cinema Service

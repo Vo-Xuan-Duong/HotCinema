@@ -1,1 +1,1 @@
-export { default } from './FoodBeverage'; 
+export { default } from '@/pages/Admin/FoodBeverage/FoodBeverage'; 

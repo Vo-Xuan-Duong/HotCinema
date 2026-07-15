@@ -14,7 +14,7 @@ import {
   mockRooms,
   mockShowtimes,
   mockUsers,
-} from './mockData';
+} from '@/mocks/mockData';
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 

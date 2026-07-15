@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import useAuth from './useAuth';
-import { useAuthModal } from '../context/AuthModalContext';
+import useAuth from '@/hooks/useAuth';
+import { useAuthModal } from '@/context/AuthModalContext';
 
 /**
  * Hook to guard actions that require authentication

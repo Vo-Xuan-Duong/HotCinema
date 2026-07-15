@@ -1,4 +1,4 @@
-import { STORAGE_KEYS } from '../utils/constants.js';
+import { STORAGE_KEYS } from '@/utils/constants.js';
 
 // Initial state
 export const initialState = {

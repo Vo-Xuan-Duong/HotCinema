@@ -1,52 +1,48 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import NotificationModal from '../components/Notification/NotificationModal';
+import React, { createContext, useCallback, useContext, useState } from 'react';
+import {
+    Toast,
+    ToastClose,
+    ToastDescription,
+    ToastProvider,
+    ToastTitle,
+    ToastViewport,
+} from '@/components/ui/toast';
 
 const NotificationContext = createContext(null);
 
 export const NotificationProvider = ({ children }) => {
-    const [notification, setNotification] = useState({
-        visible: false,
-        type: 'info',
-        message: '',
-        duration: 2000,
-        important: false,
-    });
+    const [toasts, setToasts] = useState([]);
 
-    // Chỉ hiển thị thông báo quan trọng hoặc error/success
     const shouldShowNotification = useCallback((type, important) => {
-        // Luôn hiển thị error và success
         if (type === 'error' || type === 'success') {
             return true;
         }
-        // Chỉ hiển thị warning và info nếu được đánh dấu là quan trọng
         return important === true;
     }, []);
 
-    const showNotification = useCallback((type, message, duration = 2000, important = false) => {
-        // Chỉ hiển thị nếu thông báo quan trọng hoặc là error/success
+    const closeToast = useCallback((id) => {
+        setToasts((items) =>
+            items.map((item) => (item.id === id ? { ...item, open: false } : item))
+        );
+    }, []);
+
+    const removeToast = useCallback((id) => {
+        setToasts((items) => items.filter((item) => item.id !== id));
+    }, []);
+
+    const showNotification = useCallback((type, message, duration = 2500, important = false) => {
         if (!shouldShowNotification(type, important)) {
-            // Log để debug nhưng không hiển thị
             console.log(`[Notification skipped] ${type}: ${message}`);
             return;
         }
 
-        setNotification({
-            visible: true,
-            type,
-            message,
-            duration,
-            important,
-        });
+        const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        setToasts((items) => [
+            ...items,
+            { id, type, message, duration, open: true },
+        ]);
     }, [shouldShowNotification]);
 
-    const hideNotification = useCallback(() => {
-        setNotification(prev => ({
-            ...prev,
-            visible: false,
-        }));
-    }, []);
-
-    // Success và Error luôn được hiển thị
     const success = useCallback((message, duration) => {
         showNotification('success', message, duration, true);
     }, [showNotification]);
@@ -55,7 +51,6 @@ export const NotificationProvider = ({ children }) => {
         showNotification('error', message, duration, true);
     }, [showNotification]);
 
-    // Warning và Info chỉ hiển thị nếu được đánh dấu là quan trọng
     const warning = useCallback((message, duration, important = false) => {
         showNotification('warning', message, duration, important);
     }, [showNotification]);
@@ -66,23 +61,41 @@ export const NotificationProvider = ({ children }) => {
 
     const value = {
         showNotification,
-        hideNotification,
         success,
         error,
         warning,
         info,
     };
 
+    const titleMap = {
+        success: 'Thành công',
+        error: 'Lỗi',
+        warning: 'Cảnh báo',
+        info: 'Thông báo',
+    };
+
     return (
         <NotificationContext.Provider value={value}>
-            {children}
-            <NotificationModal
-                visible={notification.visible}
-                type={notification.type}
-                message={notification.message}
-                duration={notification.duration}
-                onClose={hideNotification}
-            />
+            <ToastProvider swipeDirection="right">
+                {children}
+                {toasts.map((toast) => (
+                    <Toast
+                        key={toast.id}
+                        open={toast.open}
+                        onOpenChange={(open) => !open && closeToast(toast.id)}
+                        onAnimationEnd={() => !toast.open && removeToast(toast.id)}
+                        duration={toast.duration}
+                        variant={toast.type === 'error' ? 'destructive' : toast.type}
+                    >
+                        <div className="grid gap-1">
+                            <ToastTitle>{titleMap[toast.type] || titleMap.info}</ToastTitle>
+                            <ToastDescription>{toast.message}</ToastDescription>
+                        </div>
+                        <ToastClose />
+                    </Toast>
+                ))}
+                <ToastViewport />
+            </ToastProvider>
         </NotificationContext.Provider>
     );
 };
@@ -96,4 +109,3 @@ export const useNotification = () => {
 };
 
 export default NotificationContext;
-

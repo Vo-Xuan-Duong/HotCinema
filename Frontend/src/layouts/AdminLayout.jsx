@@ -23,15 +23,15 @@ import {
     CreditCard
 } from 'lucide-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useTheme } from '../context/ThemeContext';
-import ScrollToTop from '../components/ScrollToTop';
-import { Button } from '../components/ui/button';
-import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
-import { Badge } from '../components/ui/badge-count';
-import { Menu } from '../components/ui/menu';
-import { Sidebar, SidebarHeader, SidebarContent } from '../components/ui/sidebar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
-import { cn } from '../lib/utils';
+import { useTheme } from '@/context/ThemeContext';
+import ScrollToTop from '@/components/ScrollToTop';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge-count';
+import { Menu } from '@/components/ui/menu';
+import { Sidebar, SidebarHeader, SidebarContent } from '@/components/ui/sidebar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 
 const AdminSider = memo(({ collapsed, isMobile, location, onMenuClick }) => {
     const menuItems = useMemo(() => [

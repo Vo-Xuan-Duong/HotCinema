@@ -1,1 +1,1 @@
-export { default } from './Promotions';
+export { default } from '@/pages/Admin/Promotions/Promotions';

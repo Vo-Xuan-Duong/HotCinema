@@ -1,1 +1,1 @@
-export { default } from './Notifications'; 
+export { default } from '@/pages/Admin/Notifications/Notifications'; 

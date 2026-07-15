@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card } from '../../../components/ui/card';
-import { Button } from '../../../components/ui/button';
-import { Tag } from '../../../components/ui/tag';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
-import { Alert } from '../../../components/ui/alert';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tag } from '@/components/ui/tag';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { Alert } from '@/components/ui/alert';
 import {
     ArrowLeft,
     Home,
@@ -12,9 +12,9 @@ import {
     Calendar,
     Grid3x3
 } from 'lucide-react';
-import SeatViewer from '../../../components/SeatManager/SeatViewer';
-import showtimeService from '../../../services/showtimeService';
-import { useNotification } from '../../../hooks/useNotification';
+import SeatViewer from '@/components/SeatManager/SeatViewer';
+import showtimeService from '@/services/showtimeService';
+import { useNotification } from '@/hooks/useNotification';
 
 const ShowtimeSeatManagement = () => {
     const { showtimeId } = useParams();

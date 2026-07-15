@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { User, Lock, Mail, Phone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import useAuth from '../../hooks/useAuth';
-import useNotification from '../../hooks/useNotification';
-import { signInWithGoogle } from '../../utils/googleAuth';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { InputPassword } from '../ui/input-password';
-import { Checkbox } from '../ui/checkbox';
-import { Label } from '../ui/label';
-import { Separator } from '../ui/separator';
-import { Form, FormItem, FormLabel, FormControl, FormMessage } from '../ui/form';
+import useAuth from '@/hooks/useAuth';
+import useNotification from '@/hooks/useNotification';
+import { signInWithGoogle } from '@/utils/googleAuth';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { InputPassword } from '@/components/ui/input-password';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Form, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 
 const RegisterForm = ({ onSwitchToLogin, onSwitchToOTP, onClose }) => {
     const [formData, setFormData] = useState({

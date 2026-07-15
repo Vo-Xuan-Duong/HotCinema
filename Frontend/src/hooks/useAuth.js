@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
-import api from '../utils/apiClient.js';
-import { authService } from '../services/authService.js';
+import api from '@/utils/apiClient.js';
+import { authService } from '@/services/authService.js';
 import {
     getUserInfo,
     getAccessToken,
     saveAuthData
-} from '../utils/authStorage.js';
+} from '@/utils/authStorage.js';
 
 // Simple external store for auth state (no React Context)
 const subscribers = new Set();

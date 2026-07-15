@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Lock, CheckCircle2, ArrowLeft, X } from 'lucide-react';
-import { Button } from '../../components/ui/button';
-import { InputPassword } from '../../components/ui/input-password';
-import { Form, FormItem, FormLabel, FormControl, FormMessage } from '../../components/ui/form';
-import { Result } from '../../components/ui/result';
-import useNotification from '../../hooks/useNotification';
+import { Button } from '@/components/ui/button';
+import { InputPassword } from '@/components/ui/input-password';
+import { Form, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { Result } from '@/components/ui/result';
+import useNotification from '@/hooks/useNotification';
 
 const ResetPassword = () => {
     const [formData, setFormData] = useState({ password: '', confirmPassword: '' });

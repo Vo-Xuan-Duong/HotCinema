@@ -1,5 +1,5 @@
 import * as React from "react"
-import { cn } from "../../lib/utils"
+import { cn } from "@/lib/utils"
 import { Inbox } from "lucide-react"
 
 const Empty = ({ 
@@ -17,9 +17,9 @@ const Empty = ({
       {...props}
     >
       {image || (
-        <Inbox className="h-16 w-16 text-gray-300 mb-4" />
+        <Inbox className="mb-4 h-16 w-16 text-muted-foreground/35" />
       )}
-      <p className="text-sm text-gray-500">{description}</p>
+      <p className="text-sm text-muted-foreground">{description}</p>
     </div>
   )
 }

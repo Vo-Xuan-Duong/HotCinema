@@ -1,1 +1,1 @@
-export { default } from './CinemaDetail';
+export { default } from '@/pages/Admin/Cinemas/CinemaDetail/CinemaDetail';

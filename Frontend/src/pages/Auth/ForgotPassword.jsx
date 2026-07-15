@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft, Send, X } from 'lucide-react';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Form, FormItem, FormLabel, FormControl, FormMessage } from '../../components/ui/form';
-import { Result } from '../../components/ui/result';
-import useNotification from '../../hooks/useNotification';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Form, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { Result } from '@/components/ui/result';
+import useNotification from '@/hooks/useNotification';
 
 const ForgotPassword = () => {
     const [formData, setFormData] = useState({ email: '' });

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 // Migrated to Tailwind CSS
-import SeatsModal from '../Seats/SeatsModal';
-import seatData from '../../data/seatData.json';
-import Loading from '../Loading';
+import SeatsModal from '@/components/Seats/SeatsModal';
+import seatData from '@/data/seatData.json';
+import Loading from '@/components/Loading';
 
 const mockSeats = seatData.seats;
 

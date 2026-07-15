@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, Printer, CheckCircle2, Clock, XCircle } from 'lucide-react';
-import { Button } from '../../../components/ui/button';
-import { Card } from '../../../components/ui/card';
-import { Tag } from '../../../components/ui/tag';
-import { Separator } from '../../../components/ui/separator';
-import { Descriptions } from '../../../components/ui/descriptions';
-import ContentLoader from '../../../components/Loading/ContentLoader';
-import useNotification from '../../../hooks/useNotification';
-import bookingService from '../../../services/bookingService';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Tag } from '@/components/ui/tag';
+import { Separator } from '@/components/ui/separator';
+import { Descriptions } from '@/components/ui/descriptions';
+import ContentLoader from '@/components/Loading/ContentLoader';
+import useNotification from '@/hooks/useNotification';
+import bookingService from '@/services/bookingService';
 
 const BookingDetail = () => {
     const { bookingCode } = useParams();

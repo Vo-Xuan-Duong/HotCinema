@@ -1,9 +1,26 @@
 import * as React from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./dialog"
-import { Button } from "./button"
-import { cn } from "../../lib/utils"
+import { createRoot } from "react-dom/client"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { cn } from "@/lib/utils"
 
-const Modal = ({ 
+const Modal = ({
   open,
   onCancel,
   title,
@@ -12,13 +29,16 @@ const Modal = ({
   footer,
   width = 520,
   className,
-  ...props 
+  ...props
 }) => {
   return (
-    <Dialog open={open} onOpenChange={(open) => !open && onCancel?.()}>
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onCancel?.()}>
       <DialogContent
         className={cn("max-h-[90vh]", className)}
-        style={{ width: typeof width === 'number' ? `${width}px` : width, maxWidth: typeof width === 'number' ? `${width}px` : width }}
+        style={{
+          width: typeof width === "number" ? `${width}px` : width,
+          maxWidth: typeof width === "number" ? `${width}px` : width,
+        }}
         {...props}
       >
         {title && (
@@ -27,50 +47,67 @@ const Modal = ({
             {description && <DialogDescription>{description}</DialogDescription>}
           </DialogHeader>
         )}
-        <div className="max-h-[70vh] overflow-y-auto">
-          {children}
-        </div>
-        {footer && (
-          <DialogFooter>
-            {footer}
-          </DialogFooter>
-        )}
+        <div className="max-h-[70vh] overflow-y-auto">{children}</div>
+        {footer && <DialogFooter>{footer}</DialogFooter>}
       </DialogContent>
     </Dialog>
   )
 }
 
-Modal.confirm = ({ title, content, onOk, onCancel }) => {
+const ConfirmDialog = ({
+  title,
+  content,
+  okText = "Xác nhận",
+  cancelText = "Hủy",
+  onOk,
+  onCancel,
+  onDone,
+}) => {
   const [open, setOpen] = React.useState(true)
+
+  const close = () => setOpen(false)
 
   const handleOk = () => {
     onOk?.()
-    setOpen(false)
+    close()
   }
 
   const handleCancel = () => {
     onCancel?.()
-    setOpen(false)
+    close()
   }
 
   return (
-    <Modal
-      open={open}
-      onCancel={handleCancel}
-      title={title}
-      footer={[
-        <Button key="cancel" variant="outline" onClick={handleCancel}>
-          Hủy
-        </Button>,
-        <Button key="ok" onClick={handleOk}>
-          Xác nhận
-        </Button>
-      ]}
-    >
-      <p className="text-gray-600">{content}</p>
-    </Modal>
+    <AlertDialog open={open} onOpenChange={(nextOpen) => !nextOpen && close()}>
+      <AlertDialogContent onAnimationEnd={() => !open && onDone?.()}>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          {content && <AlertDialogDescription>{content}</AlertDialogDescription>}
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={handleCancel}>{cancelText}</AlertDialogCancel>
+          <AlertDialogAction onClick={handleOk}>{okText}</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }
 
-export { Modal }
+Modal.confirm = (options) => {
+  const host = document.createElement("div")
+  document.body.appendChild(host)
+  const root = createRoot(host)
 
+  const cleanup = () => {
+    root.unmount()
+    host.remove()
+  }
+
+  root.render(<ConfirmDialog {...options} onDone={cleanup} />)
+
+  return {
+    destroy: cleanup,
+  }
+}
+
+export { Modal }

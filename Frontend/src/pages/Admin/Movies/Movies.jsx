@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '../../../components/ui/card';
-import { Button } from '../../../components/ui/button';
-import { TableWrapper } from '../../../components/ui/table-wrapper';
-import { Pagination } from '../../../components/ui/pagination';
-import { Input } from '../../../components/ui/input';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select';
-import { Tag } from '../../../components/ui/tag';
-import { Rate } from '../../../components/ui/rate';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { TableWrapper } from '@/components/ui/table-wrapper';
+import { Pagination } from '@/components/ui/pagination';
+import { Input } from '@/components/ui/input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Tag } from '@/components/ui/tag';
+import { Rate } from '@/components/ui/rate';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import {
   Edit,
   Trash2,
@@ -19,10 +19,10 @@ import {
   Home,
   Film
 } from 'lucide-react';
-import useNotification from '../../../hooks/useNotification';
+import useNotification from '@/hooks/useNotification';
 import dayjs from 'dayjs';
-import movieService from '../../../services/movieService';
-import genreService from '../../../services/genreService';
+import movieService from '@/services/movieService';
+import genreService from '@/services/genreService';
 
 const Movies = () => {
   const navigate = useNavigate();

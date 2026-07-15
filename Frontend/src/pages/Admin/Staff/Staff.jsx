@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '../../../components/ui/card';
-import { TableWrapper } from '../../../components/ui/table-wrapper';
-import { Button } from '../../../components/ui/button';
-import { Modal } from '../../../components/ui/modal';
-import { Input } from '../../../components/ui/input';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select';
-import { Tag } from '../../../components/ui/tag';
-import { Tabs } from '../../../components/ui/tabs';
-import { Avatar, AvatarImage, AvatarFallback } from '../../../components/ui/avatar';
-import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '../../../components/ui/tooltip';
-import { Empty } from '../../../components/ui/empty';
-import { Descriptions } from '../../../components/ui/descriptions';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
-import { Textarea } from '../../../components/ui/textarea';
-import { Checkbox } from '../../../components/ui/checkbox';
-import { Pagination } from '../../../components/ui/pagination';
+import { Card } from '@/components/ui/card';
+import { TableWrapper } from '@/components/ui/table-wrapper';
+import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/modal';
+import { Input } from '@/components/ui/input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Tag } from '@/components/ui/tag';
+import { Tabs } from '@/components/ui/tabs';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Empty } from '@/components/ui/empty';
+import { Descriptions } from '@/components/ui/descriptions';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Pagination } from '@/components/ui/pagination';
 import {
   Plus,
   Edit,
@@ -27,8 +27,8 @@ import {
   Users as UsersIcon,
   Loader2
 } from 'lucide-react';
-import userService from '../../../services/userService';
-import useNotification from '../../../hooks/useNotification';
+import userService from '@/services/userService';
+import useNotification from '@/hooks/useNotification';
 
 const Staff = () => {
   const navigate = useNavigate();

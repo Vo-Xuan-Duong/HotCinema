@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Mail, CheckCircle2, X } from 'lucide-react';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Form, FormItem, FormControl } from '../../components/ui/form';
-import { Countdown } from '../../components/ui/countdown';
-import useNotification from '../../hooks/useNotification';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Form, FormItem, FormControl } from '@/components/ui/form';
+import { Countdown } from '@/components/ui/countdown';
+import useNotification from '@/hooks/useNotification';
 
 const VerifyOTP = () => {
     const navigate = useNavigate();

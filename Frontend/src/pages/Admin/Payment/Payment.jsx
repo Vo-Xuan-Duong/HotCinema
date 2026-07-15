@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Card } from '../../../components/ui/card';
-import { TableWrapper } from '../../../components/ui/table-wrapper';
-import { Button } from '../../../components/ui/button';
-import { Modal } from '../../../components/ui/modal';
-import { Input } from '../../../components/ui/input';
-import { InputPassword } from '../../../components/ui/input-password';
-import { Select } from '../../../components/ui/select';
-import { Tag } from '../../../components/ui/tag';
-import { SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select';
-import { TooltipProvider, TooltipTrigger, TooltipContent, Tooltip } from '../../../components/ui/tooltip';
-import { Checkbox } from '../../../components/ui/checkbox';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
-import { Alert } from '../../../components/ui/alert';
-import { Separator } from '../../../components/ui/separator';
-import { Progress } from '../../../components/ui/progress';
-import { Descriptions } from '../../../components/ui/descriptions';
+import { Card } from '@/components/ui/card';
+import { TableWrapper } from '@/components/ui/table-wrapper';
+import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/modal';
+import { Input } from '@/components/ui/input';
+import { InputPassword } from '@/components/ui/input-password';
+import { Select } from '@/components/ui/select';
+import { Tag } from '@/components/ui/tag';
+import { SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { TooltipProvider, TooltipTrigger, TooltipContent, Tooltip } from '@/components/ui/tooltip';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { Alert } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
+import { Descriptions } from '@/components/ui/descriptions';
 import {
   CreditCard,
   Plus,
@@ -29,8 +29,8 @@ import {
   Shield,
   Home
 } from 'lucide-react';
-import { useNotification } from '../../../hooks/useNotification';
-import paymentService, { PAYMENT_STATUS } from '../../../services/paymentService';
+import { useNotification } from '@/hooks/useNotification';
+import paymentService, { PAYMENT_STATUS } from '@/services/paymentService';
 import { Loader2 } from 'lucide-react';
 import dayjs from 'dayjs';
 

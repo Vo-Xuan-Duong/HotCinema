@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '../../../components/ui/card';
-import { TableWrapper } from '../../../components/ui/table-wrapper';
-import { Button } from '../../../components/ui/button';
-import { Modal } from '../../../components/ui/modal';
-import { Input } from '../../../components/ui/input';
-import { Select } from '../../../components/ui/select';
-import { Tag } from '../../../components/ui/tag';
-import { Statistic } from '../../../components/ui/statistic';
-import { Tooltip } from '../../../components/ui/tooltip';
-import { InputNumber } from '../../../components/ui/input-number';
-import { Separator } from '../../../components/ui/separator';
-import { Alert } from '../../../components/ui/alert';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
+import { Card } from '@/components/ui/card';
+import { TableWrapper } from '@/components/ui/table-wrapper';
+import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/modal';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Tag } from '@/components/ui/tag';
+import { Statistic } from '@/components/ui/statistic';
+import { Tooltip } from '@/components/ui/tooltip';
+import { InputNumber } from '@/components/ui/input-number';
+import { Separator } from '@/components/ui/separator';
+import { Alert } from '@/components/ui/alert';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import {
     Plus,
     Edit,
@@ -24,7 +24,7 @@ import {
     Ban,
     Home
 } from 'lucide-react';
-import useNotification from '../../../hooks/useNotification';
+import useNotification from '@/hooks/useNotification';
 
 const Seats = () => {
     const [seats, setSeats] = useState([]);

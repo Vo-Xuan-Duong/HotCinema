@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 // Migrated to Tailwind CSS
-import Loading from '../Loading';
+import Loading from '@/components/Loading';
 
 const icons = {
   movie: <span className="icon">🎬</span>,

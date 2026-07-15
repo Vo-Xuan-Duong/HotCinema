@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card } from '../ui/card';
-import { Button } from '../ui/button';
-import { Tag } from '../ui/tag';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
-import { InputNumber } from '../ui/input-number';
-import { Modal } from '../ui/modal';
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '../ui/form';
-import { Input } from '../ui/input';
-import { Separator } from '../ui/separator';
-import { Tooltip } from '../ui/tooltip';
-import { Badge } from '../ui/badge-count';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tag } from '@/components/ui/tag';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { InputNumber } from '@/components/ui/input-number';
+import { Modal } from '@/components/ui/modal';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { Tooltip } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge-count';
 import {
     Save,
     RotateCw,
@@ -37,8 +37,8 @@ import {
     Tag as TagIcon,
     AlertCircle
 } from 'lucide-react';
-import useNotification from '../../hooks/useNotification';
-import seatService from '../../services/seatService';
+import useNotification from '@/hooks/useNotification';
+import seatService from '@/services/seatService';
 
 const SeatManager = ({ selectedScreen, onSave, onClose }) => {
     const notification = useNotification();

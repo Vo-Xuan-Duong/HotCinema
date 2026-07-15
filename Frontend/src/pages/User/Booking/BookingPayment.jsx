@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CreditCard, Wallet, QrCode, Building2, Shield, Loader2 } from 'lucide-react';
-import { Button } from '../../../components/ui/button';
-import { Card } from '../../../components/ui/card';
-import { RadioGroup } from '../../../components/ui/radio-group';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { RadioGroup } from '@/components/ui/radio-group';
 import dayjs from 'dayjs';
 import QRCode from 'qrcode';
-import useNotification from '../../../hooks/useNotification';
-import paymentService from '../../../services/paymentService';
-import bookingService from '../../../services/bookingService';
+import useNotification from '@/hooks/useNotification';
+import paymentService from '@/services/paymentService';
+import bookingService from '@/services/bookingService';
 
 const BookingPayment = () => {
     const location = useLocation();

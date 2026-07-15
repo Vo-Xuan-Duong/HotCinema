@@ -1,5 +1,5 @@
-import { apiClient } from '../utils/apiClient';
-import { ENDPOINTS } from '../utils/constants';
+import { apiClient } from '@/utils/apiClient';
+import { ENDPOINTS } from '@/utils/constants';
 
 const BASE_PATH = ENDPOINTS.MOVIE_VERSIONS;
 

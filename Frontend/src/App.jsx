@@ -1,14 +1,12 @@
 import React from 'react';
 // Removed AuthProvider usage; auth is handled via hooks
-import { TrailerModalProvider } from './context/TrailerModalContext';
-import { ThemeProvider } from './context/ThemeContext';
-import { NotificationProvider } from './context/NotificationContext';
-import { TooltipProvider } from './components/ui/tooltip';
-import { usePreventModalScrollLock } from './hooks/usePreventModalScrollLock';
-import AppRouter from './router';
-import FloatingSupport from './components/FloatingSupport/FloatingSupport';
-import './App.css';
-import './styles/responsive-modern.css';
+import { TrailerModalProvider } from '@/context/TrailerModalContext';
+import { ThemeProvider } from '@/context/ThemeContext';
+import { NotificationProvider } from '@/context/NotificationContext';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { usePreventModalScrollLock } from '@/hooks/usePreventModalScrollLock';
+import AppRouter from '@/router';
+import FloatingSupport from '@/components/FloatingSupport/FloatingSupport';
 
 const AppContent = () => {
   // Prevent modal scroll lock flickering

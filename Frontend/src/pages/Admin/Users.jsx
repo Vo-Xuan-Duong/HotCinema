@@ -1,16 +1,16 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { TableWrapper } from '../../components/ui/table-wrapper';
-import { Button } from '../../components/ui/button';
-import { Modal } from '../../components/ui/modal';
-import { Input } from '../../components/ui/input';
-import { Select } from '../../components/ui/select';
-import { Tag } from '../../components/ui/tag';
-import { Card } from '../../components/ui/card';
-import { Statistic } from '../../components/ui/statistic';
-import { Avatar } from '../../components/ui/avatar';
-import { DatePicker } from '../../components/ui/date-picker';
-import { InputNumber } from '../../components/ui/input-number';
-import { Descriptions } from '../../components/ui/descriptions';
+import { TableWrapper } from '@/components/ui/table-wrapper';
+import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/modal';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Tag } from '@/components/ui/tag';
+import { Card } from '@/components/ui/card';
+import { Statistic } from '@/components/ui/statistic';
+import { Avatar } from '@/components/ui/avatar';
+import { DatePicker } from '@/components/ui/date-picker';
+import { InputNumber } from '@/components/ui/input-number';
+import { Descriptions } from '@/components/ui/descriptions';
 import {
   User,
   Edit,
@@ -23,8 +23,8 @@ import {
   CheckCircle2,
   Loader2
 } from 'lucide-react';
-import userService from '../../services/userService';
-import useNotification from '../../hooks/useNotification';
+import userService from '@/services/userService';
+import useNotification from '@/hooks/useNotification';
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -468,7 +468,7 @@ const Users = () => {
               }
             }}
             scroll={{ x: 1200 }}
-            className="[&_.ant-table]:bg-white[&_.ant-table]:bg-gray-800"
+            className="bg-card text-card-foreground"
           />
         </Spin>
       </Card>

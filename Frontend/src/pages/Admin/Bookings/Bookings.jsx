@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TableWrapper } from '../../../components/ui/table-wrapper';
-import { Pagination } from '../../../components/ui/pagination';
-import { Button } from '../../../components/ui/button';
-import { Modal } from '../../../components/ui/modal';
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '../../../components/ui/form';
-import { Input } from '../../../components/ui/input';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select';
-import { Tag } from '../../../components/ui/tag';
-import { Card } from '../../../components/ui/card';
-import { Statistic } from '../../../components/ui/statistic';
-import { DatePicker } from '../../../components/ui/date-picker';
-import { Badge } from '../../../components/ui/badge-count';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
+import { TableWrapper } from '@/components/ui/table-wrapper';
+import { Pagination } from '@/components/ui/pagination';
+import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/modal';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Tag } from '@/components/ui/tag';
+import { Card } from '@/components/ui/card';
+import { Statistic } from '@/components/ui/statistic';
+import { DatePicker } from '@/components/ui/date-picker';
+import { Badge } from '@/components/ui/badge-count';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import {
   Calendar,
   Edit,
@@ -29,10 +29,10 @@ import {
   Loader2,
   Ticket
 } from 'lucide-react';
-import bookingService from '../../../services/bookingService';
-import movieService from '../../../services/movieService';
-import cinemaService from '../../../services/cinemaService';
-import { useNotification } from '../../../hooks/useNotification';
+import bookingService from '@/services/bookingService';
+import movieService from '@/services/movieService';
+import cinemaService from '@/services/cinemaService';
+import { useNotification } from '@/hooks/useNotification';
 
 const Bookings = () => {
   const navigate = useNavigate();

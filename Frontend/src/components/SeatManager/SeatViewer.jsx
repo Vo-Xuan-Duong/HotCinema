@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Card } from '../ui/card';
-import { Tag } from '../ui/tag';
-import { Tooltip } from '../ui/tooltip';
-import { Empty } from '../ui/empty';
-import { Badge } from '../ui/badge-count';
+import { Card } from '@/components/ui/card';
+import { Tag } from '@/components/ui/tag';
+import { Tooltip } from '@/components/ui/tooltip';
+import { Empty } from '@/components/ui/empty';
+import { Badge } from '@/components/ui/badge-count';
 import {
     Ban,
     Wrench,
@@ -15,8 +15,8 @@ import {
     Wifi
 } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
-import showtimeService from '../../services/showtimeService';
-import useSeatWebSocket from '../../hooks/useSeatWebSocket';
+import showtimeService from '@/services/showtimeService';
+import useSeatWebSocket from '@/hooks/useSeatWebSocket';
 
 const SeatViewer = ({ showtimeId, selectedScreen }) => {
     const [seatLayout, setSeatLayout] = useState({

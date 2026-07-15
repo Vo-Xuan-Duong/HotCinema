@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '../ui/button';
-import { Tag } from '../ui/tag';
+import { Button } from '@/components/ui/button';
+import { Tag } from '@/components/ui/tag';
 import { Play, Star, Flame, Trophy, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 

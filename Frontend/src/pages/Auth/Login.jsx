@@ -1,8 +1,8 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { X } from 'lucide-react';
-import { Button } from '../../components/ui/button';
-import LoginForm from '../../components/Auth/LoginForm';
+import { ChevronLeft } from 'lucide-react';
+import LoginForm from '@/components/Auth/LoginForm';
+import sideBannerImage from '@/assets/banner.png';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -10,7 +10,7 @@ const Login = () => {
   const from = location.state?.from || '/';
 
   const handleSwitchToRegister = () => {
-    navigate('/register');
+    navigate('/register', { state: { from: location.state?.from } });
   };
 
   const handleClose = () => {
@@ -18,76 +18,51 @@ const Login = () => {
   };
 
   return (
-    <div className="h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="bg-white rounded-2xl shadow-xl overflow-hidden flex max-h-[90vh] lg:max-w-5xl max-w-[450px]">
-        {/* Form Section */}
-        <div className="w-full lg:flex-1 lg:max-w-[450px] p-6 lg:p-8 overflow-y-auto">
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-primary to-red-600 rounded-xl shadow-lg flex-shrink-0">
-                  <span className="text-2xl">🎬</span>
-                </div>
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-extrabold m-0 bg-gradient-to-r from-primary via-red-600 to-orange-500 bg-clip-text text-transparent leading-tight">
-                    HotCinemas
-                  </h1>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/')}
-                className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 h-8 w-8 rounded-lg"
-                title="Hủy"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <p className="text-gray-600 text-sm font-medium text-center">Đăng nhập để tiếp tục</p>
-          </div>
-          <LoginForm
-            onSwitchToRegister={handleSwitchToRegister}
-            onClose={handleClose}
-          />
+    <div className="flex min-h-screen bg-white">
+      <div className="relative flex w-full flex-col overflow-y-auto lg:w-1/2">
+        <div className="absolute left-6 top-6 z-10">
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-sm font-medium text-gray-500 shadow-sm backdrop-blur-md transition-colors hover:text-primary"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Trở về trang chủ
+          </button>
         </div>
 
-        {/* Information Section */}
-        <div className="hidden lg:flex flex-1 max-w-md items-center justify-center bg-gradient-to-br from-primary via-red-600 to-orange-500 p-6 relative overflow-hidden">
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-10 left-10 w-48 h-48 bg-white rounded-full blur-3xl"></div>
-            <div className="absolute bottom-10 right-10 w-64 h-64 bg-white rounded-full blur-3xl"></div>
-          </div>
-          <div className="relative z-10 text-white max-w-md">
-            <h2 className="text-3xl font-bold mb-4">Chào mừng trở lại!</h2>
-            <p className="text-base mb-6 text-white/90 leading-relaxed">
-              Đăng nhập để khám phá thế giới điện ảnh với hàng ngàn bộ phim hay và trải nghiệm đặt vé dễ dàng.
-            </p>
-            <div className="space-y-3">
-              <div className="flex items-start gap-2">
-                <span className="text-xl mt-0.5">✓</span>
-                <div>
-                  <h3 className="font-semibold text-base mb-0.5">Đặt vé nhanh chóng</h3>
-                  <p className="text-white/80 text-sm">Chọn ghế và thanh toán chỉ trong vài phút</p>
-                </div>
-
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-xl mt-0.5">✓</span>
-                <div>
-                  <h3 className="font-semibold text-base mb-0.5">Ưu đãi độc quyền</h3>
-                  <p className="text-white/80 text-sm">Nhận các khuyến mãi đặc biệt cho thành viên</p>
-                </div>
-
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-xl mt-0.5">✓</span>
-                <div>
-                  <h3 className="font-semibold text-base mb-0.5">Lịch sử đặt vé</h3>
-                  <p className="text-white/80 text-sm">Theo dõi và quản lý vé đã đặt của bạn</p>
-                </div>
-              </div>
+        <div className="mx-auto flex min-h-screen w-full max-w-[600px] flex-1 items-center justify-center p-8 sm:p-12 lg:p-16">
+          <div className="w-full py-12">
+            <div className="mb-8">
+              <h2 className="mb-3 text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+                Chào mừng trở lại
+              </h2>
+              <p className="text-base text-gray-500">
+                Đăng nhập vào HotCinemas để tiếp tục đặt vé, theo dõi lịch sử và nhận ưu đãi thành viên.
+              </p>
             </div>
+
+            <LoginForm
+              onSwitchToRegister={handleSwitchToRegister}
+              onClose={handleClose}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="sticky top-0 hidden h-screen overflow-hidden bg-gray-900 lg:block lg:w-1/2">
+        <img
+          src={sideBannerImage}
+          alt="HotCinemas banner"
+          className="absolute inset-0 h-full w-full object-cover opacity-60 transition-opacity duration-700 hover:opacity-80"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+
+        <div className="absolute bottom-12 left-12 right-12 text-white">
+          <div className="max-w-xl rounded-3xl border border-white/20 bg-primary/20 p-8 backdrop-blur-md">
+            <h3 className="mb-4 text-3xl font-bold">Trải nghiệm liền mạch</h3>
+            <p className="text-lg text-gray-200">
+              Tiếp tục hành trình điện ảnh của bạn với vé đã đặt, ưu đãi cá nhân hóa và lịch chiếu được cập nhật liên tục.
+            </p>
           </div>
         </div>
       </div>
@@ -96,4 +71,3 @@ const Login = () => {
 };
 
 export default Login;
-

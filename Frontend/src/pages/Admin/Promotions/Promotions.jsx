@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '../../../components/ui/card';
-import { TableWrapper } from '../../../components/ui/table-wrapper';
-import { Pagination } from '../../../components/ui/pagination';
-import { Button } from '../../../components/ui/button';
-import { Modal } from '../../../components/ui/modal';
-import { Input } from '../../../components/ui/input';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select';
-import { Textarea } from '../../../components/ui/textarea';
-import { Tag } from '../../../components/ui/tag';
-import { InputNumber } from '../../../components/ui/input-number';
-import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '../../../components/ui/tooltip';
-import { Progress } from '../../../components/ui/progress';
-import { Tabs } from '../../../components/ui/tabs';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
+import { Card } from '@/components/ui/card';
+import { TableWrapper } from '@/components/ui/table-wrapper';
+import { Pagination } from '@/components/ui/pagination';
+import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/modal';
+import { Input } from '@/components/ui/input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Tag } from '@/components/ui/tag';
+import { InputNumber } from '@/components/ui/input-number';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Progress } from '@/components/ui/progress';
+import { Tabs } from '@/components/ui/tabs';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Loader2 } from 'lucide-react';
 import {
     Plus,
@@ -29,11 +29,11 @@ import {
     PauseCircle,
     Home
 } from 'lucide-react';
-import dayjs from '../../../utils/dayjsConfig';
-import promotionService from '../../../services/promotionService';
-import movieService from '../../../services/movieService';
-import cinemaService from '../../../services/cinemaService';
-import useNotification from '../../../hooks/useNotification';
+import dayjs from '@/utils/dayjsConfig';
+import promotionService from '@/services/promotionService';
+import movieService from '@/services/movieService';
+import cinemaService from '@/services/cinemaService';
+import useNotification from '@/hooks/useNotification';
 
 const Promotions = () => {
     const navigate = useNavigate();

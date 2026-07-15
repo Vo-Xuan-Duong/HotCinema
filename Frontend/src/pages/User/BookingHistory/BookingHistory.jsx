@@ -1,22 +1,22 @@
 import React, { useState, useMemo } from 'react';
 import { Eye, Printer, Download, Trash2, Calendar, Clock, Star, User, FileText, Search } from 'lucide-react';
 import moment from 'moment';
-import { Button } from '../../../components/ui/button';
-import { Card } from '../../../components/ui/card';
-import { Tag } from '../../../components/ui/tag';
-import { Input } from '../../../components/ui/input';
-import { Select } from '../../../components/ui/select';
-import { RangePicker } from '../../../components/ui/date-picker';
-import { Empty } from '../../../components/ui/empty';
-import { StatisticCard } from '../../../components/ui/statistic';
-import { Rate } from '../../../components/ui/rate';
-import { Modal } from '../../../components/ui/modal';
-import { Descriptions } from '../../../components/ui/descriptions';
-import { TableWrapper } from '../../../components/ui/table-wrapper';
-import { Tooltip } from '../../../components/ui/tooltip';
-import { Separator } from '../../../components/ui/separator';
-import useAuth from '../../../hooks/useAuth';
-import useNotification from '../../../hooks/useNotification';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Tag } from '@/components/ui/tag';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { RangePicker } from '@/components/ui/date-picker';
+import { Empty } from '@/components/ui/empty';
+import { StatisticCard } from '@/components/ui/statistic';
+import { Rate } from '@/components/ui/rate';
+import { Modal } from '@/components/ui/modal';
+import { Descriptions } from '@/components/ui/descriptions';
+import { TableWrapper } from '@/components/ui/table-wrapper';
+import { Tooltip } from '@/components/ui/tooltip';
+import { Separator } from '@/components/ui/separator';
+import useAuth from '@/hooks/useAuth';
+import useNotification from '@/hooks/useNotification';
 
 const mockBookings = [
     {

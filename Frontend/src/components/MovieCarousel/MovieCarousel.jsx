@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Card } from '../ui/card';
-import { Button } from '../ui/button';
-import { Tag } from '../ui/tag';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tag } from '@/components/ui/tag';
 import { useNavigate } from 'react-router-dom';
 import { Play, ChevronLeft, ChevronRight, Eye, Star } from 'lucide-react';
 

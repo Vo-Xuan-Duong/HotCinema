@@ -1,1 +1,1 @@
-export { default } from './Comments';
+export { default } from '@/pages/Admin/Comments/Comments';

@@ -3,7 +3,7 @@
  * All localStorage operations for authentication should go through this utility
  */
 
-import { STORAGE_KEYS } from './constants.js';
+import { STORAGE_KEYS } from '@/utils/constants.js';
 
 /**
  * Save authentication data to localStorage

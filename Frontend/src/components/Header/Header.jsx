@@ -15,18 +15,18 @@ import {
     Search
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import useAuth from '../../hooks/useAuth';
-import useNotification from '../../hooks/useNotification';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
-import { Badge } from '../ui/badge-count';
-import { Menu } from '../ui/menu';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '../ui/drawer';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { List, ListItem } from '../ui/list';
-import { Empty } from '../ui/empty';
+import useAuth from '@/hooks/useAuth';
+import useNotification from '@/hooks/useNotification';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge-count';
+import { Menu } from '@/components/ui/menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { List, ListItem } from '@/components/ui/list';
+import { Empty } from '@/components/ui/empty';
 
 const Header = () => {
     const navigate = useNavigate();

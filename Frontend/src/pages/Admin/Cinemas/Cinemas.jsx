@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TableWrapper } from '../../../components/ui/table-wrapper';
-import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select';
-import { Tag } from '../../../components/ui/tag';
-import { Tooltip } from '../../../components/ui/tooltip';
-import { Pagination } from '../../../components/ui/pagination';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
-import { Card } from '../../../components/ui/card';
+import { TableWrapper } from '@/components/ui/table-wrapper';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Tag } from '@/components/ui/tag';
+import { Tooltip } from '@/components/ui/tooltip';
+import { Pagination } from '@/components/ui/pagination';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { Card } from '@/components/ui/card';
 import {
   Plus,
   Edit,
@@ -21,9 +21,9 @@ import {
   X,
   Building2
 } from 'lucide-react';
-import useNotification from '../../../hooks/useNotification';
-import cinemaService from '../../../services/cinemaService';
-import regionService from '../../../services/regionService';
+import useNotification from '@/hooks/useNotification';
+import cinemaService from '@/services/cinemaService';
+import regionService from '@/services/regionService';
 
 const Cinemas = () => {
   const navigate = useNavigate();

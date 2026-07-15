@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { XCircle, RotateCcw, Home } from 'lucide-react';
-import { Button } from '../../../components/ui/button';
-import { Card } from '../../../components/ui/card';
-import ContentLoader from '../../../components/Loading/ContentLoader';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import ContentLoader from '@/components/Loading/ContentLoader';
 import dayjs from 'dayjs';
-import paymentService from '../../../services/paymentService';
-import bookingService from '../../../services/bookingService';
+import paymentService from '@/services/paymentService';
+import bookingService from '@/services/bookingService';
 
 const BookingFailed = () => {
     const navigate = useNavigate();

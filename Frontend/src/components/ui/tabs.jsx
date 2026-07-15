@@ -1,56 +1,8 @@
 import * as React from "react"
 import * as TabsPrimitive from "@radix-ui/react-tabs"
-import { cn } from "../../lib/utils"
+import { cn } from "@/lib/utils"
 
-const LegacyTabs = ({ 
-  activeKey,
-  defaultActiveKey,
-  items = [],
-  onChange,
-  className,
-  ...props 
-}) => {
-  const [activeTab, setActiveTab] = React.useState(activeKey || defaultActiveKey || items[0]?.key)
-
-  React.useEffect(() => {
-    if (activeKey !== undefined) {
-      setActiveTab(activeKey)
-    }
-  }, [activeKey])
-
-  const handleTabChange = (key) => {
-    setActiveTab(key)
-    onChange?.(key)
-  }
-
-  const activeItem = items.find(item => item.key === activeTab) || items[0]
-
-  return (
-    <div className={cn("w-full", className)} {...props}>
-      <div className="flex border-b border-gray-200 mb-4">
-        {items.map((item) => (
-          <button
-            key={item.key}
-            onClick={() => handleTabChange(item.key)}
-            className={cn(
-              "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
-              activeTab === item.key
-                ? "border-primary text-primary"
-                : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
-            )}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-      <div>
-        {activeItem?.children}
-      </div>
-    </div>
-  )
-}
-
-const TabsPrimitiveRoot = TabsPrimitive.Root
+const TabsRoot = TabsPrimitive.Root
 
 const TabsList = React.forwardRef(({ className, ...props }, ref) => (
   <TabsPrimitive.List
@@ -88,11 +40,44 @@ const TabsContent = React.forwardRef(({ className, ...props }, ref) => (
 ))
 TabsContent.displayName = TabsPrimitive.Content.displayName
 
-const Tabs = React.forwardRef(({ items, ...props }, ref) => {
-  if (items && items.length > 0) {
-    return <LegacyTabs items={items} {...props} />
+const Tabs = React.forwardRef(({
+  items,
+  activeKey,
+  defaultActiveKey,
+  onChange,
+  className,
+  ...props
+}, ref) => {
+  if (!items?.length) {
+    return <TabsRoot ref={ref} className={className} {...props} />
   }
-  return <TabsPrimitiveRoot ref={ref} {...props} />
+
+  const value = activeKey ?? undefined
+  const defaultValue = defaultActiveKey ?? items[0]?.key
+
+  return (
+    <TabsRoot
+      ref={ref}
+      value={value}
+      defaultValue={defaultValue}
+      onValueChange={onChange}
+      className={cn("w-full", className)}
+      {...props}
+    >
+      <TabsList className="mb-4">
+        {items.map((item) => (
+          <TabsTrigger key={item.key} value={item.key} disabled={item.disabled}>
+            {item.label}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+      {items.map((item) => (
+        <TabsContent key={item.key} value={item.key}>
+          {item.children}
+        </TabsContent>
+      ))}
+    </TabsRoot>
+  )
 })
 Tabs.displayName = "Tabs"
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 // Migrated to Tailwind CSS
-import HeroOverlayFeatured from '../HeroOverlayFeatured';
+import HeroOverlayFeatured from '@/components/HeroOverlayFeatured';
 
 const HeroSlider = ({ movies }) => {
   const [index, setIndex] = useState(0);

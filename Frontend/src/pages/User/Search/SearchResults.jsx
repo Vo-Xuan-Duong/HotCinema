@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
-import { Input } from '../../../components/ui/input';
-import { Button } from '../../../components/ui/button';
-import { Select } from '../../../components/ui/select';
-import { Card } from '../../../components/ui/card';
-import { Empty } from '../../../components/ui/empty';
-import ContentLoader from '../../../components/Loading/ContentLoader';
-import movieService from '../../../services/movieService';
-import cinemaService from '../../../services/cinemaService';
-import MovieCard from '../../../components/MovieCard/MovieCard';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/select';
+import { Card } from '@/components/ui/card';
+import { Empty } from '@/components/ui/empty';
+import ContentLoader from '@/components/Loading/ContentLoader';
+import movieService from '@/services/movieService';
+import cinemaService from '@/services/cinemaService';
+import MovieCard from '@/components/MovieCard/MovieCard';
 
 const SearchResults = () => {
     const [searchParams, setSearchParams] = useSearchParams();

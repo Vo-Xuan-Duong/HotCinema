@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '../../../components/ui/card';
-import { Statistic } from '../../../components/ui/statistic';
-import { TableWrapper } from '../../../components/ui/table-wrapper';
-import { Button } from '../../../components/ui/button';
-import { Select } from '../../../components/ui/select';
-import { Tag } from '../../../components/ui/tag';
-import { Avatar } from '../../../components/ui/avatar';
-import { Skeleton } from '../../../components/ui/skeleton';
-import { Alert } from '../../../components/ui/alert';
-import { DatePicker, RangePicker } from '../../../components/ui/date-picker';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
+import { Card } from '@/components/ui/card';
+import { Statistic } from '@/components/ui/statistic';
+import { TableWrapper } from '@/components/ui/table-wrapper';
+import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/select';
+import { Tag } from '@/components/ui/tag';
+import { Avatar } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert } from '@/components/ui/alert';
+import { DatePicker, RangePicker } from '@/components/ui/date-picker';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import {
   DollarSign,
   User,
@@ -32,12 +32,12 @@ import {
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import dayjs from 'dayjs';
-import bookingService from '../../../services/bookingService';
-import movieService from '../../../services/movieService';
-import userService from '../../../services/userService';
-import cinemaService from '../../../services/cinemaService';
-import showtimeService from '../../../services/showtimeService';
-import { useNotification } from '../../../hooks/useNotification';
+import bookingService from '@/services/bookingService';
+import movieService from '@/services/movieService';
+import userService from '@/services/userService';
+import cinemaService from '@/services/cinemaService';
+import showtimeService from '@/services/showtimeService';
+import { useNotification } from '@/hooks/useNotification';
 
 const Dashboard = () => {
   const navigate = useNavigate();

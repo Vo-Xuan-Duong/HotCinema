@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '../../../components/ui/card';
-import { Tabs } from '../../../components/ui/tabs';
-import { SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select';
-import { Input } from '../../../components/ui/input';
-import { InputNumber } from '../../../components/ui/input-number';
-import { Button } from '../../../components/ui/button';
-import { Select } from '../../../components/ui/select';
-import { Textarea } from '../../../components/ui/textarea';
-import { Separator } from '../../../components/ui/separator';
-import { Alert } from '../../../components/ui/alert';
-import { Checkbox } from '../../../components/ui/checkbox';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
+import { Card } from '@/components/ui/card';
+import { Tabs } from '@/components/ui/tabs';
+import { SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { InputNumber } from '@/components/ui/input-number';
+import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
+import { Alert } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import {
     Settings as SettingsIcon,
     DollarSign,
@@ -25,7 +25,7 @@ import {
     Building2
 } from 'lucide-react';
 import dayjs from 'dayjs';
-import useNotification from '../../../hooks/useNotification';
+import useNotification from '@/hooks/useNotification';
 
 const Settings = () => {
     const navigate = useNavigate();

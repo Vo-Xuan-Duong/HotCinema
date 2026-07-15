@@ -1,27 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '../../../components/ui/card';
-import { TableWrapper } from '../../../components/ui/table-wrapper';
-import { Button } from '../../../components/ui/button';
-import { Modal } from '../../../components/ui/modal';
-import { Input } from '../../../components/ui/input';
-import { Select } from '../../../components/ui/select';
-import { Tag } from '../../../components/ui/tag';
-import { Statistic } from '../../../components/ui/statistic';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
-import { Alert } from '../../../components/ui/alert';
-import { Avatar } from '../../../components/ui/avatar';
-import { List } from '../../../components/ui/list';
-import { Separator } from '../../../components/ui/separator';
-import { Badge } from '../../../components/ui/badge-count';
-import { Progress } from '../../../components/ui/progress';
-import { Tooltip } from '../../../components/ui/tooltip';
-import { Empty } from '../../../components/ui/empty';
-import { Descriptions } from '../../../components/ui/descriptions';
-import { Drawer } from '../../../components/ui/drawer';
-import { DatePicker } from '../../../components/ui/date-picker';
-import { InputNumber } from '../../../components/ui/input-number';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
+import { Card } from '@/components/ui/card';
+import { TableWrapper } from '@/components/ui/table-wrapper';
+import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/modal';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Tag } from '@/components/ui/tag';
+import { Statistic } from '@/components/ui/statistic';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert } from '@/components/ui/alert';
+import { Avatar } from '@/components/ui/avatar';
+import { List } from '@/components/ui/list';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge-count';
+import { Progress } from '@/components/ui/progress';
+import { Tooltip } from '@/components/ui/tooltip';
+import { Empty } from '@/components/ui/empty';
+import { Descriptions } from '@/components/ui/descriptions';
+import { Drawer } from '@/components/ui/drawer';
+import { DatePicker } from '@/components/ui/date-picker';
+import { InputNumber } from '@/components/ui/input-number';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import {
   Bug,
   Plus,
@@ -45,10 +45,10 @@ import {
   Loader2
 } from 'lucide-react';
 import dayjs from 'dayjs';
-import { useNotification } from '../../../hooks/useNotification';
-import { Textarea } from '../../../components/ui/textarea';
-import { SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select';
-// import testingData from '../../../data/testing.json'; // File removed during cleanup
+import { useNotification } from '@/hooks/useNotification';
+import { Textarea } from '@/components/ui/textarea';
+import { SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+// import testingData from '@/data/testing.json'; // File removed during cleanup
 const Testing = () => {
   const navigate = useNavigate();
   const { showNotification } = useNotification();

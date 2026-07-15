@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import SeatsGrid from './SeatsGrid';
+import SeatsGrid from '@/components/Seats/SeatsGrid';
 // Migrated to Tailwind CSS
 
 const seatLegend = [

@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Search, MapPin, Phone, Clock, Star, Home, Store, ChevronRight, Grid, ChevronDown } from 'lucide-react';
-import { Input } from '../../../components/ui/input';
-import { Button } from '../../../components/ui/button';
-import { Card } from '../../../components/ui/card';
-import { Tag } from '../../../components/ui/tag';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
-import { Avatar } from '../../../components/ui/avatar';
-import { Separator } from '../../../components/ui/separator';
-import { Empty } from '../../../components/ui/empty';
-import { Pagination } from '../../../components/ui/pagination';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../components/ui/dropdown-menu';
-import cinemaService from '../../../services/cinemaService';
-import regionService from '../../../services/regionService';
-import ContentLoader from '../../../components/Loading/ContentLoader';
-import useNotification from '../../../hooks/useNotification';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Tag } from '@/components/ui/tag';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { Avatar } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
+import { Empty } from '@/components/ui/empty';
+import { Pagination } from '@/components/ui/pagination';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import cinemaService from '@/services/cinemaService';
+import regionService from '@/services/regionService';
+import ContentLoader from '@/components/Loading/ContentLoader';
+import useNotification from '@/hooks/useNotification';
 
 const Cinemas = () => {
     const [searchParams, setSearchParams] = useSearchParams();

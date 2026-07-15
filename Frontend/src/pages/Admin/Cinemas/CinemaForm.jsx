@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Card } from '../../../components/ui/card';
-import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select';
-import { Textarea } from '../../../components/ui/textarea';
-import { Separator } from '../../../components/ui/separator';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import {
     ArrowLeft,
     Save,
@@ -15,9 +15,9 @@ import {
     Loader2,
     Building2
 } from 'lucide-react';
-import cinemaService from '../../../services/cinemaService';
-import regionService from '../../../services/regionService';
-import { useNotification } from '../../../hooks/useNotification';
+import cinemaService from '@/services/cinemaService';
+import regionService from '@/services/regionService';
+import { useNotification } from '@/hooks/useNotification';
 
 const CinemaForm = () => {
     const navigate = useNavigate();

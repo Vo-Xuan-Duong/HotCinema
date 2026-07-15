@@ -1,6 +1,6 @@
 import * as React from "react"
 import { ChevronRight, Home } from "lucide-react"
-import { cn } from "../../lib/utils"
+import { cn } from "@/lib/utils"
 import { Link } from "react-router-dom"
 
 const Breadcrumb = ({ items = [], className, ...props }) => {

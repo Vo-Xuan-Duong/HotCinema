@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-import Header from '../components/Header/Header';
-import Footer from '../components/Footer/Footer';
-import AuthModal from '../components/Auth/AuthModal';
-import GlobalBackTop from '../components/GlobalBackTop/GlobalBackTop';
+import Header from '@/components/Header/Header';
+import Footer from '@/components/Footer/Footer';
+import AuthModal from '@/components/Auth/AuthModal';
+import GlobalBackTop from '@/components/GlobalBackTop/GlobalBackTop';
 import { Outlet } from 'react-router-dom';
-import { TrailerModalProvider } from '../context/TrailerModalContext';
-import { AuthModalProvider, useAuthModal } from '../context/AuthModalContext';
-import { setAuthErrorCallback } from '../utils/apiClient';
-import ScrollToTop from '../components/ScrollToTop';
+import { TrailerModalProvider } from '@/context/TrailerModalContext';
+import { AuthModalProvider, useAuthModal } from '@/context/AuthModalContext';
+import { setAuthErrorCallback } from '@/utils/apiClient';
+import ScrollToTop from '@/components/ScrollToTop';
 
 // Memoized Header để tránh re-render không cần thiết
 const MemoizedHeader = React.memo(Header);

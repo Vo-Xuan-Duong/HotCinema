@@ -1,2 +1,2 @@
-export { default } from './RolesPermissions';
+export { default } from '@/pages/Admin/RolesPermissions/RolesPermissions';
 

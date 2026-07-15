@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Check, Trash2, Eye } from 'lucide-react';
-import { Button } from '../../../components/ui/button';
-import { Card } from '../../../components/ui/card';
-import { Avatar } from '../../../components/ui/avatar';
-import { Tag } from '../../../components/ui/tag';
-import { Empty } from '../../../components/ui/empty';
-import { List } from '../../../components/ui/list';
-import notificationService from '../../../services/notificationService';
-import useNotification from '../../../hooks/useNotification';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Avatar } from '@/components/ui/avatar';
+import { Tag } from '@/components/ui/tag';
+import { Empty } from '@/components/ui/empty';
+import { List } from '@/components/ui/list';
+import notificationService from '@/services/notificationService';
+import useNotification from '@/hooks/useNotification';
 
 const Notifications = () => {
     const [notifications, setNotifications] = useState([]);

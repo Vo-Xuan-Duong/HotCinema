@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
-import paymentService from '../../../services/paymentService';
+import paymentService from '@/services/paymentService';
 
 const PaymentCallback = () => {
     const navigate = useNavigate();

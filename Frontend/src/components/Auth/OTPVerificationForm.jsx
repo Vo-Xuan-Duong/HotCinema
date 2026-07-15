@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mail } from 'lucide-react';
-import { authService } from '../../services/authService';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Form, FormItem, FormControl } from '../ui/form';
-import useNotification from '../../hooks/useNotification';
+import { authService } from '@/services/authService';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Form, FormItem, FormControl } from '@/components/ui/form';
+import useNotification from '@/hooks/useNotification';
 
 const OTPVerificationForm = ({ email, onSuccess, onBack }) => {
     const [otp, setOtp] = useState(['', '', '', '', '', '']);

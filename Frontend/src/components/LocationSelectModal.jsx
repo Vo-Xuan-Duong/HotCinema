@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { Modal } from './ui/modal';
-import { Input } from './ui/input';
-import { Button } from './ui/button';
+import { Modal } from '@/components/ui/modal';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 export default function LocationSelectModal({ open, onClose, onSelect, value, cities = [] }) {
     const [search, setSearch] = useState('');

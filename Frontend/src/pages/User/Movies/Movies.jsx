@@ -1,22 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Search, Play, Calendar, Clock, Star, Heart, Share2, Ticket, Filter, Grid, List, SortAsc, SortDesc, ArrowUp, Eye } from 'lucide-react';
-import { Button } from '../../../components/ui/button';
-import { Card } from '../../../components/ui/card';
-import { Input } from '../../../components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
-import { Tag } from '../../../components/ui/tag';
-import { Rate } from '../../../components/ui/rate';
-import { Pagination } from '../../../components/ui/pagination';
-import { Empty } from '../../../components/ui/empty';
-import { Tooltip } from '../../../components/ui/tooltip';
-import { Separator } from '../../../components/ui/separator';
-import { BadgeRibbon } from '../../../components/ui/badge-ribbon';
-import { Badge } from '../../../components/ui/badge-count';
-import GlobalBackTop from '../../../components/GlobalBackTop/GlobalBackTop';
-import movieService from '../../../services/movieService';
-import genreService from '../../../services/genreService';
-import ContentLoader from '../../../components/Loading/ContentLoader';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tag } from '@/components/ui/tag';
+import { Rate } from '@/components/ui/rate';
+import { Pagination } from '@/components/ui/pagination';
+import { Empty } from '@/components/ui/empty';
+import { Tooltip } from '@/components/ui/tooltip';
+import { Separator } from '@/components/ui/separator';
+import { BadgeRibbon } from '@/components/ui/badge-ribbon';
+import { Badge } from '@/components/ui/badge-count';
+import GlobalBackTop from '@/components/GlobalBackTop/GlobalBackTop';
+import movieService from '@/services/movieService';
+import genreService from '@/services/genreService';
+import ContentLoader from '@/components/Loading/ContentLoader';
 
 const Movies = () => {
     const navigate = useNavigate();

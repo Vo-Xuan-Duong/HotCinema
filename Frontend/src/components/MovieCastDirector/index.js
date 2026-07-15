@@ -1,1 +1,1 @@
-export { default } from './MovieCastDirector';
+export { default } from '@/components/MovieCastDirector/MovieCastDirector';

@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card } from '../../../components/ui/card';
-import { Button } from '../../../components/ui/button';
-import { Tag } from '../../../components/ui/tag';
-import { Separator } from '../../../components/ui/separator';
-import { Rate } from '../../../components/ui/rate';
-import { Modal } from '../../../components/ui/modal';
-import { Alert } from '../../../components/ui/alert';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
-import { Descriptions } from '../../../components/ui/descriptions';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tag } from '@/components/ui/tag';
+import { Separator } from '@/components/ui/separator';
+import { Rate } from '@/components/ui/rate';
+import { Modal } from '@/components/ui/modal';
+import { Alert } from '@/components/ui/alert';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { Descriptions } from '@/components/ui/descriptions';
 import {
     ArrowLeft,
     Edit,
@@ -26,8 +26,8 @@ import {
     Film
 } from 'lucide-react';
 import dayjs from 'dayjs';
-import movieService from '../../../services/movieService';
-import useNotification from '../../../hooks/useNotification';
+import movieService from '@/services/movieService';
+import useNotification from '@/hooks/useNotification';
 
 // Helper function to extract YouTube video ID
 const getYouTubeId = (url) => {

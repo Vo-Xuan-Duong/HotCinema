@@ -1,6 +1,6 @@
 import * as React from "react"
 import { X } from "lucide-react"
-import { cn } from "../../lib/utils"
+import { cn } from "@/lib/utils"
 
 const Drawer = ({ open, onOpenChange, children, placement = "left", ...props }) => {
   const [isOpen, setIsOpen] = React.useState(open || false)

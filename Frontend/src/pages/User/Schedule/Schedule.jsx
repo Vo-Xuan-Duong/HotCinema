@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { AlertCircle, Search, MapPin, Target } from 'lucide-react';
-import { Button } from '../../../components/ui/button';
-import { Card } from '../../../components/ui/card';
-import { Input } from '../../../components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
-import { Pagination } from '../../../components/ui/pagination';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Pagination } from '@/components/ui/pagination';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
-import ContentLoader from '../../../components/Loading/ContentLoader';
-import useNotification from '../../../hooks/useNotification';
-import cinemaService from '../../../services/cinemaService';
-import regionService from '../../../services/regionService';
-import showtimeService from '../../../services/showtimeService';
+import ContentLoader from '@/components/Loading/ContentLoader';
+import useNotification from '@/hooks/useNotification';
+import cinemaService from '@/services/cinemaService';
+import regionService from '@/services/regionService';
+import showtimeService from '@/services/showtimeService';
 
 dayjs.locale('vi');
 

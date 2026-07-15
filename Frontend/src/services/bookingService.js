@@ -1,5 +1,5 @@
-import { apiClient } from '../utils/apiClient';
-import { ENDPOINTS, BOOKING_STATUS } from '../utils/constants';
+import { apiClient } from '@/utils/apiClient';
+import { ENDPOINTS, BOOKING_STATUS } from '@/utils/constants';
 
 // Helpers to unwrap backend ResponseData envelope
 const unwrap = (res) => res?.data ?? res;

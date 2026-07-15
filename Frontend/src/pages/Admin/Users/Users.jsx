@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TableWrapper } from '../../../components/ui/table-wrapper';
-import { Button } from '../../../components/ui/button';
-import { Modal } from '../../../components/ui/modal';
-import { Input } from '../../../components/ui/input';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select';
-import { Tag } from '../../../components/ui/tag';
-import { Card } from '../../../components/ui/card';
-import { Statistic } from '../../../components/ui/statistic';
-import { Avatar } from '../../../components/ui/avatar';
-import { InputNumber } from '../../../components/ui/input-number';
-import { Descriptions } from '../../../components/ui/descriptions';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
+import { TableWrapper } from '@/components/ui/table-wrapper';
+import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/modal';
+import { Input } from '@/components/ui/input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Tag } from '@/components/ui/tag';
+import { Card } from '@/components/ui/card';
+import { Statistic } from '@/components/ui/statistic';
+import { Avatar } from '@/components/ui/avatar';
+import { InputNumber } from '@/components/ui/input-number';
+import { Descriptions } from '@/components/ui/descriptions';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import {
   User,
   Edit,
@@ -26,9 +26,9 @@ import {
   Search,
   Loader2
 } from 'lucide-react';
-import userService from '../../../services/userService';
-import roleService from '../../../services/roleService';
-import { useNotification } from '../../../hooks/useNotification';
+import userService from '@/services/userService';
+import roleService from '@/services/roleService';
+import { useNotification } from '@/hooks/useNotification';
 
 const Users = () => {
   const navigate = useNavigate();

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '../../../components/ui/card';
-import { Statistic } from '../../../components/ui/statistic';
-import { Button } from '../../../components/ui/button';
-import { Alert } from '../../../components/ui/alert';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
+import { Card } from '@/components/ui/card';
+import { Statistic } from '@/components/ui/statistic';
+import { Button } from '@/components/ui/button';
+import { Alert } from '@/components/ui/alert';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import {
     DollarSign,
     ShoppingCart,
@@ -12,7 +12,7 @@ import {
     Home
 } from 'lucide-react';
 import dayjs from 'dayjs';
-import useNotification from '../../../hooks/useNotification';
+import useNotification from '@/hooks/useNotification';
 
 const Reports = () => {
     const [bookings, setBookings] = useState([]);

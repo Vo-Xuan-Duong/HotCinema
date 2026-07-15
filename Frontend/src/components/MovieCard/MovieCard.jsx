@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Card } from '../ui/card';
-import { Rate } from '../ui/rate';
-import { Tag } from '../ui/tag';
-import { Button } from '../ui/button';
+import { Card } from '@/components/ui/card';
+import { Rate } from '@/components/ui/rate';
+import { Tag } from '@/components/ui/tag';
+import { Button } from '@/components/ui/button';
 import { Play, Eye } from 'lucide-react';
 
 const MovieCard = ({ movie, onTrailerClick, viewMode = 'grid' }) => {

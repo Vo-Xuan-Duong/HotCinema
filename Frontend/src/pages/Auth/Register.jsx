@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import RegisterForm from '../../components/Auth/RegisterForm';
-import sideBannerImage from '../../assets/banner.png';
+import RegisterForm from '@/components/Auth/RegisterForm';
+import sideBannerImage from '@/assets/banner.png';
 import { ChevronLeft } from 'lucide-react';
 
 const Register = () => {

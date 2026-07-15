@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 // Migrated to Tailwind CSS
-import TrailerModal from '../Trailer/TrailerModal';
+import TrailerModal from '@/components/Trailer/TrailerModal';
 
 const icons = {
   genre: <span className="icon">🎬</span>,

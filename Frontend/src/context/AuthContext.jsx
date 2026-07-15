@@ -1,8 +1,8 @@
 import React, { createContext, useReducer, useEffect } from 'react';
-import api from '../utils/apiClient.js';
-import { authService } from '../services/authService.js';
-import { initialState, AUTH_ACTIONS, authReducer } from './AuthContextUtils.js';
-import { getUserInfo, getAccessToken, saveAuthData } from '../utils/authStorage.js';
+import api from '@/utils/apiClient.js';
+import { authService } from '@/services/authService.js';
+import { initialState, AUTH_ACTIONS, authReducer } from '@/context/AuthContextUtils.js';
+import { getUserInfo, getAccessToken, saveAuthData } from '@/utils/authStorage.js';
 
 // Create context
 const AuthContext = createContext();

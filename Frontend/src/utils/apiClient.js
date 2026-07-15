@@ -1,11 +1,12 @@
 import axios from 'axios';
-import { ERROR_MESSAGES } from './constants';
+import { ERROR_MESSAGES } from '@/utils/constants';
+import { createMockAdapter } from '@/mocks/mockApi';
 import {
   saveAuthData,
   clearAuthData,
   getAccessToken,
   getRefreshToken
-} from './authStorage.js';
+} from '@/utils/authStorage.js';
 
 // Event emitter for 401 errors - để trigger auth modal
 let authErrorCallback = null;
@@ -22,6 +23,9 @@ const emitAuthError = (error) => {
 
 // API base URL for development - có thể sử dụng mock API hoặc JSON server
 const API_BASE_URL = 'http://localhost:8080/api/v1'; // Thay đổi theo cấu hình backend của bạn
+const USE_MOCK_API = import.meta.env.VITE_USE_MOCK === 'true';
+const ENABLE_MOCK_FALLBACK = import.meta.env.VITE_FALLBACK_MOCK !== 'false';
+const mockAdapter = createMockAdapter({ delay: 150 });
 
 // Create axios instance
 const apiClient = axios.create({
@@ -31,6 +35,11 @@ const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+if (USE_MOCK_API) {
+  apiClient.defaults.adapter = mockAdapter;
+  console.info('[HotCinema] Mock API enabled via VITE_USE_MOCK=true');
+}
 
 // Token management
 let currentToken = null;
@@ -188,9 +197,29 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config;
     const status = error.response?.status;
     let message = ERROR_MESSAGES.SERVER_ERROR;
+    const isNetworkError = error.code === 'ECONNABORTED' || error.message === 'Network Error';
 
     // Xử lý lỗi kết nối
-    if (error.code === 'ECONNABORTED' || error.message === 'Network Error') {
+    if (isNetworkError) {
+      if (ENABLE_MOCK_FALLBACK && originalRequest && !originalRequest._mockFallback) {
+        try {
+          console.warn(`[HotCinema] API unavailable, using mock data for ${originalRequest.method?.toUpperCase() || 'GET'} ${originalRequest.url}`);
+          const mockResponse = await mockAdapter({
+            ...originalRequest,
+            baseURL: originalRequest.baseURL || API_BASE_URL,
+            _mockFallback: true,
+          });
+
+          if (mockResponse.status >= 200 && mockResponse.status < 300) {
+            return mockResponse.data;
+          }
+
+          message = mockResponse.data?.message || `Mock endpoint not found: ${originalRequest.url}`;
+        } catch (mockError) {
+          console.error('[HotCinema] Mock fallback failed:', mockError);
+        }
+      }
+
       message = ERROR_MESSAGES.NETWORK_ERROR || 'Lỗi kết nối mạng.';
     }
     // Xử lý 401 Unauthorized - Token hết hạn

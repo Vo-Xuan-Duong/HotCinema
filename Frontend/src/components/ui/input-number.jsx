@@ -1,8 +1,8 @@
 import * as React from "react"
 import { Minus, Plus } from "lucide-react"
-import { Button } from "./button"
-import { Input } from "./input"
-import { cn } from "../../lib/utils"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
 
 const InputNumber = ({ 
   value,

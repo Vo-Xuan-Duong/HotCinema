@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import PageTransition from './PageTransition';
+import PageTransition from '@/components/Loading/PageTransition';
 // Migrated to Tailwind CSS
 
 const RouteTransition = ({ children }) => {

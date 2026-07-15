@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import useNotification from './useNotification';
+import useNotification from '@/hooks/useNotification';
 
 /**
  * Custom Hook for Seat Booking WebSocket using STOMP

@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
-import peopleService from '../../../services/peopleService';
-import { useNotification } from '../../../hooks/useNotification';
+import peopleService from '@/services/peopleService';
+import { useNotification } from '@/hooks/useNotification';
 
 const AVATAR_PLACEHOLDER = 'https://ui-avatars.com/api/?background=0f2747&color=ffffff&name=Actor';
 const POSTER_PLACEHOLDER = 'https://placehold.co/180x270/0f2747/f4f7fb?text=No+Poster';

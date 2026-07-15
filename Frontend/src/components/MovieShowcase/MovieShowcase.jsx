@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { Card } from '../ui/card';
-import { Button } from '../ui/button';
-import { Tag } from '../ui/tag';
-import { Rate } from '../ui/rate';
-import { Avatar } from '../ui/avatar';
-import { Badge } from '../ui/badge-count';
-import { Tooltip } from '../ui/tooltip';
-import { Empty } from '../ui/empty';
-import { Skeleton } from '../ui/skeleton';
-import { Modal } from '../ui/modal';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tag } from '@/components/ui/tag';
+import { Rate } from '@/components/ui/rate';
+import { Avatar } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge-count';
+import { Tooltip } from '@/components/ui/tooltip';
+import { Empty } from '@/components/ui/empty';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Modal } from '@/components/ui/modal';
 import {
   Play,
   Calendar,

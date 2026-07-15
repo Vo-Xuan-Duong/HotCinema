@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import { User, Lock, Mail } from 'lucide-react';
+import { Lock, Mail } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import useAuth from '../../hooks/useAuth';
-import useNotification from '../../hooks/useNotification';
-import { signInWithGoogle } from '../../utils/googleAuth';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { InputPassword } from '../ui/input-password';
-import { Checkbox } from '../ui/checkbox';
-import { Label } from '../ui/label';
-import { Separator } from '../ui/separator';
-import { Form, FormItem, FormLabel, FormControl, FormMessage } from '../ui/form';
+import useAuth from '@/hooks/useAuth';
+import useNotification from '@/hooks/useNotification';
+import { signInWithGoogle } from '@/utils/googleAuth';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { InputPassword } from '@/components/ui/input-password';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Form, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 
 const LoginForm = ({ onSwitchToRegister, onClose }) => {
     const [formData, setFormData] = useState({
@@ -165,13 +165,13 @@ const LoginForm = ({ onSwitchToRegister, onClose }) => {
                     <FormLabel>Email</FormLabel>
                     <FormControl>
                         <div className="relative">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 z-10 pointer-events-none" />
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                             <Input
                                 type="email"
                                 placeholder="Email"
                                 value={formData.email}
                                 onChange={(e) => handleChange('email', e.target.value)}
-                                className="pl-11 h-11 rounded-lg border-2 border-gray-200 hover:border-primary/60 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 text-base"
+                                className="pl-10 h-10 rounded-lg border-gray-200 hover:border-primary/60 focus:border-primary transition-all"
                             />
                         </div>
                     </FormControl>
@@ -181,15 +181,13 @@ const LoginForm = ({ onSwitchToRegister, onClose }) => {
                 <FormItem>
                     <FormLabel>Mật khẩu</FormLabel>
                     <FormControl>
-                        <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 z-10 pointer-events-none" />
-                            <InputPassword
-                                placeholder="Mật khẩu"
-                                value={formData.password}
-                                onChange={(e) => handleChange('password', e.target.value)}
-                                className="pl-11 pr-11 h-11 rounded-lg border-2 border-gray-200 hover:border-primary/60 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 text-base"
-                            />
-                        </div>
+                        <InputPassword
+                            prefix={<Lock className="h-5 w-5" />}
+                            placeholder="Mật khẩu"
+                            value={formData.password}
+                            onChange={(e) => handleChange('password', e.target.value)}
+                            className="h-12 rounded-xl border-gray-200 bg-gray-50 hover:bg-white hover:border-primary/50 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-base"
+                        />
                     </FormControl>
                     {errors.password && <FormMessage>{errors.password}</FormMessage>}
                 </FormItem>

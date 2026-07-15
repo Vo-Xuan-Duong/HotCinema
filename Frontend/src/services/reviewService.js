@@ -1,4 +1,4 @@
-import { apiClient } from '../utils/apiClient';
+import { apiClient } from '@/utils/apiClient';
 
 // Helpers to unwrap backend ResponseData envelope
 const unwrap = (res) => res?.data ?? res;

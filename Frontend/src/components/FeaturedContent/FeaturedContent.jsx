@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Card } from '../ui/card';
-import { Button } from '../ui/button';
-import { Avatar } from '../ui/avatar';
-import { Statistic } from '../ui/statistic';
-import { Progress } from '../ui/progress';
-import { Badge } from '../ui/badge-count';
-import { Tabs } from '../ui/tabs';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Avatar } from '@/components/ui/avatar';
+import { Statistic } from '@/components/ui/statistic';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge-count';
+import { Tabs } from '@/components/ui/tabs';
 import {
   Trophy,
   Flame,

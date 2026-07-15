@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MapPin, CheckCircle2, Wifi, Coffee, Car, Flame, Loader2 } from 'lucide-react';
-import { Button } from '../../../components/ui/button';
-import { Card } from '../../../components/ui/card';
-import { Tag } from '../../../components/ui/tag';
-import { Empty } from '../../../components/ui/empty';
-import ContentLoader from '../../../components/Loading/ContentLoader';
-import useNotification from '../../../hooks/useNotification';
-import cinemaService from '../../../services/cinemaService';
-import showtimeService from '../../../services/showtimeService';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Tag } from '@/components/ui/tag';
+import { Empty } from '@/components/ui/empty';
+import ContentLoader from '@/components/Loading/ContentLoader';
+import useNotification from '@/hooks/useNotification';
+import cinemaService from '@/services/cinemaService';
+import showtimeService from '@/services/showtimeService';
 
 const CinemaDetail = () => {
   const { id } = useParams();

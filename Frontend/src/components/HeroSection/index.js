@@ -1,2 +1,2 @@
-export { default as HeroModern } from './HeroModern';
-export { default } from './HeroModern';
+export { default as HeroModern } from '@/components/HeroSection/HeroModern';
+export { default } from '@/components/HeroSection/HeroModern';

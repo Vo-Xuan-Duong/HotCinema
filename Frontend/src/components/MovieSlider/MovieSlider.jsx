@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, Autoplay, EffectCoverflow } from 'swiper/modules';
-import MovieCard from '../MovieCard/MovieCard';
-import TrailerModal from '../Trailer/TrailerModal';
+import MovieCard from '@/components/MovieCard/MovieCard';
+import TrailerModal from '@/components/Trailer/TrailerModal';
 
 // Import Swiper styles
 import 'swiper/css';

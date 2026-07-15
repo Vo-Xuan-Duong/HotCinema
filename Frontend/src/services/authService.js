@@ -1,4 +1,4 @@
-import api from '../utils/apiClient';
+import api from '@/utils/apiClient';
 
 export const authService = {
     // Verify token validity (used on app start)

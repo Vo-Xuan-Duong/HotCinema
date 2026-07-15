@@ -1,74 +1,74 @@
 import React from 'react';
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
-import UserLayout from './layouts/UserLayout';
-import AuthLayout from './layouts/AuthLayout';
-import AdminLayout from './layouts/AdminLayout';
-import Home from './pages/User/Home/Home';
-import NotFound from './pages/Common/ErrorPages/NotFound';
-import PageTransition from './components/Loading/PageTransition';
+import UserLayout from '@/layouts/UserLayout';
+import AuthLayout from '@/layouts/AuthLayout';
+import AdminLayout from '@/layouts/AdminLayout';
+import Home from '@/pages/User/Home/Home';
+import NotFound from '@/pages/Common/ErrorPages/NotFound';
+import PageTransition from '@/components/Loading/PageTransition';
 
 // Auth pages
-const Login = React.lazy(() => import('./pages/Auth/Login'));
-const Register = React.lazy(() => import('./pages/Auth/Register'));
-const VerifyOTP = React.lazy(() => import('./pages/Auth/VerifyOTP'));
-const ForgotPassword = React.lazy(() => import('./pages/Auth/ForgotPassword'));
-const ResetPassword = React.lazy(() => import('./pages/Auth/ResetPassword'));
+const Login = React.lazy(() => import('@/pages/Auth/Login'));
+const Register = React.lazy(() => import('@/pages/Auth/Register'));
+const VerifyOTP = React.lazy(() => import('@/pages/Auth/VerifyOTP'));
+const ForgotPassword = React.lazy(() => import('@/pages/Auth/ForgotPassword'));
+const ResetPassword = React.lazy(() => import('@/pages/Auth/ResetPassword'));
 
 // User pages
-const Profile = React.lazy(() => import('./pages/User/Profile/Profile'));
-const AccountSettings = React.lazy(() => import('./pages/User/Profile/AccountSettings'));
-const BookingDetail = React.lazy(() => import('./pages/User/BookingDetail/BookingDetail'));
-const BookingHistory = React.lazy(() => import('./pages/User/BookingHistory/BookingHistory'));
-const Movies = React.lazy(() => import('./pages/User/Movies/Movies'));
-const MovieDetail = React.lazy(() => import('./pages/User/Movies/MovieDetail'));
-const Cinemas = React.lazy(() => import('./pages/User/Cinemas/Cinemas'));
-const CinemaDetail = React.lazy(() => import('./pages/User/Cinemas/CinemaDetail'));
-const CinemaSchedule = React.lazy(() => import('./pages/User/Cinemas/CinemaSchedule'));
-const Schedule = React.lazy(() => import('./pages/User/Schedule/Schedule'));
-const Booking = React.lazy(() => import('./pages/User/Booking'));
-const BookingSeatSelection = React.lazy(() => import('./pages/User/Booking/BookingSeatSelection'));
-const BookingPayment = React.lazy(() => import('./pages/User/Booking/BookingPayment'));
-const BookingSuccess = React.lazy(() => import('./pages/User/Booking/BookingSuccess'));
-const BookingFailed = React.lazy(() => import('./pages/User/Booking/BookingFailed'));
-const PaymentCallback = React.lazy(() => import('./pages/User/Booking/PaymentCallback'));
-const SearchResults = React.lazy(() => import('./pages/User/Search/SearchResults'));
-const Notifications = React.lazy(() => import('./pages/User/Notifications/Notifications'));
-const Cart = React.lazy(() => import('./pages/User/Cart/Cart'));
+const Profile = React.lazy(() => import('@/pages/User/Profile/Profile'));
+const AccountSettings = React.lazy(() => import('@/pages/User/Profile/AccountSettings'));
+const BookingDetail = React.lazy(() => import('@/pages/User/BookingDetail/BookingDetail'));
+const BookingHistory = React.lazy(() => import('@/pages/User/BookingHistory/BookingHistory'));
+const Movies = React.lazy(() => import('@/pages/User/Movies/Movies'));
+const MovieDetail = React.lazy(() => import('@/pages/User/Movies/MovieDetail'));
+const Cinemas = React.lazy(() => import('@/pages/User/Cinemas/Cinemas'));
+const CinemaDetail = React.lazy(() => import('@/pages/User/Cinemas/CinemaDetail'));
+const CinemaSchedule = React.lazy(() => import('@/pages/User/Cinemas/CinemaSchedule'));
+const Schedule = React.lazy(() => import('@/pages/User/Schedule/Schedule'));
+const Booking = React.lazy(() => import('@/pages/User/Booking'));
+const BookingSeatSelection = React.lazy(() => import('@/pages/User/Booking/BookingSeatSelection'));
+const BookingPayment = React.lazy(() => import('@/pages/User/Booking/BookingPayment'));
+const BookingSuccess = React.lazy(() => import('@/pages/User/Booking/BookingSuccess'));
+const BookingFailed = React.lazy(() => import('@/pages/User/Booking/BookingFailed'));
+const PaymentCallback = React.lazy(() => import('@/pages/User/Booking/PaymentCallback'));
+const SearchResults = React.lazy(() => import('@/pages/User/Search/SearchResults'));
+const Notifications = React.lazy(() => import('@/pages/User/Notifications/Notifications'));
+const Cart = React.lazy(() => import('@/pages/User/Cart/Cart'));
 
 // Admin pages
-const Dashboard = React.lazy(() => import('./pages/Admin/Dashboard'));
-const AdminMovies = React.lazy(() => import('./pages/Admin/Movies'));
-const AdminMovieDetail = React.lazy(() => import('./pages/Admin/Movies/MovieDetail'));
-const AdminMovieForm = React.lazy(() => import('./pages/Admin/Movies/MovieForm'));
-const AdminCinemas = React.lazy(() => import('./pages/Admin/Cinemas'));
-const AdminCinemaDetail = React.lazy(() => import('./pages/Admin/Cinemas/CinemaDetail'));
-const AdminCinemaForm = React.lazy(() => import('./pages/Admin/Cinemas/CinemaForm'));
-const AdminSeatManagement = React.lazy(() => import('./pages/Admin/Cinemas/SeatManagement'));
-const AdminShowtimeSeatManagement = React.lazy(() => import('./pages/Admin/Schedules/ShowtimeSeatManagement'));
-const AdminComments = React.lazy(() => import('./pages/Admin/Comments'));
-const AdminSchedules = React.lazy(() => import('./pages/Admin/Schedules'));
-const AdminUsers = React.lazy(() => import('./pages/Admin/Users/Users'));
-const AdminBookings = React.lazy(() => import('./pages/Admin/Bookings'));
-const AdminBookingDetail = React.lazy(() => import('./pages/Admin/Bookings/BookingDetail'));
-const AdminSeats = React.lazy(() => import('./pages/Admin/Seats'));
-const AdminReports = React.lazy(() => import('./pages/Admin/Reports'));
-const AdminPromotions = React.lazy(() => import('./pages/Admin/Promotions'));
-const AdminSettings = React.lazy(() => import('./pages/Admin/Settings'));
+const Dashboard = React.lazy(() => import('@/pages/Admin/Dashboard'));
+const AdminMovies = React.lazy(() => import('@/pages/Admin/Movies'));
+const AdminMovieDetail = React.lazy(() => import('@/pages/Admin/Movies/MovieDetail'));
+const AdminMovieForm = React.lazy(() => import('@/pages/Admin/Movies/MovieForm'));
+const AdminCinemas = React.lazy(() => import('@/pages/Admin/Cinemas'));
+const AdminCinemaDetail = React.lazy(() => import('@/pages/Admin/Cinemas/CinemaDetail'));
+const AdminCinemaForm = React.lazy(() => import('@/pages/Admin/Cinemas/CinemaForm'));
+const AdminSeatManagement = React.lazy(() => import('@/pages/Admin/Cinemas/SeatManagement'));
+const AdminShowtimeSeatManagement = React.lazy(() => import('@/pages/Admin/Schedules/ShowtimeSeatManagement'));
+const AdminComments = React.lazy(() => import('@/pages/Admin/Comments'));
+const AdminSchedules = React.lazy(() => import('@/pages/Admin/Schedules'));
+const AdminUsers = React.lazy(() => import('@/pages/Admin/Users/Users'));
+const AdminBookings = React.lazy(() => import('@/pages/Admin/Bookings'));
+const AdminBookingDetail = React.lazy(() => import('@/pages/Admin/Bookings/BookingDetail'));
+const AdminSeats = React.lazy(() => import('@/pages/Admin/Seats'));
+const AdminReports = React.lazy(() => import('@/pages/Admin/Reports'));
+const AdminPromotions = React.lazy(() => import('@/pages/Admin/Promotions'));
+const AdminSettings = React.lazy(() => import('@/pages/Admin/Settings'));
 
 // New Admin pages
-const AdminNotifications = React.lazy(() => import('./pages/Admin/Notifications'));
-const AdminStaff = React.lazy(() => import('./pages/Admin/Staff'));
-const AdminFoodBeverage = React.lazy(() => import('./pages/Admin/FoodBeverage'));
-const AdminTesting = React.lazy(() => import('./pages/Admin/Testing'));
-const AdminRolesPermissions = React.lazy(() => import('./pages/Admin/RolesPermissions'));
-const AdminPayment = React.lazy(() => import('./pages/Admin/Payment/Payment'));
+const AdminNotifications = React.lazy(() => import('@/pages/Admin/Notifications'));
+const AdminStaff = React.lazy(() => import('@/pages/Admin/Staff'));
+const AdminFoodBeverage = React.lazy(() => import('@/pages/Admin/FoodBeverage'));
+const AdminTesting = React.lazy(() => import('@/pages/Admin/Testing'));
+const AdminRolesPermissions = React.lazy(() => import('@/pages/Admin/RolesPermissions'));
+const AdminPayment = React.lazy(() => import('@/pages/Admin/Payment/Payment'));
 
 // Demo pages - Cleaned up unused imports
-// const SwiperDemo = React.lazy(() => import('./pages/SwiperDemo'));
-// const AuthTest = React.lazy(() => import('./components/AuthTest')); 
-// const MovieLinkTest = React.lazy(() => import('./pages/User/Movies/MovieLinkTest'));
-// const TestUsers = React.lazy(() => import('./TestUsers'));
-// const LoginDemo = React.lazy(() => import('./pages/LoginDemo'));
+// const SwiperDemo = React.lazy(() => import('@/pages/SwiperDemo'));
+// const AuthTest = React.lazy(() => import('@/components/AuthTest')); 
+// const MovieLinkTest = React.lazy(() => import('@/pages/User/Movies/MovieLinkTest'));
+// const TestUsers = React.lazy(() => import('@/TestUsers'));
+// const LoginDemo = React.lazy(() => import('@/pages/LoginDemo'));
 
 const router = createBrowserRouter([
   // Auth routes - No header/footer

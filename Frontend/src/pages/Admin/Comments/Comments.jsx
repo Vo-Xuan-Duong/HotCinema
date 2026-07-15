@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '../../../components/ui/card';
-import { Button } from '../../../components/ui/button';
-import { TableWrapper } from '../../../components/ui/table-wrapper';
-import { Pagination } from '../../../components/ui/pagination';
-import { Modal } from '../../../components/ui/modal';
-import { Input } from '../../../components/ui/input';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select';
-import { Textarea } from '../../../components/ui/textarea';
-import { Tag } from '../../../components/ui/tag';
-import { Rate } from '../../../components/ui/rate';
-import { Avatar, AvatarImage, AvatarFallback } from '../../../components/ui/avatar';
-import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '../../../components/ui/tooltip';
-import { Badge } from '../../../components/ui/badge-count';
-import { Tabs } from '../../../components/ui/tabs';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { TableWrapper } from '@/components/ui/table-wrapper';
+import { Pagination } from '@/components/ui/pagination';
+import { Modal } from '@/components/ui/modal';
+import { Input } from '@/components/ui/input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Tag } from '@/components/ui/tag';
+import { Rate } from '@/components/ui/rate';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge-count';
+import { Tabs } from '@/components/ui/tabs';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import {
     Eye,
     Trash2,
@@ -30,10 +30,10 @@ import {
     Video,
     Loader2
 } from 'lucide-react';
-import moviesData from '../../../data/movies.json';
-import reviewService from '../../../services/reviewService';
-import movieService from '../../../services/movieService';
-import useNotification from '../../../hooks/useNotification';
+import moviesData from '@/data/movies.json';
+import reviewService from '@/services/reviewService';
+import movieService from '@/services/movieService';
+import useNotification from '@/hooks/useNotification';
 
 const Comments = () => {
     const navigate = useNavigate();

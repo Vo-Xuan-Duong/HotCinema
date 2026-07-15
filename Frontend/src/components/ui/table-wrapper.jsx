@@ -6,9 +6,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "./table"
-import { Skeleton } from "./skeleton"
-import { cn } from "../../lib/utils"
+} from "@/components/ui/table"
+import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 
 const TableWrapper = ({ 
   columns = [],

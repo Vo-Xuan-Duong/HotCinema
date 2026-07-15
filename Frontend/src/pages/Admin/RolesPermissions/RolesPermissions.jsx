@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TableWrapper } from '../../../components/ui/table-wrapper';
-import { Button } from '../../../components/ui/button';
-import { Modal } from '../../../components/ui/modal';
-import { Input } from '../../../components/ui/input';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select';
-import { Textarea } from '../../../components/ui/textarea';
-import { Tag } from '../../../components/ui/tag';
-import { Card } from '../../../components/ui/card';
-import { Statistic } from '../../../components/ui/statistic';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
-import { Checkbox } from '../../../components/ui/checkbox';
-import { Separator } from '../../../components/ui/separator';
-import { Alert } from '../../../components/ui/alert';
-import { Empty } from '../../../components/ui/empty';
-import { Pagination } from '../../../components/ui/pagination';
+import { TableWrapper } from '@/components/ui/table-wrapper';
+import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/modal';
+import { Input } from '@/components/ui/input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Tag } from '@/components/ui/tag';
+import { Card } from '@/components/ui/card';
+import { Statistic } from '@/components/ui/statistic';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
+import { Alert } from '@/components/ui/alert';
+import { Empty } from '@/components/ui/empty';
+import { Pagination } from '@/components/ui/pagination';
 import { Loader2 } from 'lucide-react';
 import {
     Shield,
@@ -29,9 +29,9 @@ import {
     Search,
     Settings
 } from 'lucide-react';
-import roleService from '../../../services/roleService';
-import permissionService from '../../../services/permissionService';
-import { useNotification } from '../../../hooks/useNotification';
+import roleService from '@/services/roleService';
+import permissionService from '@/services/permissionService';
+import { useNotification } from '@/hooks/useNotification';
 
 const RolesPermissions = () => {
     const navigate = useNavigate();

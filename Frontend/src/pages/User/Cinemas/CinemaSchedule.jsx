@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Home, Store, MapPin, Clock, Play, Info } from 'lucide-react';
-import { Button } from '../../../components/ui/button';
-import { Card } from '../../../components/ui/card';
-import { Tag } from '../../../components/ui/tag';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
-import { Avatar } from '../../../components/ui/avatar';
-import { Alert } from '../../../components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Tag } from '@/components/ui/tag';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { Avatar } from '@/components/ui/avatar';
+import { Alert } from '@/components/ui/alert';
 
 const CinemaSchedule = () => {
     const { cinemaId } = useParams();

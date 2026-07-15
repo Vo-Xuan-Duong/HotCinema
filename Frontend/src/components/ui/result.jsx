@@ -1,59 +1,53 @@
 import * as React from "react"
-import { CheckCircle2, XCircle, Info, AlertCircle } from "lucide-react"
-import { cn } from "../../lib/utils"
-import { Button } from "./button"
+import { AlertCircle, CheckCircle2, Info, XCircle } from "lucide-react"
+import { cn } from "@/lib/utils"
 
-const Result = ({ 
+const Result = ({
   status = "success",
   title,
   subTitle,
   extra,
   icon,
   className,
-  ...props 
+  ...props
 }) => {
   const statusConfig = {
     success: {
-      icon: <CheckCircle2 className="h-16 w-16 text-green-500" />,
-      iconBg: "bg-green-50",
+      icon: <CheckCircle2 className="h-16 w-16 text-emerald-600" />,
+      iconBg: "bg-emerald-50",
     },
     error: {
-      icon: <XCircle className="h-16 w-16 text-red-500" />,
-      iconBg: "bg-red-50",
+      icon: <XCircle className="h-16 w-16 text-destructive" />,
+      iconBg: "bg-destructive/10",
     },
     info: {
-      icon: <Info className="h-16 w-16 text-blue-500" />,
-      iconBg: "bg-blue-50",
+      icon: <Info className="h-16 w-16 text-sky-600" />,
+      iconBg: "bg-sky-50",
     },
     warning: {
-      icon: <AlertCircle className="h-16 w-16 text-yellow-500" />,
-      iconBg: "bg-yellow-50",
+      icon: <AlertCircle className="h-16 w-16 text-amber-600" />,
+      iconBg: "bg-amber-50",
     },
   }
 
   const config = statusConfig[status] || statusConfig.success
 
   return (
-    <div
-      className={cn("flex flex-col items-center justify-center py-8 px-4", className)}
-      {...props}
-    >
-      <div className={cn("rounded-full p-4 mb-4", config.iconBg)}>
+    <div className={cn("flex flex-col items-center justify-center px-4 py-8", className)} {...props}>
+      <div className={cn("mb-4 rounded-full p-4", config.iconBg)}>
         {icon || config.icon}
       </div>
-      {title && (
-        <h3 className="text-xl font-semibold mb-2 text-gray-900">{title}</h3>
-      )}
+      {title && <h3 className="mb-2 text-xl font-semibold text-foreground">{title}</h3>}
       {subTitle && (
-        <div className="text-sm text-gray-600 text-center mb-6 max-w-md">
+        <div className="mb-6 max-w-md text-center text-sm text-muted-foreground">
           {subTitle}
         </div>
       )}
       {extra && (
-        <div className="flex gap-2 flex-wrap justify-center">
-          {Array.isArray(extra) ? extra.map((item, index) => (
-            <React.Fragment key={index}>{item}</React.Fragment>
-          )) : extra}
+        <div className="flex flex-wrap justify-center gap-2">
+          {Array.isArray(extra)
+            ? extra.map((item, index) => <React.Fragment key={index}>{item}</React.Fragment>)
+            : extra}
         </div>
       )}
     </div>
@@ -61,5 +55,3 @@ const Result = ({
 }
 
 export { Result }
-
-

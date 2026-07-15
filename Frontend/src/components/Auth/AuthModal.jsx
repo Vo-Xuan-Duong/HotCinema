@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import LoginForm from './LoginForm';
-import RegisterForm from './RegisterForm';
-import OTPVerificationForm from './OTPVerificationForm';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import LoginForm from '@/components/Auth/LoginForm';
+import RegisterForm from '@/components/Auth/RegisterForm';
+import OTPVerificationForm from '@/components/Auth/OTPVerificationForm';
 
 const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
     const [currentMode, setCurrentMode] = useState(initialMode);

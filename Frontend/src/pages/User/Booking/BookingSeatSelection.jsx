@@ -13,19 +13,19 @@ import {
     Heart as HeartIcon,
     User
 } from 'lucide-react';
-import { Tag } from '../../../components/ui/tag';
-import { Input } from '../../../components/ui/input';
-import { Button } from '../../../components/ui/button';
-import { Tooltip, TooltipTrigger, TooltipContent } from '../../../components/ui/tooltip';
+import { Tag } from '@/components/ui/tag';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import dayjs from 'dayjs';
-import ContentLoader from '../../../components/Loading/ContentLoader';
-import useNotification from '../../../hooks/useNotification';
-import promotionService from '../../../services/promotionService';
-import showtimeService from '../../../services/showtimeService';
-import bookingService from '../../../services/bookingService';
-import useSeatWebSocket from '../../../hooks/useSeatWebSocket';
-import useAuth from '../../../hooks/useAuth';
-import AuthModal from '../../../components/Auth/AuthModal';
+import ContentLoader from '@/components/Loading/ContentLoader';
+import useNotification from '@/hooks/useNotification';
+import promotionService from '@/services/promotionService';
+import showtimeService from '@/services/showtimeService';
+import bookingService from '@/services/bookingService';
+import useSeatWebSocket from '@/hooks/useSeatWebSocket';
+import useAuth from '@/hooks/useAuth';
+import AuthModal from '@/components/Auth/AuthModal';
 
 const BookingSeatSelection = () => {
     const { showtimeId } = useParams();

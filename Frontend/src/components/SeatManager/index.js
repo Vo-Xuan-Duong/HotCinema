@@ -1,1 +1,1 @@
-export { default } from './SeatManager';
+export { default } from '@/components/SeatManager/SeatManager';

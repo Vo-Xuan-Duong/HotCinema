@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Dialog, DialogContent } from '../ui/dialog';
-import { Button } from '../ui/button';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { Play, X, Maximize2, Share2, Loader2 } from 'lucide-react';
-import useNotification from '../../hooks/useNotification';
+import useNotification from '@/hooks/useNotification';
 
 const TrailerModal = ({ isOpen, onClose, trailerUrl, movieTitle }) => {
   const notification = useNotification();

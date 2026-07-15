@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Slider from 'react-slick';
-import MovieCard from '../MovieCard/MovieCard';
-import TrailerModal from '../Trailer/TrailerModal';
+import MovieCard from '@/components/MovieCard/MovieCard';
+import TrailerModal from '@/components/Trailer/TrailerModal';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 

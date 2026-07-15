@@ -1,22 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card } from '../../../components/ui/card';
-import { Button } from '../../../components/ui/button';
-import { TableWrapper } from '../../../components/ui/table-wrapper';
-import { Modal } from '../../../components/ui/modal';
-import { Input } from '../../../components/ui/input';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select';
-import { InputNumber } from '../../../components/ui/input-number';
-import { RadioGroup } from '../../../components/ui/radio-group';
-import { Separator } from '../../../components/ui/separator';
-import { Statistic } from '../../../components/ui/statistic';
-import { Tag } from '../../../components/ui/tag';
-import { Avatar } from '../../../components/ui/avatar';
-import { Empty } from '../../../components/ui/empty';
-import { Badge } from '../../../components/ui/badge-count';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
-import { Alert } from '../../../components/ui/alert';
-import { Descriptions } from '../../../components/ui/descriptions';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { TableWrapper } from '@/components/ui/table-wrapper';
+import { Modal } from '@/components/ui/modal';
+import { Input } from '@/components/ui/input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { InputNumber } from '@/components/ui/input-number';
+import { RadioGroup } from '@/components/ui/radio-group';
+import { Separator } from '@/components/ui/separator';
+import { Statistic } from '@/components/ui/statistic';
+import { Tag } from '@/components/ui/tag';
+import { Avatar } from '@/components/ui/avatar';
+import { Empty } from '@/components/ui/empty';
+import { Badge } from '@/components/ui/badge-count';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { Alert } from '@/components/ui/alert';
+import { Descriptions } from '@/components/ui/descriptions';
 import {
     ArrowLeft,
     Plus,
@@ -35,9 +35,9 @@ import {
     Building2,
     FileText
 } from 'lucide-react';
-import { useNotification } from '../../../hooks/useNotification';
-import cinemaService from '../../../services/cinemaService';
-import roomService from '../../../services/roomService';
+import { useNotification } from '@/hooks/useNotification';
+import cinemaService from '@/services/cinemaService';
+import roomService from '@/services/roomService';
 
 const CinemaDetail = () => {
     const { id } = useParams();

@@ -1,10 +1,10 @@
-.booking-history-antd {
+.booking-history-shadcn {
     min-height: 100vh;
     background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
     padding: 20px 0;
 }
 
-.booking-history-antd .container {
+.booking-history-shadcn .container {
     max-width: 1400px;
     margin: 0 auto;
     padding: 0 20px;
@@ -355,7 +355,7 @@
 }
 
 @media (max-width: 576px) {
-    .booking-history-antd .container {
+    .booking-history-shadcn .container {
         padding: 0 15px;
     }
 
@@ -764,7 +764,7 @@
 }
 
 @media (max-width: 576px) {
-    .booking-history-antd {
+    .booking-history-shadcn {
         padding: 16px 0;
     }
 

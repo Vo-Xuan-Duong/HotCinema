@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowUp } from 'lucide-react';
-import HeroModern from '../../../components/HeroSection/HeroModern';
-import MovieShowcase from '../../../components/MovieShowcase/MovieShowcase';
-import FeaturedContent from '../../../components/FeaturedContent/FeaturedContent';
-import FeaturesSection from '../../../components/FeaturesSection/FeaturesSection';
-import ContentLoader from '../../../components/Loading/ContentLoader';
-import GlobalBackTop from '../../../components/GlobalBackTop/GlobalBackTop';
-import movieService from '../../../services/movieService';
+import HeroModern from '@/components/HeroSection/HeroModern';
+import MovieShowcase from '@/components/MovieShowcase/MovieShowcase';
+import FeaturedContent from '@/components/FeaturedContent/FeaturedContent';
+import FeaturesSection from '@/components/FeaturesSection/FeaturesSection';
+import ContentLoader from '@/components/Loading/ContentLoader';
+import GlobalBackTop from '@/components/GlobalBackTop/GlobalBackTop';
+import movieService from '@/services/movieService';
 
 const Home = () => {
   const [loading, setLoading] = useState(true);

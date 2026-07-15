@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Trash2, Plus, Minus } from 'lucide-react';
-import { Button } from '../../../components/ui/button';
-import { Card } from '../../../components/ui/card';
-import { Tag } from '../../../components/ui/tag';
-import { Empty } from '../../../components/ui/empty';
-import { List } from '../../../components/ui/list';
-import { Separator } from '../../../components/ui/separator';
-import { InputNumber } from '../../../components/ui/input-number';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Tag } from '@/components/ui/tag';
+import { Empty } from '@/components/ui/empty';
+import { List } from '@/components/ui/list';
+import { Separator } from '@/components/ui/separator';
+import { InputNumber } from '@/components/ui/input-number';
 import { useNavigate } from 'react-router-dom';
-import useNotification from '../../../hooks/useNotification';
+import useNotification from '@/hooks/useNotification';
 
 const Cart = () => {
     const navigate = useNavigate();

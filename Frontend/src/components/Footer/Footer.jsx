@@ -1,6 +1,6 @@
 import React from 'react';
 import { Facebook, Instagram, Twitter, Youtube, Phone, Mail, MapPin, CreditCard, Banknote, Smartphone, QrCode } from 'lucide-react';
-import { Separator } from '../ui/separator';
+import { Separator } from '@/components/ui/separator';
 
 const Footer = () => {
     const currentYear = new Date().getFullYear();

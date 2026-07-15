@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card } from '../../../components/ui/card';
-import { Button } from '../../../components/ui/button';
-import { Tag } from '../../../components/ui/tag';
-import { Breadcrumb } from '../../../components/ui/breadcrumb';
-import { Alert } from '../../../components/ui/alert';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tag } from '@/components/ui/tag';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { Alert } from '@/components/ui/alert';
 import {
     ArrowLeft,
     Home,
@@ -12,10 +12,10 @@ import {
     Loader2,
     AlertTriangle
 } from 'lucide-react';
-import SeatManager from '../../../components/SeatManager/SeatManager';
-import cinemaService from '../../../services/cinemaService';
-import roomService from '../../../services/roomService';
-import { useNotification } from '../../../hooks/useNotification';
+import SeatManager from '@/components/SeatManager/SeatManager';
+import cinemaService from '@/services/cinemaService';
+import roomService from '@/services/roomService';
+import { useNotification } from '@/hooks/useNotification';
 
 const SeatManagement = () => {
     const { cinemaId, roomId } = useParams();
