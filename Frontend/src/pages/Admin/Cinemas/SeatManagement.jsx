@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tag } from '@/components/ui/tag';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Alert } from '@/components/ui/alert';
 import {
@@ -45,7 +45,7 @@ const SeatManagement = () => {
                 : null;
 
             if (!roomData) {
-                showNotification('error', 'Lỗi', 'Không tìm thấy phòng chiếu');
+                showNotification('error', 'Lá»—i', 'KhÃ´ng tÃ¬m tháº¥y phÃ²ng chiáº¿u');
                 navigate(`/admin/cinemas/${cinemaId}`);
                 return;
             }
@@ -53,7 +53,7 @@ const SeatManagement = () => {
             setRoom(roomData);
         } catch (error) {
             console.error('Error loading data:', error);
-            showNotification('error', 'Lỗi', 'Không thể tải thông tin');
+            showNotification('error', 'Lá»—i', 'KhÃ´ng thá»ƒ táº£i thÃ´ng tin');
             navigate(`/admin/cinemas/${cinemaId}`);
         } finally {
             setLoading(false);
@@ -70,12 +70,12 @@ const SeatManagement = () => {
 
         try {
             await cinemaService.updateRoom(cinemaId, room.id, updatedRoom);
-            showNotification('success', 'Thành công', 'Lưu sơ đồ ghế thành công');
-            // Có thể navigate về trang chi tiết hoặc reload
+            showNotification('success', 'ThÃ nh cÃ´ng', 'LÆ°u sÆ¡ Ä‘á»“ gháº¿ thÃ nh cÃ´ng');
+            // CÃ³ thá»ƒ navigate vá» trang chi tiáº¿t hoáº·c reload
             await loadData();
         } catch (error) {
             console.error('Error saving seat layout:', error);
-            showNotification('error', 'Lỗi', error.response?.data?.message || 'Lưu sơ đồ ghế thất bại');
+            showNotification('error', 'Lá»—i', error.response?.data?.message || 'LÆ°u sÆ¡ Ä‘á»“ gháº¿ tháº¥t báº¡i');
         }
     };
 
@@ -103,15 +103,15 @@ const SeatManagement = () => {
                             href: '/admin/dashboard'
                         },
                         {
-                            title: 'Quản lý rạp',
+                            title: 'Quáº£n lÃ½ ráº¡p',
                             icon: <Building2 className="h-4 w-4" />,
                             href: '/admin/cinemas'
                         },
                     ]}
                 />
                 <Alert
-                    message="Không tìm thấy thông tin"
-                    description="Phòng chiếu hoặc rạp không tồn tại."
+                    message="KhÃ´ng tÃ¬m tháº¥y thÃ´ng tin"
+                    description="PhÃ²ng chiáº¿u hoáº·c ráº¡p khÃ´ng tá»“n táº¡i."
                     type="error"
                     showIcon
                 />
@@ -122,7 +122,7 @@ const SeatManagement = () => {
                         className="border-gray-300 hover:bg-gray-50"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Quay lại
+                        Quay láº¡i
                     </Button>
                 </div>
             </div>
@@ -141,16 +141,16 @@ const SeatManagement = () => {
                         href: '/admin/dashboard'
                     },
                     {
-                        title: 'Quản lý rạp',
+                        title: 'Quáº£n lÃ½ ráº¡p',
                         icon: <Building2 className="h-4 w-4" />,
                         href: '/admin/cinemas'
                     },
                     {
-                        title: cinema?.name || 'Chi tiết rạp',
+                        title: cinema?.name || 'Chi tiáº¿t ráº¡p',
                         href: `/admin/cinemas/${cinemaId}`
                     },
                     {
-                        title: `Quản lý sơ đồ ghế - ${room?.name || ''}`,
+                        title: `Quáº£n lÃ½ sÆ¡ Ä‘á»“ gháº¿ - ${room?.name || ''}`,
                     },
                 ]}
             />
@@ -160,13 +160,13 @@ const SeatManagement = () => {
                 <div className="flex justify-between items-center flex-wrap gap-4">
                     <div>
                         <h2 className="text-2xl font-bold m-0 mb-2 text-gray-800">
-                            Quản lý sơ đồ ghế
+                            Quáº£n lÃ½ sÆ¡ Ä‘á»“ gháº¿
                         </h2>
                         <div className="flex items-center gap-3 flex-wrap">
                             <span className="text-sm text-gray-600">
                                 {cinema.name} - {room.name}
                             </span>
-                            <Tag color="blue">
+                            <StatusBadge tone="blue">
                                 {room.theaterType
                                     ? (room.theaterType === 'TWO_D' ? '2D' :
                                         room.theaterType === 'THREE_D' ? '3D' :
@@ -175,7 +175,7 @@ const SeatManagement = () => {
                                                     room.theaterType === 'FOUR_DX' ? '4DX' :
                                                         room.theaterType === 'SCREEN_X' ? 'ScreenX' : room.theaterType)
                                     : (roomService.mapRoomTypeToFrontend(room.roomType) || 'N/A')}
-                            </Tag>
+                            </StatusBadge>
                         </div>
                     </div>
                     <Button
@@ -185,7 +185,7 @@ const SeatManagement = () => {
                         className="border-gray-300 hover:bg-gray-50"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Quay lại
+                        Quay láº¡i
                     </Button>
                 </div>
             </Card>
@@ -203,4 +203,3 @@ const SeatManagement = () => {
 };
 
 export default SeatManagement;
-

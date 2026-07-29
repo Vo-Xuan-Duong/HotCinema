@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import {
     LayoutDashboard,
     Video,
@@ -23,12 +23,11 @@ import {
     CreditCard
 } from 'lucide-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useTheme } from '@/context/ThemeContext';
 import ScrollToTop from '@/components/ScrollToTop';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge-count';
-import { Menu } from '@/components/ui/menu';
+import { NavLinks } from '@/components/ui/nav-links';
 import { Sidebar, SidebarHeader, SidebarContent } from '@/components/ui/sidebar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
@@ -36,84 +35,84 @@ import { cn } from '@/lib/utils';
 const AdminSider = memo(({ collapsed, isMobile, location, onMenuClick }) => {
     const menuItems = useMemo(() => [
         {
-            key: '/admin/dashboard',
+            href: '/admin/dashboard',
             icon: <LayoutDashboard className="h-4 w-4" />,
             label: 'Dashboard',
         },
         {
-            key: '/admin/movies',
+            href: '/admin/movies',
             icon: <Video className="h-4 w-4" />,
-            label: 'Quản lý phim',
+            label: 'Quáº£n lÃ½ phim',
         },
         {
-            key: '/admin/cinemas',
+            href: '/admin/cinemas',
             icon: <Store className="h-4 w-4" />,
-            label: 'Quản lý rạp',
+            label: 'Quáº£n lÃ½ ráº¡p',
         },
         {
-            key: '/admin/comments',
+            href: '/admin/comments',
             icon: <MessageSquare className="h-4 w-4" />,
-            label: 'Bình luận',
+            label: 'BÃ¬nh luáº­n',
         },
         {
-            key: '/admin/schedules',
+            href: '/admin/schedules',
             icon: <Calendar className="h-4 w-4" />,
-            label: 'Lịch chiếu',
+            label: 'Lá»‹ch chiáº¿u',
         },
         {
-            key: '/admin/users',
+            href: '/admin/users',
             icon: <Users className="h-4 w-4" />,
-            label: 'Người dùng',
+            label: 'NgÆ°á»i dÃ¹ng',
         },
         {
-            key: '/admin/bookings',
+            href: '/admin/bookings',
             icon: <FileText className="h-4 w-4" />,
-            label: 'Đặt vé',
+            label: 'Äáº·t vÃ©',
         },
         {
-            key: '/admin/payment',
+            href: '/admin/payment',
             icon: <CreditCard className="h-4 w-4" />,
-            label: 'Thanh toán',
+            label: 'Thanh toÃ¡n',
         },
         {
-            key: '/admin/reports',
+            href: '/admin/reports',
             icon: <BarChart3 className="h-4 w-4" />,
-            label: 'Báo cáo',
+            label: 'BÃ¡o cÃ¡o',
         },
         {
-            key: '/admin/promotions',
+            href: '/admin/promotions',
             icon: <Gift className="h-4 w-4" />,
-            label: 'Khuyến mãi',
+            label: 'Khuyáº¿n mÃ£i',
         },
         {
-            key: '/admin/notifications',
+            href: '/admin/notifications',
             icon: <BellRing className="h-4 w-4" />,
-            label: 'Thông báo',
+            label: 'ThÃ´ng bÃ¡o',
         },
         {
-            key: '/admin/staff',
+            href: '/admin/staff',
             icon: <Shield className="h-4 w-4" />,
-            label: 'Nhân viên',
+            label: 'NhÃ¢n viÃªn',
         },
         {
-            key: '/admin/roles-permissions',
+            href: '/admin/roles-permissions',
             icon: <Lock className="h-4 w-4" />,
-            label: 'Vai trò & Quyền',
+            label: 'Vai trÃ² & Quyá»n',
         },
         {
-            key: '/admin/food-beverage',
+            href: '/admin/food-beverage',
             icon: <Coffee className="h-4 w-4" />,
-            label: 'Đồ ăn & Đồ uống',
+            label: 'Äá»“ Äƒn & Äá»“ uá»‘ng',
         },
         {
-            key: '/admin/testing',
+            href: '/admin/testing',
             icon: <Bug className="h-4 w-4" />,
             label: 'Testing',
         },
         {
-            key: '/admin/settings',
+            href: '/admin/settings',
             icon: <Settings className="h-4 w-4" />,
-            label: 'Cài đặt',
+            label: 'CÃ i Ä‘áº·t',
         },
     ], []);
 
@@ -123,6 +122,7 @@ const AdminSider = memo(({ collapsed, isMobile, location, onMenuClick }) => {
                 "transition-all duration-300",
                 collapsed && !isMobile && "w-[60px]",
                 !collapsed && !isMobile && "w-[200px]",
+                isMobile && "fixed inset-y-0 left-0 w-[min(18rem,85vw)] shadow-2xl",
                 isMobile && collapsed && "-translate-x-full",
                 isMobile && !collapsed && "translate-x-0"
             )}
@@ -132,7 +132,7 @@ const AdminSider = memo(({ collapsed, isMobile, location, onMenuClick }) => {
         >
             <SidebarHeader>
                 <div className="flex items-center gap-3 w-full">
-                    <span className="text-[28px] flex-shrink-0">🎬</span>
+                    <span className="text-[28px] flex-shrink-0">ðŸŽ¬</span>
                     {!collapsed && (
                         <div className="flex-1 overflow-hidden">
                             <h4 className="text-primary m-0 font-bold bg-gradient-to-r from-primary to-[#ff6b35] bg-clip-text text-transparent text-lg">
@@ -144,11 +144,11 @@ const AdminSider = memo(({ collapsed, isMobile, location, onMenuClick }) => {
             </SidebarHeader>
 
             <SidebarContent className="custom-scrollbar">
-                <Menu
-                    items={menuItems}
-                    selectedKeys={[location.pathname]}
-                    onClick={onMenuClick}
-                    mode="vertical"
+                <NavLinks
+                    links={menuItems}
+                    currentPath={location.pathname}
+                    onNavigate={onMenuClick}
+                    orientation="vertical"
                     className="p-2"
                 />
             </SidebarContent>
@@ -229,19 +229,19 @@ const AdminHeader = memo(({ collapsed, isMobile, onToggle }) => {
                     <DropdownMenuContent align="end" className="min-w-[200px]">
                         <DropdownMenuItem onClick={() => handleMenuClick('profile')} className="flex items-center gap-3">
                             <User className="h-4 w-4" />
-                            <span>Hồ sơ cá nhân</span>
+                            <span>Há»“ sÆ¡ cÃ¡ nhÃ¢n</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleMenuClick('settings')} className="flex items-center gap-3">
                             <Settings className="h-4 w-4" />
-                            <span>Cài đặt</span>
+                            <span>CÃ i Ä‘áº·t</span>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                            onClick={() => handleMenuClick('logout')} 
+                        <DropdownMenuItem
+                            onClick={() => handleMenuClick('logout')}
                             className="flex items-center gap-3 text-red-600 focus:text-red-600"
                         >
                             <LogOut className="h-4 w-4" />
-                            <span>Đăng xuất</span>
+                            <span>ÄÄƒng xuáº¥t</span>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -257,7 +257,6 @@ const AdminLayout = () => {
     const [isMobile, setIsMobile] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
-    const { theme } = useTheme();
 
     useEffect(() => {
         const checkScreenSize = () => {
@@ -275,14 +274,23 @@ const AdminLayout = () => {
 
     const handleMenuClick = useCallback((key) => {
         navigate(key);
-    }, [navigate]);
+        if (isMobile) setCollapsed(true);
+    }, [isMobile, navigate]);
 
     const handleToggle = useCallback(() => {
         setCollapsed(prev => !prev);
     }, []);
 
     return (
-        <div className="min-h-screen flex flex-row bg-white">
+        <div className="flex min-h-dvh bg-muted/30">
+            {isMobile && !collapsed && (
+                <button
+                    type="button"
+                    aria-label="ÄÃ³ng menu quáº£n trá»‹"
+                    className="fixed inset-0 z-[999] bg-black/40 backdrop-blur-[1px]"
+                    onClick={() => setCollapsed(true)}
+                />
+            )}
             <AdminSider
                 collapsed={collapsed}
                 isMobile={isMobile}
@@ -291,7 +299,7 @@ const AdminLayout = () => {
             />
 
             <div
-                className="flex-1 flex flex-col"
+                className="min-w-0 flex-1 flex flex-col"
                 style={{
                     marginLeft: isMobile ? 0 : (collapsed ? 60 : 200),
                     transition: 'margin-left 0.3s ease',
@@ -304,12 +312,12 @@ const AdminLayout = () => {
                 />
 
                 <main
-                    className="bg-gray-50 flex-1"
+                    className="flex-1 bg-muted/30"
                     style={{
                         marginTop: '64px',
                     }}
                 >
-                    <div className="bg-white rounded-xl p-4 shadow-lg">
+                    <div className="mx-auto w-full max-w-[1600px] p-3 sm:p-5 lg:p-6">
                         <ScrollToTop />
                         <Outlet />
                     </div>

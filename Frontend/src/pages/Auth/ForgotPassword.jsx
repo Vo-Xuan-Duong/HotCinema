@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { Result } from '@/components/ui/result';
+import { ResultState } from '@/components/ui/result-state';
 import useNotification from '@/hooks/useNotification';
+import { authService } from '@/services/authService';
 
 const ForgotPassword = () => {
     const [formData, setFormData] = useState({ email: '' });
@@ -26,9 +27,9 @@ const ForgotPassword = () => {
     const validate = () => {
         const newErrors = {};
         if (!formData.email) {
-            newErrors.email = 'Vui lòng nhập email!';
+            newErrors.email = 'Vui lÃ²ng nháº­p email!';
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-            newErrors.email = 'Email không hợp lệ!';
+            newErrors.email = 'Email khÃ´ng há»£p lá»‡!';
         }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -41,21 +42,22 @@ const ForgotPassword = () => {
         setLoading(true);
         try {
             await authService.forgotPassword(formData.email);
-            notification.success('Mã OTP đã được gửi đến email của bạn!');
-            navigate('/verify-otp', { state: { email: formData.email } });
+            setSentEmail(formData.email);
+            setEmailSent(true);
+            notification.success('MÃ£ OTP Ä‘Ã£ Ä‘Æ°á»£c gá»­i Ä‘áº¿n email cá»§a báº¡n!');
         } catch (error) {
             console.error('Forgot password error:', error);
             if (error.response) {
                 const { data, status } = error.response;
                 if (status === 404) {
-                    notification.error('Email không tồn tại trong hệ thống!');
+                    notification.error('Email khÃ´ng tá»“n táº¡i trong há»‡ thá»‘ng!');
                 } else if (status === 429) {
-                    notification.error('Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau!');
+                    notification.error('Báº¡n Ä‘Ã£ gá»­i quÃ¡ nhiá»u yÃªu cáº§u. Vui lÃ²ng thá»­ láº¡i sau!');
                 } else {
-                    notification.error(data.message || 'Không thể gửi email. Vui lòng thử lại!');
+                    notification.error(data.message || 'KhÃ´ng thá»ƒ gá»­i email. Vui lÃ²ng thá»­ láº¡i!');
                 }
             } else {
-                notification.error('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng!');
+                notification.error('KhÃ´ng thá»ƒ káº¿t ná»‘i Ä‘áº¿n server. Vui lÃ²ng kiá»ƒm tra káº¿t ná»‘i máº¡ng!');
             }
         } finally {
             setLoading(false);
@@ -65,13 +67,11 @@ const ForgotPassword = () => {
     const handleResend = async () => {
         setLoading(true);
         try {
-            // TODO: Gọi API gửi lại email
-            // await authService.forgotPassword(sentEmail);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            notification.success('Email đã được gửi lại!');
+            await authService.forgotPassword(sentEmail);
+            notification.success('Email Ä‘Ã£ Ä‘Æ°á»£c gá»­i láº¡i!');
         } catch (error) {
             console.error('Resend email error:', error);
-            notification.error('Không thể gửi lại email. Vui lòng thử lại!');
+            notification.error('KhÃ´ng thá»ƒ gá»­i láº¡i email. Vui lÃ²ng thá»­ láº¡i!');
         } finally {
             setLoading(false);
         }
@@ -90,7 +90,7 @@ const ForgotPassword = () => {
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-3">
                                     <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-primary to-red-600 rounded-xl shadow-lg flex-shrink-0">
-                                        <span className="text-2xl">🎬</span>
+                                        <span className="text-2xl">ðŸŽ¬</span>
                                     </div>
                                     <div>
                                         <h1 className="text-2xl md:text-3xl font-extrabold m-0 bg-gradient-to-r from-primary via-red-600 to-orange-500 bg-clip-text text-transparent leading-tight">
@@ -103,23 +103,23 @@ const ForgotPassword = () => {
                                     size="icon"
                                     onClick={() => navigate('/')}
                                     className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 h-8 w-8 rounded-lg"
-                                    title="Hủy"
+                                    title="Há»§y"
                                 >
                                     <X className="h-4 w-4" />
                                 </Button>
                             </div>
-                            <p className="text-gray-600 text-sm font-medium text-center">Email đã được gửi</p>
+                            <p className="text-gray-600 text-sm font-medium text-center">Email Ä‘Ã£ Ä‘Æ°á»£c gá»­i</p>
                         </div>
 
-                        <Result
-                            status="success"
-                            title="Email đã được gửi!"
-                            subTitle={
+                        <ResultState
+                            state="success"
+                            heading="Email Ä‘Ã£ Ä‘Æ°á»£c gá»­i!"
+                            description={
                                 <div className="text-center">
-                                    <p className="mb-2">Chúng tôi đã gửi hướng dẫn khôi phục mật khẩu đến</p>
+                                    <p className="mb-2">ChÃºng tÃ´i Ä‘Ã£ gá»­i hÆ°á»›ng dáº«n khÃ´i phá»¥c máº­t kháº©u Ä‘áº¿n</p>
                                     <strong className="text-primary">{sentEmail}</strong>
                                     <p className="mt-2 text-gray-600">
-                                        Vui lòng kiểm tra hộp thư đến và cả thư mục spam.
+                                        Vui lÃ²ng kiá»ƒm tra há»™p thÆ° Ä‘áº¿n vÃ  cáº£ thÆ° má»¥c spam.
                                     </p>
                                 </div>
                             }
@@ -131,14 +131,14 @@ const ForgotPassword = () => {
                                     variant="outline"
                                 >
                                     <Send className="h-4 w-4 mr-2" />
-                                    Gửi lại email
+                                    Gá»­i láº¡i email
                                 </Button>,
                                 <Button
                                     key="back"
                                     onClick={handleBackToLogin}
                                 >
                                     <ArrowLeft className="h-4 w-4 mr-2" />
-                                    Quay lại đăng nhập
+                                    Quay láº¡i Ä‘Äƒng nháº­p
                                 </Button>
                             ]}
                         />
@@ -153,23 +153,23 @@ const ForgotPassword = () => {
                             <div className="w-20 h-20 mx-auto mb-5 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
                                 <Mail className="h-10 w-10" />
                             </div>
-                            <h2 className="text-3xl font-bold mb-4">Email đã được gửi!</h2>
+                            <h2 className="text-3xl font-bold mb-4">Email Ä‘Ã£ Ä‘Æ°á»£c gá»­i!</h2>
                             <p className="text-base mb-6 text-white/90 leading-relaxed">
-                                Chúng tôi đã gửi hướng dẫn khôi phục mật khẩu đến email của bạn.
-                                Vui lòng kiểm tra hộp thư đến và làm theo hướng dẫn.
+                                ChÃºng tÃ´i Ä‘Ã£ gá»­i hÆ°á»›ng dáº«n khÃ´i phá»¥c máº­t kháº©u Ä‘áº¿n email cá»§a báº¡n.
+                                Vui lÃ²ng kiá»ƒm tra há»™p thÆ° Ä‘áº¿n vÃ  lÃ m theo hÆ°á»›ng dáº«n.
                             </p>
                             <div className="space-y-2 text-left">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-lg">✓</span>
-                                    <span className="text-white/90 text-sm">Liên kết có hiệu lực trong 15 phút</span>
+                                    <span className="text-lg">âœ“</span>
+                                    <span className="text-white/90 text-sm">LiÃªn káº¿t cÃ³ hiá»‡u lá»±c trong 15 phÃºt</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-lg">✓</span>
-                                    <span className="text-white/90 text-sm">Kiểm tra cả thư mục spam</span>
+                                    <span className="text-lg">âœ“</span>
+                                    <span className="text-white/90 text-sm">Kiá»ƒm tra cáº£ thÆ° má»¥c spam</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-lg">✓</span>
-                                    <span className="text-white/90 text-sm">Có thể yêu cầu gửi lại email</span>
+                                    <span className="text-lg">âœ“</span>
+                                    <span className="text-white/90 text-sm">CÃ³ thá»ƒ yÃªu cáº§u gá»­i láº¡i email</span>
                                 </div>
                             </div>
                         </div>
@@ -187,7 +187,7 @@ const ForgotPassword = () => {
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
                                 <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-primary to-red-600 rounded-xl shadow-lg flex-shrink-0">
-                                    <span className="text-2xl">🎬</span>
+                                    <span className="text-2xl">ðŸŽ¬</span>
                                 </div>
                                 <div>
                                     <h1 className="text-2xl md:text-3xl font-extrabold m-0 bg-gradient-to-r from-primary via-red-600 to-orange-500 bg-clip-text text-transparent leading-tight">
@@ -200,12 +200,12 @@ const ForgotPassword = () => {
                                 size="icon"
                                 onClick={() => navigate('/')}
                                 className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 h-8 w-8 rounded-lg"
-                                title="Hủy"
+                                title="Há»§y"
                             >
                                 <X className="h-4 w-4" />
                             </Button>
                         </div>
-                        <p className="text-gray-600 text-sm font-medium text-center">Khôi phục mật khẩu</p>
+                        <p className="text-gray-600 text-sm font-medium text-center">KhÃ´i phá»¥c máº­t kháº©u</p>
                     </div>
 
                     <div className="w-full">
@@ -214,11 +214,11 @@ const ForgotPassword = () => {
                                 <Mail className="h-8 w-8" />
                             </div>
                             <h2 className="text-xl md:text-2xl font-bold m-0 mb-2 text-gray-800">
-                                Quên mật khẩu?
+                                QuÃªn máº­t kháº©u?
                             </h2>
                             <p className="text-gray-600 text-sm leading-relaxed m-0 max-w-[400px] mx-auto">
-                                Nhập email đã đăng ký của bạn. Chúng tôi sẽ gửi hướng dẫn
-                                khôi phục mật khẩu đến email của bạn.
+                                Nháº­p email Ä‘Ã£ Ä‘Äƒng kÃ½ cá»§a báº¡n. ChÃºng tÃ´i sáº½ gá»­i hÆ°á»›ng dáº«n
+                                khÃ´i phá»¥c máº­t kháº©u Ä‘áº¿n email cá»§a báº¡n.
                             </p>
                         </div>
 
@@ -230,7 +230,7 @@ const ForgotPassword = () => {
                                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                                         <Input
                                             type="email"
-                                            placeholder="Email đã đăng ký"
+                                            placeholder="Email Ä‘Ã£ Ä‘Äƒng kÃ½"
                                             value={formData.email}
                                             onChange={(e) => handleChange('email', e.target.value)}
                                             className="pl-10 h-10 rounded-lg border-gray-200 hover:border-primary/60 focus:border-primary transition-all"
@@ -247,10 +247,10 @@ const ForgotPassword = () => {
                                     disabled={loading}
                                     className="w-full h-10 text-sm font-semibold bg-gradient-to-r from-blue-500 to-blue-600 border-0 rounded-lg transition-all duration-200 hover:from-blue-600 hover:to-blue-700 hover:-translate-y-0.5 hover:shadow-xl"
                                 >
-                                    {loading ? 'Đang gửi...' : (
+                                    {loading ? 'Äang gá»­i...' : (
                                         <>
                                             <Send className="h-4 w-4 mr-2" />
-                                            Gửi email khôi phục
+                                            Gá»­i email khÃ´i phá»¥c
                                         </>
                                     )}
                                 </Button>
@@ -265,7 +265,7 @@ const ForgotPassword = () => {
                                 className="text-gray-600 text-xs p-0 h-auto font-medium hover:text-primary"
                             >
                                 <ArrowLeft className="h-3 w-3 mr-1" />
-                                Quay lại đăng nhập
+                                Quay láº¡i Ä‘Äƒng nháº­p
                             </Button>
                         </div>
                     </div>
@@ -280,23 +280,23 @@ const ForgotPassword = () => {
                         <div className="w-20 h-20 mx-auto mb-5 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
                             <Mail className="h-10 w-10" />
                         </div>
-                        <h2 className="text-3xl font-bold mb-4">Khôi phục mật khẩu</h2>
+                        <h2 className="text-3xl font-bold mb-4">KhÃ´i phá»¥c máº­t kháº©u</h2>
                         <p className="text-base mb-6 text-white/90 leading-relaxed">
-                            Nhập email đã đăng ký của bạn và chúng tôi sẽ gửi hướng dẫn
-                            khôi phục mật khẩu đến email của bạn.
+                            Nháº­p email Ä‘Ã£ Ä‘Äƒng kÃ½ cá»§a báº¡n vÃ  chÃºng tÃ´i sáº½ gá»­i hÆ°á»›ng dáº«n
+                            khÃ´i phá»¥c máº­t kháº©u Ä‘áº¿n email cá»§a báº¡n.
                         </p>
                         <div className="space-y-2 text-left">
                             <div className="flex items-center gap-2">
-                                <span className="text-lg">✓</span>
-                                <span className="text-white/90 text-sm">Liên kết khôi phục có hiệu lực trong 15 phút</span>
+                                <span className="text-lg">âœ“</span>
+                                <span className="text-white/90 text-sm">LiÃªn káº¿t khÃ´i phá»¥c cÃ³ hiá»‡u lá»±c trong 15 phÃºt</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className="text-lg">✓</span>
-                                <span className="text-white/90 text-sm">Kiểm tra cả thư mục spam nếu không thấy email</span>
+                                <span className="text-lg">âœ“</span>
+                                <span className="text-white/90 text-sm">Kiá»ƒm tra cáº£ thÆ° má»¥c spam náº¿u khÃ´ng tháº¥y email</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className="text-lg">✓</span>
-                                <span className="text-white/90 text-sm">Đảm bảo an toàn và bảo mật cho tài khoản</span>
+                                <span className="text-lg">âœ“</span>
+                                <span className="text-white/90 text-sm">Äáº£m báº£o an toÃ n vÃ  báº£o máº­t cho tÃ i khoáº£n</span>
                             </div>
                         </div>
                     </div>

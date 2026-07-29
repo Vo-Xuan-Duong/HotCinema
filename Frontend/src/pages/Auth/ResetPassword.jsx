@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Lock, CheckCircle2, ArrowLeft, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { InputPassword } from '@/components/ui/input-password';
 import { Form, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { Result } from '@/components/ui/result';
+import { ResultState } from '@/components/ui/result-state';
 import useNotification from '@/hooks/useNotification';
+import { authService } from '@/services/authService';
 
 const ResetPassword = () => {
     const [formData, setFormData] = useState({ password: '', confirmPassword: '' });
@@ -33,17 +34,17 @@ const ResetPassword = () => {
     const validate = () => {
         const newErrors = {};
         if (!formData.password) {
-            newErrors.password = 'Vui lòng nhập mật khẩu mới!';
+            newErrors.password = 'Vui lÃ²ng nháº­p máº­t kháº©u má»›i!';
         } else if (formData.password.length < 6) {
-            newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự!';
+            newErrors.password = 'Máº­t kháº©u pháº£i cÃ³ Ã­t nháº¥t 6 kÃ½ tá»±!';
         } else if (formData.password.length > 100) {
-            newErrors.password = 'Mật khẩu không được vượt quá 100 ký tự!';
+            newErrors.password = 'Máº­t kháº©u khÃ´ng Ä‘Æ°á»£c vÆ°á»£t quÃ¡ 100 kÃ½ tá»±!';
         }
 
         if (!formData.confirmPassword) {
-            newErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu!';
+            newErrors.confirmPassword = 'Vui lÃ²ng xÃ¡c nháº­n máº­t kháº©u!';
         } else if (formData.password !== formData.confirmPassword) {
-            newErrors.confirmPassword = 'Mật khẩu xác nhận không khớp!';
+            newErrors.confirmPassword = 'Máº­t kháº©u xÃ¡c nháº­n khÃ´ng khá»›p!';
         }
 
         setErrors(newErrors);
@@ -59,7 +60,7 @@ const ResetPassword = () => {
             await authService.resetPassword(email, otpCode, formData.password);
 
             setResetSuccess(true);
-            notification.success('Đặt lại mật khẩu thành công!');
+            notification.success('Äáº·t láº¡i máº­t kháº©u thÃ nh cÃ´ng!');
 
             setTimeout(() => {
                 navigate('/login', { state: { passwordReset: true } });
@@ -68,55 +69,44 @@ const ResetPassword = () => {
             console.error('Reset password error:', error);
             if (error.response) {
                 const { data, status } = error.response;
-                notification.error(data.message || 'Không thể đặt lại mật khẩu. Vui lòng thử lại!');
+                notification.error(data.message || 'KhÃ´ng thá»ƒ Ä‘áº·t láº¡i máº­t kháº©u. Vui lÃ²ng thá»­ láº¡i!');
             } else {
-                notification.error('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng!');
+                notification.error('KhÃ´ng thá»ƒ káº¿t ná»‘i Ä‘áº¿n server. Vui lÃ²ng kiá»ƒm tra káº¿t ná»‘i máº¡ng!');
             }
         } finally {
             setLoading(false);
         }
     };
 
-    if (verifyingToken) {
-        return (
-            <div className="h-screen flex items-center justify-center bg-white">
-                <div className="text-center">
-                    <div className="w-12 h-12 mx-auto mb-5 border-4 border-gray-200 border-t-primary rounded-full animate-spin"></div>
-                    <p className="text-gray-600 text-base">Đang xác thực liên kết...</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (!tokenValid) {
+    if (!email || !otpCode) {
         return (
             <div className="h-screen flex items-center justify-center bg-white p-4 lg:p-6">
                 <div className="w-full max-w-[450px]">
                     <div className="text-center mb-6">
                         <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-primary to-red-600 rounded-xl mb-3 shadow-lg">
-                            <span className="text-2xl">🎬</span>
+                            <span className="text-2xl">ðŸŽ¬</span>
                         </div>
                         <h1 className="text-2xl md:text-3xl font-extrabold m-0 bg-gradient-to-r from-primary via-red-600 to-orange-500 bg-clip-text text-transparent mb-1">
                             HotCinemas
                         </h1>
                     </div>
-                    <Result
-                        status="error"
-                        title="Liên kết không hợp lệ"
-                        subTitle="Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu lại."
-                        extra={[
+                    <ResultState
+                        state="error"
+                        heading="LiÃªn káº¿t khÃ´ng há»£p lá»‡"
+                        description="LiÃªn káº¿t Ä‘áº·t láº¡i máº­t kháº©u khÃ´ng há»£p lá»‡ hoáº·c Ä‘Ã£ háº¿t háº¡n. Vui lÃ²ng yÃªu cáº§u láº¡i."
+                        actions={[
                             <Button
                                 key="forgot"
                                 onClick={() => navigate('/forgot-password')}
                             >
-                                Yêu cầu lại
+                                YÃªu cáº§u láº¡i
                             </Button>,
                             <Button
                                 key="login"
                                 variant="outline"
                                 onClick={() => navigate('/login')}
                             >
-                                Quay lại đăng nhập
+                                Quay láº¡i Ä‘Äƒng nháº­p
                             </Button>
                         ]}
                     />
@@ -134,7 +124,7 @@ const ResetPassword = () => {
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-3">
                                     <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-primary to-red-600 rounded-xl shadow-lg flex-shrink-0">
-                                        <span className="text-2xl">🎬</span>
+                                        <span className="text-2xl">ðŸŽ¬</span>
                                     </div>
                                     <div>
                                         <h1 className="text-2xl md:text-3xl font-extrabold m-0 bg-gradient-to-r from-primary via-red-600 to-orange-500 bg-clip-text text-transparent leading-tight">
@@ -147,24 +137,24 @@ const ResetPassword = () => {
                                     size="icon"
                                     onClick={() => navigate('/')}
                                     className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 h-8 w-8 rounded-lg"
-                                    title="Hủy"
+                                    title="Há»§y"
                                 >
                                     <X className="h-4 w-4" />
                                 </Button>
                             </div>
-                            <p className="text-gray-600 text-sm font-medium text-center">Hoàn tất</p>
+                            <p className="text-gray-600 text-sm font-medium text-center">HoÃ n táº¥t</p>
                         </div>
-                        <Result
-                            status="success"
-                            title="Đặt lại mật khẩu thành công!"
-                            subTitle="Mật khẩu của bạn đã được cập nhật. Bạn có thể đăng nhập bằng mật khẩu mới."
-                            extra={[
+                        <ResultState
+                            state="success"
+                            heading="Äáº·t láº¡i máº­t kháº©u thÃ nh cÃ´ng!"
+                            description="Máº­t kháº©u cá»§a báº¡n Ä‘Ã£ Ä‘Æ°á»£c cáº­p nháº­t. Báº¡n cÃ³ thá»ƒ Ä‘Äƒng nháº­p báº±ng máº­t kháº©u má»›i."
+                            actions={[
                                 <Button
                                     key="login"
                                     onClick={() => navigate('/login')}
                                 >
                                     <ArrowLeft className="h-4 w-4 mr-2" />
-                                    Đăng nhập ngay
+                                    ÄÄƒng nháº­p ngay
                                 </Button>
                             ]}
                         />
@@ -179,23 +169,23 @@ const ResetPassword = () => {
                             <div className="w-20 h-20 mx-auto mb-5 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
                                 <CheckCircle2 className="h-10 w-10" />
                             </div>
-                            <h2 className="text-3xl font-bold mb-4">Mật khẩu đã được đặt lại!</h2>
+                            <h2 className="text-3xl font-bold mb-4">Máº­t kháº©u Ä‘Ã£ Ä‘Æ°á»£c Ä‘áº·t láº¡i!</h2>
                             <p className="text-base mb-6 text-white/90 leading-relaxed">
-                                Bạn đã thành công trong việc đặt lại mật khẩu.
-                                Bây giờ bạn có thể đăng nhập bằng mật khẩu mới.
+                                Báº¡n Ä‘Ã£ thÃ nh cÃ´ng trong viá»‡c Ä‘áº·t láº¡i máº­t kháº©u.
+                                BÃ¢y giá» báº¡n cÃ³ thá»ƒ Ä‘Äƒng nháº­p báº±ng máº­t kháº©u má»›i.
                             </p>
                             <div className="space-y-2 text-left">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-lg">✓</span>
-                                    <span className="text-white/90 text-sm">Mật khẩu mới đã được lưu an toàn</span>
+                                    <span className="text-lg">âœ“</span>
+                                    <span className="text-white/90 text-sm">Máº­t kháº©u má»›i Ä‘Ã£ Ä‘Æ°á»£c lÆ°u an toÃ n</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-lg">✓</span>
-                                    <span className="text-white/90 text-sm">Bạn có thể đăng nhập ngay bây giờ</span>
+                                    <span className="text-lg">âœ“</span>
+                                    <span className="text-white/90 text-sm">Báº¡n cÃ³ thá»ƒ Ä‘Äƒng nháº­p ngay bÃ¢y giá»</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-lg">✓</span>
-                                    <span className="text-white/90 text-sm">Nhớ giữ mật khẩu an toàn</span>
+                                    <span className="text-lg">âœ“</span>
+                                    <span className="text-white/90 text-sm">Nhá»› giá»¯ máº­t kháº©u an toÃ n</span>
                                 </div>
                             </div>
                         </div>
@@ -213,7 +203,7 @@ const ResetPassword = () => {
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
                                 <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-primary to-red-600 rounded-xl shadow-lg flex-shrink-0">
-                                    <span className="text-2xl">🎬</span>
+                                    <span className="text-2xl">ðŸŽ¬</span>
                                 </div>
                                 <div>
                                     <h1 className="text-2xl md:text-3xl font-extrabold m-0 bg-gradient-to-r from-primary via-red-600 to-orange-500 bg-clip-text text-transparent leading-tight">
@@ -226,12 +216,12 @@ const ResetPassword = () => {
                                 size="icon"
                                 onClick={() => navigate('/')}
                                 className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 h-8 w-8 rounded-lg"
-                                title="Hủy"
+                                title="Há»§y"
                             >
                                 <X className="h-4 w-4" />
                             </Button>
                         </div>
-                        <p className="text-gray-600 text-sm font-medium text-center">Đặt lại mật khẩu</p>
+                        <p className="text-gray-600 text-sm font-medium text-center">Äáº·t láº¡i máº­t kháº©u</p>
                     </div>
 
                     <div className="w-full">
@@ -240,21 +230,21 @@ const ResetPassword = () => {
                                 <Lock className="h-8 w-8" />
                             </div>
                             <h2 className="text-xl md:text-2xl font-bold m-0 mb-2 text-gray-800">
-                                Đặt lại mật khẩu
+                                Äáº·t láº¡i máº­t kháº©u
                             </h2>
                             <p className="text-gray-600 text-sm leading-relaxed m-0">
-                                Nhập mật khẩu mới cho tài khoản của bạn
+                                Nháº­p máº­t kháº©u má»›i cho tÃ i khoáº£n cá»§a báº¡n
                             </p>
                         </div>
 
                         <Form onSubmit={handleSubmit}>
                             <FormItem>
-                                <FormLabel>Mật khẩu mới</FormLabel>
+                                <FormLabel>Máº­t kháº©u má»›i</FormLabel>
                                 <FormControl>
                                     <div className="relative">
                                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                                         <InputPassword
-                                            placeholder="Mật khẩu mới"
+                                            placeholder="Máº­t kháº©u má»›i"
                                             value={formData.password}
                                             onChange={(e) => handleChange('password', e.target.value)}
                                             className="pl-10 h-10 rounded-lg border-gray-200 hover:border-primary/60 focus:border-primary transition-all"
@@ -266,12 +256,12 @@ const ResetPassword = () => {
                             </FormItem>
 
                             <FormItem>
-                                <FormLabel>Xác nhận mật khẩu mới</FormLabel>
+                                <FormLabel>XÃ¡c nháº­n máº­t kháº©u má»›i</FormLabel>
                                 <FormControl>
                                     <div className="relative">
                                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                                         <InputPassword
-                                            placeholder="Xác nhận mật khẩu mới"
+                                            placeholder="XÃ¡c nháº­n máº­t kháº©u má»›i"
                                             value={formData.confirmPassword}
                                             onChange={(e) => handleChange('confirmPassword', e.target.value)}
                                             className="pl-10 h-10 rounded-lg border-gray-200 hover:border-primary/60 focus:border-primary transition-all"
@@ -287,10 +277,10 @@ const ResetPassword = () => {
                                     disabled={loading}
                                     className="w-full h-10 text-sm font-semibold bg-gradient-to-r from-green-500 to-green-600 border-0 rounded-lg transition-all duration-200 hover:from-green-600 hover:to-green-700 hover:-translate-y-0.5 hover:shadow-xl"
                                 >
-                                    {loading ? 'Đang xử lý...' : (
+                                    {loading ? 'Äang xá»­ lÃ½...' : (
                                         <>
                                             <CheckCircle2 className="h-4 w-4 mr-2" />
-                                            Đặt lại mật khẩu
+                                            Äáº·t láº¡i máº­t kháº©u
                                         </>
                                     )}
                                 </Button>
@@ -299,12 +289,12 @@ const ResetPassword = () => {
 
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-2 text-xs text-gray-600">
-                                <span className="text-base">🔐</span>
-                                <span>Mật khẩu phải có ít nhất 6 ký tự</span>
+                                <span className="text-base">ðŸ”</span>
+                                <span>Máº­t kháº©u pháº£i cÃ³ Ã­t nháº¥t 6 kÃ½ tá»±</span>
                             </div>
                             <div className="flex items-center gap-2 text-xs text-gray-600">
-                                <span className="text-base">✅</span>
-                                <span>Nên kết hợp chữ hoa, chữ thường, số và ký tự đặc biệt</span>
+                                <span className="text-base">âœ…</span>
+                                <span>NÃªn káº¿t há»£p chá»¯ hoa, chá»¯ thÆ°á»ng, sá»‘ vÃ  kÃ½ tá»± Ä‘áº·c biá»‡t</span>
                             </div>
                         </div>
                     </div>
@@ -319,23 +309,23 @@ const ResetPassword = () => {
                         <div className="w-20 h-20 mx-auto mb-5 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
                             <Lock className="h-10 w-10" />
                         </div>
-                        <h2 className="text-3xl font-bold mb-4">Tạo mật khẩu mới</h2>
+                        <h2 className="text-3xl font-bold mb-4">Táº¡o máº­t kháº©u má»›i</h2>
                         <p className="text-base mb-6 text-white/90 leading-relaxed">
-                            Nhập mật khẩu mới cho tài khoản của bạn.
-                            Đảm bảo mật khẩu đủ mạnh để bảo vệ tài khoản.
+                            Nháº­p máº­t kháº©u má»›i cho tÃ i khoáº£n cá»§a báº¡n.
+                            Äáº£m báº£o máº­t kháº©u Ä‘á»§ máº¡nh Ä‘á»ƒ báº£o vá»‡ tÃ i khoáº£n.
                         </p>
                         <div className="space-y-2 text-left">
                             <div className="flex items-center gap-2">
-                                <span className="text-lg">✓</span>
-                                <span className="text-white/90 text-sm">Mật khẩu phải có ít nhất 6 ký tự</span>
+                                <span className="text-lg">âœ“</span>
+                                <span className="text-white/90 text-sm">Máº­t kháº©u pháº£i cÃ³ Ã­t nháº¥t 6 kÃ½ tá»±</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className="text-lg">✓</span>
-                                <span className="text-white/90 text-sm">Nên kết hợp chữ hoa, chữ thường, số và ký tự đặc biệt</span>
+                                <span className="text-lg">âœ“</span>
+                                <span className="text-white/90 text-sm">NÃªn káº¿t há»£p chá»¯ hoa, chá»¯ thÆ°á»ng, sá»‘ vÃ  kÃ½ tá»± Ä‘áº·c biá»‡t</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className="text-lg">✓</span>
-                                <span className="text-white/90 text-sm">Không sử dụng thông tin cá nhân trong mật khẩu</span>
+                                <span className="text-lg">âœ“</span>
+                                <span className="text-white/90 text-sm">KhÃ´ng sá»­ dá»¥ng thÃ´ng tin cÃ¡ nhÃ¢n trong máº­t kháº©u</span>
                             </div>
                         </div>
                     </div>

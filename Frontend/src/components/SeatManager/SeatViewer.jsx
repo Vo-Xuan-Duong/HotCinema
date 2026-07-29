@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
-import { Tag } from '@/components/ui/tag';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Tooltip } from '@/components/ui/tooltip';
 import { Empty } from '@/components/ui/empty';
 import { Badge } from '@/components/ui/badge-count';
@@ -29,7 +29,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
     const [loading, setLoading] = useState(true);
     const seatLayoutRef = useRef(null);
 
-    // Update seat status helper (nhận updates từ WebSocket)
+    // Update seat status helper (nháº­n updates tá»« WebSocket)
     const updateSeatStatus = useCallback((seatIds, status) => {
         setSeatLayout(prevLayout => {
             const newRows = prevLayout.rows.map(row => ({
@@ -63,7 +63,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
         });
     }, []);
 
-    // Handle WebSocket seat updates (chỉ nhận real-time updates)
+    // Handle WebSocket seat updates (chá»‰ nháº­n real-time updates)
     const handleSeatUpdate = useCallback((updateData) => {
         const { type, seatIds } = updateData;
 
@@ -98,7 +98,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
         }
     }, [updateSeatStatus]);
 
-    // Use Seat WebSocket hook (chỉ để nhận real-time updates)
+    // Use Seat WebSocket hook (chá»‰ Ä‘á»ƒ nháº­n real-time updates)
     const { isConnected: wsConnected } = useSeatWebSocket(showtimeId, handleSeatUpdate);
 
     useEffect(() => {
@@ -189,7 +189,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                 rowLabel = numberToRowLabel(seat.row);
                 seatNumber = seat.col;
             }
-            
+
             return {
                 id: seat.id,
                 name: seat.name || `${rowLabel}${seatNumber}`,
@@ -205,7 +205,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
             };
         });
 
-        // Nhóm ghế theo rowLabel
+        // NhÃ³m gháº¿ theo rowLabel
         const groupedByRow = layoutSeats.reduce((acc, seat) => {
             const rowKey = seat.rowLabel;
             if (!acc[rowKey]) {
@@ -215,7 +215,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
             return acc;
         }, {});
 
-        // Tạo rows array
+        // Táº¡o rows array
         const rows = Object.keys(groupedByRow)
             .sort((a, b) => a.localeCompare(b))
             .map(rowLabel => {
@@ -226,7 +226,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                 };
             });
 
-        // Tính toán thống kê
+        // TÃ­nh toÃ¡n thá»‘ng kÃª
         const totalSeats = layoutSeats.length;
         const vipSeats = layoutSeats.filter(s => s.type === 'vip').length;
         const bookedSeats = layoutSeats.filter(s => s.status === 'booked').length;
@@ -267,58 +267,58 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
 
     const getStatusText = (status) => {
         const statusTextMap = {
-            'available': 'Còn trống',
-            'held': 'Đang giữ',
-            'booked': 'Đã đặt',
-            'unavailable': 'Không khả dụng',
-            'maintenance': 'Bảo trì',
-            'blocked': 'Bị chặn'
+            'available': 'CÃ²n trá»‘ng',
+            'held': 'Äang giá»¯',
+            'booked': 'ÄÃ£ Ä‘áº·t',
+            'unavailable': 'KhÃ´ng kháº£ dá»¥ng',
+            'maintenance': 'Báº£o trÃ¬',
+            'blocked': 'Bá»‹ cháº·n'
         };
-        return statusTextMap[status] || 'Không xác định';
+        return statusTextMap[status] || 'KhÃ´ng xÃ¡c Ä‘á»‹nh';
     };
 
     const getSeatColor = (seat) => {
-        // Màu sắc dựa trên trạng thái đặt vé
+        // MÃ u sáº¯c dá»±a trÃªn tráº¡ng thÃ¡i Ä‘áº·t vÃ©
         switch (seat.status) {
             case 'booked':
-                return '#ff4d4f'; // Màu đỏ - Đã đặt
+                return '#ff4d4f'; // MÃ u Ä‘á» - ÄÃ£ Ä‘áº·t
             case 'held':
-                return '#faad14'; // Màu vàng cam - Đang giữ
+                return '#faad14'; // MÃ u vÃ ng cam - Äang giá»¯
             case 'unavailable':
             case 'maintenance':
             case 'blocked':
-                return '#d9d9d9'; // Màu xám - Không khả dụng
+                return '#d9d9d9'; // MÃ u xÃ¡m - KhÃ´ng kháº£ dá»¥ng
             case 'available':
             default:
-                // Khi available, màu sắc dựa vào loại ghế
+                // Khi available, mÃ u sáº¯c dá»±a vÃ o loáº¡i gháº¿
                 switch (seat.type) {
                     case 'vip':
-                        return '#faad14'; // Màu vàng cho VIP
+                        return '#faad14'; // MÃ u vÃ ng cho VIP
                     case 'couple':
-                        return '#eb2f96'; // Màu hồng cho ghế đôi
+                        return '#eb2f96'; // MÃ u há»“ng cho gháº¿ Ä‘Ã´i
                     case 'sweetbox':
-                        return '#722ed1'; // Màu tím cho sweetbox
+                        return '#722ed1'; // MÃ u tÃ­m cho sweetbox
                     case 'normal':
                     default:
-                        return '#52c41a'; // Màu xanh cho ghế thường
+                        return '#52c41a'; // MÃ u xanh cho gháº¿ thÆ°á»ng
                 }
         }
     };
 
     const getSeatIcon = (seat) => {
-        // Icon dựa trên trạng thái
+        // Icon dá»±a trÃªn tráº¡ng thÃ¡i
         switch (seat.status) {
             case 'booked':
-                return <User className="h-3 w-3" />; // Đã đặt
+                return <User className="h-3 w-3" />; // ÄÃ£ Ä‘áº·t
             case 'held':
-                return <Clock className="h-3 w-3" />; // Đang giữ
+                return <Clock className="h-3 w-3" />; // Äang giá»¯
             case 'unavailable':
             case 'maintenance':
             case 'blocked':
-                return <X className="h-3 w-3" />; // Không khả dụng
+                return <X className="h-3 w-3" />; // KhÃ´ng kháº£ dá»¥ng
             case 'available':
             default:
-                // Khi available, icon dựa vào loại ghế
+                // Khi available, icon dá»±a vÃ o loáº¡i gháº¿
                 switch (seat.type) {
                     case 'vip':
                         return <Star className="h-3 w-3" />;
@@ -338,7 +338,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
             <div className="text-center py-10">
                 <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-600" />
                 <div className="mt-4">
-                    <p className="text-gray-600">Đang tải sơ đồ ghế...</p>
+                    <p className="text-gray-600">Äang táº£i sÆ¡ Ä‘á»“ gháº¿...</p>
                 </div>
             </div>
         );
@@ -351,7 +351,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                 <div className="mb-4 flex justify-end">
                     <Badge className="bg-green-500 text-white px-2 py-1 rounded text-sm flex items-center gap-1">
                         <Wifi className="h-3 w-3" />
-                        Đang kết nối real-time
+                        Äang káº¿t ná»‘i real-time
                     </Badge>
                 </div>
             )}
@@ -359,7 +359,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
             {/* Screen */}
             <div className="mb-6 text-center">
                 <div className="bg-gradient-to-r from-gray-300 to-gray-400from-gray-600to-gray-700 rounded-lg py-3 px-8 inline-block">
-                    <div className="text-gray-700text-gray-200 font-bold text-lg tracking-wider">MÀN HÌNH</div>
+                    <div className="text-gray-700text-gray-200 font-bold text-lg tracking-wider">MÃ€N HÃŒNH</div>
                 </div>
             </div>
 
@@ -367,7 +367,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
             <div className="max-h-[600px] overflow-y-auto overflow-x-auto p-4 bg-gray-50bg-gray-800 rounded-lg border border-gray-200border-gray-700" ref={seatLayoutRef}>
                 {seatLayout.rows.length === 0 ? (
                     <div className="flex flex-col items-center justify-center min-h-[300px] py-10">
-                        <Empty description="Chưa có dữ liệu ghế cho lịch chiếu này" />
+                        <Empty description="ChÆ°a cÃ³ dá»¯ liá»‡u gháº¿ cho lá»‹ch chiáº¿u nÃ y" />
                     </div>
                 ) : (
                     <div className="flex flex-col items-center">
@@ -408,15 +408,15 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                                                         key={`seat-${seat.id}`}
                                                         title={
                                                             <div>
-                                                                <div><strong>Ghế {seat.name || `${seat.row}${seat.number}`}</strong></div>
-                                                                <div>Loại: {
-                                                                    seat.type === 'normal' ? 'Thường' : 
-                                                                    seat.type === 'vip' ? 'VIP' : 
-                                                                    seat.type === 'couple' ? 'Đôi' :
-                                                                    seat.type === 'sweetbox' ? 'Sweetbox' : 'Thường'
+                                                                <div><strong>Gháº¿ {seat.name || `${seat.row}${seat.number}`}</strong></div>
+                                                                <div>Loáº¡i: {
+                                                                    seat.type === 'normal' ? 'ThÆ°á»ng' :
+                                                                    seat.type === 'vip' ? 'VIP' :
+                                                                    seat.type === 'couple' ? 'ÄÃ´i' :
+                                                                    seat.type === 'sweetbox' ? 'Sweetbox' : 'ThÆ°á»ng'
                                                                 }</div>
-                                                                <div>Trạng thái: {getStatusText(seat.status)}</div>
-                                                                <div>Vị trí: Hàng {seat.row}, Cột {seat.col}</div>
+                                                                <div>Tráº¡ng thÃ¡i: {getStatusText(seat.status)}</div>
+                                                                <div>Vá»‹ trÃ­: HÃ ng {seat.row}, Cá»™t {seat.col}</div>
                                                             </div>
                                                         }
                                                     >
@@ -439,7 +439,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                                                     </Tooltip>
                                                 );
                                             } else {
-                                                // Ô trống - không có ghế
+                                                // Ã” trá»‘ng - khÃ´ng cÃ³ gháº¿
                                                 return (
                                                     <div
                                                         key={`empty-${row.label}-${currentCol}`}
@@ -460,18 +460,18 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                 )}
             </div>
 
-            {/* Legend - Chú thích màu sắc */}
+            {/* Legend - ChÃº thÃ­ch mÃ u sáº¯c */}
             <Card className="mt-4 bg-white rounded-lg border border-gray-200">
                 <div className="border-b border-gray-200 px-5 py-4 mb-0">
-                    <h3 className="text-gray-800 text-base font-semibold m-0">Chú thích</h3>
+                    <h3 className="text-gray-800 text-base font-semibold m-0">ChÃº thÃ­ch</h3>
                 </div>
                 <div className="p-5 flex flex-wrap gap-3">
-                    {/* Loại ghế */}
+                    {/* Loáº¡i gháº¿ */}
                     <div className="flex items-center gap-1">
                         <div className="w-3.5 h-3.5 bg-green-500 rounded flex items-center justify-center text-white">
                             <User className="h-2 w-2" />
                         </div>
-                        <span className="text-xs text-gray-700">Thường</span>
+                        <span className="text-xs text-gray-700">ThÆ°á»ng</span>
                     </div>
                     <div className="flex items-center gap-1">
                         <div className="w-3.5 h-3.5 bg-yellow-500 rounded flex items-center justify-center text-white">
@@ -483,35 +483,35 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                         <div className="w-3.5 h-3.5 bg-pink-500 rounded flex items-center justify-center text-white">
                             <Heart className="h-2 w-2" />
                         </div>
-                        <span className="text-xs text-gray-700">Đôi</span>
+                        <span className="text-xs text-gray-700">ÄÃ´i</span>
                     </div>
 
                     {/* Divider */}
                     <div className="w-px h-4 bg-gray-300 mx-1" />
 
-                    {/* Trạng thái đặt vé */}
+                    {/* Tráº¡ng thÃ¡i Ä‘áº·t vÃ© */}
                     <div className="flex items-center gap-1">
                         <div className="w-3.5 h-3.5 bg-green-500 rounded flex items-center justify-center text-white">
                             <User className="h-2 w-2" />
                         </div>
-                        <span className="text-xs text-gray-700">Còn trống</span>
+                        <span className="text-xs text-gray-700">CÃ²n trá»‘ng</span>
                     </div>
                     <div className="flex items-center gap-1">
                         <div className="w-3.5 h-3.5 bg-yellow-500 rounded flex items-center justify-center text-white">
                             <Clock className="h-2 w-2" />
                         </div>
-                        <span className="text-xs text-gray-700">Đang giữ</span>
+                        <span className="text-xs text-gray-700">Äang giá»¯</span>
                     </div>
                     <div className="flex items-center gap-1">
                         <div className="w-3.5 h-3.5 bg-red-500 rounded flex items-center justify-center text-white">
                             <User className="h-2 w-2" />
                         </div>
-                        <span className="text-xs text-gray-700">Đã đặt</span>
+                        <span className="text-xs text-gray-700">ÄÃ£ Ä‘áº·t</span>
                     </div>
                 </div>
             </Card>
 
-            {/* Statistics */}
+            {/* Metrics */}
             {/* <Row gutter={16} style={{ marginTop: '16px' }}>
                 <Col span={6}>
                     <Card size="small">
@@ -519,7 +519,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                             <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1890ff' }}>
                                 {seatLayout.totalSeats}
                             </div>
-                            <div style={{ fontSize: '12px', color: '#8c8c8c' }}>Tổng số ghế</div>
+                            <div style={{ fontSize: '12px', color: '#8c8c8c' }}>Tá»•ng sá»‘ gháº¿</div>
                         </div>
                     </Card>
                 </Col>
@@ -529,7 +529,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                             <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ff4d4f' }}>
                                 {seatLayout.bookedSeats}
                             </div>
-                            <div style={{ fontSize: '12px', color: '#8c8c8c' }}>Đã đặt</div>
+                            <div style={{ fontSize: '12px', color: '#8c8c8c' }}>ÄÃ£ Ä‘áº·t</div>
                         </div>
                     </Card>
                 </Col>
@@ -539,7 +539,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                             <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#52c41a' }}>
                                 {seatLayout.availableSeats}
                             </div>
-                            <div style={{ fontSize: '12px', color: '#8c8c8c' }}>Còn trống</div>
+                            <div style={{ fontSize: '12px', color: '#8c8c8c' }}>CÃ²n trá»‘ng</div>
                         </div>
                     </Card>
                 </Col>
@@ -551,7 +551,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                                     ? Math.round((seatLayout.bookedSeats / seatLayout.totalSeats) * 100)
                                     : 0}%
                             </div>
-                            <div style={{ fontSize: '12px', color: '#8c8c8c' }}>Tỷ lệ đặt</div>
+                            <div style={{ fontSize: '12px', color: '#8c8c8c' }}>Tá»· lá»‡ Ä‘áº·t</div>
                         </div>
                     </Card>
                 </Col>

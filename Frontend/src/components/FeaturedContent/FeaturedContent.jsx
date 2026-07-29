@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
-import { Statistic } from '@/components/ui/statistic';
+import { Metric } from '@/components/ui/metric';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge-count';
 import { Tabs } from '@/components/ui/tabs';
@@ -55,26 +55,26 @@ const FeaturedContent = ({ movies = [] }) => {
   const newsData = [
     {
       id: 1,
-      title: "Premiere sắp tới: Blockbuster mùa hè 2024",
-      content: "Những bộ phim được mong chờ nhất sẽ ra mắt trong tháng tới...",
-      time: "2 giờ trước",
-      category: "Tin tức",
+      title: "Premiere sáº¯p tá»›i: Blockbuster mÃ¹a hÃ¨ 2024",
+      content: "Nhá»¯ng bá»™ phim Ä‘Æ°á»£c mong chá» nháº¥t sáº½ ra máº¯t trong thÃ¡ng tá»›i...",
+      time: "2 giá» trÆ°á»›c",
+      category: "Tin tá»©c",
       views: 15420
     },
     {
       id: 2,
-      title: "Công nghệ chiếu phim mới tại HotCinemas",
-      content: "Trải nghiệm âm thanh Dolby Atmos và hình ảnh 4K HDR...",
-      time: "5 giờ trước",
-      category: "Công nghệ",
+      title: "CÃ´ng nghá»‡ chiáº¿u phim má»›i táº¡i HotCinemas",
+      content: "Tráº£i nghiá»‡m Ã¢m thanh Dolby Atmos vÃ  hÃ¬nh áº£nh 4K HDR...",
+      time: "5 giá» trÆ°á»›c",
+      category: "CÃ´ng nghá»‡",
       views: 8750
     },
     {
       id: 3,
-      title: "Ưu đãi đặc biệt cuối tuần",
-      content: "Giảm giá 30% cho tất cả suất chiếu từ thứ 6 đến chủ nhật...",
-      time: "1 ngày trước",
-      category: "Khuyến mãi",
+      title: "Æ¯u Ä‘Ã£i Ä‘áº·c biá»‡t cuá»‘i tuáº§n",
+      content: "Giáº£m giÃ¡ 30% cho táº¥t cáº£ suáº¥t chiáº¿u tá»« thá»© 6 Ä‘áº¿n chá»§ nháº­t...",
+      time: "1 ngÃ y trÆ°á»›c",
+      category: "Khuyáº¿n mÃ£i",
       views: 23100
     }
   ];
@@ -93,7 +93,7 @@ const FeaturedContent = ({ movies = [] }) => {
     const now = new Date();
     const diffTime = Math.abs(date - now);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return `${diffDays} ngày`;
+    return `${diffDays} ngÃ y`;
   };
 
   return (
@@ -106,10 +106,10 @@ const FeaturedContent = ({ movies = [] }) => {
           </Avatar>
           <div>
             <h2 className="text-gray-800 m-0 font-bold text-2xl">
-              Nội dung nổi bật
+              Ná»™i dung ná»•i báº­t
             </h2>
             <p className="text-gray-600 text-base block mt-2">
-              Khám phá những điều thú vị nhất trong thế giới điện ảnh
+              KhÃ¡m phÃ¡ nhá»¯ng Ä‘iá»u thÃº vá»‹ nháº¥t trong tháº¿ giá»›i Ä‘iá»‡n áº£nh
             </p>
           </div>
         </div>
@@ -125,7 +125,7 @@ const FeaturedContent = ({ movies = [] }) => {
                 }`}
             >
               <Flame className="h-4 w-4" />
-              <span>Đang hot</span>
+              <span>Äang hot</span>
             </button>
             <button
               onClick={() => setActiveTab('toprated')}
@@ -135,7 +135,7 @@ const FeaturedContent = ({ movies = [] }) => {
                 }`}
             >
               <Star className="h-4 w-4" />
-              <span>Đánh giá cao</span>
+              <span>ÄÃ¡nh giÃ¡ cao</span>
             </button>
             <button
               onClick={() => setActiveTab('news')}
@@ -145,7 +145,7 @@ const FeaturedContent = ({ movies = [] }) => {
                 }`}
             >
               <MessageCircle className="h-4 w-4" />
-              <span>Tin tức</span>
+              <span>Tin tá»©c</span>
             </button>
           </div>
 
@@ -242,31 +242,31 @@ const FeaturedContent = ({ movies = [] }) => {
               {/* Quick Stats */}
               <div className="lg:col-span-5 flex flex-col gap-4">
                 <Card className="bg-white border border-gray-200 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-                  <Statistic
-                    title="Lượt xem hôm nay"
+                  <Metric
+                    label="LÆ°á»£t xem hÃ´m nay"
                     value={2847521}
                     precision={0}
-                    valueStyle={{ color: '#ff6b35' }}
-                    prefix={<Eye className="h-4 w-4" />}
+                    valueCss={{ color: '#ff6b35' }}
+                    leading={<Eye className="h-4 w-4" />}
                     suffix="views"
                   />
                 </Card>
                 <Card className="bg-white border border-gray-200 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-                  <Statistic
-                    title="Phim mới tuần này"
+                  <Metric
+                    label="Phim má»›i tuáº§n nÃ y"
                     value={12}
-                    valueStyle={{ color: '#4285f4' }}
-                    prefix={<Flame className="h-4 w-4" />}
+                    valueCss={{ color: '#4285f4' }}
+                    leading={<Flame className="h-4 w-4" />}
                     suffix="phim"
                   />
                 </Card>
                 <Card className="bg-white border border-gray-200 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-                  <Statistic
-                    title="Đánh giá trung bình"
+                  <Metric
+                    label="ÄÃ¡nh giÃ¡ trung bÃ¬nh"
                     value={8.7}
                     precision={1}
-                    valueStyle={{ color: '#34d399' }}
-                    prefix={<Star className="h-4 w-4" />}
+                    valueCss={{ color: '#34d399' }}
+                    leading={<Star className="h-4 w-4" />}
                     suffix="/ 10"
                   />
                 </Card>
@@ -300,7 +300,7 @@ const FeaturedContent = ({ movies = [] }) => {
                           {movie.title}
                         </h4>
                         <p className="text-gray-500 text-sm">
-                          {movie.genre} • {movie.releaseDate || '2024'}
+                          {movie.genre} â€¢ {movie.releaseDate || '2024'}
                         </p>
                         <div className="flex gap-4">
                           <div className="flex items-center gap-1">
@@ -323,10 +323,10 @@ const FeaturedContent = ({ movies = [] }) => {
                         <span className="text-gray-500">/10</span>
                       </div>
                       <p className="text-gray-500 text-sm">
-                        {movie.reviews} đánh giá
+                        {movie.reviews} Ä‘Ã¡nh giÃ¡
                       </p>
                       <Button size="sm">
-                        Xem chi tiết
+                        Xem chi tiáº¿t
                       </Button>
                     </div>
                   </div>
@@ -360,7 +360,7 @@ const FeaturedContent = ({ movies = [] }) => {
                           <div className="flex items-center gap-1">
                             <Eye className="h-3.5 w-3.5" />
                             <span className="text-gray-500 text-sm">
-                              {formatNumber(news.views)} lượt xem
+                              {formatNumber(news.views)} lÆ°á»£t xem
                             </span>
                           </div>
                           <Button
@@ -369,7 +369,7 @@ const FeaturedContent = ({ movies = [] }) => {
                             className="text-primary hover:text-[#ff6b35]"
                           >
                             <ChevronRight className="h-4 w-4 mr-1" />
-                            Đọc thêm
+                            Äá»c thÃªm
                           </Button>
                         </div>
                       </Card>
@@ -381,7 +381,7 @@ const FeaturedContent = ({ movies = [] }) => {
               <div className="lg:col-span-4">
                 <Card className="bg-white border border-gray-200 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
                   <div className="border-b border-gray-200 px-5 py-4 mb-0">
-                    <h3 className="text-gray-800 text-base font-semibold m-0">Tin nổi bật</h3>
+                    <h3 className="text-gray-800 text-base font-semibold m-0">Tin ná»•i báº­t</h3>
                   </div>
                   <div className="p-5 flex flex-col gap-4">
                     {newsData.slice(0, 3).map((news, index) => (
@@ -394,7 +394,7 @@ const FeaturedContent = ({ movies = [] }) => {
                             {news.time}
                           </span>
                           <span className="text-gray-500 text-xs">
-                            • {formatNumber(news.views)} views
+                            â€¢ {formatNumber(news.views)} views
                           </span>
                         </div>
                       </div>

@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
-import { Statistic } from '@/components/ui/statistic';
-import { TableWrapper } from '@/components/ui/table-wrapper';
+import { Metric } from '@/components/ui/metric';
+import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
-import { Tag } from '@/components/ui/tag';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Avatar } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert } from '@/components/ui/alert';
-import { DatePicker, RangePicker } from '@/components/ui/date-picker';
+import { DateField, DateRangeField } from '@/components/ui/date-field';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import {
   DollarSign,
@@ -199,33 +199,33 @@ const Dashboard = () => {
 
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
-      setError('Không thể tải dữ liệu dashboard. Vui lòng thử lại sau.');
-      showNotification('error', 'Lỗi', 'Không thể tải dữ liệu dashboard');
+      setError('KhÃ´ng thá»ƒ táº£i dá»¯ liá»‡u dashboard. Vui lÃ²ng thá»­ láº¡i sau.');
+      showNotification('error', 'Lá»—i', 'KhÃ´ng thá»ƒ táº£i dá»¯ liá»‡u dashboard');
     } finally {
       setLoading(false);
     }
   };
 
-  // Render trạng thái booking
+  // Render tráº¡ng thÃ¡i booking
   const renderBookingStatus = (status) => {
     const statusConfig = {
-      CONFIRMED: { color: 'success', text: 'Đã xác nhận' },
-      PENDING: { color: 'warning', text: 'Chờ xử lý' },
-      CANCELLED: { color: 'error', text: 'Đã hủy' },
-      COMPLETED: { color: 'success', text: 'Hoàn thành' },
-      EXPIRED: { color: 'default', text: 'Hết hạn' },
-      confirmed: { color: 'success', text: 'Đã xác nhận' },
-      pending: { color: 'warning', text: 'Chờ xử lý' },
-      cancelled: { color: 'error', text: 'Đã hủy' },
-      completed: { color: 'success', text: 'Hoàn thành' },
-      expired: { color: 'default', text: 'Hết hạn' }
+      CONFIRMED: { color: 'success', text: 'ÄÃ£ xÃ¡c nháº­n' },
+      PENDING: { color: 'warning', text: 'Chá» xá»­ lÃ½' },
+      CANCELLED: { color: 'error', text: 'ÄÃ£ há»§y' },
+      COMPLETED: { color: 'success', text: 'HoÃ n thÃ nh' },
+      EXPIRED: { color: 'default', text: 'Háº¿t háº¡n' },
+      confirmed: { color: 'success', text: 'ÄÃ£ xÃ¡c nháº­n' },
+      pending: { color: 'warning', text: 'Chá» xá»­ lÃ½' },
+      cancelled: { color: 'error', text: 'ÄÃ£ há»§y' },
+      completed: { color: 'success', text: 'HoÃ n thÃ nh' },
+      expired: { color: 'default', text: 'Háº¿t háº¡n' }
     };
 
     const config = statusConfig[status] || statusConfig.pending;
-    return <Tag color={config.color}>{config.text}</Tag>;
+    return <StatusBadge tone={config.color}>{config.text}</StatusBadge>;
   };
 
-  // Cột cho bảng booking gần đây
+  // Cá»™t cho báº£ng booking gáº§n Ä‘Ã¢y
   const bookingColumns = [
     {
       title: 'ID',
@@ -234,7 +234,7 @@ const Dashboard = () => {
       width: 60,
     },
     {
-      title: 'Khách hàng',
+      title: 'KhÃ¡ch hÃ ng',
       dataIndex: 'userName',
       key: 'userName',
       render: (text, record) => (
@@ -263,20 +263,20 @@ const Dashboard = () => {
       render: (text, record) => text || record.movie?.title || record.showtime?.movie?.title || 'N/A',
     },
     {
-      title: 'Rạp',
+      title: 'Ráº¡p',
       dataIndex: 'cinemaName',
       key: 'cinemaName',
       ellipsis: true,
       render: (text, record) => text || record.cinema?.name || record.showtime?.cinema?.name || 'N/A',
     },
     {
-      title: 'Tổng tiền',
+      title: 'Tá»•ng tiá»n',
       dataIndex: 'totalPrice',
       key: 'totalPrice',
-      render: (amount) => `${(amount || 0)?.toLocaleString('vi-VN')} ₫`,
+      render: (amount) => `${(amount || 0)?.toLocaleString('vi-VN')} â‚«`,
     },
     {
-      title: 'Trạng thái',
+      title: 'Tráº¡ng thÃ¡i',
       dataIndex: 'status',
       key: 'status',
       render: renderBookingStatus,
@@ -320,13 +320,13 @@ const Dashboard = () => {
               Dashboard
             </h2>
             <p className="text-gray-500 text-sm mt-1">
-              Tổng quan về hệ thống và thống kê
+              Tá»•ng quan vá» há»‡ thá»‘ng vÃ  thá»‘ng kÃª
             </p>
           </div>
         </div>
-        <RangePicker
+        <DateRangeField
           value={dateRange}
-          onChange={(dates) => setDateRange(dates || [dayjs().subtract(11, 'month'), dayjs()])}
+          onValueChange={(dates) => setDateRange(dates || [dayjs().subtract(11, 'month'), dayjs()])}
           format="DD/MM/YYYY"
         />
       </div>
@@ -335,22 +335,22 @@ const Dashboard = () => {
         <Alert variant="destructive" className="mb-6">
           <AlertTriangle className="h-4 w-4" />
           <div>
-            <div className="font-semibold">Lỗi</div>
+            <div className="font-semibold">Lá»—i</div>
             <div>{error}</div>
           </div>
         </Alert>
       )}
 
-      {/* Statistics Cards */}
+      {/* Metrics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
         <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
-            <Statistic
-              title="Tổng số phim"
+            <Metric
+              label="Tá»•ng sá»‘ phim"
               value={stats.totalMovies}
-              prefix={<Video className="h-6 w-6 text-blue-500" />}
+              leading={<Video className="h-6 w-6 text-blue-500" />}
               valueStyle={{ color: '#1890ff' }}
             />
           )}
@@ -359,10 +359,10 @@ const Dashboard = () => {
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
-            <Statistic
-              title="Tổng số rạp"
+            <Metric
+              label="Tá»•ng sá»‘ ráº¡p"
               value={stats.totalCinemas}
-              prefix={<Store className="h-6 w-6 text-green-500" />}
+              leading={<Store className="h-6 w-6 text-green-500" />}
               valueStyle={{ color: '#52c41a' }}
             />
           )}
@@ -371,10 +371,10 @@ const Dashboard = () => {
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
-            <Statistic
-              title="Tổng người dùng"
+            <Metric
+              label="Tá»•ng ngÆ°á»i dÃ¹ng"
               value={stats.totalUsers}
-              prefix={<User className="h-6 w-6 text-yellow-500" />}
+              leading={<User className="h-6 w-6 text-yellow-500" />}
               valueStyle={{ color: '#faad14' }}
             />
           )}
@@ -383,10 +383,10 @@ const Dashboard = () => {
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
-            <Statistic
-              title="Tổng đặt vé"
+            <Metric
+              label="Tá»•ng Ä‘áº·t vÃ©"
               value={stats.totalBookings}
-              prefix={<Calendar className="h-6 w-6 text-purple-500" />}
+              leading={<Calendar className="h-6 w-6 text-purple-500" />}
               valueStyle={{ color: '#722ed1' }}
             />
           )}
@@ -400,11 +400,11 @@ const Dashboard = () => {
             <Skeleton className="h-24" />
           ) : (
             <>
-              <Statistic
-                title="Tổng doanh thu"
+              <Metric
+                label="Tá»•ng doanh thu"
                 value={stats.totalRevenue}
-                prefix={<DollarSign className="h-4 w-4" />}
-                suffix="₫"
+                leading={<DollarSign className="h-4 w-4" />}
+                suffix="â‚«"
                 formatter={(value) => (value || 0)?.toLocaleString('vi-VN')}
                 valueStyle={{ color: '#1890ff' }}
               />
@@ -414,7 +414,7 @@ const Dashboard = () => {
                     {stats.revenueGrowth > 0 ? <ArrowUp className="h-3 w-3 inline" /> : <ArrowDown className="h-3 w-3 inline" />}
                     {' '}{Math.abs(stats.revenueGrowth)}%
                   </span>
-                  <span className="text-gray-500 ml-1">so với kỳ trước</span>
+                  <span className="text-gray-500 ml-1">so vá»›i ká»³ trÆ°á»›c</span>
                 </div>
               )}
             </>
@@ -424,10 +424,10 @@ const Dashboard = () => {
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
-            <Statistic
-              title="Vé đã xác nhận"
+            <Metric
+              label="VÃ© Ä‘Ã£ xÃ¡c nháº­n"
               value={stats.confirmedBookings}
-              prefix={<Trophy className="h-4 w-4 text-green-500" />}
+              leading={<Trophy className="h-4 w-4 text-green-500" />}
               valueStyle={{ color: '#52c41a' }}
             />
           )}
@@ -436,11 +436,11 @@ const Dashboard = () => {
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
-            <Statistic
-              title="Tỷ lệ lấp đầy"
+            <Metric
+              label="Tá»· lá»‡ láº¥p Ä‘áº§y"
               value={stats.occupancyRate}
-              suffix="%"
-              prefix={<Users className="h-4 w-4 text-blue-500" />}
+              trailing="%"
+              leading={<Users className="h-4 w-4 text-blue-500" />}
               valueStyle={{ color: '#1890ff' }}
             />
           )}
@@ -449,10 +449,10 @@ const Dashboard = () => {
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
-            <Statistic
-              title="Vé đã hủy"
+            <Metric
+              label="VÃ© Ä‘Ã£ há»§y"
               value={stats.cancelledBookings}
-              prefix={<XCircle className="h-4 w-4 text-red-500" />}
+              leading={<XCircle className="h-4 w-4 text-red-500" />}
               valueStyle={{ color: '#ff4d4f' }}
             />
           )}
@@ -465,10 +465,10 @@ const Dashboard = () => {
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
-            <Statistic
-              title="Người dùng mới (tháng này)"
+            <Metric
+              label="NgÆ°á»i dÃ¹ng má»›i (thÃ¡ng nÃ y)"
               value={stats.newUsersThisMonth}
-              prefix={<User className="h-4 w-4 text-green-500" />}
+              leading={<User className="h-4 w-4 text-green-500" />}
               valueStyle={{ color: '#52c41a' }}
             />
           )}
@@ -477,10 +477,10 @@ const Dashboard = () => {
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
-            <Statistic
-              title="Suất chiếu hôm nay"
+            <Metric
+              label="Suáº¥t chiáº¿u hÃ´m nay"
               value={stats.todayShowtimes}
-              prefix={<Clock className="h-4 w-4 text-purple-500" />}
+              leading={<Clock className="h-4 w-4 text-purple-500" />}
               valueStyle={{ color: '#722ed1' }}
             />
           )}
@@ -489,10 +489,10 @@ const Dashboard = () => {
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
-            <Statistic
-              title="Phim sắp chiếu"
+            <Metric
+              label="Phim sáº¯p chiáº¿u"
               value={stats.upcomingMovies}
-              prefix={<Flame className="h-4 w-4 text-orange-500" />}
+              leading={<Flame className="h-4 w-4 text-orange-500" />}
               valueStyle={{ color: '#fa8c16' }}
             />
           )}
@@ -501,11 +501,11 @@ const Dashboard = () => {
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
-            <Statistic
-              title="Tăng trưởng đặt vé"
+            <Metric
+              label="TÄƒng trÆ°á»Ÿng Ä‘áº·t vÃ©"
               value={stats.bookingGrowth}
-              suffix="%"
-              prefix={stats.bookingGrowth >= 0 ? <ArrowUp className="h-4 w-4 text-green-500" /> : <ArrowDown className="h-4 w-4 text-red-500" />}
+              trailing="%"
+              leading={stats.bookingGrowth >= 0 ? <ArrowUp className="h-4 w-4 text-green-500" /> : <ArrowDown className="h-4 w-4 text-red-500" />}
               valueStyle={{ color: stats.bookingGrowth >= 0 ? '#52c41a' : '#ff4d4f' }}
             />
           )}
@@ -516,7 +516,7 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <Card className="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
           <div className="border-b border-gray-200 px-5 py-4 mb-0">
-            <h3 className="text-lg font-semibold m-0">Doanh thu theo tháng</h3>
+            <h3 className="text-lg font-semibold m-0">Doanh thu theo thÃ¡ng</h3>
           </div>
           <div className="p-5">
             <ResponsiveContainer width="100%" height={300}>
@@ -525,7 +525,7 @@ const Dashboard = () => {
                 <XAxis dataKey="month" />
                 <YAxis tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`} />
                 <Tooltip
-                  formatter={(value) => [`${value.toLocaleString('vi-VN')} ₫`, 'Doanh thu']}
+                  formatter={(value) => [`${value.toLocaleString('vi-VN')} â‚«`, 'Doanh thu']}
                 />
                 <Legend />
                 <Line
@@ -541,7 +541,7 @@ const Dashboard = () => {
         </Card>
         <Card className="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
           <div className="border-b border-gray-200 px-5 py-4 mb-0">
-            <h3 className="text-lg font-semibold m-0">Số lượng đặt vé theo tháng</h3>
+            <h3 className="text-lg font-semibold m-0">Sá»‘ lÆ°á»£ng Ä‘áº·t vÃ© theo thÃ¡ng</h3>
           </div>
           <div className="p-5">
             <ResponsiveContainer width="100%" height={300}>
@@ -549,7 +549,7 @@ const Dashboard = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
-                <Tooltip formatter={(value) => [value, 'Số đặt vé']} />
+                <Tooltip formatter={(value) => [value, 'Sá»‘ Ä‘áº·t vÃ©']} />
                 <Legend />
                 <Bar dataKey="bookings" fill="#52c41a" />
               </BarChart>
@@ -563,7 +563,7 @@ const Dashboard = () => {
         <div className="lg:col-span-7">
           <Card className="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
             <div className="border-b border-gray-200 px-5 py-4 mb-0">
-              <h3 className="text-lg font-semibold m-0">Đặt vé gần đây</h3>
+              <h3 className="text-lg font-semibold m-0">Äáº·t vÃ© gáº§n Ä‘Ã¢y</h3>
             </div>
             <div className="p-5">
               {loading ? (
@@ -573,11 +573,11 @@ const Dashboard = () => {
                   ))}
                 </div>
               ) : (
-                <TableWrapper
-                  columns={bookingColumns}
+                <DataTable
+                  fields={bookingColumns}
                   data={recentBookings}
-                  rowKey="id"
-                  pagination={false}
+                  getRowId="id"
+                  pageControls={false}
                 />
               )}
             </div>
@@ -609,13 +609,13 @@ const Dashboard = () => {
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-gray-900 truncate">{movie.title}</div>
                       <div className="text-sm text-gray-600">
-                        {movie.totalBookings || 0} vé | {(movie.totalRevenue || 0).toLocaleString('vi-VN')} ₫
+                        {movie.totalBookings || 0} vÃ© | {(movie.totalRevenue || 0).toLocaleString('vi-VN')} â‚«
                       </div>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-gray-500">Chưa có dữ liệu</p>
+                <p className="text-gray-500">ChÆ°a cÃ³ dá»¯ liá»‡u</p>
               )}
             </div>
           </Card>
@@ -626,7 +626,7 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <Card className="bg-white rounded-xl shadow-md border border-gray-200">
           <div className="border-b border-gray-200 px-5 py-4 mb-0">
-            <h3 className="text-base font-semibold m-0">Top rạp doanh thu cao</h3>
+            <h3 className="text-base font-semibold m-0">Top ráº¡p doanh thu cao</h3>
           </div>
           <div className="p-5 space-y-4">
             {loading ? (
@@ -645,19 +645,19 @@ const Dashboard = () => {
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-gray-900 truncate">{cinema.name}</div>
                     <div className="text-sm text-gray-600">
-                      {cinema.totalBookings || 0} vé | {(cinema.totalRevenue || 0).toLocaleString('vi-VN')} ₫
+                      {cinema.totalBookings || 0} vÃ© | {(cinema.totalRevenue || 0).toLocaleString('vi-VN')} â‚«
                     </div>
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-gray-500">Chưa có dữ liệu</p>
+              <p className="text-gray-500">ChÆ°a cÃ³ dá»¯ liá»‡u</p>
             )}
           </div>
         </Card>
         <Card className="bg-white rounded-xl shadow-md border border-gray-200">
           <div className="border-b border-gray-200 px-5 py-4 mb-0">
-            <h3 className="text-base font-semibold m-0">Phim sắp chiếu</h3>
+            <h3 className="text-base font-semibold m-0">Phim sáº¯p chiáº¿u</h3>
           </div>
           <div className="p-5 space-y-4">
             {loading ? (
@@ -679,14 +679,14 @@ const Dashboard = () => {
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-gray-900 truncate">{movie.title}</div>
                     <div className="text-sm text-gray-600">
-                      {movie.releaseDate ? dayjs(movie.releaseDate).format('DD/MM/YYYY') : 'Chưa có ngày'}
+                      {movie.releaseDate ? dayjs(movie.releaseDate).format('DD/MM/YYYY') : 'ChÆ°a cÃ³ ngÃ y'}
                     </div>
                   </div>
-                  <Tag color="orange">Sắp chiếu</Tag>
+                  <StatusBadge tone="orange">Sáº¯p chiáº¿u</StatusBadge>
                 </div>
               ))
             ) : (
-              <p className="text-gray-500">Chưa có phim sắp chiếu</p>
+              <p className="text-gray-500">ChÆ°a cÃ³ phim sáº¯p chiáº¿u</p>
             )}
           </div>
         </Card>
@@ -695,4 +695,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard; 
+export default Dashboard;

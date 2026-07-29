@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MapPin, CheckCircle2, Wifi, Coffee, Car, Flame, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Tag } from '@/components/ui/tag';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Empty } from '@/components/ui/empty';
 import ContentLoader from '@/components/Loading/ContentLoader';
 import useNotification from '@/hooks/useNotification';
@@ -53,7 +53,7 @@ const CinemaDetail = () => {
       setCinema(data);
     } catch (error) {
       console.error('Error fetching cinema detail:', error);
-      notification.error('Không thể tải thông tin rạp!');
+      notification.error('KhÃ´ng thá»ƒ táº£i thÃ´ng tin ráº¡p!');
     } finally {
       setLoading(false);
     }
@@ -82,7 +82,7 @@ const CinemaDetail = () => {
                   allShowtimes.push({
                     id: showtime.showtimeId,
                     time: showtime.startTime,
-                    roomName: showtime.roomName || 'Phòng',
+                    roomName: showtime.roomName || 'PhÃ²ng',
                     screeningFormat: format.formatType,
                     status: showtime.status,
                     price: showtime.price
@@ -117,7 +117,7 @@ const CinemaDetail = () => {
       setHasMore(currentPage < totalPagesFromApi - 1);
     } catch (error) {
       console.error('Error fetching showtimes:', error);
-      notification.error('Không thể tải lịch chiếu!');
+      notification.error('KhÃ´ng thá»ƒ táº£i lá»‹ch chiáº¿u!');
       if (pageNum === 0) {
         setMovies([]);
       }
@@ -139,14 +139,14 @@ const CinemaDetail = () => {
   ];
 
   const amenities = [
-    { icon: <Wifi className="h-5 w-5" />, label: 'Phòng VIP', color: '#722ed1' },
-    { icon: <Flame className="h-5 w-5" />, label: 'Quầy ăn uống', color: '#fa541c' },
-    { icon: <Coffee className="h-5 w-5" />, label: 'Chỗ đậu xe', color: '#13c2c2' },
-    { icon: <Car className="h-5 w-5" />, label: 'Wifi miễn phí', color: '#1890ff' }
+    { icon: <Wifi className="h-5 w-5" />, label: 'PhÃ²ng VIP', color: '#722ed1' },
+    { icon: <Flame className="h-5 w-5" />, label: 'Quáº§y Äƒn uá»‘ng', color: '#fa541c' },
+    { icon: <Coffee className="h-5 w-5" />, label: 'Chá»— Ä‘áº­u xe', color: '#13c2c2' },
+    { icon: <Car className="h-5 w-5" />, label: 'Wifi miá»…n phÃ­', color: '#1890ff' }
   ];
 
   if (loading) {
-    return <ContentLoader message="Đang tải thông tin rạp..." />;
+    return <ContentLoader message="Äang táº£i thÃ´ng tin ráº¡p..." />;
   }
 
   if (!cinema) {
@@ -156,7 +156,7 @@ const CinemaDetail = () => {
           <Empty
             description={
               <span className="text-lg text-gray-600">
-                Không tìm thấy thông tin rạp chiếu
+                KhÃ´ng tÃ¬m tháº¥y thÃ´ng tin ráº¡p chiáº¿u
               </span>
             }
           />
@@ -175,14 +175,14 @@ const CinemaDetail = () => {
             onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cinema.address || '')}`, '_blank')}
           >
             <CheckCircle2 className="h-4 w-4 mr-2" />
-            Chỉ đường
+            Chá»‰ Ä‘Æ°á»ng
           </Button>
           <h1 className="text-gray-900 text-2xl font-bold m-0 mb-2 tracking-tight leading-tight">
             {cinema.name || 'CGV Vincom Center'}
           </h1>
           <p className="text-gray-600 text-sm flex items-center gap-1.5 m-0 font-normal">
             <MapPin className="text-primary text-sm" />
-            {cinema.address || 'Tầng 5, Vincom Center, 72 Lê Thánh Tôn, P. Bến Nghé, Quận 1, TPHCM'}
+            {cinema.address || 'Táº§ng 5, Vincom Center, 72 LÃª ThÃ¡nh TÃ´n, P. Báº¿n NghÃ©, Quáº­n 1, TPHCM'}
           </p>
         </div>
       </div>
@@ -199,7 +199,7 @@ const CinemaDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <div className="mb-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Phim đang chiếu</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Phim Ä‘ang chiáº¿u</h2>
               <div className="flex flex-wrap gap-2">
                 {dates.slice(0, 6).map((date) => (
                   <Button
@@ -208,7 +208,7 @@ const CinemaDetail = () => {
                     onClick={() => setActiveDate(date.value)}
                     className={activeDate === date.value ? "bg-primary text-white" : ""}
                   >
-                    {date.isToday ? 'Hôm nay' : date.label}
+                    {date.isToday ? 'HÃ´m nay' : date.label}
                   </Button>
                 ))}
               </div>
@@ -218,7 +218,7 @@ const CinemaDetail = () => {
               {showtimesLoading && movies.length === 0 ? (
                 <div className="text-center py-10">
                   <Loader2 className="w-8 h-8 text-primary mx-auto animate-spin" />
-                  <p className="mt-4 text-gray-600">Đang tải lịch chiếu...</p>
+                  <p className="mt-4 text-gray-600">Äang táº£i lá»‹ch chiáº¿u...</p>
                 </div>
               ) : movies.length > 0 ? (
                 movies.map(movie => (
@@ -240,12 +240,12 @@ const CinemaDetail = () => {
                         </h3>
                         <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                           <span>{movie.genre}</span>
-                          <span>•</span>
+                          <span>â€¢</span>
                           <span>{movie.duration}</span>
                         </div>
-                        <Tag className="bg-gray-100 text-gray-700 text-xs font-medium px-2 py-1 rounded">
+                        <StatusBadge className="bg-gray-100 text-gray-700 text-xs font-medium px-2 py-1 rounded">
                           {movie.ageRating}
-                        </Tag>
+                        </StatusBadge>
                       </div>
 
                       <div className="flex flex-wrap gap-2 mt-4">
@@ -264,13 +264,13 @@ const CinemaDetail = () => {
                   </div>
                 ))
               ) : (
-                <Empty description="Không có lịch chiếu cho ngày này" />
+                <Empty description="KhÃ´ng cÃ³ lá»‹ch chiáº¿u cho ngÃ y nÃ y" />
               )}
 
               {hasMore && !showtimesLoading && movies.length > 0 && (
                 <div className="text-center mt-6">
                   <Button variant="outline" onClick={handleLoadMore}>
-                    Xem thêm
+                    Xem thÃªm
                   </Button>
                 </div>
               )}
@@ -285,7 +285,7 @@ const CinemaDetail = () => {
 
           <div className="lg:col-span-1 space-y-6">
             <Card className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Tiện ích rạp</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Tiá»‡n Ã­ch ráº¡p</h2>
               <div className="grid grid-cols-2 gap-4">
                 {amenities.map((item, index) => (
                   <div key={index} className="flex flex-col items-center gap-2" style={{ color: item.color }}>

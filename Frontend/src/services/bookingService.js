@@ -1,4 +1,4 @@
-import { apiClient } from '@/utils/apiClient';
+﻿import { apiClient } from '@/utils/apiClient';
 import { ENDPOINTS, BOOKING_STATUS } from '@/utils/constants';
 
 // Helpers to unwrap backend ResponseData envelope
@@ -171,7 +171,7 @@ const bookingService = {
     return unwrap(res);
   },
 
-  // ==================== Statistics ====================
+  // ==================== Metrics ====================
 
   /**
    * Get booking statistics
@@ -282,10 +282,10 @@ const bookingService = {
    */
   getStatusDisplayName(status) {
     const statusNames = {
-      [BOOKING_STATUS.PENDING]: 'Chờ xử lý',
-      [BOOKING_STATUS.CONFIRMED]: 'Đã xác nhận',
-      [BOOKING_STATUS.CANCELLED]: 'Đã hủy',
-      [BOOKING_STATUS.COMPLETED]: 'Hoàn thành'
+      [BOOKING_STATUS.PENDING]: 'Chá» xá»­ lÃ½',
+      [BOOKING_STATUS.CONFIRMED]: 'ÄÃ£ xÃ¡c nháº­n',
+      [BOOKING_STATUS.CANCELLED]: 'ÄÃ£ há»§y',
+      [BOOKING_STATUS.COMPLETED]: 'HoÃ n thÃ nh'
     };
     return statusNames[status] || status;
   },
@@ -301,4 +301,4 @@ const bookingService = {
   }
 };
 
-export default bookingService; 
+export default bookingService;

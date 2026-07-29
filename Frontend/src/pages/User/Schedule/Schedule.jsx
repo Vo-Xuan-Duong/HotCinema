@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { AlertCircle, Search, MapPin, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -21,7 +21,7 @@ const Schedule = () => {
     const notification = useNotification();
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState(dayjs());
-    const [selectedCity, setSelectedCity] = useState(null); // Lưu slug của region
+    const [selectedCity, setSelectedCity] = useState(null); // LÆ°u slug cá»§a region
     const [selectedCinemaId, setSelectedCinemaId] = useState(null);
 
     const [cities, setCities] = useState([]);
@@ -68,17 +68,17 @@ const Schedule = () => {
             setCities(regionsArray);
 
             if (regionsArray && regionsArray.length > 0) {
-                const defaultRegion = regionsArray.find(r => r.name?.includes('Hồ Chí Minh') || r.slug === 'ho-chi-minh') || regionsArray[0];
-                // Sử dụng slug thay vì id
+                const defaultRegion = regionsArray.find(r => r.name?.includes('Há»“ ChÃ­ Minh') || r.slug === 'ho-chi-minh') || regionsArray[0];
+                // Sá»­ dá»¥ng slug thay vÃ¬ id
                 setSelectedCity(defaultRegion.slug || defaultRegion.id);
                 await loadCinemasForCity(defaultRegion.slug || defaultRegion.id);
             } else {
-                notification.warning('Không có dữ liệu khu vực. Vui lòng kiểm tra kết nối backend.');
+                notification.warning('KhÃ´ng cÃ³ dá»¯ liá»‡u khu vá»±c. Vui lÃ²ng kiá»ƒm tra káº¿t ná»‘i backend.');
             }
 
         } catch (error) {
             console.error('Error loading initial data:', error);
-            notification.error(`Không thể tải dữ liệu: ${error.message}`);
+            notification.error(`KhÃ´ng thá»ƒ táº£i dá»¯ liá»‡u: ${error.message}`);
         } finally {
             setLoading(false);
         }
@@ -120,7 +120,7 @@ const Schedule = () => {
             setCinemaPage(page);
             setCinemas(cinemasArray);
 
-            // Chỉ tự động chọn rạp đầu tiên khi ở trang đầu tiên
+            // Chá»‰ tá»± Ä‘á»™ng chá»n ráº¡p Ä‘áº§u tiÃªn khi á»Ÿ trang Ä‘áº§u tiÃªn
             if (page === 0 && cinemasArray && cinemasArray.length > 0) {
                 setSelectedCinemaId(cinemasArray[0].id);
                 await loadShowtimes(cinemasArray[0].id, selectedDate.format('YYYY-MM-DD'));
@@ -128,10 +128,10 @@ const Schedule = () => {
                 setSelectedCinemaId(null);
                 setShowtimes([]);
             } else {
-                // Khi đổi trang, không tự động chọn rạp mới
-                // Giữ nguyên selectedCinemaId nếu rạp đó vẫn còn trong danh sách
+                // Khi Ä‘á»•i trang, khÃ´ng tá»± Ä‘á»™ng chá»n ráº¡p má»›i
+                // Giá»¯ nguyÃªn selectedCinemaId náº¿u ráº¡p Ä‘Ã³ váº«n cÃ²n trong danh sÃ¡ch
                 if (selectedCinemaId && !cinemasArray.find(c => c.id === selectedCinemaId)) {
-                    // Nếu rạp đã chọn không còn trong trang mới, chọn rạp đầu tiên
+                    // Náº¿u ráº¡p Ä‘Ã£ chá»n khÃ´ng cÃ²n trong trang má»›i, chá»n ráº¡p Ä‘áº§u tiÃªn
                     if (cinemasArray.length > 0) {
                         setSelectedCinemaId(cinemasArray[0].id);
                         await loadShowtimes(cinemasArray[0].id, selectedDate.format('YYYY-MM-DD'));
@@ -143,7 +143,7 @@ const Schedule = () => {
             }
         } catch (error) {
             console.error('Error loading cinemas:', error);
-            notification.error(`Không thể tải danh sách rạp: ${error.message}`);
+            notification.error(`KhÃ´ng thá»ƒ táº£i danh sÃ¡ch ráº¡p: ${error.message}`);
             if (page === 0) {
                 setCinemas([]);
                 setSelectedCinemaId(null);
@@ -235,7 +235,7 @@ const Schedule = () => {
         setSelectedCinemaId(null);
         setShowtimes([]);
         setCinemaPage(0);
-        setCinemaSearchText(''); // Reset search khi đổi khu vực
+        setCinemaSearchText(''); // Reset search khi Ä‘á»•i khu vá»±c
     };
 
     const handleCinemaSelect = (cinemaId) => {
@@ -272,7 +272,7 @@ const Schedule = () => {
     }, [cinemas, cinemaSearchText]);
 
     if (loading) {
-        return <ContentLoader message="Đang tải lịch chiếu..." />;
+        return <ContentLoader message="Äang táº£i lá»‹ch chiáº¿u..." />;
     }
 
     return (
@@ -280,7 +280,7 @@ const Schedule = () => {
             <div className="max-w-[1200px] mx-auto px-6 mb-16 pt-16">
                 <div className="bg-white border border-gray-200 rounded-2xl shadow-lg p-8 md:p-9">
                     <h2 className="text-center text-3xl font-bold mb-5 text-gray-900">
-                        Lịch chiếu phim
+                        Lá»‹ch chiáº¿u phim
                     </h2>
 
                     <Card className="mb-6 rounded-xl shadow-md border border-gray-200">
@@ -289,14 +289,14 @@ const Schedule = () => {
                                 <div className="flex flex-col gap-2">
                                     <p className="text-sm font-semibold text-gray-700 flex items-center">
                                         <MapPin className="mr-1.5 h-4 w-4" />
-                                        Thành phố
+                                        ThÃ nh phá»‘
                                     </p>
                                     <Select
                                         value={selectedCity || ''}
                                         onValueChange={handleCityChange}
                                     >
                                         <SelectTrigger className="w-[250px]">
-                                            <SelectValue placeholder="Chọn khu vực" />
+                                            <SelectValue placeholder="Chá»n khu vá»±c" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {Array.isArray(cities) && cities.map(region => (
@@ -313,20 +313,20 @@ const Schedule = () => {
                                         if (navigator.geolocation) {
                                             navigator.geolocation.getCurrentPosition(
                                                 (position) => {
-                                                    notification.success('Đã lấy vị trí của bạn');
+                                                    notification.success('ÄÃ£ láº¥y vá»‹ trÃ­ cá»§a báº¡n');
                                                 },
                                                 (error) => {
-                                                    notification.warning('Không thể lấy vị trí. Vui lòng cho phép truy cập vị trí.');
+                                                    notification.warning('KhÃ´ng thá»ƒ láº¥y vá»‹ trÃ­. Vui lÃ²ng cho phÃ©p truy cáº­p vá»‹ trÃ­.');
                                                 }
                                             );
                                         } else {
-                                            notification.error('Trình duyệt không hỗ trợ geolocation');
+                                            notification.error('TrÃ¬nh duyá»‡t khÃ´ng há»— trá»£ geolocation');
                                         }
                                     }}
                                     className="h-10 flex items-center gap-1.5 rounded-lg"
                                 >
                                     <Target className="h-4 w-4" />
-                                    Gần bạn
+                                    Gáº§n báº¡n
                                 </Button>
                             </div>
                         </div>
@@ -338,7 +338,7 @@ const Schedule = () => {
                                 <div className="relative">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                                     <Input
-                                        placeholder="Tìm theo tên rạp ..."
+                                        placeholder="TÃ¬m theo tÃªn ráº¡p ..."
                                         value={cinemaSearchText}
                                         onChange={(e) => setCinemaSearchText(e.target.value)}
                                         className="pl-10 h-10 rounded-lg"
@@ -348,11 +348,11 @@ const Schedule = () => {
                             <div className="flex-1 overflow-y-auto flex flex-col gap-1.5 px-4 pb-4">
                                 {!Array.isArray(cinemas) || cinemas.length === 0 ? (
                                     <div className="py-10 text-center text-gray-500">
-                                        <p>Không có rạp nào</p>
+                                        <p>KhÃ´ng cÃ³ ráº¡p nÃ o</p>
                                     </div>
                                 ) : filteredCinemas.length === 0 ? (
                                     <div className="py-10 text-center text-gray-500">
-                                        <p>Không tìm thấy rạp phù hợp</p>
+                                        <p>KhÃ´ng tÃ¬m tháº¥y ráº¡p phÃ¹ há»£p</p>
                                     </div>
                                 ) : (
                                     filteredCinemas.map(cinema => (
@@ -376,7 +376,7 @@ const Schedule = () => {
                                                 )}
                                             </div>
                                             <span className={`ml-2 text-xl ${selectedCinemaId === cinema.id ? 'opacity-100' : 'opacity-40'
-                                                }`}>›</span>
+                                                }`}>â€º</span>
                                         </div>
                                     ))
                                 )}
@@ -384,10 +384,10 @@ const Schedule = () => {
                             {totalCinemas > cinemaPageSize && (
                                 <div className="mt-3 pt-3 border-t border-gray-200 text-center px-4 pb-4">
                                     <Pagination
-                                        current={cinemaPage + 1}
-                                        total={totalCinemas}
-                                        pageSize={cinemaPageSize}
-                                        onChange={(page) => {
+                                        page={cinemaPage + 1}
+                                        totalItems={totalCinemas}
+                                        itemsPerPage={cinemaPageSize}
+                                        onPageChange={(page) => {
                                             loadCinemasForCity(selectedCity, page - 1);
                                             // Scroll to top of cinema list
                                             const cinemaList = document.querySelector('.flex-1.overflow-y-auto');
@@ -395,9 +395,9 @@ const Schedule = () => {
                                                 cinemaList.scrollTo({ top: 0, behavior: 'smooth' });
                                             }
                                         }}
-                                        showSizeChanger={false}
+                                        allowPageSizeChange={false}
                                         showTotal={(total, range) =>
-                                            `${range[0]}-${range[1]} / ${total} rạp`
+                                            `${range[0]}-${range[1]} / ${total} ráº¡p`
                                         }
                                     />
                                 </div>
@@ -415,7 +415,7 @@ const Schedule = () => {
                                                 </h4>
                                                 <p className="text-sm text-gray-500 flex items-center">
                                                     <MapPin className="mr-1 h-4 w-4" />
-                                                    {selectedCinema.address || 'Địa chỉ đang cập nhật'}
+                                                    {selectedCinema.address || 'Äá»‹a chá»‰ Ä‘ang cáº­p nháº­t'}
                                                 </p>
                                             </div>
                                             <Button
@@ -424,7 +424,7 @@ const Schedule = () => {
                                                 className="h-auto flex items-center gap-1.5 rounded-lg"
                                             >
                                                 <MapPin className="h-4 w-4 mr-1" />
-                                                Bản đồ
+                                                Báº£n Ä‘á»“
                                             </Button>
                                         </div>
                                     </Card>
@@ -448,7 +448,7 @@ const Schedule = () => {
                                                 </div>
                                                 <div className={`text-xs uppercase font-semibold ${isSelected ? 'text-white font-bold' : 'text-gray-500'
                                                     }`}>
-                                                    {d.isToday ? 'Hôm nay' : d.fullDate.format('dd')}
+                                                    {d.isToday ? 'HÃ´m nay' : d.fullDate.format('dd')}
                                                 </div>
                                             </div>
                                         );
@@ -460,8 +460,8 @@ const Schedule = () => {
                                         <Card className="my-5 rounded-xl text-center border border-gray-200">
                                             <div className="py-10 px-5 flex flex-col items-center justify-center gap-2">
                                                 <AlertCircle className="h-12 w-12 text-gray-400 mb-4" />
-                                                <h4 className="text-gray-500 text-lg font-semibold">Không có suất chiếu</h4>
-                                                <p className="text-gray-400">Vui lòng chọn ngày khác hoặc rạp khác</p>
+                                                <h4 className="text-gray-500 text-lg font-semibold">KhÃ´ng cÃ³ suáº¥t chiáº¿u</h4>
+                                                <p className="text-gray-400">Vui lÃ²ng chá»n ngÃ y khÃ¡c hoáº·c ráº¡p khÃ¡c</p>
                                             </div>
                                         </Card>
                                     ) : (
@@ -487,7 +487,7 @@ const Schedule = () => {
                                                                 {movie.title}
                                                             </div>
                                                             <div className="text-sm text-gray-500 font-medium leading-relaxed">
-                                                                {movie.duration || '120 phút'} • {movie.genre || 'Phim'}
+                                                                {movie.duration || '120 phÃºt'} â€¢ {movie.genre || 'Phim'}
                                                             </div>
                                                         </div>
                                                         <div className="flex gap-2.5 flex-wrap">
@@ -501,7 +501,7 @@ const Schedule = () => {
                                                                         showtime
                                                                     )}
                                                                     disabled={showtime.status === 'CANCELLED' || showtime.status === 'SOLD_OUT'}
-                                                                    title={`${showtime.roomName || 'Phòng chiếu'} - ${showtime.formatType || '2D'} - ${showtime.price?.toLocaleString('vi-VN') || '0'}đ`}
+                                                                    title={`${showtime.roomName || 'PhÃ²ng chiáº¿u'} - ${showtime.formatType || '2D'} - ${showtime.price?.toLocaleString('vi-VN') || '0'}Ä‘`}
                                                                 >
                                                                     <div className="text-sm font-bold leading-tight">
                                                                         {showtime.startTime?.substring(0, 5) || '--:--'}
@@ -524,13 +524,13 @@ const Schedule = () => {
                                 {totalShowtimes > 20 && (
                                     <div className="flex justify-center items-center mt-8 pb-5 border-t border-gray-200 pt-6">
                                         <Pagination
-                                            current={showtimePage + 1}
-                                            total={totalShowtimes}
-                                            pageSize={20}
-                                            onChange={(page) => {
+                                            page={showtimePage + 1}
+                                            totalItems={totalShowtimes}
+                                            itemsPerPage={20}
+                                            onPageChange={(page) => {
                                                 loadShowtimes(selectedCinemaId, selectedDate.format('YYYY-MM-DD'), page - 1);
                                             }}
-                                            showSizeChanger={false}
+                                            allowPageSizeChange={false}
                                         />
                                     </div>
                                 )}

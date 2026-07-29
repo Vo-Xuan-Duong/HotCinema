@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { User, Edit, Camera, Save, Heart, Trophy, Gift, Settings, Shield, Bell, MapPin, Phone, Mail, Calendar, Star, Ticket, Clock, Home, ArrowUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -8,15 +8,15 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
-import { DatePicker } from '@/components/ui/date-picker';
+import { DateField } from '@/components/ui/date-field';
 import { Upload } from '@/components/ui/upload';
 import { Avatar } from '@/components/ui/avatar';
-import { Tag } from '@/components/ui/tag';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Progress } from '@/components/ui/progress';
-import { StatisticCard } from '@/components/ui/statistic';
+import { MetricCard } from '@/components/ui/metric';
 import { Badge } from '@/components/ui/badge-count';
-import { Tabs } from '@/components/ui/tabs';
-import { TableWrapper } from '@/components/ui/table-wrapper';
+import { SegmentedTabs } from '@/components/ui/segmented-tabs';
+import { DataTable } from '@/components/ui/data-table';
 import { Empty } from '@/components/ui/empty';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Separator } from '@/components/ui/separator';
@@ -117,10 +117,10 @@ const Profile = () => {
                 birthDate: values.birthDate ? (dayjs.isDayjs(values.birthDate) ? values.birthDate.format('YYYY-MM-DD') : values.birthDate) : null
             });
 
-            notification.success('Cập nhật thông tin thành công!');
+            notification.success('Cáº­p nháº­t thÃ´ng tin thÃ nh cÃ´ng!');
             setEditMode(false);
         } catch (error) {
-            notification.error('Có lỗi xảy ra khi cập nhật thông tin!');
+            notification.error('CÃ³ lá»—i xáº£y ra khi cáº­p nháº­t thÃ´ng tin!');
         } finally {
             setLoading(false);
         }
@@ -172,12 +172,12 @@ const Profile = () => {
             render: (text) => <span className="font-semibold">{text}</span>
         },
         {
-            title: 'Rạp',
+            title: 'Ráº¡p',
             dataIndex: 'cinema',
             key: 'cinema'
         },
         {
-            title: 'Ngày chiếu',
+            title: 'NgÃ y chiáº¿u',
             dataIndex: 'date',
             key: 'date',
             render: (date) => (
@@ -188,7 +188,7 @@ const Profile = () => {
             )
         },
         {
-            title: 'Giờ chiếu',
+            title: 'Giá» chiáº¿u',
             dataIndex: 'time',
             key: 'time',
             render: (time) => (
@@ -199,29 +199,29 @@ const Profile = () => {
             )
         },
         {
-            title: 'Ghế',
+            title: 'Gháº¿',
             dataIndex: 'seats',
             key: 'seats',
             render: (seats) => seats.join(', ')
         },
         {
-            title: 'Tổng tiền',
+            title: 'Tá»•ng tiá»n',
             dataIndex: 'total',
             key: 'total',
             render: (total) => (
                 <span className="font-semibold text-primary">
-                    {total.toLocaleString('vi-VN')}đ
+                    {total.toLocaleString('vi-VN')}Ä‘
                 </span>
             )
         },
         {
-            title: 'Trạng thái',
+            title: 'Tráº¡ng thÃ¡i',
             dataIndex: 'status',
             key: 'status',
             render: (status) => (
-                <Tag color={status === 'completed' ? 'green' : 'blue'}>
-                    {status === 'completed' ? 'Hoàn thành' : 'Đang xử lý'}
-                </Tag>
+                <StatusBadge tone={status === 'completed' ? 'green' : 'blue'}>
+                    {status === 'completed' ? 'HoÃ n thÃ nh' : 'Äang xá»­ lÃ½'}
+                </StatusBadge>
             )
         }
     ];
@@ -236,7 +236,7 @@ const Profile = () => {
                                 title: (
                                     <>
                                         <Home className="h-4 w-4 inline mr-1" />
-                                        Trang chủ
+                                        Trang chá»§
                                     </>
                                 ),
                                 href: '/'
@@ -245,7 +245,7 @@ const Profile = () => {
                                 title: (
                                     <>
                                         <User className="h-4 w-4 inline mr-1" />
-                                        Hồ sơ cá nhân
+                                        Há»“ sÆ¡ cÃ¡ nhÃ¢n
                                     </>
                                 )
                             }
@@ -277,18 +277,18 @@ const Profile = () => {
                                 </Avatar>
                             </Badge>
                             <div className="mt-3">
-                                <Tag color="orange" className="px-3 py-1">
+                                <StatusBadge tone="orange" className="px-3 py-1">
                                     {userStats.memberLevel}
-                                </Tag>
+                                </StatusBadge>
                             </div>
                         </div>
                         <div className="flex flex-col gap-2">
                             <div>
                                 <h2 className="m-0 text-gray-900 text-2xl font-bold">
-                                    {user?.name || 'Người dùng'}
+                                    {user?.name || 'NgÆ°á»i dÃ¹ng'}
                                 </h2>
                                 <p className="text-sm text-gray-600 mt-1">
-                                    Thành viên từ {dayjs(userStats.joinDate).format('DD/MM/YYYY')}
+                                    ThÃ nh viÃªn tá»« {dayjs(userStats.joinDate).format('DD/MM/YYYY')}
                                 </p>
                             </div>
 
@@ -311,7 +311,7 @@ const Profile = () => {
                                 <div className="flex flex-col gap-2">
                                     <div className="flex justify-between items-center">
                                         <span className="text-base text-gray-900 font-semibold">
-                                            Điểm tích lũy: {userStats.loyaltyPoints.toLocaleString('vi-VN')}
+                                            Äiá»ƒm tÃ­ch lÅ©y: {userStats.loyaltyPoints.toLocaleString('vi-VN')}
                                         </span>
                                         <span className="text-sm text-gray-600">
                                             {userStats.memberLevel}
@@ -330,32 +330,32 @@ const Profile = () => {
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                     <Card className="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
-                        <StatisticCard
-                            title="Tổng đặt vé"
+                        <MetricCard
+                            label="Tá»•ng Ä‘áº·t vÃ©"
                             value={userStats.totalBookings}
                             icon={<Ticket className="h-5 w-5 text-primary" />}
                             valueStyle={{ color: '#e50914', fontSize: '28px', fontWeight: '700' }}
                         />
                     </Card>
                     <Card className="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
-                        <StatisticCard
-                            title="Tổng chi tiêu"
-                            value={`${userStats.totalSpent.toLocaleString('vi-VN')}đ`}
+                        <MetricCard
+                            label="Tá»•ng chi tiÃªu"
+                            value={`${userStats.totalSpent.toLocaleString('vi-VN')}Ä‘`}
                             icon={<Gift className="h-5 w-5 text-green-600" />}
                             valueStyle={{ color: '#10b981', fontSize: '28px', fontWeight: '700' }}
                         />
                     </Card>
                     <Card className="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
-                        <StatisticCard
-                            title="Phim yêu thích"
+                        <MetricCard
+                            label="Phim yÃªu thÃ­ch"
                             value={userStats.favoriteMovies}
                             icon={<Heart className="h-5 w-5 text-red-500" />}
                             valueStyle={{ color: '#ef4444', fontSize: '28px', fontWeight: '700' }}
                         />
                     </Card>
                     <Card className="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
-                        <StatisticCard
-                            title="Điểm tích lũy"
+                        <MetricCard
+                            label="Äiá»ƒm tÃ­ch lÅ©y"
                             value={userStats.loyaltyPoints.toLocaleString('vi-VN')}
                             icon={<Trophy className="h-5 w-5 text-yellow-500" />}
                             valueStyle={{ color: '#faad14', fontSize: '28px', fontWeight: '700' }}
@@ -364,16 +364,16 @@ const Profile = () => {
                 </div>
 
                 <Card className="bg-white rounded-xl shadow-md border border-gray-200">
-                    <Tabs
-                        activeKey={activeTab}
-                        onChange={setActiveTab}
-                        items={[
+                    <SegmentedTabs
+                        selectedId={activeTab}
+                        onSelectedIdChange={setActiveTab}
+                        sections={[
                             {
                                 key: 'info',
                                 label: (
                                     <span className="flex items-center gap-2">
                                         <User className="h-4 w-4" />
-                                        Thông tin cá nhân
+                                        ThÃ´ng tin cÃ¡ nhÃ¢n
                                     </span>
                                 ),
                                 children: (
@@ -383,10 +383,10 @@ const Profile = () => {
                                                 <FormField
                                                     control={form.control}
                                                     name="name"
-                                                    rules={{ required: 'Vui lòng nhập họ tên!' }}
+                                                    rules={{ required: 'Vui lÃ²ng nháº­p há» tÃªn!' }}
                                                     render={({ field }) => (
                                                         <FormItem>
-                                                            <FormLabel>Họ và tên</FormLabel>
+                                                            <FormLabel>Há» vÃ  tÃªn</FormLabel>
                                                             <FormControl>
                                                                 <Input
                                                                     {...field}
@@ -403,8 +403,8 @@ const Profile = () => {
                                                     control={form.control}
                                                     name="email"
                                                     rules={[
-                                                        { required: 'Vui lòng nhập email!' },
-                                                        { type: 'email', message: 'Email không hợp lệ!' }
+                                                        { required: 'Vui lÃ²ng nháº­p email!' },
+                                                        { type: 'email', message: 'Email khÃ´ng há»£p lá»‡!' }
                                                     ]}
                                                     render={({ field }) => (
                                                         <FormItem>
@@ -426,7 +426,7 @@ const Profile = () => {
                                                     name="phone"
                                                     render={({ field }) => (
                                                         <FormItem>
-                                                            <FormLabel>Số điện thoại</FormLabel>
+                                                            <FormLabel>Sá»‘ Ä‘iá»‡n thoáº¡i</FormLabel>
                                                             <FormControl>
                                                                 <Input
                                                                     {...field}
@@ -444,14 +444,14 @@ const Profile = () => {
                                                     name="birthDate"
                                                     render={({ field }) => (
                                                         <FormItem>
-                                                            <FormLabel>Ngày sinh</FormLabel>
+                                                            <FormLabel>NgÃ y sinh</FormLabel>
                                                             <FormControl>
-                                                                <DatePicker
+                                                                <DateField
                                                                     value={field.value}
-                                                                    onChange={field.onChange}
+                                                                    onValueChange={field.onChange}
                                                                     disabled={!editMode}
-                                                                    format="DD/MM/YYYY"
-                                                                    placeholder="Chọn ngày sinh"
+                                                                    displayFormat="DD/MM/YYYY"
+                                                                    placeholder="Chá»n ngÃ y sinh"
                                                                     className="w-full h-10"
                                                                 />
                                                             </FormControl>
@@ -464,17 +464,17 @@ const Profile = () => {
                                                     name="gender"
                                                     render={({ field }) => (
                                                         <FormItem>
-                                                            <FormLabel>Giới tính</FormLabel>
+                                                            <FormLabel>Giá»›i tÃ­nh</FormLabel>
                                                             <FormControl>
                                                                 <Select
                                                                     value={field.value}
                                                                     onValueChange={field.onChange}
                                                                     disabled={!editMode}
-                                                                    placeholder="Chọn giới tính"
+                                                                    placeholder="Chá»n giá»›i tÃ­nh"
                                                                 >
                                                                     <option value="male">Nam</option>
-                                                                    <option value="female">Nữ</option>
-                                                                    <option value="other">Khác</option>
+                                                                    <option value="female">Ná»¯</option>
+                                                                    <option value="other">KhÃ¡c</option>
                                                                 </Select>
                                                             </FormControl>
                                                             <FormMessage />
@@ -486,18 +486,18 @@ const Profile = () => {
                                                     name="city"
                                                     render={({ field }) => (
                                                         <FormItem>
-                                                            <FormLabel>Thành phố</FormLabel>
+                                                            <FormLabel>ThÃ nh phá»‘</FormLabel>
                                                             <FormControl>
                                                                 <Select
                                                                     value={field.value}
                                                                     onValueChange={field.onChange}
                                                                     disabled={!editMode}
-                                                                    placeholder="Chọn thành phố"
+                                                                    placeholder="Chá»n thÃ nh phá»‘"
                                                                 >
-                                                                    <option value="ho-chi-minh">Thành phố Hồ Chí Minh</option>
-                                                                    <option value="ha-noi">Hà Nội</option>
-                                                                    <option value="da-nang">Đà Nẵng</option>
-                                                                    <option value="can-tho">Cần Thơ</option>
+                                                                    <option value="ho-chi-minh">ThÃ nh phá»‘ Há»“ ChÃ­ Minh</option>
+                                                                    <option value="ha-noi">HÃ  Ná»™i</option>
+                                                                    <option value="da-nang">ÄÃ  Náºµng</option>
+                                                                    <option value="can-tho">Cáº§n ThÆ¡</option>
                                                                 </Select>
                                                             </FormControl>
                                                             <FormMessage />
@@ -510,13 +510,13 @@ const Profile = () => {
                                                 name="address"
                                                 render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel>Địa chỉ</FormLabel>
+                                                        <FormLabel>Äá»‹a chá»‰</FormLabel>
                                                         <FormControl>
                                                             <Textarea
                                                                 {...field}
                                                                 disabled={!editMode}
                                                                 rows={3}
-                                                                placeholder="Nhập địa chỉ của bạn"
+                                                                placeholder="Nháº­p Ä‘á»‹a chá»‰ cá»§a báº¡n"
                                                             />
                                                         </FormControl>
                                                         <FormMessage />
@@ -535,13 +535,13 @@ const Profile = () => {
                                                             disabled={loading}
                                                         >
                                                             <Save className="h-4 w-4 mr-2" />
-                                                            Lưu thay đổi
+                                                            LÆ°u thay Ä‘á»•i
                                                         </Button>
                                                         <Button
                                                             variant="outline"
                                                             onClick={() => setEditMode(false)}
                                                         >
-                                                            Hủy
+                                                            Há»§y
                                                         </Button>
                                                     </>
                                                 ) : (
@@ -549,7 +549,7 @@ const Profile = () => {
                                                         onClick={() => setEditMode(true)}
                                                     >
                                                         <Edit className="h-4 w-4 mr-2" />
-                                                        Chỉnh sửa thông tin
+                                                        Chá»‰nh sá»­a thÃ´ng tin
                                                     </Button>
                                                 )}
                                             </div>
@@ -562,15 +562,15 @@ const Profile = () => {
                                 label: (
                                     <span className="flex items-center gap-2">
                                         <Clock className="h-4 w-4" />
-                                        Lịch sử đặt vé
+                                        Lá»‹ch sá»­ Ä‘áº·t vÃ©
                                     </span>
                                 ),
                                 children: (
-                                    <TableWrapper
-                                        columns={bookingColumns}
-                                        dataSource={bookingHistory}
-                                        rowKey="id"
-                                        pagination={{ pageSize: 10 }}
+                                    <DataTable
+                                        fields={bookingColumns}
+                                        rows={bookingHistory}
+                                        getRowId="id"
+                                        pageControls={{ pageSize: 10 }}
                                     />
                                 )
                             },
@@ -579,7 +579,7 @@ const Profile = () => {
                                 label: (
                                     <span className="flex items-center gap-2">
                                         <Heart className="h-4 w-4" />
-                                        Phim yêu thích
+                                        Phim yÃªu thÃ­ch
                                     </span>
                                 ),
                                 children: (
@@ -611,7 +611,7 @@ const Profile = () => {
                                             ))}
                                         </div>
                                     ) : (
-                                        <Empty description="Chưa có phim yêu thích nào" />
+                                        <Empty description="ChÆ°a cÃ³ phim yÃªu thÃ­ch nÃ o" />
                                     )
                                 )
                             },
@@ -620,47 +620,47 @@ const Profile = () => {
                                 label: (
                                     <span className="flex items-center gap-2">
                                         <Settings className="h-4 w-4" />
-                                        Cài đặt
+                                        CÃ i Ä‘áº·t
                                     </span>
                                 ),
                                 children: (
                                     <div className="space-y-4">
                                         <Card className="rounded-lg border border-gray-200">
-                                            <h4 className="font-semibold mb-4">Cài đặt thông báo</h4>
+                                            <h4 className="font-semibold mb-4">CÃ i Ä‘áº·t thÃ´ng bÃ¡o</h4>
                                             <div className="space-y-3">
                                                 <div className="flex justify-between items-center py-2">
                                                     <div className="flex items-center gap-2">
                                                         <Bell className="h-4 w-4" />
-                                                        <span className="text-gray-900">Thông báo email</span>
+                                                        <span className="text-gray-900">ThÃ´ng bÃ¡o email</span>
                                                     </div>
-                                                    <Button size="sm" className="rounded">Bật</Button>
+                                                    <Button size="sm" className="rounded">Báº­t</Button>
                                                 </div>
                                                 <div className="flex justify-between items-center py-2">
                                                     <div className="flex items-center gap-2">
                                                         <Bell className="h-4 w-4" />
-                                                        <span className="text-gray-900">Thông báo push</span>
+                                                        <span className="text-gray-900">ThÃ´ng bÃ¡o push</span>
                                                     </div>
-                                                    <Button size="sm" className="rounded">Bật</Button>
+                                                    <Button size="sm" className="rounded">Báº­t</Button>
                                                 </div>
                                             </div>
                                         </Card>
 
                                         <Card className="rounded-lg border border-gray-200">
-                                            <h4 className="font-semibold mb-4">Bảo mật</h4>
+                                            <h4 className="font-semibold mb-4">Báº£o máº­t</h4>
                                             <div className="space-y-3">
                                                 <div className="flex justify-between items-center py-2">
                                                     <div className="flex items-center gap-2">
                                                         <Shield className="h-4 w-4" />
-                                                        <span className="text-gray-900">Đổi mật khẩu</span>
+                                                        <span className="text-gray-900">Äá»•i máº­t kháº©u</span>
                                                     </div>
-                                                    <Button size="sm" className="rounded">Đổi</Button>
+                                                    <Button size="sm" className="rounded">Äá»•i</Button>
                                                 </div>
                                                 <div className="flex justify-between items-center py-2">
                                                     <div className="flex items-center gap-2">
                                                         <Shield className="h-4 w-4" />
-                                                        <span className="text-gray-900">Xác thực 2 bước</span>
+                                                        <span className="text-gray-900">XÃ¡c thá»±c 2 bÆ°á»›c</span>
                                                     </div>
-                                                    <Button size="sm" className="rounded">Bật</Button>
+                                                    <Button size="sm" className="rounded">Báº­t</Button>
                                                 </div>
                                             </div>
                                         </Card>

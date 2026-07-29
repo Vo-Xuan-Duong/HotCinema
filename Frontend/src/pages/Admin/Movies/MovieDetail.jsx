@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tag } from '@/components/ui/tag';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Separator } from '@/components/ui/separator';
-import { Rate } from '@/components/ui/rate';
-import { Modal } from '@/components/ui/modal';
+import { StarRating } from '@/components/ui/star-rating';
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
 import { Alert } from '@/components/ui/alert';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
-import { Descriptions } from '@/components/ui/descriptions';
+import { DetailList, DetailItem } from '@/components/ui/detail-list';
 import {
     ArrowLeft,
     Edit,
@@ -84,12 +84,12 @@ const MovieDetail = () => {
             if (movieData) {
                 setMovie(movieData);
             } else {
-                notification.error('Không tìm thấy phim');
+                notification.error('KhÃ´ng tÃ¬m tháº¥y phim');
                 navigate('/admin/movies');
             }
         } catch (error) {
             console.error('Error loading movie detail:', error);
-            notification.error('Lỗi khi tải thông tin phim');
+            notification.error('Lá»—i khi táº£i thÃ´ng tin phim');
             navigate('/admin/movies');
         } finally {
             setLoading(false);
@@ -103,11 +103,11 @@ const MovieDetail = () => {
     const handleDeleteMovie = async () => {
         try {
             await movieService.deleteMovie(movie.id);
-            notification.success('Xóa phim thành công!');
+            notification.success('XÃ³a phim thÃ nh cÃ´ng!');
             navigate('/admin/movies');
         } catch (error) {
             console.error('Error deleting movie:', error);
-            notification.error(error.response?.data?.message || 'Lỗi khi xóa phim');
+            notification.error(error.response?.data?.message || 'Lá»—i khi xÃ³a phim');
         }
     };
 
@@ -123,11 +123,11 @@ const MovieDetail = () => {
         return (
             <Alert
                 variant="destructive"
-                title="Không tìm thấy phim"
-                description="Phim bạn đang tìm kiếm không tồn tại hoặc đã bị xóa."
+                title="KhÃ´ng tÃ¬m tháº¥y phim"
+                description="Phim báº¡n Ä‘ang tÃ¬m kiáº¿m khÃ´ng tá»“n táº¡i hoáº·c Ä‘Ã£ bá»‹ xÃ³a."
                 action={
                     <Button onClick={() => navigate('/admin/movies')}>
-                        Quay lại danh sách
+                        Quay láº¡i danh sÃ¡ch
                     </Button>
                 }
             />
@@ -146,12 +146,12 @@ const MovieDetail = () => {
                         href: '/admin/dashboard'
                     },
                     {
-                        title: 'Quản lý phim',
+                        title: 'Quáº£n lÃ½ phim',
                         icon: <Film className="h-4 w-4" />,
                         href: '/admin/movies'
                     },
                     {
-                        title: movie ? `Chi tiết: ${movie.title}` : 'Chi tiết phim'
+                        title: movie ? `Chi tiáº¿t: ${movie.title}` : 'Chi tiáº¿t phim'
                     }
                 ]}
             />
@@ -177,19 +177,19 @@ const MovieDetail = () => {
                             className="bg-blue-500 hover:bg-blue-600 text-white"
                         >
                             <Edit className="h-4 w-4 mr-2" />
-                            Sửa
+                            Sá»­a
                         </Button>
                         <Button
                             variant="destructive"
                             onClick={() => {
-                                if (window.confirm('Bạn có chắc chắn muốn xóa phim này?')) {
+                                if (window.confirm('Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a phim nÃ y?')) {
                                     handleDeleteMovie();
                                 }
                             }}
                             className="bg-red-500 hover:bg-red-600 text-white"
                         >
                             <Trash2 className="h-4 w-4 mr-2" />
-                            Xóa
+                            XÃ³a
                         </Button>
                     </div> */}
                 </div>
@@ -212,93 +212,93 @@ const MovieDetail = () => {
                 <div className="md:col-span-3">
                     <Card className="rounded-xl shadow-md border border-gray-200">
                         <div className="border-b border-gray-200 px-5 py-4 mb-0">
-                            <h3 className="text-base font-semibold m-0">Thông tin phim</h3>
+                            <h3 className="text-base font-semibold m-0">ThÃ´ng tin phim</h3>
                         </div>
                         <div className="p-5">
-                            <Descriptions column={2}>
-                                <Descriptions.Item label={<span className="flex items-center gap-1"><Star className="h-4 w-4" /> Đánh giá</span>}>
+                            <DetailList columns={2}>
+                                <DetailItem label={<span className="flex items-center gap-1"><Star className="h-4 w-4" /> ÄÃ¡nh giÃ¡</span>}>
                                     <div className="flex items-center gap-2">
-                                        <Rate disabled value={(movie.averageRating || movie.voteAverage || 0) / 2} allowHalf />
+                                        <StarRating readOnly value={(movie.averageRating || movie.voteAverage || 0) / 2} precision={0.5} />
                                         <span className="font-bold text-base text-blue-600">
                                             {(movie.averageRating || movie.voteAverage || 0).toFixed(1)}/10
                                         </span>
                                     </div>
-                                </Descriptions.Item>
-                                <Descriptions.Item label={<span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> Ngày phát hành</span>}>
+                                </DetailItem>
+                                <DetailItem label={<span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> NgÃ y phÃ¡t hÃ nh</span>}>
                                     {movie.releaseDate ? dayjs(movie.releaseDate).format('DD/MM/YYYY') : '-'}
-                                </Descriptions.Item>
-                                <Descriptions.Item label={<span className="flex items-center gap-1"><Clock className="h-4 w-4" /> Thời lượng</span>}>
-                                    {movie.durationMinutes || movie.durationFormatted || movie.runtime || movie.duration || 0} {movie.durationFormatted ? '' : 'phút'}
-                                </Descriptions.Item>
-                                <Descriptions.Item label="Trạng thái">
+                                </DetailItem>
+                                <DetailItem label={<span className="flex items-center gap-1"><Clock className="h-4 w-4" /> Thá»i lÆ°á»£ng</span>}>
+                                    {movie.durationMinutes || movie.durationFormatted || movie.runtime || movie.duration || 0} {movie.durationFormatted ? '' : 'phÃºt'}
+                                </DetailItem>
+                                <DetailItem label="Tráº¡ng thÃ¡i">
                                     {(() => {
                                         const statusMap = {
-                                            'NOW_SHOWING': { text: 'Đang chiếu', color: 'green' },
-                                            'COMING_SOON': { text: 'Sắp chiếu', color: 'orange' },
-                                            'ENDED': { text: 'Đã kết thúc', color: 'gray' }
+                                            'NOW_SHOWING': { text: 'Äang chiáº¿u', color: 'green' },
+                                            'COMING_SOON': { text: 'Sáº¯p chiáº¿u', color: 'orange' },
+                                            'ENDED': { text: 'ÄÃ£ káº¿t thÃºc', color: 'gray' }
                                         };
                                         const status = movie.status || (movie.isActive ? 'NOW_SHOWING' : 'COMING_SOON');
                                         const statusInfo = statusMap[status] || { text: status || 'N/A', color: 'gray' };
-                                        return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
+                                        return <StatusBadge tone={statusInfo.color}>{statusInfo.text}</StatusBadge>;
                                     })()}
-                                </Descriptions.Item>
+                                </DetailItem>
                                 {movie.rating && (
-                                    <Descriptions.Item label="Phân loại">
-                                        <Tag color="purple">{movie.rating}</Tag>
-                                    </Descriptions.Item>
+                                    <DetailItem label="PhÃ¢n loáº¡i">
+                                        <StatusBadge tone="purple">{movie.rating}</StatusBadge>
+                                    </DetailItem>
                                 )}
                                 {movie.language && (
-                                    <Descriptions.Item label={<span className="flex items-center gap-1"><Globe className="h-4 w-4" /> Ngôn ngữ</span>}>
+                                    <DetailItem label={<span className="flex items-center gap-1"><Globe className="h-4 w-4" /> NgÃ´n ngá»¯</span>}>
                                         {movie.language}
-                                    </Descriptions.Item>
+                                    </DetailItem>
                                 )}
                                 {movie.subtitle && (
-                                    <Descriptions.Item label="Phụ đề">
+                                    <DetailItem label="Phá»¥ Ä‘á»">
                                         {movie.subtitle}
-                                    </Descriptions.Item>
+                                    </DetailItem>
                                 )}
-                                <Descriptions.Item label={<span className="flex items-center gap-1"><Users className="h-4 w-4" /> Đạo diễn</span>}>
+                                <DetailItem label={<span className="flex items-center gap-1"><Users className="h-4 w-4" /> Äáº¡o diá»…n</span>}>
                                     {movie.director || '-'}
-                                </Descriptions.Item>
+                                </DetailItem>
                                 {movie.actors && Array.isArray(movie.actors) && movie.actors.length > 0 && (
-                                    <Descriptions.Item label="Diễn viên" span={2}>
+                                    <DetailItem label="Diá»…n viÃªn" wide>
                                         <div className="flex flex-wrap gap-2">
                                             {movie.actors.map((actor, index) => (
-                                                <Tag key={index} color="cyan">{typeof actor === 'string' ? actor : actor.name}</Tag>
+                                                <StatusBadge key={index} tone="cyan">{typeof actor === 'string' ? actor : actor.name}</StatusBadge>
                                             ))}
                                         </div>
-                                    </Descriptions.Item>
+                                    </DetailItem>
                                 )}
-                                <Descriptions.Item label="Thể loại" span={2}>
+                                <DetailItem label="Thá»ƒ loáº¡i" wide>
                                     <div className="flex flex-wrap gap-2">
                                         {Array.isArray(movie.genres)
                                             ? movie.genres.map((genre, index) => (
-                                                <Tag key={index} color="blue">{genre.name || genre}</Tag>
+                                                <StatusBadge key={index} tone="blue">{genre.name || genre}</StatusBadge>
                                             ))
                                             : movie.genre?.split(', ').map((genre, index) => (
-                                                <Tag key={index} color="blue">{genre}</Tag>
+                                                <StatusBadge key={index} tone="blue">{genre}</StatusBadge>
                                             ))
                                         }
                                     </div>
-                                </Descriptions.Item>
+                                </DetailItem>
                                 {(movie.trailerUrl || movie.trailer) && (
-                                    <Descriptions.Item label={<span className="flex items-center gap-1"><PlayCircle className="h-4 w-4" /> Trailer</span>} span={2}>
+                                    <DetailItem label={<span className="flex items-center gap-1"><PlayCircle className="h-4 w-4" /> Trailer</span>} wide>
                                         <Button
                                             onClick={() => setShowTrailerModal(true)}
                                         >
                                             <PlayCircle className="h-4 w-4 mr-2" />
                                             Xem trailer
                                         </Button>
-                                    </Descriptions.Item>
+                                    </DetailItem>
                                 )}
-                            </Descriptions>
+                            </DetailList>
 
                             {(movie.description || movie.overview) && (
                                 <>
                                     <Separator className="my-4" />
                                     <div>
                                         <h5 className="flex items-center gap-2 font-semibold mb-2">
-                                            <FileText className="h-4 w-4" /> Mô tả
+                                            <FileText className="h-4 w-4" /> MÃ´ táº£
                                         </h5>
                                         <p className="mt-2 mb-0 whitespace-pre-wrap text-gray-700">
                                             {movie.description || movie.overview}
@@ -315,7 +315,7 @@ const MovieDetail = () => {
             {(movie.backdropUrl || movie.backdropPath || movie.backgroundImage) && (
                 <Card className="mt-6 rounded-xl shadow-md border border-gray-200">
                     <div className="border-b border-gray-200 px-5 py-4 mb-0">
-                        <h3 className="text-base font-semibold m-0">Hình nền</h3>
+                        <h3 className="text-base font-semibold m-0">HÃ¬nh ná»n</h3>
                     </div>
                     <div className="p-5">
                         <img
@@ -331,7 +331,7 @@ const MovieDetail = () => {
             {movie.cast && movie.cast.length > 0 && (
                 <Card className="mt-6 rounded-xl shadow-md border border-gray-200">
                     <div className="border-b border-gray-200 px-5 py-4 mb-0">
-                        <h3 className="text-base font-semibold m-0">Diễn viên</h3>
+                        <h3 className="text-base font-semibold m-0">Diá»…n viÃªn</h3>
                     </div>
                     <div className="p-5">
                         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
@@ -344,7 +344,7 @@ const MovieDetail = () => {
                                     />
                                     <div className="p-3">
                                         <h4 className="font-semibold text-sm mb-1">{actor.name}</h4>
-                                        <p className="text-xs text-gray-500">{actor.character || 'Diễn viên'}</p>
+                                        <p className="text-xs text-gray-500">{actor.character || 'Diá»…n viÃªn'}</p>
                                     </div>
                                 </Card>
                             ))}
@@ -354,12 +354,12 @@ const MovieDetail = () => {
             )}
 
             {/* Trailer Modal */}
-            <Modal
-                title={<span className="flex items-center gap-2"><PlayCircle className="h-4 w-4" /> Xem Trailer</span>}
+            <ResponsiveDialog
+                heading={<span className="flex items-center gap-2"><PlayCircle className="h-4 w-4" /> Xem Trailer</span>}
                 open={showTrailerModal}
-                onCancel={() => setShowTrailerModal(false)}
-                footer={null}
-                width={800}
+                onClose={() => setShowTrailerModal(false)}
+                actions={null}
+                maxWidth={800}
                 centered
             >
                 {(movie?.trailerUrl || movie?.trailer) && getEmbedUrl(movie.trailerUrl || movie.trailer) && (
@@ -373,7 +373,7 @@ const MovieDetail = () => {
                         />
                     </div>
                 )}
-            </Modal>
+            </ResponsiveDialog>
         </div>
     );
 };

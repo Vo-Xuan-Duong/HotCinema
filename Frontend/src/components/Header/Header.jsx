@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
     Home,
     Video,
@@ -21,11 +21,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge-count';
-import { Menu } from '@/components/ui/menu';
+import { NavLinks } from '@/components/ui/nav-links';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { List, ListItem } from '@/components/ui/list';
+import { ContentList, ContentListItem } from '@/components/ui/content-list';
 import { Empty } from '@/components/ui/empty';
 
 const Header = () => {
@@ -40,25 +40,25 @@ const Header = () => {
     const [notifications, setNotifications] = useState([
         {
             id: 1,
-            title: 'Đặt vé thành công',
-            content: 'Bạn đã đặt vé xem phim "Gió Vẫn Thổi" thành công',
-            time: '5 phút trước',
+            title: 'Äáº·t vÃ© thÃ nh cÃ´ng',
+            content: 'Báº¡n Ä‘Ã£ Ä‘áº·t vÃ© xem phim "GiÃ³ Váº«n Thá»•i" thÃ nh cÃ´ng',
+            time: '5 phÃºt trÆ°á»›c',
             read: false,
             type: 'success'
         },
         {
             id: 2,
-            title: 'Ưu đãi mới',
-            content: 'Giảm 20% cho các suất chiếu buổi sáng từ thứ 2 - thứ 6',
-            time: '1 giờ trước',
+            title: 'Æ¯u Ä‘Ã£i má»›i',
+            content: 'Giáº£m 20% cho cÃ¡c suáº¥t chiáº¿u buá»•i sÃ¡ng tá»« thá»© 2 - thá»© 6',
+            time: '1 giá» trÆ°á»›c',
             read: false,
             type: 'promotion'
         },
         {
             id: 3,
-            title: 'Phim mới sắp ra mắt',
-            content: 'Deadpool & Wolverine sẽ công chiếu vào ngày 26/07',
-            time: '3 giờ trước',
+            title: 'Phim má»›i sáº¯p ra máº¯t',
+            content: 'Deadpool & Wolverine sáº½ cÃ´ng chiáº¿u vÃ o ngÃ y 26/07',
+            time: '3 giá» trÆ°á»›c',
             read: true,
             type: 'info'
         }
@@ -113,14 +113,14 @@ const Header = () => {
             newCurrent = '/cinemas';
         }
 
-        // Chỉ update state nếu giá trị thay đổi
+        // Chá»‰ update state náº¿u giÃ¡ trá»‹ thay Ä‘á»•i
         setCurrent(prevCurrent => {
             if (prevCurrent !== newCurrent) {
                 return newCurrent;
             }
             return prevCurrent;
         });
-    }, [location.pathname]); // Chỉ phụ thuộc vào pathname, không phải toàn bộ location object
+    }, [location.pathname]); // Chá»‰ phá»¥ thuá»™c vÃ o pathname, khÃ´ng pháº£i toÃ n bá»™ location object
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -134,10 +134,10 @@ const Header = () => {
     const handleLogout = async () => {
         try {
             await logout();
-            notification.success('Đăng xuất thành công!');
+            notification.success('ÄÄƒng xuáº¥t thÃ nh cÃ´ng!');
             navigate('/');
         } catch (error) {
-            notification.error('Đăng xuất thất bại. Vui lòng thử lại!');
+            notification.error('ÄÄƒng xuáº¥t tháº¥t báº¡i. Vui lÃ²ng thá»­ láº¡i!');
         }
     };
 
@@ -184,17 +184,17 @@ const Header = () => {
     };
 
     const menuItems = [
-        { key: '/', icon: <Home className="h-4 w-4" />, label: 'Trang chủ' },
-        { key: '/movies', icon: <Video className="h-4 w-4" />, label: 'Phim' },
-        { key: '/schedule', icon: <Calendar className="h-4 w-4" />, label: 'Lịch chiếu' },
-        { key: '/cinemas', icon: <Store className="h-4 w-4" />, label: 'Rạp chiếu' }
+        { href: '/', icon: <Home className="h-4 w-4" />, label: 'Trang chá»§' },
+        { href: '/movies', icon: <Video className="h-4 w-4" />, label: 'Phim' },
+        { href: '/schedule', icon: <Calendar className="h-4 w-4" />, label: 'Lá»‹ch chiáº¿u' },
+        { href: '/cinemas', icon: <Store className="h-4 w-4" />, label: 'Ráº¡p chiáº¿u' }
     ];
 
     const userMenuItems = [
         {
             key: 'profile',
             icon: <User className="h-4 w-4" />,
-            label: 'Hồ sơ cá nhân',
+            label: 'Há»“ sÆ¡ cÃ¡ nhÃ¢n',
             onClick: () => navigate('/profile'),
         },
         ...(isAdmin() ? [
@@ -202,7 +202,7 @@ const Header = () => {
             {
                 key: 'admin',
                 icon: <LayoutDashboard className="h-4 w-4" />,
-                label: 'Quản trị',
+                label: 'Quáº£n trá»‹',
                 onClick: () => navigate('/admin'),
             },
         ] : []),
@@ -210,7 +210,7 @@ const Header = () => {
         {
             key: 'logout',
             icon: <LogOut className="h-4 w-4" />,
-            label: 'Đăng xuất',
+            label: 'ÄÄƒng xuáº¥t',
             onClick: handleLogout,
         },
     ];
@@ -218,18 +218,18 @@ const Header = () => {
     const notificationDropdown = (
         <div className="w-full max-h-[480px] overflow-auto bg-white rounded-lg">
             <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50/50">
-                <span className="font-semibold text-base text-gray-900">Thông báo</span>
+                <span className="font-semibold text-base text-gray-900">ThÃ´ng bÃ¡o</span>
                 {notifications.some(n => !n.read) && (
                     <Button variant="link" size="sm" onClick={markAllAsRead} className="h-auto p-0 text-xs text-primary hover:text-red-600">
-                        Đánh dấu đã đọc tất cả
+                        ÄÃ¡nh dáº¥u Ä‘Ã£ Ä‘á»c táº¥t cáº£
                     </Button>
                 )}
             </div>
             {notifications.length > 0 ? (
-                <List
-                    dataSource={notifications}
-                    renderItem={(item) => (
-                        <ListItem
+                <ContentList
+                    entries={notifications}
+                    renderEntry={(item) => (
+                        <ContentListItem
                             className={`cursor-pointer ${item.read ? 'bg-white' : 'bg-blue-50'}`}
                             onClick={() => markAsRead(item.id)}
                             actions={[
@@ -248,7 +248,7 @@ const Header = () => {
                                                 <Check className="h-4 w-4" />
                                             </Button>
                                         </TooltipTrigger>
-                                        <TooltipContent>Đánh dấu đã đọc</TooltipContent>
+                                        <TooltipContent>ÄÃ¡nh dáº¥u Ä‘Ã£ Ä‘á»c</TooltipContent>
                                     </Tooltip>
                                 ),
                                 <Tooltip key="delete">
@@ -265,18 +265,18 @@ const Header = () => {
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent>Xóa</TooltipContent>
+                                    <TooltipContent>XÃ³a</TooltipContent>
                                 </Tooltip>
                             ]}
                         >
-                            <ListItem.Meta
-                                avatar={
+                            <ContentListItem.Meta
+                                leading={
                                     <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
                                         style={{
                                             background: item.type === 'success' ? '#52c41a20' : item.type === 'promotion' ? '#ff4d4f20' : '#1890ff20'
                                         }}
                                     >
-                                        {item.type === 'success' ? '🎫' : item.type === 'promotion' ? '🎁' : '🎬'}
+                                        {item.type === 'success' ? 'ðŸŽ«' : item.type === 'promotion' ? 'ðŸŽ' : 'ðŸŽ¬'}
                                     </div>
                                 }
                                 title={<span className={item.read ? 'font-normal' : 'font-semibold'}>{item.title}</span>}
@@ -290,11 +290,11 @@ const Header = () => {
                                     </>
                                 }
                             />
-                        </ListItem>
+                        </ContentListItem>
                     )}
                 />
             ) : (
-                <Empty description="Không có thông báo" />
+                <Empty description="KhÃ´ng cÃ³ thÃ´ng bÃ¡o" />
             )}
         </div>
     );
@@ -308,18 +308,18 @@ const Header = () => {
                         className="flex items-center gap-2 font-bold text-lg text-primary cursor-pointer p-2 rounded transition-all duration-300 hover:scale-105 hover:bg-primary/5"
                         onClick={() => navigate('/')}
                     >
-                        <span className="text-xl">🎬</span>
+                        <span className="text-xl">ðŸŽ¬</span>
                         <span className="font-extrabold tracking-tight">HotCinemas</span>
                     </div>
                 </div>
 
                 {/* Desktop Menu */}
                 <div className="flex-1 flex justify-center items-center min-w-0">
-                    <Menu
-                        items={menuItems}
-                        selectedKeys={[current]}
-                        onClick={handleMenuClick}
-                        mode="horizontal"
+                    <NavLinks
+                        links={menuItems}
+                        currentPath={current}
+                        onNavigate={handleMenuClick}
+                        orientation="horizontal"
                         className="hidden md:flex"
                     />
                 </div>
@@ -331,7 +331,7 @@ const Header = () => {
                         <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                             <Input
-                                placeholder="Tìm kiếm phim, rạp..."
+                                placeholder="TÃ¬m kiáº¿m phim, ráº¡p..."
                                 value={searchValue}
                                 onChange={(e) => setSearchValue(e.target.value)}
                                 onKeyDown={(e) => {
@@ -377,7 +377,7 @@ const Header = () => {
                                         </Button>
                                     </DropdownMenuTrigger>
                                 </TooltipTrigger>
-                                <TooltipContent>Thông báo</TooltipContent>
+                                <TooltipContent>ThÃ´ng bÃ¡o</TooltipContent>
                             </Tooltip>
                             <DropdownMenuContent align="end" className="p-0 w-[360px] bg-white border border-gray-200 shadow-xl rounded-lg">
                                 {notificationDropdown}
@@ -425,12 +425,12 @@ const Header = () => {
                                 variant="outline"
                                 onClick={() => navigate('/register')}
                             >
-                                Đăng ký
+                                ÄÄƒng kÃ½
                             </Button>
                             <Button
                                 onClick={() => navigate('/login')}
                             >
-                                Đăng nhập
+                                ÄÄƒng nháº­p
                             </Button>
                         </div>
                     )}
@@ -442,7 +442,7 @@ const Header = () => {
                 <DrawerHeader>
                     <div className="flex items-center justify-between">
                         <DrawerTitle className="flex items-center gap-2.5 font-bold text-xl text-gray-800">
-                            <span className="text-[28px]">🎬</span>
+                            <span className="text-[28px]">ðŸŽ¬</span>
                             <span className="text-primary font-extrabold tracking-tight">HotCinemas</span>
                         </DrawerTitle>
                         <DrawerClose onClick={() => setMobileMenuVisible(false)} />
@@ -450,18 +450,18 @@ const Header = () => {
                 </DrawerHeader>
                 <DrawerContent>
                     <div className="flex flex-col h-full">
-                        <Menu
-                            items={menuItems}
-                            selectedKeys={[current]}
-                            onClick={handleMenuClick}
-                            mode="vertical"
+                        <NavLinks
+                            links={menuItems}
+                            currentPath={current}
+                            onNavigate={handleMenuClick}
+                            orientation="vertical"
                             className="flex-1"
                         />
                         <div className="p-5 border-t border-gray-100 bg-gray-50 mt-auto">
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                                 <Input
-                                    placeholder="Tìm kiếm phim, rạp..."
+                                    placeholder="TÃ¬m kiáº¿m phim, ráº¡p..."
                                     value={searchValue}
                                     onChange={(e) => setSearchValue(e.target.value)}
                                     onKeyDown={(e) => {

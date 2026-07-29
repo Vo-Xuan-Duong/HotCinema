@@ -1,4 +1,4 @@
-import * as React from "react"
+﻿import * as React from "react"
 import { cn } from "@/lib/utils"
 import { useFormContext, Controller } from "react-hook-form"
 
@@ -16,20 +16,15 @@ const FormField = ({ control, name, render, rules, ...props }) => {
   const formContext = useFormContext()
   const actualControl = control || formContext?.control
 
-  if (!actualControl) {
-    console.warn('FormField: control is required. Make sure FormField is used within a FormProvider or pass control prop.')
-    return null
-  }
-
   // Convert rules to react-hook-form rules format if needed
   const reactHookFormRules = React.useMemo(() => {
     if (!rules) return undefined
-    
+
     // If rules is already in react-hook-form format, return as is
     if (typeof rules === 'object' && !Array.isArray(rules)) {
       return rules
     }
-    
+
     // If rules is an array (Ant Design format), convert to object
     if (Array.isArray(rules)) {
       const rulesObj = {}
@@ -67,9 +62,14 @@ const FormField = ({ control, name, render, rules, ...props }) => {
       })
       return rulesObj
     }
-    
+
     return rules
   }, [rules])
+
+  if (!actualControl) {
+    console.warn('FormField: control is required. Make sure FormField is used within a FormProvider or pass control prop.')
+    return null
+  }
 
   return (
     <Controller
@@ -143,4 +143,3 @@ export {
   FormDescription,
   FormMessage,
 }
-

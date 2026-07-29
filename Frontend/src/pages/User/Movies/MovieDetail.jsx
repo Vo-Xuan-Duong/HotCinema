@@ -1,17 +1,17 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Heart, Star, Play, ShoppingCart, Share2, Calendar, Clock, User, MapPin, Zap, Flame, Trophy, Home, ChevronRight, ChevronDown, X, CheckCircle2, Users, Tag as TagIcon, Target, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Tag } from '@/components/ui/tag';
-import { Modal } from '@/components/ui/modal';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
 import { Empty } from '@/components/ui/empty';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip } from '@/components/ui/tooltip';
 import { Avatar } from '@/components/ui/avatar';
-import { Rate } from '@/components/ui/rate';
+import { StarRating } from '@/components/ui/star-rating';
 import { Progress } from '@/components/ui/progress';
-import { Statistic } from '@/components/ui/statistic';
+import { Metric } from '@/components/ui/metric';
 import { useTheme } from '@/context/ThemeContext';
 import useNotification from '@/hooks/useNotification';
 import movieService from '@/services/movieService';
@@ -33,7 +33,7 @@ const MovieDetail = () => {
     const [loading, setLoading] = useState(true);
     const [isFavorite, setIsFavorite] = useState(false);
     const [userRating, setUserRating] = useState(0);
-    const [selectedCity, setSelectedCity] = useState('Tp. Hồ Chí Minh');
+    const [selectedCity, setSelectedCity] = useState('Tp. Há»“ ChÃ­ Minh');
     const [selectedCityId, setSelectedCityId] = useState(null);
     const [cities, setCities] = useState([]);
     const scheduleTabRef = useRef(null);
@@ -93,7 +93,7 @@ const MovieDetail = () => {
 
                 // Set default region (Ho Chi Minh Region)
                 const defaultRegion = regionsArray.find(region =>
-                    region.name && (region.name.includes('Hồ Chí Minh') || region.name.includes('Ho Chi Minh')) ||
+                    region.name && (region.name.includes('Há»“ ChÃ­ Minh') || region.name.includes('Ho Chi Minh')) ||
                     region.slug === 'ho-chi-minh'
                 );
                 if (defaultRegion) {
@@ -105,7 +105,7 @@ const MovieDetail = () => {
                 }
             } catch (error) {
                 console.error('Error fetching regions:', error);
-                notification.error('Không thể tải danh sách khu vực');
+                notification.error('KhÃ´ng thá»ƒ táº£i danh sÃ¡ch khu vá»±c');
             }
         };
 
@@ -125,7 +125,7 @@ const MovieDetail = () => {
             // Set default city if not already set
             if (!selectedCityId && citiesFromRegions.length > 0) {
                 const defaultCity = citiesFromRegions.find(c =>
-                    c.name && (c.name.includes('Hồ Chí Minh') || c.name.includes('Ho Chi Minh'))
+                    c.name && (c.name.includes('Há»“ ChÃ­ Minh') || c.name.includes('Ho Chi Minh'))
                 ) || citiesFromRegions[0];
                 if (defaultCity) {
                     setSelectedCity(defaultCity.name);
@@ -145,12 +145,12 @@ const MovieDetail = () => {
                     console.log('Fetched movie data:', movieData);
                     setMovie(movieData);
                 } else {
-                    notification.error('Không tìm thấy phim!');
+                    notification.error('KhÃ´ng tÃ¬m tháº¥y phim!');
                     navigate('/movies');
                 }
             } catch (error) {
                 console.error('Error fetching movie:', error);
-                notification.error('Có lỗi xảy ra khi tải thông tin phim!');
+                notification.error('CÃ³ lá»—i xáº£y ra khi táº£i thÃ´ng tin phim!');
                 navigate('/movies');
             } finally {
                 setLoading(false);
@@ -298,7 +298,7 @@ const MovieDetail = () => {
             setNowShowingPage(nextPage);
         } catch (error) {
             console.error('Error loading more now showing movies:', error);
-            notification.error('Không thể tải thêm phim');
+            notification.error('KhÃ´ng thá»ƒ táº£i thÃªm phim');
         } finally {
             setLoadingMoreNowShowing(false);
         }
@@ -333,7 +333,7 @@ const MovieDetail = () => {
             setUpcomingPage(nextPage);
         } catch (error) {
             console.error('Error loading more upcoming movies:', error);
-            notification.error('Không thể tải thêm phim');
+            notification.error('KhÃ´ng thá»ƒ táº£i thÃªm phim');
         } finally {
             setLoadingMoreUpcoming(false);
         }
@@ -414,13 +414,13 @@ const MovieDetail = () => {
                     size: 5
                 };
 
-                // Add cityId filter if a city is selected (not "Gần bạn")
-                if (selectedCityId && selectedCity !== 'Gần bạn') {
+                // Add cityId filter if a city is selected (not "Gáº§n báº¡n")
+                if (selectedCityId && selectedCity !== 'Gáº§n báº¡n') {
                     params.cityId = selectedCityId;
                 }
 
-                // Handle "Gần bạn" with geolocation
-                if (selectedCity === 'Gần bạn' && userLocation) {
+                // Handle "Gáº§n báº¡n" with geolocation
+                if (selectedCity === 'Gáº§n báº¡n' && userLocation) {
                     params.latitude = userLocation.latitude;
                     params.longitude = userLocation.longitude;
                     // Remove cityId when using location-based search
@@ -536,7 +536,7 @@ const MovieDetail = () => {
                 }
             } catch (error) {
                 console.error('Error fetching schedules and cinemas:', error);
-                notification.error('Không thể tải lịch chiếu');
+                notification.error('KhÃ´ng thá»ƒ táº£i lá»‹ch chiáº¿u');
             }
         };
 
@@ -568,11 +568,11 @@ const MovieDetail = () => {
                 size: 5
             };
 
-            if (selectedCityId && selectedCity !== 'Gần bạn') {
+            if (selectedCityId && selectedCity !== 'Gáº§n báº¡n') {
                 params.cityId = selectedCityId;
             }
 
-            if (selectedCity === 'Gần bạn' && userLocation) {
+            if (selectedCity === 'Gáº§n báº¡n' && userLocation) {
                 params.latitude = userLocation.latitude;
                 params.longitude = userLocation.longitude;
                 delete params.cityId;
@@ -643,7 +643,7 @@ const MovieDetail = () => {
             setHasMore(nextPage + 1 < responseData?.totalPages);
         } catch (error) {
             console.error('Error loading more cinemas:', error);
-            notification.error('Không thể tải thêm rạp');
+            notification.error('KhÃ´ng thá»ƒ táº£i thÃªm ráº¡p');
         } finally {
             setLoadingMore(false);
         }
@@ -651,7 +651,7 @@ const MovieDetail = () => {
 
     const handleFavorite = () => {
         setIsFavorite(!isFavorite);
-        notification.success(isFavorite ? 'Đã bỏ yêu thích' : 'Đã thêm vào yêu thích');
+        notification.success(isFavorite ? 'ÄÃ£ bá» yÃªu thÃ­ch' : 'ÄÃ£ thÃªm vÃ o yÃªu thÃ­ch');
     };
 
     const handleBuyTicket = () => {
@@ -672,13 +672,13 @@ const MovieDetail = () => {
             });
         } else {
             navigator.clipboard.writeText(window.location.href);
-            notification.success('Đã sao chép link phim!');
+            notification.success('ÄÃ£ sao chÃ©p link phim!');
         }
     };
 
     const handleRating = (value) => {
         setUserRating(value);
-        notification.success(`Bạn đã đánh giá ${value} sao!`);
+        notification.success(`Báº¡n Ä‘Ã£ Ä‘Ã¡nh giÃ¡ ${value} sao!`);
     };
 
     const handleCinemaClick = (cinemaIndex) => {
@@ -688,12 +688,12 @@ const MovieDetail = () => {
 
     const handleLocationClick = (location) => {
         setSelectedLocation(location);
-        notification.info(`Đã chọn rạp: ${location}`);
+        notification.info(`ÄÃ£ chá»n ráº¡p: ${location}`);
     };
 
     const handleDateClick = (dateInfo, index) => {
         setSelectedDate(index);
-        notification.info(`Đã chọn ngày: ${dateInfo.date} ${dateInfo.day}`);
+        notification.info(`ÄÃ£ chá»n ngÃ y: ${dateInfo.date} ${dateInfo.day}`);
     };
 
     const handleShowtimeClick = (time, location) => {
@@ -713,11 +713,11 @@ const MovieDetail = () => {
 
     const handleConfirmBooking = () => {
         if (selectedSeats.length === 0) {
-            notification.warning('Vui lòng chọn ít nhất một ghế!');
+            notification.warning('Vui lÃ²ng chá»n Ã­t nháº¥t má»™t gháº¿!');
             return;
         }
 
-        // Tạo thông tin booking
+        // Táº¡o thÃ´ng tin booking
         const booking = {
             movieTitle: movie.title,
             showtime: selectedShowtime,
@@ -725,18 +725,18 @@ const MovieDetail = () => {
             cinema: selectedShowtime?.location || 'Beta Quang Trung',
             date: '28/09/2025',
             room: 'P1',
-            format: '2D Phụ đề',
+            format: '2D Phá»¥ Ä‘á»',
             totalAmount: selectedSeats.length * 50000,
             bookingId: 'C18'
         };
 
         setBookingInfo(booking);
-        // Giữ modal chọn ghế vẫn mở theo yêu cầu UX mới
+        // Giá»¯ modal chá»n gháº¿ váº«n má»Ÿ theo yÃªu cáº§u UX má»›i
         setPaymentModalVisible(true);
     };
 
     const handlePaymentComplete = () => {
-        notification.success(`Đặt vé thành công! Ghế: ${selectedSeats.join(', ')}`);
+        notification.success(`Äáº·t vÃ© thÃ nh cÃ´ng! Gháº¿: ${selectedSeats.join(', ')}`);
         setPaymentModalVisible(false);
         setSelectedSeats([]);
         setBookingInfo(null);
@@ -755,10 +755,10 @@ const MovieDetail = () => {
         };
 
         // Seat layout matching the new image exactly
-        const occupiedSeats = ['G7', 'H7', 'H6']; // Gray seats (Đã đặt)
-        const selectedSeats_demo = ['K8', 'K7', 'K4']; // Pink seats (Ghế bạn chọn)
-        const vipSeats = ['D', 'E', 'F', 'G', 'H', 'J', 'L']; // Red seats (Ghế VIP)
-        const regularSeats = ['A', 'B', 'C']; // Purple seats (Ghế thường)
+        const occupiedSeats = ['G7', 'H7', 'H6']; // Gray seats (ÄÃ£ Ä‘áº·t)
+        const selectedSeats_demo = ['K8', 'K7', 'K4']; // Pink seats (Gháº¿ báº¡n chá»n)
+        const vipSeats = ['D', 'E', 'F', 'G', 'H', 'J', 'L']; // Red seats (Gháº¿ VIP)
+        const regularSeats = ['A', 'B', 'C']; // Purple seats (Gháº¿ thÆ°á»ng)
 
         const getSeatStatus = (rowIndex, seatIndex) => {
             const seatId = `${rows[rowIndex]}${seatIndex + 1}`;
@@ -780,7 +780,7 @@ const MovieDetail = () => {
                 {/* Cinema Screen */}
                 <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-10 rounded-t-2xl mb-8 flex items-center justify-center shadow-lg relative">
                     <div className="absolute top-0 left-0 right-0 h-1 bg-blue-400 rounded-t-2xl"></div>
-                    <div className="text-white font-bold text-base tracking-widest z-10">MÀN HÌNH</div>
+                    <div className="text-white font-bold text-base tracking-widest z-10">MÃ€N HÃŒNH</div>
                 </div>
 
                 {/* Draggable Seat Container */}
@@ -877,29 +877,29 @@ const MovieDetail = () => {
                     <div className="flex justify-center flex-wrap gap-4 mb-3">
                         <div className="flex items-center gap-2">
                             <div className="w-5 h-5 rounded border-2 border-gray-400 bg-gray-300"></div>
-                            <span className="text-sm text-gray-700">Đã đặt</span>
+                            <span className="text-sm text-gray-700">ÄÃ£ Ä‘áº·t</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="w-5 h-5 rounded border-2 border-pink-400 bg-pink-200"></div>
-                            <span className="text-sm text-gray-700">Ghế bạn chọn</span>
+                            <span className="text-sm text-gray-700">Gháº¿ báº¡n chá»n</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="w-5 h-5 rounded border-2 border-green-300 bg-green-100"></div>
-                            <span className="text-sm text-gray-700">Ghế thường</span>
+                            <span className="text-sm text-gray-700">Gháº¿ thÆ°á»ng</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="w-5 h-5 rounded border-2 border-blue-300 bg-blue-100"></div>
-                            <span className="text-sm text-gray-700">Vùng trung tâm</span>
+                            <span className="text-sm text-gray-700">VÃ¹ng trung tÃ¢m</span>
                         </div>
                     </div>
                     <div className="flex justify-center mb-3">
                         <div className="flex items-center gap-2">
                             <div className="w-5 h-5 rounded border-2 border-yellow-400 bg-yellow-200"></div>
-                            <span className="text-sm text-gray-700">Ghế VIP</span>
+                            <span className="text-sm text-gray-700">Gháº¿ VIP</span>
                         </div>
                     </div>
                     <div className="text-center">
-                        <span className="text-xs text-gray-500">Xem chi tiết hình ảnh và thông tin ghế</span>
+                        <span className="text-xs text-gray-500">Xem chi tiáº¿t hÃ¬nh áº£nh vÃ  thÃ´ng tin gháº¿</span>
                     </div>
                 </div>
             </div>
@@ -912,7 +912,7 @@ const MovieDetail = () => {
                 <Card className="rounded-lg shadow-lg">
                     <div className="text-center p-12">
                         <Loader2 className="w-10 h-10 animate-spin mx-auto text-gray-600" />
-                        <p className="mt-4 block text-gray-600">Đang tải thông tin phim...</p>
+                        <p className="mt-4 block text-gray-600">Äang táº£i thÃ´ng tin phim...</p>
                     </div>
                 </Card>
             </div>
@@ -953,7 +953,7 @@ const MovieDetail = () => {
                                 {movie.genres && movie.genres.length > 0 && (
                                     <p className="text-gray-400 text-sm block mb-4">
                                         {movie.genres.map((genre, index) =>
-                                            typeof genre === 'string' ? genre : genre?.name || 'Hành động'
+                                            typeof genre === 'string' ? genre : genre?.name || 'HÃ nh Ä‘á»™ng'
                                         ).join(', ')}
                                     </p>
                                 )}
@@ -961,7 +961,7 @@ const MovieDetail = () => {
                                 {/* Synopsis in Hero Banner */}
                                 <div className="mt-6">
                                     <p className="text-gray-200 text-base leading-relaxed">
-                                        {movie.description || movie.overview || 'Nội dung phim đang được cập nhật...'}
+                                        {movie.description || movie.overview || 'Ná»™i dung phim Ä‘ang Ä‘Æ°á»£c cáº­p nháº­t...'}
                                     </p>
                                 </div>
 
@@ -969,15 +969,15 @@ const MovieDetail = () => {
                                 <div className="mt-6 flex flex-wrap gap-6">
                                     {movie.averageRating && (
                                         <div className="flex flex-col">
-                                            <span className="text-gray-400 text-xs mb-1">Hài lòng</span>
+                                            <span className="text-gray-400 text-xs mb-1">HÃ i lÃ²ng</span>
                                             <span className="text-white text-lg font-semibold">{Math.round(movie.averageRating * 10)}%</span>
                                         </div>
                                     )}
                                     <div className="flex flex-col">
-                                        <span className="text-gray-400 text-xs mb-1">Khởi chiếu</span>
+                                        <span className="text-gray-400 text-xs mb-1">Khá»Ÿi chiáº¿u</span>
                                         <span className="text-white text-lg font-semibold">
                                             {(() => {
-                                                if (!movie.releaseDate) return 'Đang cập nhật';
+                                                if (!movie.releaseDate) return 'Äang cáº­p nháº­t';
                                                 if (typeof movie.releaseDate === 'string') {
                                                     const date = new Date(movie.releaseDate);
                                                     if (!isNaN(date.getTime())) {
@@ -988,19 +988,19 @@ const MovieDetail = () => {
                                                 if (movie.releaseDate.year && movie.releaseDate.month && movie.releaseDate.day) {
                                                     return `${String(movie.releaseDate.day).padStart(2, '0')}/${String(movie.releaseDate.month).padStart(2, '0')}/${movie.releaseDate.year}`;
                                                 }
-                                                return 'Đang cập nhật';
+                                                return 'Äang cáº­p nháº­t';
                                             })()}
                                         </span>
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="text-gray-400 text-xs mb-1">Thời lượng</span>
+                                        <span className="text-gray-400 text-xs mb-1">Thá»i lÆ°á»£ng</span>
                                         <span className="text-white text-lg font-semibold">
-                                            {movie.durationMinutes ? `${movie.durationMinutes} phút` :
-                                                movie.durationFormatted || 'Đang cập nhật'}
+                                            {movie.durationMinutes ? `${movie.durationMinutes} phÃºt` :
+                                                movie.durationFormatted || 'Äang cáº­p nháº­t'}
                                         </span>
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="text-gray-400 text-xs mb-1">Giới hạn tuổi</span>
+                                        <span className="text-gray-400 text-xs mb-1">Giá»›i háº¡n tuá»•i</span>
                                         <span className="text-white text-lg font-semibold">{movie.rating || 'PG-13'}</span>
                                     </div>
                                 </div>
@@ -1024,7 +1024,7 @@ const MovieDetail = () => {
                                             onClick={handleBuyTicket}
                                         >
                                             <ShoppingCart className="h-4 w-4 mr-2" />
-                                            Mua vé
+                                            Mua vÃ©
                                         </Button>
                                     )}
                                 </div>
@@ -1037,7 +1037,7 @@ const MovieDetail = () => {
                                 {/* Director */}
                                 {movie.director && (
                                     <div>
-                                        <span className="text-gray-400 text-sm block mb-1">Đạo diễn:</span>
+                                        <span className="text-gray-400 text-sm block mb-1">Äáº¡o diá»…n:</span>
                                         <span className="text-red-400 text-base font-medium">{movie.director}</span>
                                     </div>
                                 )}
@@ -1045,7 +1045,7 @@ const MovieDetail = () => {
                                 {/* Actors */}
                                 {movie.actors && movie.actors.length > 0 && (
                                     <div>
-                                        <span className="text-gray-400 text-sm block mb-1">Diễn viên:</span>
+                                        <span className="text-gray-400 text-sm block mb-1">Diá»…n viÃªn:</span>
                                         <span className="text-red-400 text-base font-medium">
                                             {movie.actors.join(', ')}
                                         </span>
@@ -1055,7 +1055,7 @@ const MovieDetail = () => {
                                 {/* Fallback for old cast structure */}
                                 {(!movie.actors || movie.actors.length === 0) && movie.cast && movie.cast.length > 0 && (
                                     <div>
-                                        <span className="text-gray-400 text-sm block mb-1">Diễn viên:</span>
+                                        <span className="text-gray-400 text-sm block mb-1">Diá»…n viÃªn:</span>
                                         <span className="text-red-400 text-base font-medium">
                                             {movie.cast.map(actor => typeof actor === 'string' ? actor : actor.name).join(', ')}
                                         </span>
@@ -1065,7 +1065,7 @@ const MovieDetail = () => {
                                 {/* Producer - if available */}
                                 {movie.producer && (
                                     <div>
-                                        <span className="text-gray-400 text-sm block mb-1">Nhà sản xuất:</span>
+                                        <span className="text-gray-400 text-sm block mb-1">NhÃ  sáº£n xuáº¥t:</span>
                                         <span className="text-red-400 text-base font-medium">
                                             {Array.isArray(movie.producer) ? movie.producer.join(', ') : movie.producer}
                                         </span>
@@ -1088,8 +1088,8 @@ const MovieDetail = () => {
                                 {isMovieActive(movie) && (
                                     <Card className="mb-6 rounded-lg shadow-md p-6" ref={scheduleTabRef}>
                                         <h4 className="mb-4 text-xl flex items-center gap-2">
-                                            <span>📅</span>
-                                            Lịch chiếu
+                                            <span>ðŸ“…</span>
+                                            Lá»‹ch chiáº¿u
                                         </h4>
                                         {/* Filters Inline (Refactored) */}
                                         <div className="mb-6">
@@ -1097,7 +1097,7 @@ const MovieDetail = () => {
                                                 <div className="flex flex-col md:flex-row md:items-center gap-4">
                                                     <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
                                                         <MapPin className="h-4 w-4" />
-                                                        <span>Thành phố</span>
+                                                        <span>ThÃ nh phá»‘</span>
                                                     </span>
                                                     <div className="flex gap-2">
                                                         <Button
@@ -1106,13 +1106,13 @@ const MovieDetail = () => {
                                                             onClick={() => setLocationModalOpen(true)}
                                                         >
                                                             <MapPin className="h-4 w-4 mr-2" />
-                                                            <span>{selectedCity || 'Chọn thành phố'}</span>
+                                                            <span>{selectedCity || 'Chá»n thÃ nh phá»‘'}</span>
                                                         </Button>
                                                         <Button
                                                             variant="outline"
                                                             className="h-9 px-4 rounded-md border-gray-300 hover:border-blue-500"
                                                             onClick={() => {
-                                                                setSelectedCity('Gần bạn');
+                                                                setSelectedCity('Gáº§n báº¡n');
                                                                 setSelectedCityId(null);
 
                                                                 // Get user's current location
@@ -1123,27 +1123,27 @@ const MovieDetail = () => {
                                                                                 latitude: position.coords.latitude,
                                                                                 longitude: position.coords.longitude
                                                                             });
-                                                                            notification.success('Đã lấy vị trí của bạn');
+                                                                            notification.success('ÄÃ£ láº¥y vá»‹ trÃ­ cá»§a báº¡n');
                                                                         },
                                                                         (error) => {
                                                                             console.error('Error getting location:', error);
-                                                                            notification.warning('Không thể lấy vị trí. Vui lòng cho phép truy cập vị trí.');
+                                                                            notification.warning('KhÃ´ng thá»ƒ láº¥y vá»‹ trÃ­. Vui lÃ²ng cho phÃ©p truy cáº­p vá»‹ trÃ­.');
                                                                         }
                                                                     );
                                                                 } else {
-                                                                    notification.error('Trình duyệt không hỗ trợ geolocation');
+                                                                    notification.error('TrÃ¬nh duyá»‡t khÃ´ng há»— trá»£ geolocation');
                                                                 }
                                                             }}
                                                         >
                                                             <Target className="h-4 w-4 mr-2" />
-                                                            <span>Gần bạn</span>
+                                                            <span>Gáº§n báº¡n</span>
                                                         </Button>
                                                     </div>
                                                 </div>
                                                 <div className="flex flex-col gap-3">
                                                     <span className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                                                         <Calendar className="h-4 w-4 text-primary" />
-                                                        <span>Chọn ngày chiếu</span>
+                                                        <span>Chá»n ngÃ y chiáº¿u</span>
                                                     </span>
                                                     <div className="overflow-x-auto pb-2 scrollbar-hide">
                                                         <div className="flex gap-2.5 min-w-max">
@@ -1162,7 +1162,7 @@ const MovieDetail = () => {
 
                                                                     dates.push({
                                                                         date: `${day}/${month}`,
-                                                                        day: i === 0 ? 'Hôm nay' : dayOfWeek,
+                                                                        day: i === 0 ? 'HÃ´m nay' : dayOfWeek,
                                                                         active: i === 0
                                                                     });
                                                                 }
@@ -1202,7 +1202,7 @@ const MovieDetail = () => {
                                                     return (
                                                         <div className="py-8">
                                                             <Empty
-                                                                description="Không có lịch chiếu cho ngày đã chọn"
+                                                                description="KhÃ´ng cÃ³ lá»‹ch chiáº¿u cho ngÃ y Ä‘Ã£ chá»n"
                                                             />
                                                         </div>
                                                     );
@@ -1240,7 +1240,7 @@ const MovieDetail = () => {
                                                                         // Group showtimes by format type
                                                                         const showtimesByFormat = {};
                                                                         loc.showtimes.forEach(showtime => {
-                                                                            const format = showtime.formatType || '2D Phụ đề';
+                                                                            const format = showtime.formatType || '2D Phá»¥ Ä‘á»';
                                                                             if (!showtimesByFormat[format]) {
                                                                                 showtimesByFormat[format] = [];
                                                                             }
@@ -1286,9 +1286,9 @@ const MovieDetail = () => {
                                                         {loadingMore ? (
                                                             <>
                                                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                                Đang tải...
+                                                                Äang táº£i...
                                                             </>
-                                                        ) : 'Xem thêm'}
+                                                        ) : 'Xem thÃªm'}
                                                     </Button>
                                                 </div>
                                             )}
@@ -1301,8 +1301,8 @@ const MovieDetail = () => {
                                 {(movie.trailerUrl || movie.trailer) && (
                                     <Card className="mt-12 rounded-lg shadow-md p-6">
                                         <h4 className="mb-4 text-xl flex items-center gap-2">
-                                            <span>🎥</span>
-                                            Trailer chính thức
+                                            <span>ðŸŽ¥</span>
+                                            Trailer chÃ­nh thá»©c
                                         </h4>
                                         <div>
                                             <div className="relative w-full pb-[56.25%] rounded-lg overflow-hidden bg-gray-900">
@@ -1322,7 +1322,7 @@ const MovieDetail = () => {
                                                     onClick={() => setTrailerModalVisible(true)}
                                                 >
                                                     <Play className="h-4 w-4 mr-2" />
-                                                    Xem toàn màn hình
+                                                    Xem toÃ n mÃ n hÃ¬nh
                                                 </Button>
                                                 <Button
                                                     variant="outline"
@@ -1330,7 +1330,7 @@ const MovieDetail = () => {
                                                     onClick={handleShare}
                                                 >
                                                     <Share2 className="h-4 w-4 mr-2" />
-                                                    Chia sẻ
+                                                    Chia sáº»
                                                 </Button>
                                             </div>
                                         </div>
@@ -1353,14 +1353,14 @@ const MovieDetail = () => {
                                 <Card className="rounded-lg shadow-md p-6">
                                     <div className="flex justify-between items-center mb-4">
                                         <h4 className="mb-0 text-xl flex items-center gap-2">
-                                            <span>🎬</span>
-                                            Đang chiếu
+                                            <span>ðŸŽ¬</span>
+                                            Äang chiáº¿u
                                         </h4>
                                     </div>
                                     {loadingNowShowing ? (
                                         <div className="text-center py-10">
                                             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-gray-600" />
-                                            <p className="text-gray-500">Đang tải phim...</p>
+                                            <p className="text-gray-500">Äang táº£i phim...</p>
                                         </div>
                                     ) : nowShowingMovies.length > 0 ? (
                                         <>
@@ -1402,9 +1402,9 @@ const MovieDetail = () => {
                                                                     </h6>
                                                                     <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
                                                                         {m.genres && m.genres.length > 0 && (
-                                                                            <Tag className="m-0 text-[10px] px-1.5 py-0.5">
+                                                                            <StatusBadge className="m-0 text-[10px] px-1.5 py-0.5">
                                                                                 {typeof m.genres[0] === 'string' ? m.genres[0] : m.genres[0]?.name || ''}
-                                                                            </Tag>
+                                                                            </StatusBadge>
                                                                         )}
                                                                     </div>
                                                                     <div className="flex items-center gap-2 text-[10px] text-gray-500">
@@ -1440,12 +1440,12 @@ const MovieDetail = () => {
                                                         {loadingMoreNowShowing ? (
                                                             <>
                                                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                                Đang tải...
+                                                                Äang táº£i...
                                                             </>
                                                         ) : (
                                                             <>
                                                                 <ChevronDown className="h-4 w-4 mr-2" />
-                                                                Xem thêm phim
+                                                                Xem thÃªm phim
                                                             </>
                                                         )}
                                                     </Button>
@@ -1455,7 +1455,7 @@ const MovieDetail = () => {
                                     ) : (
                                         <div className="text-center py-10">
                                             <Empty
-                                                description={<p className="text-gray-500">Không có phim đang chiếu</p>}
+                                                description={<p className="text-gray-500">KhÃ´ng cÃ³ phim Ä‘ang chiáº¿u</p>}
                                             />
                                         </div>
                                     )}
@@ -1468,12 +1468,12 @@ const MovieDetail = () => {
 
 
             {/* Cinema Style Seat Selection Modal */}
-            <Modal
+            <ResponsiveDialog
                 open={seatModalVisible}
-                onCancel={() => setSeatModalVisible(false)}
-                width="85vw"
+                onClose={() => setSeatModalVisible(false)}
+                maxWidth="85vw"
                 className="cinema-seat-modal-compact"
-                footer={null}
+                actions={null}
             >
                 <div className="cinema-modal-content">
                     {/* Header with Back Button */}
@@ -1485,7 +1485,7 @@ const MovieDetail = () => {
                         >
                             <ChevronRight className="h-5 w-5" />
                         </Button>
-                        <h3 className="modal-title text-lg font-semibold">Mua vé xem phim</h3>
+                        <h3 className="modal-title text-lg font-semibold">Mua vÃ© xem phim</h3>
                     </div>
 
                     {/* Main Seat Layout Area */}
@@ -1501,13 +1501,13 @@ const MovieDetail = () => {
                                 <span className="movie-title">{movie.title}</span>
                             </div>
                             <div className="showtime-info-bottom">
-                                <span>16:30 ~ 18:34 • Hôm nay, 28/09 • Phòng chiếu Cine & Suite 9 • 2D Phụ đề</span>
+                                <span>16:30 ~ 18:34 â€¢ HÃ´m nay, 28/09 â€¢ PhÃ²ng chiáº¿u Cine & Suite 9 â€¢ 2D Phá»¥ Ä‘á»</span>
                             </div>
                         </div>
 
                         <div className="seat-summary">
                             <div className="seat-info">
-                                <span className="seat-label">Chỗ ngồi</span>
+                                <span className="seat-label">Chá»— ngá»“i</span>
                                 <div className="selected-seats-display">
                                     {selectedSeats.length > 0 ? (
                                         selectedSeats.map((seat, index) => (
@@ -1517,18 +1517,18 @@ const MovieDetail = () => {
                                                     className="remove-seat"
                                                     onClick={() => handleSeatClick(seat)}
                                                 >
-                                                    ×
+                                                    Ã—
                                                 </button>
                                             </span>
                                         ))
                                     ) : (
-                                        <span className="no-seat-selected">Chưa chọn ghế</span>
+                                        <span className="no-seat-selected">ChÆ°a chá»n gháº¿</span>
                                     )}
                                 </div>
                             </div>
 
                             <div className="price-info">
-                                <span className="price-label">Tạm tính</span>
+                                <span className="price-label">Táº¡m tÃ­nh</span>
                                 <span className="price-value">
                                     {selectedSeats.length > 0
                                         ? `${selectedSeats.reduce((total, seat) => {
@@ -1536,8 +1536,8 @@ const MovieDetail = () => {
                                                 seat.startsWith('G') || seat.startsWith('H') || seat.startsWith('J') ||
                                                 seat.startsWith('L') ? 200000 : 150000;
                                             return total + price;
-                                        }, 0).toLocaleString('vi-VN')}đ`
-                                        : '0đ'
+                                        }, 0).toLocaleString('vi-VN')}Ä‘`
+                                        : '0Ä‘'
                                     }
                                 </span>
                             </div>
@@ -1547,75 +1547,75 @@ const MovieDetail = () => {
                                 onClick={handleConfirmBooking}
                                 disabled={selectedSeats.length === 0}
                             >
-                                Mua vé
+                                Mua vÃ©
                             </Button>
                         </div>
                     </div>
                 </div>
-            </Modal>
+            </ResponsiveDialog>
 
             {/* Payment Modal */}
-            <Modal
+            <ResponsiveDialog
                 open={paymentModalVisible}
-                onCancel={() => setPaymentModalVisible(false)}
-                width={800}
-                footer={null}
+                onClose={() => setPaymentModalVisible(false)}
+                maxWidth={800}
+                actions={null}
                 className="payment-modal"
             >
                 <div className="payment-container">
                     {/* Left Side - Booking Details */}
                     <div className="booking-details">
                         <div className="booking-header-simple">
-                            <Tag className="booking-id-yellow">C13</Tag>
-                            <h4 className="booking-title-simple text-lg font-semibold">Mua Đồ</h4>
+                            <StatusBadge className="booking-id-yellow">C13</StatusBadge>
+                            <h4 className="booking-title-simple text-lg font-semibold">Mua Äá»“</h4>
                         </div>
 
                         <div className="booking-form">
                             <div className="form-row">
                                 <div className="form-section">
-                                    <span className="form-label text-xs font-semibold uppercase">THỜI GIAN</span>
+                                    <span className="form-label text-xs font-semibold uppercase">THá»œI GIAN</span>
                                     <span className="form-value">14:00 ~ 16:04</span>
                                 </div>
                                 <div className="form-section">
-                                    <span className="form-label text-xs font-semibold uppercase">NGÀY CHIẾU</span>
+                                    <span className="form-label text-xs font-semibold uppercase">NGÃ€Y CHIáº¾U</span>
                                     <span className="form-value">28/09/2025</span>
                                 </div>
                             </div>
 
                             <div className="form-section">
-                                <span className="form-label text-xs font-semibold uppercase">RẠP</span>
-                                <span className="form-value">CGV Hùng Vương Plaza</span>
+                                <span className="form-label text-xs font-semibold uppercase">Ráº P</span>
+                                <span className="form-value">CGV HÃ¹ng VÆ°Æ¡ng Plaza</span>
                                 <span className="form-address text-sm text-gray-600">
-                                    Tầng 7 | Hùng Vương Plaza 126 Hùng Vương Quận 5 Tp. Hồ Chí Minh
+                                    Táº§ng 7 | HÃ¹ng VÆ°Æ¡ng Plaza 126 HÃ¹ng VÆ°Æ¡ng Quáº­n 5 Tp. Há»“ ChÃ­ Minh
                                 </span>
                             </div>
 
                             <div className="form-row">
                                 <div className="form-section">
-                                    <span className="form-label text-xs font-semibold uppercase">PHÒNG CHIẾU</span>
+                                    <span className="form-label text-xs font-semibold uppercase">PHÃ’NG CHIáº¾U</span>
                                     <span className="form-value">Cine & Suite 9</span>
                                 </div>
                                 <div className="form-section">
-                                    <span className="form-label text-xs font-semibold uppercase">ĐỊNH DẠNG</span>
-                                    <span className="form-value">2D Phụ đề</span>
+                                    <span className="form-label text-xs font-semibold uppercase">Äá»ŠNH Dáº NG</span>
+                                    <span className="form-value">2D Phá»¥ Ä‘á»</span>
                                 </div>
                             </div>
 
                             <div className="seat-section-form">
-                                <span className="form-label text-xs font-semibold uppercase">GHẾ</span>
+                                <span className="form-label text-xs font-semibold uppercase">GHáº¾</span>
                                 <div className="seat-price-row">
                                     <span className="form-value">E5</span>
-                                    <span className="seat-price-form">141.500đ</span>
+                                    <span className="seat-price-form">141.500Ä‘</span>
                                 </div>
                             </div>
 
                             <div className="total-section-form">
                                 <div className="total-row-form">
-                                    <span className="total-label-form">Tạm tính</span>
-                                    <span className="total-amount-form">141.500đ</span>
+                                    <span className="total-label-form">Táº¡m tÃ­nh</span>
+                                    <span className="total-amount-form">141.500Ä‘</span>
                                 </div>
                                 <p className="payment-note-form text-xs text-gray-500">
-                                    Ưu đãi (nếu có) sẽ được áp dụng ở bước thanh toán.
+                                    Æ¯u Ä‘Ã£i (náº¿u cÃ³) sáº½ Ä‘Æ°á»£c Ã¡p dá»¥ng á»Ÿ bÆ°á»›c thanh toÃ¡n.
                                 </p>
                             </div>
                         </div>
@@ -1628,12 +1628,12 @@ const MovieDetail = () => {
                                         <span className="momo-logo-circle">M</span>
                                         <div className="momo-brand-text">
                                             <span className="momo-title">MoMo</span>
-                                            <span className="momo-subtitle">Ví điện tử số 1 Việt Nam</span>
+                                            <span className="momo-subtitle">VÃ­ Ä‘iá»‡n tá»­ sá»‘ 1 Viá»‡t Nam</span>
                                         </div>
                                     </div>
                                 </div>
                                 <h4 className="qr-title text-lg font-semibold">
-                                    Quét mã QR bằng MoMo để thanh toán
+                                    QuÃ©t mÃ£ QR báº±ng MoMo Ä‘á»ƒ thanh toÃ¡n
                                 </h4>
                             </div>
                         </div>
@@ -1647,19 +1647,19 @@ const MovieDetail = () => {
                                     <div className="frame-corner bottom-right"></div>
 
                                     <div className="qr-code">
-                                        <svg width="200" height="200" viewBox="0 0 200 200" className="qr-pattern">
+                                        <svg maxWidth="200" height="200" viewBox="0 0 200 200" className="qr-pattern">
                                             {/* Corner detection patterns */}
-                                            <rect x="15" y="15" width="50" height="50" fill="#000" />
-                                            <rect x="20" y="20" width="40" height="40" fill="#fff" />
-                                            <rect x="30" y="30" width="20" height="20" fill="#000" />
+                                            <rect x="15" y="15" maxWidth="50" height="50" fill="#000" />
+                                            <rect x="20" y="20" maxWidth="40" height="40" fill="#fff" />
+                                            <rect x="30" y="30" maxWidth="20" height="20" fill="#000" />
 
-                                            <rect x="135" y="15" width="50" height="50" fill="#000" />
-                                            <rect x="140" y="20" width="40" height="40" fill="#fff" />
-                                            <rect x="150" y="30" width="20" height="20" fill="#000" />
+                                            <rect x="135" y="15" maxWidth="50" height="50" fill="#000" />
+                                            <rect x="140" y="20" maxWidth="40" height="40" fill="#fff" />
+                                            <rect x="150" y="30" maxWidth="20" height="20" fill="#000" />
 
-                                            <rect x="15" y="135" width="50" height="50" fill="#000" />
-                                            <rect x="20" y="140" width="40" height="40" fill="#fff" />
-                                            <rect x="30" y="150" width="20" height="20" fill="#000" />
+                                            <rect x="15" y="135" maxWidth="50" height="50" fill="#000" />
+                                            <rect x="20" y="140" maxWidth="40" height="40" fill="#fff" />
+                                            <rect x="30" y="150" maxWidth="20" height="20" fill="#000" />
 
                                             {/* Dense QR pattern */}
                                             {Array.from({ length: 600 }, (_, i) => {
@@ -1676,7 +1676,7 @@ const MovieDetail = () => {
 
                                                 const shouldFill = (x + y + i) % 3 !== 0;
                                                 return shouldFill ? (
-                                                    <rect key={`dot-${i}`} x={x} y={y} width="5" height="5" fill="#000" />
+                                                    <rect key={`dot-${i}`} x={x} y={y} maxWidth="5" height="5" fill="#000" />
                                                 ) : null;
                                             })}
                                         </svg>
@@ -1693,14 +1693,14 @@ const MovieDetail = () => {
 
                             <div className="qr-instructions-simple">
                                 <p className="qr-instruction-text-simple text-sm text-gray-600 text-center">
-                                    Sử dụng App MoMo hoặc<br />
-                                    ứng dụng Camera hỗ trợ QR code để quét mã.
+                                    Sá»­ dá»¥ng App MoMo hoáº·c<br />
+                                    á»©ng dá»¥ng Camera há»— trá»£ QR code Ä‘á»ƒ quÃ©t mÃ£.
                                 </p>
                             </div>
                         </div>
                     </div>
                 </div>
-            </Modal>
+            </ResponsiveDialog>
 
             {/* Location Select Modal */}
             <LocationSelectModal
@@ -1716,17 +1716,17 @@ const MovieDetail = () => {
             />
 
             {/* Trailer Modal */}
-            <Modal
-                title={
+            <ResponsiveDialog
+                heading={
                     <div className="flex items-center gap-2">
                         <Play className="h-5 w-5" />
                         <span>Trailer - {movie?.title}</span>
                     </div>
                 }
                 open={trailerModalVisible}
-                onCancel={() => setTrailerModalVisible(false)}
-                footer={null}
-                width={900}
+                onClose={() => setTrailerModalVisible(false)}
+                actions={null}
+                maxWidth={900}
             >
                 {(movie?.trailerUrl || movie?.trailer) && (
                     <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
@@ -1747,7 +1747,7 @@ const MovieDetail = () => {
                         />
                     </div>
                 )}
-            </Modal>
+            </ResponsiveDialog>
         </div>
     );
 };

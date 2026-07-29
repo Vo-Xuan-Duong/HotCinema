@@ -1,11 +1,11 @@
-import * as React from "react"
+﻿import * as React from "react"
 import { cn } from "@/lib/utils"
 
 const Sidebar = ({ children, className, ...props }) => {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 bottom-0 z-50 flex flex-col bg-white border-r border-gray-200 shadow-lg",
+        "fixed inset-y-0 left-0 z-50 flex flex-col border-r bg-card text-card-foreground shadow-sm",
         className
       )}
       {...props}
@@ -18,7 +18,7 @@ const Sidebar = ({ children, className, ...props }) => {
 const SidebarHeader = ({ children, className, ...props }) => {
   return (
     <div
-      className={cn("flex items-center justify-center h-16 p-4 border-b border-gray-200", className)}
+      className={cn("flex h-16 items-center justify-center border-b p-4", className)}
       {...props}
     >
       {children}
@@ -38,5 +38,3 @@ const SidebarContent = ({ children, className, ...props }) => {
 }
 
 export { Sidebar, SidebarHeader, SidebarContent }
-
-

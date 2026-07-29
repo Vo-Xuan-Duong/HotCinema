@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tag } from '@/components/ui/tag';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { InputNumber } from '@/components/ui/input-number';
-import { Modal } from '@/components/ui/modal';
+import { NumberStepper } from '@/components/ui/number-stepper';
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
@@ -53,7 +53,7 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
     const [showBulkModal, setShowBulkModal] = useState(false);
     const [bulkForm] = useState({});
 
-    // State cho modal chỉnh sửa ghế đơn lẻ
+    // State cho modal chá»‰nh sá»­a gháº¿ Ä‘Æ¡n láº»
     const [showSeatEditModal, setShowSeatEditModal] = useState(false);
     const [selectedSeat, setSelectedSeat] = useState(null);
     const [seatEditFormValues, setSeatEditFormValues] = useState({
@@ -91,27 +91,27 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
 
     const loadSeatsFromAPI = async (screen) => {
         try {
-            // Lấy ghế từ API theo roomId
+            // Láº¥y gháº¿ tá»« API theo roomId
             const response = await seatService.getSeatsByRoomId(screen.id);
             const seats = response?.data || response || [];
 
             if (seats.length === 0) {
-                // ✅ CHỈ HIỂN thị layout rỗng, KHÔNG tự động tạo ghế
-                console.log('⚠️ Phòng chiếu chưa có ghế');
+                // âœ… CHá»ˆ HIá»‚N thá»‹ layout rá»—ng, KHÃ”NG tá»± Ä‘á»™ng táº¡o gháº¿
+                console.log('âš ï¸ PhÃ²ng chiáº¿u chÆ°a cÃ³ gháº¿');
                 setSeatLayout({
                     rows: [],
                     totalSeats: 0,
                     vipSeats: [],
                     blockedSeats: []
                 });
-                notification.info('Phòng chiếu chưa có sơ đồ ghế. Vui lòng tạo sơ đồ ghế mặc định.');
+                notification.info('PhÃ²ng chiáº¿u chÆ°a cÃ³ sÆ¡ Ä‘á»“ gháº¿. Vui lÃ²ng táº¡o sÆ¡ Ä‘á»“ gháº¿ máº·c Ä‘á»‹nh.');
             } else {
-                // Nếu đã có ghế, sử dụng dữ liệu từ API
+                // Náº¿u Ä‘Ã£ cÃ³ gháº¿, sá»­ dá»¥ng dá»¯ liá»‡u tá»« API
                 generateSeatLayoutFromAPI(seats);
             }
         } catch (error) {
             console.error('Error loading seats:', error);
-            notification.error('Không thể tải danh sách ghế');
+            notification.error('KhÃ´ng thá»ƒ táº£i danh sÃ¡ch gháº¿');
             setSeatLayout({
                 rows: [],
                 totalSeats: 0,
@@ -133,7 +133,7 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                 const rowSeats = [];
 
                 for (let j = 1; j <= seatsPerRow; j++) {
-                    // 📡 GỌI API TẠO GHẾ NGAY
+                    // ðŸ“¡ Gá»ŒI API Táº O GHáº¾ NGAY
                     const seatName = `${rowLabel}${j}`;
                     const seatData = {
                         theaterId: screen.id,
@@ -147,7 +147,7 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                     const response = await seatService.createSeat(seatData);
                     const createdSeat = response?.data?.data || response?.data || response;
 
-                    // ✅ Dùng ID thật từ API (kiểu Long)
+                    // âœ… DÃ¹ng ID tháº­t tá»« API (kiá»ƒu Long)
                     rowSeats.push({
                         id: createdSeat.id,
                         name: createdSeat.name,
@@ -167,10 +167,10 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                     isVip: false
                 });
 
-                console.log(`✅ Created row ${rowLabel} with ${rowSeats.length} seats`);
+                console.log(`âœ… Created row ${rowLabel} with ${rowSeats.length} seats`);
             }
 
-            console.log(`🎉 Successfully created ${totalRows * seatsPerRow} seats in database`);
+            console.log(`ðŸŽ‰ Successfully created ${totalRows * seatsPerRow} seats in database`);
 
             setSeatLayout({
                 rows: rows,
@@ -179,10 +179,10 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                 blockedSeats: []
             });
 
-            notification.success(`Đã tạo ${totalRows * seatsPerRow} ghế cho phòng chiếu`);
+            notification.success(`ÄÃ£ táº¡o ${totalRows * seatsPerRow} gháº¿ cho phÃ²ng chiáº¿u`);
         } catch (error) {
-            console.error('❌ Error creating default seats:', error);
-            notification.error(error.response?.data?.message || 'Tạo sơ đồ ghế mặc định thất bại');
+            console.error('âŒ Error creating default seats:', error);
+            notification.error(error.response?.data?.message || 'Táº¡o sÆ¡ Ä‘á»“ gháº¿ máº·c Ä‘á»‹nh tháº¥t báº¡i');
         }
     };
 
@@ -204,7 +204,7 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
             };
         });
 
-        // 🔍 KIỂM TRA TRÙNG TỌA ĐỘ
+        // ðŸ” KIá»‚M TRA TRÃ™NG Tá»ŒA Äá»˜
         const coordinateMap = new Map();
         const duplicates = [];
 
@@ -216,22 +216,22 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                     coord: coordKey,
                     seats: [existing, seat]
                 });
-                console.error(`⚠️ TRÙNG TỌA ĐỘ: Ghế ${existing.id} và ${seat.id} cùng có tọa độ (row: ${seat.rowIndex}, col: ${seat.col})`);
+                console.error(`âš ï¸ TRÃ™NG Tá»ŒA Äá»˜: Gháº¿ ${existing.id} vÃ  ${seat.id} cÃ¹ng cÃ³ tá»a Ä‘á»™ (row: ${seat.rowIndex}, col: ${seat.col})`);
             } else {
                 coordinateMap.set(coordKey, seat);
             }
         });
 
         if (duplicates.length > 0) {
-            console.error(`❌ Tìm thấy ${duplicates.length} cặp ghế bị trùng tọa độ:`, duplicates);
-            notification.warning(`Phát hiện ${duplicates.length} cặp ghế có tọa độ trùng nhau!`);
+            console.error(`âŒ TÃ¬m tháº¥y ${duplicates.length} cáº·p gháº¿ bá»‹ trÃ¹ng tá»a Ä‘á»™:`, duplicates);
+            notification.warning(`PhÃ¡t hiá»‡n ${duplicates.length} cáº·p gháº¿ cÃ³ tá»a Ä‘á»™ trÃ¹ng nhau!`);
         } else {
-            console.log(`✅ Tất cả ${layoutSeats.length} ghế đều có tọa độ riêng biệt`);
+            console.log(`âœ… Táº¥t cáº£ ${layoutSeats.length} gháº¿ Ä‘á»u cÃ³ tá»a Ä‘á»™ riÃªng biá»‡t`);
         }
 
-        // Nhóm ghế theo rowLabel (A, B, C... thay vì rowIndex)
+        // NhÃ³m gháº¿ theo rowLabel (A, B, C... thay vÃ¬ rowIndex)
         const groupedByRow = layoutSeats.reduce((acc, seat) => {
-            const rowKey = seat.rowLabel; // Sử dụng rowLabel (A, B, C...)
+            const rowKey = seat.rowLabel; // Sá»­ dá»¥ng rowLabel (A, B, C...)
             if (!acc[rowKey]) {
                 acc[rowKey] = [];
             }
@@ -239,18 +239,18 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
             return acc;
         }, {});
 
-        // Tạo rows array cho component, sắp xếp theo rowLabel (A-Z)
+        // Táº¡o rows array cho component, sáº¯p xáº¿p theo rowLabel (A-Z)
         const rows = Object.keys(groupedByRow)
-            .sort((a, b) => a.localeCompare(b)) // Sắp xếp theo alphabet (A, B, C... I, J...)
+            .sort((a, b) => a.localeCompare(b)) // Sáº¯p xáº¿p theo alphabet (A, B, C... I, J...)
             .map(rowLabel => {
-                // Sắp xếp ghế trong hàng theo col (tọa độ cột)
+                // Sáº¯p xáº¿p gháº¿ trong hÃ ng theo col (tá»a Ä‘á»™ cá»™t)
                 const rowSeats = groupedByRow[rowLabel].sort((a, b) => a.col - b.col);
 
-                // 🔍 KIỂM TRA TRÙNG COL TRONG CÙNG HÀNG
+                // ðŸ” KIá»‚M TRA TRÃ™NG COL TRONG CÃ™NG HÃ€NG
                 const colsInRow = rowSeats.map(s => s.col);
                 const uniqueCols = new Set(colsInRow);
                 if (colsInRow.length !== uniqueCols.size) {
-                    console.error(`⚠️ Hàng ${rowLabel} có ghế trùng cột:`, rowSeats.map(s => `${s.id}(col:${s.col})`));
+                    console.error(`âš ï¸ HÃ ng ${rowLabel} cÃ³ gháº¿ trÃ¹ng cá»™t:`, rowSeats.map(s => `${s.id}(col:${s.col})`));
                 }
 
                 const hasVipSeats = rowSeats.some(seat => seat.type === 'vip');
@@ -262,17 +262,17 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                 };
             });
 
-        // Tính toán thống kê
+        // TÃ­nh toÃ¡n thá»‘ng kÃª
         const totalSeats = layoutSeats.length;
         const vipRows = rows.filter(row => row.isVip).map(row => row.label);
         const blockedSeats = layoutSeats.filter(seat => seat.status === 'blocked').map(seat => seat.id);
 
-        // 📊 LOG THỐNG KÊ
-        console.log('📊 Thống kê sơ đồ ghế:');
-        console.log(`   - Tổng số ghế: ${totalSeats}`);
-        console.log(`   - Số hàng: ${rows.length}`);
+        // ðŸ“Š LOG THá»NG KÃŠ
+        console.log('ðŸ“Š Thá»‘ng kÃª sÆ¡ Ä‘á»“ gháº¿:');
+        console.log(`   - Tá»•ng sá»‘ gháº¿: ${totalSeats}`);
+        console.log(`   - Sá»‘ hÃ ng: ${rows.length}`);
         rows.forEach(row => {
-            console.log(`   - Hàng ${row.label} (rowIndex: ${row.seats[0]?.rowIndex}): ${row.seats.length} ghế, cols: [${row.seats.map(s => s.col).join(', ')}]`);
+            console.log(`   - HÃ ng ${row.label} (rowIndex: ${row.seats[0]?.rowIndex}): ${row.seats.length} gháº¿, cols: [${row.seats.map(s => s.col).join(', ')}]`);
         });
 
         setSeatLayout({
@@ -331,69 +331,69 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
 
     const getStatusText = (status) => {
         const statusTextMap = {
-            'available': 'Có thể đặt',
-            'held': 'Đang giữ chỗ',
-            'booked': 'Đã đặt',
-            'unavailable': 'Không khả dụng',
-            'maintenance': 'Đang bảo trì',
-            'blocked': 'Bị khóa'
+            'available': 'CÃ³ thá»ƒ Ä‘áº·t',
+            'held': 'Äang giá»¯ chá»—',
+            'booked': 'ÄÃ£ Ä‘áº·t',
+            'unavailable': 'KhÃ´ng kháº£ dá»¥ng',
+            'maintenance': 'Äang báº£o trÃ¬',
+            'blocked': 'Bá»‹ khÃ³a'
         };
-        return statusTextMap[status] || 'Không xác định';
+        return statusTextMap[status] || 'KhÃ´ng xÃ¡c Ä‘á»‹nh';
     };
 
     const getSeatColor = (seat) => {
         if (selectedSeats.includes(seat.id)) return '#1890ff';
 
-        // Ưu tiên hiển thị trạng thái trước, sau đó mới đến loại ghế
+        // Æ¯u tiÃªn hiá»ƒn thá»‹ tráº¡ng thÃ¡i trÆ°á»›c, sau Ä‘Ã³ má»›i Ä‘áº¿n loáº¡i gháº¿
         switch (seat.status) {
             case 'blocked':
-                return '#8c8c8c'; // Màu xám đậm - Ghế bị khóa
+                return '#8c8c8c'; // MÃ u xÃ¡m Ä‘áº­m - Gháº¿ bá»‹ khÃ³a
             case 'booked':
-                return '#ff4d4f'; // Màu đỏ - Ghế đã đặt
+                return '#ff4d4f'; // MÃ u Ä‘á» - Gháº¿ Ä‘Ã£ Ä‘áº·t
             case 'held':
-                return '#faad14'; // Màu vàng cam - Ghế đang giữ chỗ
+                return '#faad14'; // MÃ u vÃ ng cam - Gháº¿ Ä‘ang giá»¯ chá»—
             case 'unavailable':
-                return '#d9d9d9'; // Màu xám nhạt - Ghế không khả dụng
+                return '#d9d9d9'; // MÃ u xÃ¡m nháº¡t - Gháº¿ khÃ´ng kháº£ dá»¥ng
             case 'maintenance':
-                return '#722ed1'; // Màu tím - Ghế đang bảo trì
+                return '#722ed1'; // MÃ u tÃ­m - Gháº¿ Ä‘ang báº£o trÃ¬
             case 'available':
             default:
-                // Khi available, màu sắc dựa vào loại ghế
+                // Khi available, mÃ u sáº¯c dá»±a vÃ o loáº¡i gháº¿
                 switch (seat.type) {
                     case 'vip':
-                        return '#faad14'; // Màu vàng cho VIP
+                        return '#faad14'; // MÃ u vÃ ng cho VIP
                     case 'couple':
-                        return '#eb2f96'; // Màu hồng cho ghế đôi
+                        return '#eb2f96'; // MÃ u há»“ng cho gháº¿ Ä‘Ã´i
                     case 'normal':
                     default:
-                        return '#52c41a'; // Màu xanh cho ghế thường
+                        return '#52c41a'; // MÃ u xanh cho gháº¿ thÆ°á»ng
                 }
         }
     };
 
     const getSeatIcon = (seat) => {
-        // Ưu tiên hiển thị icon trạng thái trước
+        // Æ¯u tiÃªn hiá»ƒn thá»‹ icon tráº¡ng thÃ¡i trÆ°á»›c
         switch (seat.status) {
             case 'blocked':
-                return <Lock className="h-4 w-4" />; // Icon khóa
+                return <Lock className="h-4 w-4" />; // Icon khÃ³a
             case 'booked':
-                return <UserCheck className="h-4 w-4" />; // Icon user - Đã đặt
+                return <UserCheck className="h-4 w-4" />; // Icon user - ÄÃ£ Ä‘áº·t
             case 'held':
-                return <Clock3 className="h-4 w-4" />; // Icon đồng hồ - Đang giữ
+                return <Clock3 className="h-4 w-4" />; // Icon Ä‘á»“ng há»“ - Äang giá»¯
             case 'unavailable':
-                return <XCircle className="h-4 w-4" />; // Icon X - Không khả dụng
+                return <XCircle className="h-4 w-4" />; // Icon X - KhÃ´ng kháº£ dá»¥ng
             case 'maintenance':
-                return <Settings className="h-4 w-4" />; // Icon công cụ - Bảo trì
+                return <Settings className="h-4 w-4" />; // Icon cÃ´ng cá»¥ - Báº£o trÃ¬
             case 'available':
             default:
-                // Khi available, icon dựa vào loại ghế
+                // Khi available, icon dá»±a vÃ o loáº¡i gháº¿
                 switch (seat.type) {
                     case 'vip':
                         return <StarIcon className="h-4 w-4" />;
                     case 'couple':
                         return <HeartIcon className="h-4 w-4" />;
                     case 'sweetbox':
-                        return <HeartIcon className="h-4 w-4" />; // Icon trái tim cho Sweetbox
+                        return <HeartIcon className="h-4 w-4" />; // Icon trÃ¡i tim cho Sweetbox
                     case 'regular':
                     default:
                         return <User className="h-4 w-4" />;
@@ -402,13 +402,13 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
     };
 
     const handleSeatClick = (seat) => {
-        console.log('🖱️ Seat clicked:', seat.id, seat.name || `${seat.row}${seat.number}`);
-        console.log('🖱️ Seat clicked:', seat);
-        // Mở modal chỉnh sửa ghế
+        console.log('ðŸ–±ï¸ Seat clicked:', seat.id, seat.name || `${seat.row}${seat.number}`);
+        console.log('ðŸ–±ï¸ Seat clicked:', seat);
+        // Má»Ÿ modal chá»‰nh sá»­a gháº¿
         setSelectedSeat(seat);
         setShowSeatEditModal(true);
 
-        // Đảm bảo name có giá trị, nếu không thì tạo từ row và number
+        // Äáº£m báº£o name cÃ³ giÃ¡ trá»‹, náº¿u khÃ´ng thÃ¬ táº¡o tá»« row vÃ  number
         const seatName = seat.name || `${seat.row}${seat.number}`;
 
         setSeatEditFormValues({
@@ -422,9 +422,9 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
 
     const handleBulkEdit = async (values) => {
         try {
-            // 📡 GỌI API CẬP NHẬT TỪNG GHẾ ĐÃ CHỌN (Cần đầy đủ SeatRequest fields)
+            // ðŸ“¡ Gá»ŒI API Cáº¬P NHáº¬T Tá»ªNG GHáº¾ ÄÃƒ CHá»ŒN (Cáº§n Ä‘áº§y Ä‘á»§ SeatRequest fields)
             const updatePromises = selectedSeats.map(seatId => {
-                // Tìm seat để lấy thông tin đầy đủ
+                // TÃ¬m seat Ä‘á»ƒ láº¥y thÃ´ng tin Ä‘áº§y Ä‘á»§
                 const seat = seatLayout.rows
                     .flatMap(row => row.seats)
                     .find(s => s.id === seatId);
@@ -445,7 +445,7 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
 
             await Promise.all(updatePromises);
 
-            // Cập nhật state local
+            // Cáº­p nháº­t state local
             const newRows = seatLayout.rows.map(row => ({
                 ...row,
                 seats: row.seats.map(seat =>
@@ -463,31 +463,31 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
             setSeatLayout({ ...seatLayout, rows: newRows });
             setSelectedSeats([]);
             setShowBulkModal(false);
-            notification.success(`Đã cập nhật ${selectedSeats.length} ghế`);
+            notification.success(`ÄÃ£ cáº­p nháº­t ${selectedSeats.length} gháº¿`);
         } catch (error) {
-            console.error('❌ Error bulk editing seats:', error);
-            notification.error(error.response?.data?.message || 'Cập nhật hàng loạt thất bại');
+            console.error('âŒ Error bulk editing seats:', error);
+            notification.error(error.response?.data?.message || 'Cáº­p nháº­t hÃ ng loáº¡t tháº¥t báº¡i');
         }
     };
 
     const handleSeatEdit = async (values) => {
         try {
-            console.log('💾 Editing seat:', selectedSeat.id);
+            console.log('ðŸ’¾ Editing seat:', selectedSeat.id);
 
-            // Kiểm tra nếu đổi sang ghế đôi, cần đảm bảo cột tiếp theo trống
+            // Kiá»ƒm tra náº¿u Ä‘á»•i sang gháº¿ Ä‘Ã´i, cáº§n Ä‘áº£m báº£o cá»™t tiáº¿p theo trá»‘ng
             if (values.type === 'couple' && selectedSeat.type !== 'couple') {
                 const targetRow = seatLayout.rows.find(r => r.label === selectedSeat.row);
                 const nextCol = selectedSeat.col + 1;
                 const hasNextSeat = targetRow.seats.some(s => s.col === nextCol && s.id !== selectedSeat.id);
 
                 if (hasNextSeat) {
-                    notification.error(`Không thể đổi sang ghế đôi! Cột ${nextCol} đã có ghế. Ghế đôi cần 2 vị trí liên tiếp.`);
+                    notification.error(`KhÃ´ng thá»ƒ Ä‘á»•i sang gháº¿ Ä‘Ã´i! Cá»™t ${nextCol} Ä‘Ã£ cÃ³ gháº¿. Gháº¿ Ä‘Ã´i cáº§n 2 vá»‹ trÃ­ liÃªn tiáº¿p.`);
                     return;
                 }
             }
 
 
-            // 📡 GỌI API CẬP NHẬT GHẾ (SeatRequest: theaterId, name, seatType, seatStatus, col, row)
+            // ðŸ“¡ Gá»ŒI API Cáº¬P NHáº¬T GHáº¾ (SeatRequest: theaterId, name, seatType, seatStatus, col, row)
             const seatData = {
                 theaterId: selectedScreen.id,
                 name: values.name || selectedSeat.name,
@@ -497,15 +497,15 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                 row: selectedSeat.rowIndex
             };
 
-            console.log('📡 Updating seat via API:', seatData);
+            console.log('ðŸ“¡ Updating seat via API:', seatData);
             const response = await seatService.updateSeat(selectedSeat.id, seatData);
             const updatedSeat = response?.data?.data || response?.data || response;
-            console.log('✅ Seat updated:', updatedSeat);
+            console.log('âœ… Seat updated:', updatedSeat);
 
             // Convert row number to letter
-            const rowLabel = String.fromCharCode(64 + updatedSeat.row); // 1→A, 2→B, etc.
+            const rowLabel = String.fromCharCode(64 + updatedSeat.row); // 1â†’A, 2â†’B, etc.
 
-            // Cập nhật state với dữ liệu đầy đủ từ API
+            // Cáº­p nháº­t state vá»›i dá»¯ liá»‡u Ä‘áº§y Ä‘á»§ tá»« API
             const newRows = seatLayout.rows.map(row => ({
                 ...row,
                 seats: row.seats.map(seat =>
@@ -527,47 +527,47 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
             }));
 
             setSeatLayout({ ...seatLayout, rows: newRows });
-            notification.success(`Đã cập nhật ghế ${selectedSeat.name}`);
+            notification.success(`ÄÃ£ cáº­p nháº­t gháº¿ ${selectedSeat.name}`);
 
             setShowSeatEditModal(false);
             setSelectedSeat(null);
         } catch (error) {
-            console.error('❌ Error saving seat:', error);
+            console.error('âŒ Error saving seat:', error);
             console.error('Error response:', error.response);
-            notification.error(error.response?.data?.message || 'Lưu thông tin ghế thất bại');
+            notification.error(error.response?.data?.message || 'LÆ°u thÃ´ng tin gháº¿ tháº¥t báº¡i');
         }
     };
 
     const handleDeleteSeat = async () => {
         if (!selectedSeat) {
-            notification.warning('Không có ghế nào được chọn');
+            notification.warning('KhÃ´ng cÃ³ gháº¿ nÃ o Ä‘Æ°á»£c chá»n');
             return;
         }
 
         const seatInfo = selectedSeat.name || `${selectedSeat.row}${selectedSeat.number}`;
-        console.log('🔴 Deleting seat:', seatInfo, '| ID:', selectedSeat.id);
+        console.log('ðŸ”´ Deleting seat:', seatInfo, '| ID:', selectedSeat.id);
 
         try {
-            // 📡 GỌI API XÓA GHẾ
-            console.log('📡 Calling API to delete seat ID:', selectedSeat.id);
+            // ðŸ“¡ Gá»ŒI API XÃ“A GHáº¾
+            console.log('ðŸ“¡ Calling API to delete seat ID:', selectedSeat.id);
             await seatService.deleteSeat(selectedSeat.id);
-            console.log('✅ API delete successful');
+            console.log('âœ… API delete successful');
 
-            // Cập nhật state local - loại bỏ ghế đã xóa
+            // Cáº­p nháº­t state local - loáº¡i bá» gháº¿ Ä‘Ã£ xÃ³a
             const newRows = seatLayout.rows
                 .map(row => ({
                     ...row,
                     seats: row.seats.filter(seat => seat.id !== selectedSeat.id)
                 }))
-                .filter(row => row.seats.length > 0); // Xóa hàng nếu không còn ghế
+                .filter(row => row.seats.length > 0); // XÃ³a hÃ ng náº¿u khÃ´ng cÃ²n gháº¿
 
             setSeatLayout({ ...seatLayout, rows: newRows });
             setShowSeatEditModal(false);
             setSelectedSeat(null);
-            notification.success(`Đã xóa ghế ${seatInfo}`);
+            notification.success(`ÄÃ£ xÃ³a gháº¿ ${seatInfo}`);
         } catch (error) {
-            console.error('❌ Error deleting seat:', error);
-            notification.error(error.response?.data?.message || 'Xóa ghế thất bại');
+            console.error('âŒ Error deleting seat:', error);
+            notification.error(error.response?.data?.message || 'XÃ³a gháº¿ tháº¥t báº¡i');
         }
     };
 
@@ -576,7 +576,7 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
             const targetRow = seatLayout.rows.find(row => row.label === rowLabel);
             if (!targetRow) return;
 
-            // Tìm số ghế lớn nhất và tọa độ col lớn nhất trong hàng
+            // TÃ¬m sá»‘ gháº¿ lá»›n nháº¥t vÃ  tá»a Ä‘á»™ col lá»›n nháº¥t trong hÃ ng
             const maxSeatNumber = Math.max(...targetRow.seats.map(seat => seat.number));
             const maxCol = Math.max(...targetRow.seats.map(seat => seat.col || seat.number));
             const newSeatNumber = maxSeatNumber + 1;
@@ -584,23 +584,23 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
             const newSeatId = `${rowLabel}${newSeatNumber}`;
             const rowIndex = rowLabel.charCodeAt(0) - 65;
 
-            // Chuẩn bị dữ liệu để gửi lên API
+            // Chuáº©n bá»‹ dá»¯ liá»‡u Ä‘á»ƒ gá»­i lÃªn API
             const seatData = {
                 theaterId: selectedScreen.id,
                 name: newSeatId,
-                seatType: 'REGULAR', // Mặc định là ghế thường
+                seatType: 'REGULAR', // Máº·c Ä‘á»‹nh lÃ  gháº¿ thÆ°á»ng
                 seatStatus: 'AVAILABLE',
                 col: newCol,
                 row: rowIndex + 1
             };
 
-            // Gọi API tạo ghế
+            // Gá»i API táº¡o gháº¿
             const response = await seatService.createSeat(seatData);
             const createdSeat = response.data;
 
-            // Tạo object ghế mới cho local state
+            // Táº¡o object gháº¿ má»›i cho local state
             const newSeat = {
-                id: createdSeat.id, // Dùng ID từ backend
+                id: createdSeat.id, // DÃ¹ng ID tá»« backend
                 name: createdSeat.name,
                 row: rowLabel,
                 number: newSeatNumber,
@@ -611,7 +611,7 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                 rowIndex: rowIndex + 1
             };
 
-            // Cập nhật layout và sắp xếp lại ghế theo col
+            // Cáº­p nháº­t layout vÃ  sáº¯p xáº¿p láº¡i gháº¿ theo col
             const newRows = seatLayout.rows.map(row =>
                 row.label === rowLabel
                     ? {
@@ -622,10 +622,10 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
             );
 
             setSeatLayout({ ...seatLayout, rows: newRows });
-            notification.success(`Đã thêm ghế ${newSeatId} (Tọa độ: hàng ${rowIndex}, cột ${newCol})`);
+            notification.success(`ÄÃ£ thÃªm gháº¿ ${newSeatId} (Tá»a Ä‘á»™: hÃ ng ${rowIndex}, cá»™t ${newCol})`);
         } catch (error) {
             console.error('Error creating seat:', error);
-            notification.error(error.response?.data?.message || 'Tạo ghế thất bại');
+            notification.error(error.response?.data?.message || 'Táº¡o gháº¿ tháº¥t báº¡i');
         }
     };
 
@@ -634,17 +634,17 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
             const targetRow = seatLayout.rows.find(row => row.label === rowLabel);
             if (!targetRow) return;
 
-            // Kiểm tra xem cột này đã có ghế chưa
+            // Kiá»ƒm tra xem cá»™t nÃ y Ä‘Ã£ cÃ³ gháº¿ chÆ°a
             if (targetRow.seats.some(s => s.col === targetCol)) {
-                notification.warning(`Cột ${targetCol} trong hàng ${rowLabel} đã có ghế!`);
+                notification.warning(`Cá»™t ${targetCol} trong hÃ ng ${rowLabel} Ä‘Ã£ cÃ³ gháº¿!`);
                 return;
             }
 
-            // Tên ghế = rowLabel + số cột (ví dụ: A5)
+            // TÃªn gháº¿ = rowLabel + sá»‘ cá»™t (vÃ­ dá»¥: A5)
             const seatName = `${rowLabel}${targetCol}`;
             const rowIndex = rowLabel.charCodeAt(0) - 64; // A=1, B=2, etc.
 
-            // Chuẩn bị dữ liệu để gửi lên API
+            // Chuáº©n bá»‹ dá»¯ liá»‡u Ä‘á»ƒ gá»­i lÃªn API
             const seatData = {
                 theaterId: selectedScreen.id,
                 name: seatName,
@@ -656,11 +656,11 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
 
             console.log("create seat at position", seatData)
 
-            // Gọi API tạo ghế
+            // Gá»i API táº¡o gháº¿
             const response = await seatService.createSeat(seatData);
             const createdSeat = response.data;
 
-            // Tạo object ghế mới cho local state
+            // Táº¡o object gháº¿ má»›i cho local state
             const newSeat = {
                 id: createdSeat.id,
                 name: createdSeat.name,
@@ -673,7 +673,7 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                 rowIndex: createdSeat.row
             };
 
-            // Cập nhật layout và sắp xếp lại ghế theo col
+            // Cáº­p nháº­t layout vÃ  sáº¯p xáº¿p láº¡i gháº¿ theo col
             const newRows = seatLayout.rows.map(row =>
                 row.label === rowLabel
                     ? {
@@ -684,16 +684,16 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
             );
 
             setSeatLayout({ ...seatLayout, rows: newRows });
-            notification.success(`Đã thêm ghế ${seatName} tại hàng ${rowLabel}, cột ${targetCol}`);
+            notification.success(`ÄÃ£ thÃªm gháº¿ ${seatName} táº¡i hÃ ng ${rowLabel}, cá»™t ${targetCol}`);
         } catch (error) {
             console.error('Error creating seat at position:', error);
-            notification.error(error.response?.data?.message || 'Tạo ghế thất bại');
+            notification.error(error.response?.data?.message || 'Táº¡o gháº¿ tháº¥t báº¡i');
         }
     };
 
     const handleAddRow = async () => {
         try {
-            // Tìm label hàng tiếp theo (A, B, C, ... Z)
+            // TÃ¬m label hÃ ng tiáº¿p theo (A, B, C, ... Z)
             const existingLabels = seatLayout.rows.map(row => row.label).sort();
             let nextLabel = 'A';
 
@@ -711,9 +711,9 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
             const rowIndex = nextLabel.charCodeAt(0) - 64; // A=1, B=2, etc.
             const defaultSeatsPerRow = 10;
 
-            console.log(`➕ Creating new row ${nextLabel} with ${defaultSeatsPerRow} seats via API...`);
+            console.log(`âž• Creating new row ${nextLabel} with ${defaultSeatsPerRow} seats via API...`);
 
-            // 📡 GỌI API TẠO TỪNG GHẾ TRONG HÀNG MỚI
+            // ðŸ“¡ Gá»ŒI API Táº O Tá»ªNG GHáº¾ TRONG HÃ€NG Má»šI
             const newRowSeats = [];
             for (let j = 1; j <= defaultSeatsPerRow; j++) {
                 const seatName = `${nextLabel}${j}`;
@@ -742,50 +742,50 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                 });
             }
 
-            // Tạo hàng mới với ghế đã có ID từ API
+            // Táº¡o hÃ ng má»›i vá»›i gháº¿ Ä‘Ã£ cÃ³ ID tá»« API
             const newRow = {
                 label: nextLabel,
                 seats: newRowSeats,
                 isVip: false
             };
 
-            console.log(`✅ Created row ${nextLabel} with ${newRowSeats.length} seats`);
+            console.log(`âœ… Created row ${nextLabel} with ${newRowSeats.length} seats`);
 
-            // Thêm hàng mới vào layout (sắp xếp theo thứ tự alphabet)
+            // ThÃªm hÃ ng má»›i vÃ o layout (sáº¯p xáº¿p theo thá»© tá»± alphabet)
             const newRows = [...seatLayout.rows, newRow].sort((a, b) => a.label.localeCompare(b.label));
 
             setSeatLayout({ ...seatLayout, rows: newRows });
-            notification.success(`Đã thêm hàng ${nextLabel} với ${defaultSeatsPerRow} ghế`);
+            notification.success(`ÄÃ£ thÃªm hÃ ng ${nextLabel} vá»›i ${defaultSeatsPerRow} gháº¿`);
         } catch (error) {
-            console.error('❌ Error creating new row:', error);
-            notification.error(error.response?.data?.message || 'Tạo hàng mới thất bại');
+            console.error('âŒ Error creating new row:', error);
+            notification.error(error.response?.data?.message || 'Táº¡o hÃ ng má»›i tháº¥t báº¡i');
         }
     };
 
     const handleRemoveRow = async (rowLabel) => {
         try {
             if (seatLayout.rows.length <= 1) {
-                notification.warning('Không thể xóa hàng. Phòng chiếu phải có ít nhất 1 hàng ghế.');
+                notification.warning('KhÃ´ng thá»ƒ xÃ³a hÃ ng. PhÃ²ng chiáº¿u pháº£i cÃ³ Ã­t nháº¥t 1 hÃ ng gháº¿.');
                 return;
             }
 
             const targetRow = seatLayout.rows.find(row => row.label === rowLabel);
             if (!targetRow) {
-                notification.error('Không tìm thấy hàng ghế');
+                notification.error('KhÃ´ng tÃ¬m tháº¥y hÃ ng gháº¿');
                 return;
             }
 
-            // 📡 GỌI API XÓA TẤT CẢ GHẾ TRONG HÀNG
+            // ðŸ“¡ Gá»ŒI API XÃ“A Táº¤T Cáº¢ GHáº¾ TRONG HÃ€NG
             const deletePromises = targetRow.seats.map(seat => seatService.deleteSeat(seat.id));
             await Promise.all(deletePromises);
 
-            // Cập nhật state local
+            // Cáº­p nháº­t state local
             const newRows = seatLayout.rows.filter(row => row.label !== rowLabel);
             setSeatLayout({ ...seatLayout, rows: newRows });
-            notification.success(`Đã xóa hàng ${rowLabel} (${targetRow.seats.length} ghế)`);
+            notification.success(`ÄÃ£ xÃ³a hÃ ng ${rowLabel} (${targetRow.seats.length} gháº¿)`);
         } catch (error) {
-            console.error('❌ Error removing row:', error);
-            notification.error(error.response?.data?.message || 'Xóa hàng ghế thất bại');
+            console.error('âŒ Error removing row:', error);
+            notification.error(error.response?.data?.message || 'XÃ³a hÃ ng gháº¿ tháº¥t báº¡i');
         }
     };
 
@@ -793,22 +793,22 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
         try {
             await loadSeatsFromAPI(selectedScreen);
             setSelectedSeats([]);
-            notification.success('Đã khôi phục bố cục ban đầu');
+            notification.success('ÄÃ£ khÃ´i phá»¥c bá»‘ cá»¥c ban Ä‘áº§u');
         } catch (error) {
-            console.error('❌ Error resetting layout:', error);
-            notification.error('Khôi phục bố cục thất bại');
+            console.error('âŒ Error resetting layout:', error);
+            notification.error('KhÃ´i phá»¥c bá»‘ cá»¥c tháº¥t báº¡i');
         }
     };
 
     // const saveLayout = async () => {
     //     try {
-    //         // Lưu tất cả ghế vào database
+    //         // LÆ°u táº¥t cáº£ gháº¿ vÃ o database
     //         const allSeats = seatLayout.rows.flatMap(row => row.seats);
 
-    //         // Xóa tất cả ghế cũ trước
+    //         // XÃ³a táº¥t cáº£ gháº¿ cÅ© trÆ°á»›c
     //         await seatService.deleteAllSeatsByRoomId(selectedScreen.id);
 
-    //         // Tạo ghế mới với đầy đủ thông tin
+    //         // Táº¡o gháº¿ má»›i vá»›i Ä‘áº§y Ä‘á»§ thÃ´ng tin
     //         const createPromises = allSeats.map(seat => {
     //             const seatData = {
     //                 roomId: selectedScreen.id,
@@ -825,9 +825,9 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
 
     //         await Promise.all(createPromises);
 
-    //         message.success('Đã lưu sơ đồ ghế thành công');
+    //         message.success('ÄÃ£ lÆ°u sÆ¡ Ä‘á»“ gháº¿ thÃ nh cÃ´ng');
 
-    //         // Gọi callback onSave nếu có
+    //         // Gá»i callback onSave náº¿u cÃ³
     //         if (onSave) {
     //             const layoutData = {
     //                 rows: seatLayout.rows.length,
@@ -839,7 +839,7 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
     //         }
     //     } catch (error) {
     //         console.error('Error saving seat layout:', error);
-    //         message.error(error.response?.data?.message || 'Lưu sơ đồ ghế thất bại');
+    //         message.error(error.response?.data?.message || 'LÆ°u sÆ¡ Ä‘á»“ gháº¿ tháº¥t báº¡i');
     //     }
     // };
 
@@ -851,7 +851,7 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
             couple: allSeats.filter(s => s.type === 'couple').length,
             regular: allSeats.filter(s => s.type === 'regular').length,
             sweetbox: allSeats.filter(s => s.type === 'sweetbox').length,
-            // Thống kê theo trạng thái
+            // Thá»‘ng kÃª theo tráº¡ng thÃ¡i
             available: allSeats.filter(s => s.status === 'available').length,
             booked: allSeats.filter(s => s.status === 'booked').length,
             blocked: allSeats.filter(s => s.status === 'blocked').length
@@ -864,13 +864,13 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
         <div className="font-sans scroll-smooth [&_*::-webkit-scrollbar]:w-2 [&_*::-webkit-scrollbar]:h-2 [&_*::-webkit-scrollbar-track]:bg-gray-100 [&_*::-webkit-scrollbar-track]:rounded [&_*::-webkit-scrollbar-thumb]:bg-gray-400 [&_*::-webkit-scrollbar-thumb]:rounded [&_*::-webkit-scrollbar-thumb]:transition-colors [&_*::-webkit-scrollbar-thumb]:duration-200 hover:[&_*::-webkit-scrollbar-thumb]:bg-gray-500">
             {/* Screen */}
             <div className="text-center m-0">
-                <div className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white px-12 py-2 rounded-t-[10px] rounded-b-sm font-bold text-xs tracking-wider inline-block shadow-[0_4px_15px_rgba(102,126,234,0.3)] mb-8">MÀN HÌNH</div>
+                <div className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white px-12 py-2 rounded-t-[10px] rounded-b-sm font-bold text-xs tracking-wider inline-block shadow-[0_4px_15px_rgba(102,126,234,0.3)] mb-8">MÃ€N HÃŒNH</div>
             </div>
 
             {/* Seat Layout */}
             <div className="flex flex-col items-center gap-2 p-5 bg-gray-50 rounded-xl border border-gray-200 relative mb-5" ref={seatLayoutRef}>
                 {seatLayout.rows.length === 0 ? (
-                    // ✅ HIỂN THỊ NÚT TẠO SƠ ĐỒ GHẾ KHI CHƯA CÓ GHẾ
+                    // âœ… HIá»‚N THá»Š NÃšT Táº O SÆ  Äá»’ GHáº¾ KHI CHÆ¯A CÃ“ GHáº¾
                     <div style={{
                         display: 'flex',
                         flexDirection: 'column',
@@ -884,29 +884,29 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                     }}>
                         <Ban className="h-12 w-12 text-gray-400 mb-4" />
                         <h4 className="text-gray-600 mb-2 text-lg font-semibold">
-                            Phòng chiếu chưa có sơ đồ ghế
+                            PhÃ²ng chiáº¿u chÆ°a cÃ³ sÆ¡ Ä‘á»“ gháº¿
                         </h4>
                         <p className="text-gray-500 mb-6">
-                            Tạo sơ đồ ghế mặc định với {selectedScreen?.rowsCount || 10} hàng × {selectedScreen?.seatsPerRow || 12} ghế/hàng
+                            Táº¡o sÆ¡ Ä‘á»“ gháº¿ máº·c Ä‘á»‹nh vá»›i {selectedScreen?.rowsCount || 10} hÃ ng Ã— {selectedScreen?.seatsPerRow || 12} gháº¿/hÃ ng
                         </p>
                         <Button
                             className="h-12 text-base font-medium rounded-lg px-8"
                             onClick={() => generateDefaultSeatLayout(selectedScreen)}
                         >
                             <Plus className="h-4 w-4 mr-2" />
-                            Tạo sơ đồ ghế mặc định
+                            Táº¡o sÆ¡ Ä‘á»“ gháº¿ máº·c Ä‘á»‹nh
                         </Button>
                     </div>
                 ) : (
                     <>
                         {seatLayout.rows.map((row, rowIndex) => {
-                            // Tìm cột lớn nhất trong toàn bộ phòng để đảm bảo tất cả hàng có cùng số cột
+                            // TÃ¬m cá»™t lá»›n nháº¥t trong toÃ n bá»™ phÃ²ng Ä‘á»ƒ Ä‘áº£m báº£o táº¥t cáº£ hÃ ng cÃ³ cÃ¹ng sá»‘ cá»™t
                             const allCols = seatLayout.rows.flatMap(r => r.seats.map(s => s.col));
-                            const maxColInRoom = allCols.length > 0 ? Math.max(...allCols) : 20; // Mặc định 20 cột nếu chưa có ghế
-                            const minCol = 1; // Luôn bắt đầu từ cột 1
-                            const totalCols = maxColInRoom; // Số cột cố định cho tất cả hàng
+                            const maxColInRoom = allCols.length > 0 ? Math.max(...allCols) : 20; // Máº·c Ä‘á»‹nh 20 cá»™t náº¿u chÆ°a cÃ³ gháº¿
+                            const minCol = 1; // LuÃ´n báº¯t Ä‘áº§u tá»« cá»™t 1
+                            const totalCols = maxColInRoom; // Sá»‘ cá»™t cá»‘ Ä‘á»‹nh cho táº¥t cáº£ hÃ ng
 
-                            // Tạo Set các cột đã có ghế để kiểm tra nhanh
+                            // Táº¡o Set cÃ¡c cá»™t Ä‘Ã£ cÃ³ gháº¿ Ä‘á»ƒ kiá»ƒm tra nhanh
                             const occupiedCols = new Set(row.seats.map(s => s.col));
 
                             return (
@@ -920,26 +920,26 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                                             position: 'relative'
                                         }}
                                     >
-                                        {/* Render tất cả các cột từ 1 đến maxColInRoom */}
+                                        {/* Render táº¥t cáº£ cÃ¡c cá»™t tá»« 1 Ä‘áº¿n maxColInRoom */}
                                         {Array.from({ length: totalCols }, (_, index) => {
                                             const currentCol = minCol + index;
                                             const gridPosition = index + 1;
 
-                                            // Kiểm tra xem cột này có ghế không
+                                            // Kiá»ƒm tra xem cá»™t nÃ y cÃ³ gháº¿ khÃ´ng
                                             const seat = row.seats.find(s => s.col === currentCol);
 
-                                            // Kiểm tra xem cột trước có ghế đôi không (ghế đôi chiếm cột hiện tại)
+                                            // Kiá»ƒm tra xem cá»™t trÆ°á»›c cÃ³ gháº¿ Ä‘Ã´i khÃ´ng (gháº¿ Ä‘Ã´i chiáº¿m cá»™t hiá»‡n táº¡i)
                                             const prevCol = currentCol - 1;
                                             const prevSeat = row.seats.find(s => s.col === prevCol);
                                             const isOccupiedByCoupleSeat = prevSeat && prevSeat.type === 'couple';
 
                                             if (isOccupiedByCoupleSeat) {
-                                                // Cột này bị ghế đôi chiếm, không render gì
+                                                // Cá»™t nÃ y bá»‹ gháº¿ Ä‘Ã´i chiáº¿m, khÃ´ng render gÃ¬
                                                 return null;
                                             }
 
                                             if (seat) {
-                                                // Nếu có ghế, render ghế
+                                                // Náº¿u cÃ³ gháº¿, render gháº¿
                                                 const isCoupleSeat = seat.type === 'couple';
 
                                                 return (
@@ -947,18 +947,18 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                                                         key={`seat-${seat.id}`}
                                                         title={
                                                             <div>
-                                                                <div><strong>Ghế {seat.id}</strong></div>
-                                                                <div>Hàng: {seat.row} (Tọa độ: {seat.rowIndex})</div>
-                                                                <div>Cột: {seat.number} (Tọa độ: {seat.col})</div>
-                                                                <div>Loại: {
-                                                                    seat.type === 'regular' ? 'Thường' :
+                                                                <div><strong>Gháº¿ {seat.id}</strong></div>
+                                                                <div>HÃ ng: {seat.row} (Tá»a Ä‘á»™: {seat.rowIndex})</div>
+                                                                <div>Cá»™t: {seat.number} (Tá»a Ä‘á»™: {seat.col})</div>
+                                                                <div>Loáº¡i: {
+                                                                    seat.type === 'regular' ? 'ThÆ°á»ng' :
                                                                         seat.type === 'vip' ? 'VIP' :
-                                                                            seat.type === 'couple' ? 'Đôi' :
+                                                                            seat.type === 'couple' ? 'ÄÃ´i' :
                                                                                 seat.type === 'sweetbox' ? 'Sweetbox' :
                                                                                     'N/A'
                                                                 }</div>
-                                                                <div>Trạng thái: {getStatusText(seat.status)}</div>
-                                                                {isCoupleSeat && <div style={{ color: '#eb2f96' }}>⚠️ Chiếm 2 vị trí</div>}
+                                                                <div>Tráº¡ng thÃ¡i: {getStatusText(seat.status)}</div>
+                                                                {isCoupleSeat && <div style={{ color: '#eb2f96' }}>âš ï¸ Chiáº¿m 2 vá»‹ trÃ­</div>}
                                                             </div>
                                                         }
                                                         mouseEnterDelay={0.3}
@@ -972,7 +972,7 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                                                                 backgroundColor: getSeatColor(seat),
                                                                 color: 'white',
                                                                 gridColumn: isCoupleSeat
-                                                                    ? `${gridPosition} / span 2` // Ghế đôi chiếm 2 cột
+                                                                    ? `${gridPosition} / span 2` // Gháº¿ Ä‘Ã´i chiáº¿m 2 cá»™t
                                                                     : gridPosition,
                                                                 width: isCoupleSeat ? '72px' : '36px',
                                                                 height: '36px',
@@ -1020,11 +1020,11 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                                                     </Tooltip>
                                                 );
                                             } else {
-                                                // Nếu không có ghế, render nút thêm ghế
+                                                // Náº¿u khÃ´ng cÃ³ gháº¿, render nÃºt thÃªm gháº¿
                                                 return (
                                                     <Tooltip
                                                         key={`empty-${row.label}-${currentCol}`}
-                                                        title={`Thêm ghế vào hàng ${row.label}, cột ${currentCol}`}
+                                                        title={`ThÃªm gháº¿ vÃ o hÃ ng ${row.label}, cá»™t ${currentCol}`}
                                                     >
                                                         <Button
                                                             variant="outline"
@@ -1042,8 +1042,8 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                                             }
                                         })}
 
-                                        {/* Nút thêm ghế ở cuối hàng */}
-                                        <Tooltip content={`Thêm ghế mới vào cuối hàng ${row.label}`}>
+                                        {/* NÃºt thÃªm gháº¿ á»Ÿ cuá»‘i hÃ ng */}
+                                        <Tooltip content={`ThÃªm gháº¿ má»›i vÃ o cuá»‘i hÃ ng ${row.label}`}>
                                             <Button
                                                 variant="outline"
                                                 size="icon"
@@ -1075,25 +1075,25 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                                 className="border-green-500 text-green-600 bg-green-50 min-w-[200px] h-12 rounded-lg text-sm font-medium hover:bg-green-100"
                             >
                                 <Plus className="h-4 w-4 mr-2" />
-                                Thêm hàng mới
+                                ThÃªm hÃ ng má»›i
                             </Button>
                         </div>
                     </>
                 )}
             </div>
 
-            {/* Legend - Chú thích màu sắc và trạng thái */}
+            {/* Legend - ChÃº thÃ­ch mÃ u sáº¯c vÃ  tráº¡ng thÃ¡i */}
             <Card className="mb-4">
                 <div className="border-b border-gray-200 px-5 py-4 mb-0">
-                    <h3 className="text-gray-800 text-base font-semibold m-0">Chú thích</h3>
+                    <h3 className="text-gray-800 text-base font-semibold m-0">ChÃº thÃ­ch</h3>
                 </div>
                 <div className="p-5 flex flex-wrap gap-3">
-                    {/* Loại ghế */}
+                    {/* Loáº¡i gháº¿ */}
                     <div className="flex items-center gap-1">
                         <div className="w-3.5 h-3.5 bg-green-500 rounded flex items-center justify-center text-white">
                             <User className="h-2 w-2" />
                         </div>
-                        <span className="text-xs">Thường</span>
+                        <span className="text-xs">ThÆ°á»ng</span>
                     </div>
                     <div className="flex items-center gap-1">
                         <div className="w-3.5 h-3.5 bg-yellow-500 rounded flex items-center justify-center text-white">
@@ -1105,65 +1105,65 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                         <div className="w-3.5 h-3.5 bg-pink-500 rounded flex items-center justify-center text-white">
                             <Heart className="h-2 w-2" />
                         </div>
-                        <span className="text-xs">Đôi</span>
+                        <span className="text-xs">ÄÃ´i</span>
                     </div>
 
                     {/* Divider */}
                     <Separator orientation="vertical" className="h-4" />
 
-                    {/* Trạng thái */}
+                    {/* Tráº¡ng thÃ¡i */}
                     <div className="flex items-center gap-1">
                         <div className="w-3.5 h-3.5 bg-green-500 rounded flex items-center justify-center text-white">
                             <User className="h-2 w-2" />
                         </div>
-                        <span className="text-xs">Có thể đặt</span>
+                        <span className="text-xs">CÃ³ thá»ƒ Ä‘áº·t</span>
                     </div>
                     <div className="flex items-center gap-1">
                         <div className="w-3.5 h-3.5 bg-yellow-500 rounded flex items-center justify-center text-white">
                             <Clock className="h-2 w-2" />
                         </div>
-                        <span className="text-xs">Giữ chỗ</span>
+                        <span className="text-xs">Giá»¯ chá»—</span>
                     </div>
                     <div className="flex items-center gap-1">
                         <div className="w-3.5 h-3.5 bg-red-500 rounded flex items-center justify-center text-white">
                             <User className="h-2 w-2" />
                         </div>
-                        <span className="text-xs">Đã đặt</span>
+                        <span className="text-xs">ÄÃ£ Ä‘áº·t</span>
                     </div>
                     <div className="flex items-center gap-1">
                         <div className="w-3.5 h-3.5 bg-gray-400 rounded flex items-center justify-center text-white">
                             <X className="h-2 w-2" />
                         </div>
-                        <span className="text-xs">Không khả dụng</span>
+                        <span className="text-xs">KhÃ´ng kháº£ dá»¥ng</span>
                     </div>
                     <div className="flex items-center gap-1">
                         <div className="w-3.5 h-3.5 bg-purple-600 rounded flex items-center justify-center text-white">
                             <Wrench className="h-2 w-2" />
                         </div>
-                        <span className="text-xs">Bảo trì</span>
+                        <span className="text-xs">Báº£o trÃ¬</span>
                     </div>
                     <div className="flex items-center gap-1">
                         <div className="w-3.5 h-3.5 bg-gray-500 rounded flex items-center justify-center text-white">
                             <Ban className="h-2 w-2" />
                         </div>
-                        <span className="text-xs">Bị khóa</span>
+                        <span className="text-xs">Bá»‹ khÃ³a</span>
                     </div>
                     <div className="flex items-center gap-1">
                         <div className="w-3.5 h-3.5 bg-blue-500 rounded flex items-center justify-center text-white">
                             <User className="h-2 w-2" />
                         </div>
-                        <span className="text-xs">Đang chọn</span>
+                        <span className="text-xs">Äang chá»n</span>
                     </div>
                 </div>
             </Card>
 
             {/* Bulk Edit Modal */}
             {showBulkModal && (
-                <Modal
-                    title="Chỉnh sửa ghế hàng loạt"
+                <ResponsiveDialog
+                    heading="Chá»‰nh sá»­a gháº¿ hÃ ng loáº¡t"
                     open={showBulkModal}
-                    onCancel={() => setShowBulkModal(false)}
-                    footer={null}
+                    onClose={() => setShowBulkModal(false)}
+                    actions={null}
                     destroyOnClose={true}
                     getPopupContainer={trigger => trigger.parentElement}
                     transitionName=""
@@ -1177,52 +1177,52 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                             status: formData.get('status') || 'available'
                         });
                     }}>
-                        <p>Đã chọn: <strong>{selectedSeats.length}</strong> ghế</p>
+                        <p>ÄÃ£ chá»n: <strong>{selectedSeats.length}</strong> gháº¿</p>
 
                         <Separator className="my-4" />
 
                         <div className="space-y-4">
                             <div>
-                                <label className="text-sm font-medium mb-2 block">Loại ghế</label>
+                                <label className="text-sm font-medium mb-2 block">Loáº¡i gháº¿</label>
                                 <Select name="type" defaultValue="regular">
-                                    <option value="regular">Ghế thường</option>
-                                    <option value="vip">Ghế VIP</option>
-                                    <option value="couple">Ghế đôi</option>
+                                    <option value="regular">Gháº¿ thÆ°á»ng</option>
+                                    <option value="vip">Gháº¿ VIP</option>
+                                    <option value="couple">Gháº¿ Ä‘Ã´i</option>
                                     <option value="sweetbox">Sweetbox</option>
                                 </Select>
                             </div>
 
                             <div>
-                                <label className="text-sm font-medium mb-2 block">Trạng thái</label>
+                                <label className="text-sm font-medium mb-2 block">Tráº¡ng thÃ¡i</label>
                                 <Select name="status" defaultValue="available">
-                                    <option value="available">Có thể đặt</option>
-                                    <option value="held">Đang giữ chỗ</option>
-                                    <option value="booked">Đã đặt</option>
-                                    <option value="unavailable">Không khả dụng</option>
-                                    <option value="maintenance">Đang bảo trì</option>
-                                    <option value="blocked">Bị khóa</option>
+                                    <option value="available">CÃ³ thá»ƒ Ä‘áº·t</option>
+                                    <option value="held">Äang giá»¯ chá»—</option>
+                                    <option value="booked">ÄÃ£ Ä‘áº·t</option>
+                                    <option value="unavailable">KhÃ´ng kháº£ dá»¥ng</option>
+                                    <option value="maintenance">Äang báº£o trÃ¬</option>
+                                    <option value="blocked">Bá»‹ khÃ³a</option>
                                 </Select>
                             </div>
 
                             <div className="flex justify-end gap-2">
                                 <Button type="button" variant="outline" onClick={() => setShowBulkModal(false)}>
-                                    Hủy
+                                    Há»§y
                                 </Button>
                                 <Button type="submit">
-                                    Áp dụng
+                                    Ãp dá»¥ng
                                 </Button>
                             </div>
                         </div>
                     </form>
-                </Modal>
+                </ResponsiveDialog>
             )}
 
             {/* Single Seat Edit Modal */}
             {showSeatEditModal && selectedSeat && (
-                <Modal
-                    title={`Chỉnh sửa ghế ${selectedSeat?.name || `${selectedSeat?.row}${selectedSeat?.number}`}`}
+                <ResponsiveDialog
+                    heading={`Chá»‰nh sá»­a gháº¿ ${selectedSeat?.name || `${selectedSeat?.row}${selectedSeat?.number}`}`}
                     open={showSeatEditModal}
-                    onCancel={() => {
+                    onClose={() => {
                         setShowSeatEditModal(false);
                         setSelectedSeat(null);
                         setSeatEditFormValues({
@@ -1231,8 +1231,8 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                             status: 'available'
                         });
                     }}
-                    footer={null}
-                    width={600}
+                    actions={null}
+                    maxWidth={600}
                     destroyOnClose={true}
                 >
                     <form onSubmit={(e) => {
@@ -1242,7 +1242,7 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                         <div className="space-y-5">
                             <div>
                                 <label className="text-sm font-medium mb-2 block text-gray-700">
-                                    Tên ghế <span className="text-red-500">*</span>
+                                    TÃªn gháº¿ <span className="text-red-500">*</span>
                                 </label>
                                 <Input
                                     placeholder="VD: A1, B5, ..."
@@ -1256,7 +1256,7 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-sm font-medium mb-2 block text-gray-700">
-                                        Tọa độ hàng
+                                        Tá»a Ä‘á»™ hÃ ng
                                     </label>
                                     <Input
                                         value={selectedSeat?.rowIndex ?? '-'}
@@ -1266,7 +1266,7 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                                 </div>
                                 <div>
                                     <label className="text-sm font-medium mb-2 block text-gray-700">
-                                        Tọa độ cột
+                                        Tá»a Ä‘á»™ cá»™t
                                     </label>
                                     <Input
                                         value={selectedSeat?.col ?? '-'}
@@ -1278,19 +1278,19 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
 
                             <div>
                                 <label className="text-sm font-medium mb-2 block text-gray-700">
-                                    Loại ghế <span className="text-red-500">*</span>
+                                    Loáº¡i gháº¿ <span className="text-red-500">*</span>
                                 </label>
                                 <Select
                                     value={seatEditFormValues.type}
                                     onValueChange={(value) => setSeatEditFormValues({ ...seatEditFormValues, type: value })}
                                 >
                                     <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Chọn loại ghế" />
+                                        <SelectValue placeholder="Chá»n loáº¡i gháº¿" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="regular">Ghế thường</SelectItem>
-                                        <SelectItem value="vip">Ghế VIP</SelectItem>
-                                        <SelectItem value="couple">Ghế đôi</SelectItem>
+                                        <SelectItem value="regular">Gháº¿ thÆ°á»ng</SelectItem>
+                                        <SelectItem value="vip">Gháº¿ VIP</SelectItem>
+                                        <SelectItem value="couple">Gháº¿ Ä‘Ã´i</SelectItem>
                                         <SelectItem value="sweetbox">Sweetbox</SelectItem>
                                     </SelectContent>
                                 </Select>
@@ -1298,22 +1298,22 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
 
                             <div>
                                 <label className="text-sm font-medium mb-2 block text-gray-700">
-                                    Trạng thái <span className="text-red-500">*</span>
+                                    Tráº¡ng thÃ¡i <span className="text-red-500">*</span>
                                 </label>
                                 <Select
                                     value={seatEditFormValues.status}
                                     onValueChange={(value) => setSeatEditFormValues({ ...seatEditFormValues, status: value })}
                                 >
                                     <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Chọn trạng thái" />
+                                        <SelectValue placeholder="Chá»n tráº¡ng thÃ¡i" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="available">Có thể đặt</SelectItem>
-                                        <SelectItem value="held">Đang giữ chỗ</SelectItem>
-                                        <SelectItem value="booked">Đã đặt</SelectItem>
-                                        <SelectItem value="unavailable">Không khả dụng</SelectItem>
-                                        <SelectItem value="maintenance">Đang bảo trì</SelectItem>
-                                        <SelectItem value="blocked">Bị khóa</SelectItem>
+                                        <SelectItem value="available">CÃ³ thá»ƒ Ä‘áº·t</SelectItem>
+                                        <SelectItem value="held">Äang giá»¯ chá»—</SelectItem>
+                                        <SelectItem value="booked">ÄÃ£ Ä‘áº·t</SelectItem>
+                                        <SelectItem value="unavailable">KhÃ´ng kháº£ dá»¥ng</SelectItem>
+                                        <SelectItem value="maintenance">Äang báº£o trÃ¬</SelectItem>
+                                        <SelectItem value="blocked">Bá»‹ khÃ³a</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -1334,14 +1334,14 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                                         });
                                     }}
                                 >
-                                    Hủy
+                                    Há»§y
                                 </Button>
                                 <Button
                                     type="submit"
                                     className="bg-indigo-600 hover:bg-indigo-700 text-white"
                                 >
                                     <Save className="h-4 w-4 mr-2" />
-                                    Lưu thay đổi
+                                    LÆ°u thay Ä‘á»•i
                                 </Button>
                             </div>
                         </div>
@@ -1355,10 +1355,10 @@ const SeatManager = ({ selectedScreen, onSave, onClose }) => {
                             className="w-full bg-red-600 hover:bg-red-700 text-white"
                         >
                             <Trash2 className="h-4 w-4 mr-2" />
-                            Xóa ghế
+                            XÃ³a gháº¿
                         </Button>
                     </div>
-                </Modal>
+                </ResponsiveDialog>
             )}
         </div>
     );

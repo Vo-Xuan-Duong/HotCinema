@@ -3,6 +3,20 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply bg-background;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
 /* Custom component classes using @apply */
 @layer components {
   .app-loading-spinner {
@@ -111,7 +125,7 @@
   /* Container utilities */
   .app-container,
   .container {
-    @apply max-w-[1200px] mx-auto px-8;
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
   }
 
   /* Grid utilities */
@@ -169,20 +183,6 @@
 }
 
 /* Responsive overrides */
-@media (max-width: 768px) {
-
-  .app-grid-2,
-  .app-grid-3,
-  .app-grid-4 {
-    @apply grid-cols-1;
-  }
-
-  .app-container,
-  .container {
-    @apply px-4;
-  }
-}
-
 @keyframes dotPulse {
 
   0%,
@@ -320,18 +320,6 @@ body:has(.admin-layout-shadcn),
 body:has([class*="admin-layout"]) {
   padding-top: 0 !important;
   margin-top: 0 !important;
-}
-
-@media (max-width: 768px) {
-  body {
-    padding-top: 56px;
-  }
-}
-
-@media (max-width: 576px) {
-  body {
-    padding-top: 52px;
-  }
 }
 
 #root {
@@ -494,22 +482,6 @@ body {
   box-sizing: border-box;
 }
 
-/* Prevent any element from exceeding viewport width */
-*:not([class*="max-w"]):not(.container):not(.app-container) {
-  max-width: 100%;
-}
-
-/* Ensure all containers respect viewport width */
-.app-container {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-.container:not([class*="max-w"]) {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
 /* Prevent images and media from causing overflow */
 img,
 video,
@@ -517,5 +489,4 @@ iframe,
 embed,
 object {
   max-width: 100%;
-  height: auto;
 }

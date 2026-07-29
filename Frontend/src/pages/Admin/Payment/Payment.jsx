@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
-import { TableWrapper } from '@/components/ui/table-wrapper';
+import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
-import { Modal } from '@/components/ui/modal';
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
 import { Input } from '@/components/ui/input';
 import { InputPassword } from '@/components/ui/input-password';
 import { Select } from '@/components/ui/select';
-import { Tag } from '@/components/ui/tag';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { TooltipProvider, TooltipTrigger, TooltipContent, Tooltip } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -14,7 +14,7 @@ import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Alert } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { Descriptions } from '@/components/ui/descriptions';
+import { DetailList, DetailItem } from '@/components/ui/detail-list';
 import {
   CreditCard,
   Plus,
@@ -106,7 +106,7 @@ const Payment = () => {
       const response = await paymentService.listPage({ page, size, sort: 'createdAt,desc' });
 
       if (response?.content) {
-        // Sử dụng trực tiếp paymentResponse từ API, chỉ format date
+        // Sá»­ dá»¥ng trá»±c tiáº¿p paymentResponse tá»« API, chá»‰ format date
         const payments = response.content.map(payment => ({
           ...payment,
           paymentDateFormatted: payment.paymentDate ? dayjs(payment.paymentDate).format('DD/MM/YYYY HH:mm:ss') : null,
@@ -123,7 +123,7 @@ const Payment = () => {
       }
     } catch (error) {
       console.error('Error loading payments:', error);
-      notification.error(error?.response?.data?.message || 'Không thể tải danh sách thanh toán');
+      notification.error(error?.response?.data?.message || 'KhÃ´ng thá»ƒ táº£i danh sÃ¡ch thanh toÃ¡n');
       setTransactions([]);
     } finally {
       setLoading(false);
@@ -136,17 +136,17 @@ const Payment = () => {
 
   const stats = [
     {
-      title: 'Tổng giao dịch',
+      title: 'Tá»•ng giao dá»‹ch',
       value: pagination.total,
       icon: <CreditCard className="h-6 w-6" />
     },
     {
-      title: 'Thành công',
+      title: 'ThÃ nh cÃ´ng',
       value: transactions.filter(t => t.paymentStatus === PAYMENT_STATUS.SUCCESS).length,
       icon: <CheckCircle2 className="h-6 w-6" />
     },
     {
-      title: 'Tỷ lệ thành công',
+      title: 'Tá»· lá»‡ thÃ nh cÃ´ng',
       value: transactions.length > 0
         ? Math.round((transactions.filter(t => t.paymentStatus === PAYMENT_STATUS.SUCCESS).length / transactions.length) * 100) + '%'
         : '0%',
@@ -157,7 +157,7 @@ const Payment = () => {
       value: transactions
         .filter(t => t.paymentStatus === PAYMENT_STATUS.SUCCESS)
         .reduce((a, b) => a + (b.amount || 0), 0)
-        .toLocaleString('vi-VN') + 'đ',
+        .toLocaleString('vi-VN') + 'Ä‘',
       icon: <DollarSign className="h-6 w-6" />
     }
   ];
@@ -195,19 +195,19 @@ const Payment = () => {
     e?.preventDefault();
     // Validation
     if (!formValues.name?.trim()) {
-      notification.error('Vui lòng nhập tên cổng thanh toán!');
+      notification.error('Vui lÃ²ng nháº­p tÃªn cá»•ng thanh toÃ¡n!');
       return;
     }
     if (!formValues.type) {
-      notification.error('Vui lòng chọn loại cổng thanh toán!');
+      notification.error('Vui lÃ²ng chá»n loáº¡i cá»•ng thanh toÃ¡n!');
       return;
     }
     if (!formValues.merchantId?.trim()) {
-      notification.error('Vui lòng nhập Merchant ID!');
+      notification.error('Vui lÃ²ng nháº­p Merchant ID!');
       return;
     }
     if (!formValues.secretKey?.trim()) {
-      notification.error('Vui lòng nhập Secret Key!');
+      notification.error('Vui lÃ²ng nháº­p Secret Key!');
       return;
     }
 
@@ -225,10 +225,10 @@ const Payment = () => {
     };
     if (isEditMode && selectedGateway) {
       setGateways(gateways.map(item => item.id === selectedGateway.id ? newGateway : item));
-      notification.success('Cập nhật cổng thanh toán thành công!');
+      notification.success('Cáº­p nháº­t cá»•ng thanh toÃ¡n thÃ nh cÃ´ng!');
     } else {
       setGateways([newGateway, ...gateways]);
-      notification.success('Thêm cổng thanh toán thành công!');
+      notification.success('ThÃªm cá»•ng thanh toÃ¡n thÃ nh cÃ´ng!');
     }
     setIsModalVisible(false);
     setSelectedGateway(null);
@@ -274,17 +274,17 @@ const Payment = () => {
 
   // Transaction refund
   const handleRefundTransaction = async (record) => {
-    if (!window.confirm('Bạn có chắc muốn hoàn tiền cho giao dịch này?')) {
+    if (!window.confirm('Báº¡n cÃ³ cháº¯c muá»‘n hoÃ n tiá»n cho giao dá»‹ch nÃ y?')) {
       return;
     }
 
     try {
       await paymentService.updatePaymentStatus(record.id, 'REFUNDED');
-      notification.success('Hoàn tiền giao dịch thành công!');
+      notification.success('HoÃ n tiá»n giao dá»‹ch thÃ nh cÃ´ng!');
       loadPayments(pagination.current - 1, pagination.pageSize);
     } catch (error) {
       console.error('Error refunding payment:', error);
-      notification.error(error?.response?.data?.message || 'Không thể hoàn tiền giao dịch');
+      notification.error(error?.response?.data?.message || 'KhÃ´ng thá»ƒ hoÃ n tiá»n giao dá»‹ch');
     }
   };
 
@@ -303,26 +303,26 @@ const Payment = () => {
 
   const handleStatusModalOk = async () => {
     if (!selectedPaymentForStatus || !newStatus) {
-      notification.error('Vui lòng chọn trạng thái mới!');
+      notification.error('Vui lÃ²ng chá»n tráº¡ng thÃ¡i má»›i!');
       return;
     }
 
     if (newStatus === selectedPaymentForStatus.paymentStatus) {
-      notification.info('Trạng thái không thay đổi!');
+      notification.info('Tráº¡ng thÃ¡i khÃ´ng thay Ä‘á»•i!');
       setIsStatusModalVisible(false);
       return;
     }
 
     try {
       await paymentService.updatePaymentStatus(selectedPaymentForStatus.id, newStatus);
-      notification.success('Cập nhật trạng thái thành công!');
+      notification.success('Cáº­p nháº­t tráº¡ng thÃ¡i thÃ nh cÃ´ng!');
       setIsStatusModalVisible(false);
       setSelectedPaymentForStatus(null);
       setNewStatus('');
       loadPayments(pagination.current - 1, pagination.pageSize);
     } catch (error) {
       console.error('Error updating payment status:', error);
-      notification.error(error?.response?.data?.message || 'Không thể cập nhật trạng thái');
+      notification.error(error?.response?.data?.message || 'KhÃ´ng thá»ƒ cáº­p nháº­t tráº¡ng thÃ¡i');
     }
   };
 
@@ -347,7 +347,7 @@ const Payment = () => {
       )
     },
     {
-      title: 'Mã giao dịch',
+      title: 'MÃ£ giao dá»‹ch',
       dataIndex: 'transactionId',
       key: 'transactionId',
       render: (transactionId, record) => (
@@ -359,7 +359,7 @@ const Payment = () => {
       )
     },
     {
-      title: 'Khách hàng',
+      title: 'KhÃ¡ch hÃ ng',
       key: 'customer',
       render: (_, record) => (
         <div>
@@ -376,7 +376,7 @@ const Payment = () => {
       )
     },
     {
-      title: 'Mã đặt vé',
+      title: 'MÃ£ Ä‘áº·t vÃ©',
       dataIndex: 'bookingCode',
       key: 'bookingCode',
       render: (bookingCode) => (
@@ -384,39 +384,39 @@ const Payment = () => {
       )
     },
     {
-      title: 'Số tiền',
+      title: 'Sá»‘ tiá»n',
       dataIndex: 'amount',
       key: 'amount',
       align: 'right',
       render: (amount) => (
         <div className="text-right">
           <div className="font-semibold text-gray-800">
-            {(amount || 0).toLocaleString('vi-VN')}đ
+            {(amount || 0).toLocaleString('vi-VN')}Ä‘
           </div>
         </div>
       )
     },
     {
-      title: 'Phương thức',
+      title: 'PhÆ°Æ¡ng thá»©c',
       dataIndex: 'paymentMethod',
       key: 'paymentMethod',
       render: (paymentMethod) => (
-        <Tag className="bg-blue-100 text-blue-800">
+        <StatusBadge className="bg-blue-100 text-blue-800">
           <CreditCard className="h-3 w-3 mr-1 inline" />
           {paymentService.getPaymentMethodName(paymentMethod) || paymentMethod}
-        </Tag>
+        </StatusBadge>
       )
     },
     {
-      title: 'Trạng thái',
+      title: 'Tráº¡ng thÃ¡i',
       dataIndex: 'paymentStatus',
       key: 'paymentStatus',
       render: (paymentStatus) => {
         const statusConfig = {
-          [PAYMENT_STATUS.SUCCESS]: { color: 'green', text: 'Thành công', icon: <CheckCircle2 className="h-3 w-3" /> },
-          [PAYMENT_STATUS.PENDING]: { color: 'orange', text: 'Đang xử lý', icon: <Clock className="h-3 w-3" /> },
-          [PAYMENT_STATUS.FAILED]: { color: 'red', text: 'Thất bại', icon: <AlertCircle className="h-3 w-3" /> },
-          'REFUNDED': { color: 'blue', text: 'Đã hoàn tiền', icon: <DollarSign className="h-3 w-3" /> }
+          [PAYMENT_STATUS.SUCCESS]: { color: 'green', text: 'ThÃ nh cÃ´ng', icon: <CheckCircle2 className="h-3 w-3" /> },
+          [PAYMENT_STATUS.PENDING]: { color: 'orange', text: 'Äang xá»­ lÃ½', icon: <Clock className="h-3 w-3" /> },
+          [PAYMENT_STATUS.FAILED]: { color: 'red', text: 'Tháº¥t báº¡i', icon: <AlertCircle className="h-3 w-3" /> },
+          'REFUNDED': { color: 'blue', text: 'ÄÃ£ hoÃ n tiá»n', icon: <DollarSign className="h-3 w-3" /> }
         };
         const config = statusConfig[paymentStatus] || { color: 'default', text: paymentService.getStatusDisplayName(paymentStatus) || paymentStatus };
         const colorClasses = {
@@ -427,32 +427,32 @@ const Payment = () => {
           default: 'bg-gray-100 text-gray-800'
         };
         return (
-          <Tag className={colorClasses[config.color] || colorClasses.default}>
+          <StatusBadge className={colorClasses[config.color] || colorClasses.default}>
             {config.icon}
             <span className="ml-1">{config.text}</span>
-          </Tag>
+          </StatusBadge>
         );
       }
     },
     {
-      title: 'Ngày thanh toán',
+      title: 'NgÃ y thanh toÃ¡n',
       dataIndex: 'paymentDate',
       key: 'paymentDate',
       render: (paymentDate, record) => (
         <div className="space-y-1">
           <div className="text-xs text-gray-500">
-            {record.paymentDateFormatted || 'Chưa thanh toán'}
+            {record.paymentDateFormatted || 'ChÆ°a thanh toÃ¡n'}
           </div>
           {record.createdAtFormatted && (
             <div className="text-xs text-gray-400">
-              Tạo: {record.createdAtFormatted}
+              Táº¡o: {record.createdAtFormatted}
             </div>
           )}
         </div>
       )
     },
     {
-      title: 'Thao tác',
+      title: 'Thao tÃ¡c',
       key: 'actions',
       render: (_, record) => (
         <TooltipProvider>
@@ -463,7 +463,7 @@ const Payment = () => {
                   <Eye className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Xem chi tiết</TooltipContent>
+              <TooltipContent>Xem chi tiáº¿t</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -476,7 +476,7 @@ const Payment = () => {
                   <DollarSign className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Hoàn tiền</TooltipContent>
+              <TooltipContent>HoÃ n tiá»n</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -488,7 +488,7 @@ const Payment = () => {
                   <Edit className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Chỉnh sửa trạng thái</TooltipContent>
+              <TooltipContent>Chá»‰nh sá»­a tráº¡ng thÃ¡i</TooltipContent>
             </Tooltip>
           </div>
         </TooltipProvider>
@@ -508,7 +508,7 @@ const Payment = () => {
             href: '/admin/dashboard'
           },
           {
-            title: 'Quản lý thanh toán',
+            title: 'Quáº£n lÃ½ thanh toÃ¡n',
             icon: <CreditCard className="h-4 w-4" />
           }
         ]}
@@ -517,10 +517,10 @@ const Payment = () => {
       {/* Header */}
       <div className="mb-6">
         <h2 className="m-0 text-2xl font-bold text-gray-800">
-          Quản lý thanh toán
+          Quáº£n lÃ½ thanh toÃ¡n
         </h2>
         <p className="text-gray-600 mt-1">
-          Cấu hình và quản lý các cổng thanh toán
+          Cáº¥u hÃ¬nh vÃ  quáº£n lÃ½ cÃ¡c cá»•ng thanh toÃ¡n
         </p>
       </div>
 
@@ -543,27 +543,27 @@ const Payment = () => {
 
       <Card className="rounded-xl shadow-md border border-gray-200 p-4">
         <div className="flex justify-between items-center mb-4">
-          <h4 className="m-0 text-lg font-semibold">Danh sách thanh toán</h4>
+          <h4 className="m-0 text-lg font-semibold">Danh sÃ¡ch thanh toÃ¡n</h4>
         </div>
 
         {loading ? (
           <div className="flex justify-center items-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-            <span className="ml-2 text-gray-600">Đang tải dữ liệu...</span>
+            <span className="ml-2 text-gray-600">Äang táº£i dá»¯ liá»‡u...</span>
           </div>
         ) : (
-          <TableWrapper
-            columns={transactionColumns}
+          <DataTable
+            fields={transactionColumns}
             data={transactions}
-            rowKey="id"
-            pagination={{
+            getRowId="id"
+            pageControls={{
               current: pagination.current,
               total: pagination.total,
               pageSize: pagination.pageSize,
               showSizeChanger: true,
               showQuickJumper: true,
               showTotal: (total, range) =>
-                `${range[0]}-${range[1]} của ${total} giao dịch`,
+                `${range[0]}-${range[1]} cá»§a ${total} giao dá»‹ch`,
               onChange: (page, pageSize) => {
                 handleTableChange({ current: page, pageSize });
               },
@@ -575,35 +575,35 @@ const Payment = () => {
         )}
       </Card>
 
-      <Modal
-        title={isEditMode ? 'Chỉnh sửa cổng thanh toán' : 'Thêm cổng thanh toán mới'}
+      <ResponsiveDialog
+        heading={isEditMode ? 'Chá»‰nh sá»­a cá»•ng thanh toÃ¡n' : 'ThÃªm cá»•ng thanh toÃ¡n má»›i'}
         open={isModalVisible}
-        onCancel={handleModalCancel}
-        width={600}
-        footer={null}
+        onClose={handleModalCancel}
+        maxWidth={600}
+        actions={null}
       >
         <form onSubmit={handleModalOk} className="space-y-4 p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tên cổng thanh toán <span className="text-red-500">*</span>
+                TÃªn cá»•ng thanh toÃ¡n <span className="text-red-500">*</span>
               </label>
               <Input
-                placeholder="Nhập tên cổng thanh toán"
+                placeholder="Nháº­p tÃªn cá»•ng thanh toÃ¡n"
                 value={formValues.name}
                 onChange={(e) => setFormValues(prev => ({ ...prev, name: e.target.value }))}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Loại cổng thanh toán <span className="text-red-500">*</span>
+                Loáº¡i cá»•ng thanh toÃ¡n <span className="text-red-500">*</span>
               </label>
               <Select
                 value={formValues.type}
                 onValueChange={(value) => setFormValues(prev => ({ ...prev, type: value }))}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Chọn loại" />
+                  <SelectValue placeholder="Chá»n loáº¡i" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="vnpay">VNPay</SelectItem>
@@ -621,7 +621,7 @@ const Payment = () => {
                 Merchant ID <span className="text-red-500">*</span>
               </label>
               <Input
-                placeholder="Nhập Merchant ID"
+                placeholder="Nháº­p Merchant ID"
                 value={formValues.merchantId}
                 onChange={(e) => setFormValues(prev => ({ ...prev, merchantId: e.target.value }))}
               />
@@ -631,7 +631,7 @@ const Payment = () => {
                 Secret Key <span className="text-red-500">*</span>
               </label>
               <InputPassword
-                placeholder="Nhập Secret Key"
+                placeholder="Nháº­p Secret Key"
                 value={formValues.secretKey}
                 onChange={(e) => setFormValues(prev => ({ ...prev, secretKey: e.target.value }))}
               />
@@ -641,19 +641,19 @@ const Payment = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Trạng thái
+                Tráº¡ng thÃ¡i
               </label>
               <div className="flex items-center space-x-2 pt-2">
                 <Checkbox
                   checked={formValues.status}
                   onCheckedChange={(checked) => setFormValues(prev => ({ ...prev, status: checked }))}
                 />
-                <span className="text-sm text-gray-700">Hoạt động</span>
+                <span className="text-sm text-gray-700">Hoáº¡t Ä‘á»™ng</span>
               </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Chế độ test
+                Cháº¿ Ä‘á»™ test
               </label>
               <div className="flex items-center space-x-2 pt-2">
                 <Checkbox
@@ -666,8 +666,8 @@ const Payment = () => {
           </div>
 
           <Alert
-            message="Lưu ý bảo mật"
-            description="Secret Key và các thông tin nhạy cảm sẽ được mã hóa và bảo vệ an toàn."
+            message="LÆ°u Ã½ báº£o máº­t"
+            description="Secret Key vÃ  cÃ¡c thÃ´ng tin nháº¡y cáº£m sáº½ Ä‘Æ°á»£c mÃ£ hÃ³a vÃ  báº£o vá»‡ an toÃ n."
             type="info"
             showIcon
           />
@@ -678,21 +678,21 @@ const Payment = () => {
               variant="outline"
               onClick={handleModalCancel}
             >
-              Hủy
+              Há»§y
             </Button>
             <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
-              {isEditMode ? 'Cập nhật' : 'Thêm'}
+              {isEditMode ? 'Cáº­p nháº­t' : 'ThÃªm'}
             </Button>
           </div>
         </form>
-      </Modal>
+      </ResponsiveDialog>
 
-      <Modal
-        title="Chi tiết cổng thanh toán"
+      <ResponsiveDialog
+        heading="Chi tiáº¿t cá»•ng thanh toÃ¡n"
         open={isDetailModalVisible}
-        onCancel={handleDetailModalCancel}
-        width={500}
-        footer={null}
+        onClose={handleDetailModalCancel}
+        maxWidth={500}
+        actions={null}
       >
         {selectedGateway && (
           <div className="text-center p-4">
@@ -707,38 +707,38 @@ const Payment = () => {
             <h4 className="text-xl font-bold text-gray-900 mb-2">{selectedGateway.name}</h4>
             <p className="text-gray-600 mb-4">Merchant ID: {selectedGateway.merchantId}</p>
             <Separator className="my-4" />
-            <Descriptions
-              column={1}
+            <DetailList
+              columns={1}
               items={[
                 {
-                  label: 'Loại',
+                  label: 'Loáº¡i',
                   children: selectedGateway.type
                 },
                 {
-                  label: 'Trạng thái',
-                  children: selectedGateway.status === 'active' ? 'Hoạt động' : 'Không hoạt động'
+                  label: 'Tráº¡ng thÃ¡i',
+                  children: selectedGateway.status === 'active' ? 'Hoáº¡t Ä‘á»™ng' : 'KhÃ´ng hoáº¡t Ä‘á»™ng'
                 },
                 {
-                  label: 'Chế độ',
+                  label: 'Cháº¿ Ä‘á»™',
                   children: selectedGateway.testMode ? 'Test Mode' : 'Live Mode'
                 },
                 {
-                  label: 'Số giao dịch',
+                  label: 'Sá»‘ giao dá»‹ch',
                   children: selectedGateway.transactionCount
                 },
                 {
-                  label: 'Tỷ lệ thành công',
+                  label: 'Tá»· lá»‡ thÃ nh cÃ´ng',
                   children: `${selectedGateway.successRate}%`
                 },
                 {
-                  label: 'Giao dịch cuối',
+                  label: 'Giao dá»‹ch cuá»‘i',
                   children: selectedGateway.lastTransaction
                 }
               ]}
             />
             <div className="flex justify-end gap-2 mt-6">
               <Button variant="outline" onClick={handleDetailModalCancel}>
-                Đóng
+                ÄÃ³ng
               </Button>
               <Button
                 className="bg-indigo-600 hover:bg-indigo-700"
@@ -748,19 +748,19 @@ const Payment = () => {
                 }}
               >
                 <Edit className="h-4 w-4 mr-2" />
-                Chỉnh sửa
+                Chá»‰nh sá»­a
               </Button>
             </div>
           </div>
         )}
-      </Modal>
+      </ResponsiveDialog>
 
-      <Modal
-        title="Chi tiết giao dịch"
+      <ResponsiveDialog
+        heading="Chi tiáº¿t giao dá»‹ch"
         open={isTransactionDetailModalVisible}
-        onCancel={handleTransactionDetailModalCancel}
-        width={500}
-        footer={null}
+        onClose={handleTransactionDetailModalCancel}
+        maxWidth={500}
+        actions={null}
       >
         {selectedTransaction && (
           <div className="p-4">
@@ -773,39 +773,39 @@ const Payment = () => {
               </p>
             </div>
             <Separator className="my-4" />
-            <Descriptions
-              column={1}
+            <DetailList
+              columns={1}
               items={[
                 {
                   label: 'ID',
                   children: `#${selectedTransaction.id}`
                 },
                 {
-                  label: 'Mã giao dịch',
+                  label: 'MÃ£ giao dá»‹ch',
                   children: selectedTransaction.transactionId || `PAY-${selectedTransaction.id}`
                 },
                 {
-                  label: 'Số tiền',
-                  children: `${(selectedTransaction.amount || 0).toLocaleString('vi-VN')}đ`
+                  label: 'Sá»‘ tiá»n',
+                  children: `${(selectedTransaction.amount || 0).toLocaleString('vi-VN')}Ä‘`
                 },
                 {
-                  label: 'Phương thức thanh toán',
+                  label: 'PhÆ°Æ¡ng thá»©c thanh toÃ¡n',
                   children: paymentService.getPaymentMethodName(selectedTransaction.paymentMethod) || selectedTransaction.paymentMethod
                 },
                 {
-                  label: 'Trạng thái',
+                  label: 'Tráº¡ng thÃ¡i',
                   children: paymentService.getStatusDisplayName(selectedTransaction.paymentStatus) || selectedTransaction.paymentStatus
                 },
                 {
-                  label: 'Ngày thanh toán',
-                  children: selectedTransaction.paymentDateFormatted || selectedTransaction.paymentDate || 'Chưa thanh toán'
+                  label: 'NgÃ y thanh toÃ¡n',
+                  children: selectedTransaction.paymentDateFormatted || selectedTransaction.paymentDate || 'ChÆ°a thanh toÃ¡n'
                 },
                 {
-                  label: 'Ngày tạo',
+                  label: 'NgÃ y táº¡o',
                   children: selectedTransaction.createdAtFormatted || selectedTransaction.createdAt || 'N/A'
                 },
                 {
-                  label: 'Mã đặt vé',
+                  label: 'MÃ£ Ä‘áº·t vÃ©',
                   children: selectedTransaction.bookingCode || 'N/A'
                 },
                 {
@@ -813,7 +813,7 @@ const Payment = () => {
                   children: selectedTransaction.userId ? `#${selectedTransaction.userId}` : 'N/A'
                 },
                 selectedTransaction.paymentDetails && {
-                  label: 'Chi tiết thanh toán',
+                  label: 'Chi tiáº¿t thanh toÃ¡n',
                   children: (
                     <div className="max-w-md break-words">
                       {selectedTransaction.paymentDetails}
@@ -824,42 +824,42 @@ const Payment = () => {
             />
             <div className="flex justify-end gap-2 mt-6">
               <Button variant="outline" onClick={handleTransactionDetailModalCancel}>
-                Đóng
+                ÄÃ³ng
               </Button>
             </div>
           </div>
         )}
-      </Modal>
+      </ResponsiveDialog>
 
       {/* Status Edit Modal */}
-      <Modal
-        title="Chỉnh sửa trạng thái thanh toán"
+      <ResponsiveDialog
+        heading="Chá»‰nh sá»­a tráº¡ng thÃ¡i thanh toÃ¡n"
         open={isStatusModalVisible}
-        onCancel={handleStatusModalCancel}
-        width={500}
-        footer={null}
+        onClose={handleStatusModalCancel}
+        maxWidth={500}
+        actions={null}
       >
         {selectedPaymentForStatus && (
           <div className="p-4">
             <div className="mb-4">
               <p className="text-sm text-gray-600 mb-2">
-                Mã giao dịch: <span className="font-semibold">{selectedPaymentForStatus.transactionId || `PAY-${selectedPaymentForStatus.id}`}</span>
+                MÃ£ giao dá»‹ch: <span className="font-semibold">{selectedPaymentForStatus.transactionId || `PAY-${selectedPaymentForStatus.id}`}</span>
               </p>
               <p className="text-sm text-gray-600">
-                Trạng thái hiện tại: <span className="font-semibold">{paymentService.getStatusDisplayName(selectedPaymentForStatus.paymentStatus)}</span>
+                Tráº¡ng thÃ¡i hiá»‡n táº¡i: <span className="font-semibold">{paymentService.getStatusDisplayName(selectedPaymentForStatus.paymentStatus)}</span>
               </p>
             </div>
             <Separator className="my-4" />
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Trạng thái mới <span className="text-red-500">*</span>
+                Tráº¡ng thÃ¡i má»›i <span className="text-red-500">*</span>
               </label>
               <Select
                 value={newStatus}
                 onValueChange={(value) => setNewStatus(value)}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Chọn trạng thái" />
+                  <SelectValue placeholder="Chá»n tráº¡ng thÃ¡i" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={PAYMENT_STATUS.PENDING}>
@@ -879,20 +879,20 @@ const Payment = () => {
             </div>
             <div className="flex justify-end gap-2 mt-6">
               <Button variant="outline" onClick={handleStatusModalCancel}>
-                Hủy
+                Há»§y
               </Button>
               <Button
                 className="bg-indigo-600 hover:bg-indigo-700"
                 onClick={handleStatusModalOk}
               >
-                Cập nhật
+                Cáº­p nháº­t
               </Button>
             </div>
           </div>
         )}
-      </Modal>
+      </ResponsiveDialog>
     </div>
   );
 };
 
-export default Payment; 
+export default Payment;

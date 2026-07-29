@@ -1,133 +1,60 @@
-import * as React from "react"
+﻿import * as React from "react"
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 
-const Pagination = ({
-  current = 1,
-  total = 0,
-  pageSize = 10,
-  showSizeChanger = false,
-  showQuickJumper = false,
-  onChange,
-  onShowSizeChange,
+function Pagination({
+  page = 1,
+  totalItems = 0,
+  itemsPerPage = 10,
+  allowPageSizeChange = false,
+  allowPageJump = false,
+  onPageChange,
+  onPageSizeChange,
   className,
   ...props
-}) => {
-  const totalPages = Math.max(1, Math.ceil(total / pageSize))
-  const [jumpPage, setJumpPage] = React.useState("")
-
-  const handlePageChange = (page) => {
-    if (page < 1 || page > totalPages) return
-    onChange?.(page, pageSize)
-  }
-
-  const handleSizeChange = (newSize) => {
-    onShowSizeChange?.(current, newSize)
-  }
-
-  const handleJump = () => {
-    const page = parseInt(jumpPage, 10)
-    if (page >= 1 && page <= totalPages) {
-      handlePageChange(page)
-      setJumpPage("")
-    }
-  }
-
-  const getPageNumbers = () => {
-    const pages = []
-    const maxVisible = 5
-
-    if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i)
-    } else if (current <= 3) {
-      for (let i = 1; i <= 4; i++) pages.push(i)
-      pages.push("...")
-      pages.push(totalPages)
-    } else if (current >= totalPages - 2) {
-      pages.push(1)
-      pages.push("...")
-      for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i)
-    } else {
-      pages.push(1)
-      pages.push("...")
-      for (let i = current - 1; i <= current + 1; i++) pages.push(i)
-      pages.push("...")
-      pages.push(totalPages)
-    }
-
-    return pages
-  }
+}) {
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage))
+  const [jumpValue, setJumpValue] = React.useState("")
+  const goTo = (nextPage) => nextPage >= 1 && nextPage <= totalPages && onPageChange?.(nextPage, itemsPerPage)
+  const pages = totalPages <= 7
+    ? Array.from({ length: totalPages }, (_, index) => index + 1)
+    : [...new Set([1, page - 1, page, page + 1, totalPages].filter((value) => value >= 1 && value <= totalPages))]
 
   return (
-    <div className={cn("flex flex-wrap items-center justify-center gap-2", className)} {...props}>
-      <Button variant="outline" size="sm" onClick={() => handlePageChange(1)} disabled={current === 1}>
-        <ChevronsLeft className="h-4 w-4" />
-      </Button>
-      <Button variant="outline" size="sm" onClick={() => handlePageChange(current - 1)} disabled={current === 1}>
-        <ChevronLeft className="h-4 w-4" />
-      </Button>
-
-      {getPageNumbers().map((page, index) => (
-        page === "..." ? (
-          <span key={`ellipsis-${index}`} className="px-2 text-sm text-muted-foreground">...</span>
-        ) : (
-          <Button
-            key={page}
-            variant={current === page ? "default" : "outline"}
-            size="sm"
-            onClick={() => handlePageChange(page)}
-            className="min-w-10"
-          >
-            {page}
-          </Button>
-        )
+    <nav aria-label="PhÃ¢n trang" className={cn("flex flex-wrap items-center justify-center gap-2", className)} {...props}>
+      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => goTo(1)} disabled={page === 1}><ChevronsLeft className="h-4 w-4" /></Button>
+      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => goTo(page - 1)} disabled={page === 1}><ChevronLeft className="h-4 w-4" /></Button>
+      {pages.map((pageNumber, index) => (
+        <React.Fragment key={pageNumber}>
+          {index > 0 && pageNumber - pages[index - 1] > 1 && <span className="px-1 text-muted-foreground">â€¦</span>}
+          <Button variant={page === pageNumber ? "default" : "outline"} size="sm" className="min-w-9" onClick={() => goTo(pageNumber)}>{pageNumber}</Button>
+        </React.Fragment>
       ))}
-
-      <Button variant="outline" size="sm" onClick={() => handlePageChange(current + 1)} disabled={current === totalPages}>
-        <ChevronRight className="h-4 w-4" />
-      </Button>
-      <Button variant="outline" size="sm" onClick={() => handlePageChange(totalPages)} disabled={current === totalPages}>
-        <ChevronsRight className="h-4 w-4" />
-      </Button>
-
-      {showSizeChanger && (
-        <Select value={String(pageSize)} onValueChange={(value) => handleSizeChange(Number(value))}>
-          <SelectTrigger className="ml-2 h-9 w-[120px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="10">10 / trang</SelectItem>
-            <SelectItem value="20">20 / trang</SelectItem>
-            <SelectItem value="50">50 / trang</SelectItem>
-            <SelectItem value="100">100 / trang</SelectItem>
-          </SelectContent>
+      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => goTo(page + 1)} disabled={page === totalPages}><ChevronRight className="h-4 w-4" /></Button>
+      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => goTo(totalPages)} disabled={page === totalPages}><ChevronsRight className="h-4 w-4" /></Button>
+      {allowPageSizeChange && (
+        <Select value={String(itemsPerPage)} onValueChange={(value) => onPageSizeChange?.(page, Number(value))}>
+          <SelectTrigger className="h-9 w-28"><SelectValue /></SelectTrigger>
+          <SelectContent>{[10, 20, 50, 100].map((size) => <SelectItem key={size} value={String(size)}>{size} / trang</SelectItem>)}</SelectContent>
         </Select>
       )}
-
-      {showQuickJumper && (
-        <div className="ml-2 flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Đi đến</span>
-          <Input
-            type="number"
-            min="1"
-            max={totalPages}
-            value={jumpPage}
-            onChange={(event) => setJumpPage(event.target.value)}
-            onKeyDown={(event) => event.key === "Enter" && handleJump()}
-            className="h-9 w-16"
-            placeholder="Trang"
-          />
-          <Button size="sm" onClick={handleJump}>Đi</Button>
-        </div>
+      {allowPageJump && (
+        <Input
+          aria-label="Äi Ä‘áº¿n trang"
+          type="number"
+          min={1}
+          max={totalPages}
+          value={jumpValue}
+          className="h-9 w-20"
+          onChange={(event) => setJumpValue(event.target.value)}
+          onKeyDown={(event) => event.key === "Enter" && goTo(Number(jumpValue))}
+        />
       )}
-
-      <span className="ml-2 text-sm text-muted-foreground">
-        Trang {current} / {totalPages} ({total} mục)
-      </span>
-    </div>
+      <span className="text-sm text-muted-foreground">Trang {page}/{totalPages} Â· {totalItems} má»¥c</span>
+    </nav>
   )
 }
 

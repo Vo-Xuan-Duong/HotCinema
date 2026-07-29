@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
-const DatePicker = ({
+const DateField = ({
   value,
-  onChange,
-  format = "DD/MM/YYYY",
+  onValueChange,
+  displayFormat = "DD/MM/YYYY",
   placeholder = "Chọn ngày",
   className,
   ...props
@@ -23,7 +23,7 @@ const DatePicker = ({
 
   const handleDateSelect = (date) => {
     setSelectedDate(date)
-    onChange?.(date)
+    onValueChange?.(date)
     setOpen(false)
   }
 
@@ -36,7 +36,7 @@ const DatePicker = ({
           {...props}
         >
           <Calendar className="mr-2 h-4 w-4" />
-          {selectedDate ? selectedDate.format(format) : <span>{placeholder}</span>}
+          {selectedDate ? selectedDate.format(displayFormat) : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-4" align="start">
@@ -54,11 +54,11 @@ const DatePicker = ({
   )
 }
 
-const RangePicker = ({
+const DateRangeField = ({
   value,
-  onChange,
-  format = "DD/MM/YYYY",
-  allowClear = true,
+  onValueChange,
+  displayFormat = "DD/MM/YYYY",
+  clearable = true,
   className,
   ...props
 }) => {
@@ -75,26 +75,26 @@ const RangePicker = ({
     setStartDate(date)
     if (date && endDate && date.isAfter(endDate)) {
       setEndDate(null)
-      onChange?.([date, null])
+      onValueChange?.([date, null])
     } else if (date && endDate) {
-      onChange?.([date, endDate])
+      onValueChange?.([date, endDate])
     } else {
-      onChange?.([date, null])
+      onValueChange?.([date, null])
     }
   }
 
   const handleEndDateChange = (date) => {
     setEndDate(date)
     if (startDate && date) {
-      onChange?.([startDate, date])
+      onValueChange?.([startDate, date])
       setOpen(false)
     }
   }
 
   const displayValue = startDate && endDate
-    ? `${startDate.format(format)} - ${endDate.format(format)}`
+    ? `${startDate.format(displayFormat)} - ${endDate.format(displayFormat)}`
     : startDate
-      ? `${startDate.format(format)} - ...`
+      ? `${startDate.format(displayFormat)} - ...`
       : "Chọn khoảng thời gian"
 
   return (
@@ -136,14 +136,14 @@ const RangePicker = ({
               min={startDate ? startDate.format("YYYY-MM-DD") : undefined}
             />
           </div>
-          {allowClear && (startDate || endDate) && (
+          {clearable && (startDate || endDate) && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => {
                 setStartDate(null)
                 setEndDate(null)
-                onChange?.(null)
+                onValueChange?.(null)
               }}
               className="w-full"
             >
@@ -156,4 +156,4 @@ const RangePicker = ({
   )
 }
 
-export { DatePicker, RangePicker }
+export { DateField, DateRangeField }

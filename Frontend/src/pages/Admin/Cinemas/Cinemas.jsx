@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TableWrapper } from '@/components/ui/table-wrapper';
+import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Tag } from '@/components/ui/tag';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Tooltip } from '@/components/ui/tooltip';
 import { Pagination } from '@/components/ui/pagination';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
@@ -84,7 +84,7 @@ const Cinemas = () => {
       }));
     } catch (error) {
       console.error('Error loading cinemas:', error);
-      notification.error('Lỗi khi tải danh sách rạp');
+      notification.error('Lá»—i khi táº£i danh sÃ¡ch ráº¡p');
       setCinemas([]);
     } finally {
       setLoading(false);
@@ -108,7 +108,7 @@ const Cinemas = () => {
       setRegions(regionsData);
     } catch (error) {
       console.error('Error loading regions:', error);
-      notification.error('Lỗi khi tải danh sách khu vực');
+      notification.error('Lá»—i khi táº£i danh sÃ¡ch khu vá»±c');
     }
   };
 
@@ -133,11 +133,11 @@ const Cinemas = () => {
   const handleDeleteCinema = async (cinemaId) => {
     try {
       await cinemaService.deleteCinema(cinemaId);
-      notification.success('Xóa rạp chiếu phim thành công!');
+      notification.success('XÃ³a ráº¡p chiáº¿u phim thÃ nh cÃ´ng!');
       await loadCinemas(); // Reload current page
     } catch (error) {
       console.error('Error deleting cinema:', error);
-      notification.error(error.response?.data?.message || 'Lỗi khi xóa rạp');
+      notification.error(error.response?.data?.message || 'Lá»—i khi xÃ³a ráº¡p');
     }
   };
 
@@ -170,21 +170,21 @@ const Cinemas = () => {
 
   const hasActiveFilters = statusFilter !== 'all' || regionFilter || searchText;
 
-  // Render trạng thái
+  // Render tráº¡ng thÃ¡i
   const renderStatus = (status) => {
     const statusConfig = {
-      active: { color: 'green', text: 'Hoạt động' },
-      inactive: { color: 'red', text: 'Không hoạt động' },
-      maintenance: { color: 'orange', text: 'Bảo trì' }
+      active: { color: 'green', text: 'Hoáº¡t Ä‘á»™ng' },
+      inactive: { color: 'red', text: 'KhÃ´ng hoáº¡t Ä‘á»™ng' },
+      maintenance: { color: 'orange', text: 'Báº£o trÃ¬' }
     };
     const config = statusConfig[status] || statusConfig.active;
-    return <Tag color={config.color}>{config.text}</Tag>;
+    return <StatusBadge tone={config.color}>{config.text}</StatusBadge>;
   };
 
-  // Cấu hình cột bảng
+  // Cáº¥u hÃ¬nh cá»™t báº£ng
   const columns = [
     {
-      title: 'Hình ảnh',
+      title: 'HÃ¬nh áº£nh',
       dataIndex: 'image',
       key: 'image',
       width: 100,
@@ -197,7 +197,7 @@ const Cinemas = () => {
       ),
     },
     {
-      title: 'Tên rạp',
+      title: 'TÃªn ráº¡p',
       dataIndex: 'name',
       key: 'name',
       render: (text, record) => (
@@ -215,13 +215,13 @@ const Cinemas = () => {
       ),
     },
     {
-      title: 'Địa chỉ',
+      title: 'Äá»‹a chá»‰',
       dataIndex: 'address',
       key: 'address',
       ellipsis: true,
     },
     {
-      title: 'Phòng chiếu',
+      title: 'PhÃ²ng chiáº¿u',
       dataIndex: 'numberOfRooms',
       key: 'numberOfRooms',
       width: 100,
@@ -229,19 +229,19 @@ const Cinemas = () => {
       // render: (rooms) => rooms?.length || 0,
     },
     {
-      title: 'Trạng thái',
+      title: 'Tráº¡ng thÃ¡i',
       dataIndex: 'status',
       key: 'status',
       width: 120,
       render: renderStatus,
     },
     {
-      title: 'Thao tác',
+      title: 'Thao tÃ¡c',
       key: 'action',
       width: 150,
       render: (_, record) => (
         <div className="flex items-center gap-2">
-          <Tooltip content="Chỉnh sửa">
+          <Tooltip content="Chá»‰nh sá»­a">
             <Button
               variant="ghost"
               size="sm"
@@ -250,12 +250,12 @@ const Cinemas = () => {
               <Edit className="h-4 w-4" />
             </Button>
           </Tooltip>
-          <Tooltip content="Xóa">
+          <Tooltip content="XÃ³a">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => {
-                if (window.confirm('Bạn có chắc chắn muốn xóa rạp này?')) {
+                if (window.confirm('Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a ráº¡p nÃ y?')) {
                   handleDeleteCinema(record.id);
                 }
               }}
@@ -291,7 +291,7 @@ const Cinemas = () => {
               href: '/admin/dashboard'
             },
             {
-              title: 'Quản lý rạp',
+              title: 'Quáº£n lÃ½ ráº¡p',
               icon: <Building2 className="h-4 w-4" />
             }
           ]}
@@ -301,10 +301,10 @@ const Cinemas = () => {
         <div className="flex justify-between items-start mb-6 flex-wrap gap-4">
           <div>
             <h2 className="text-gray-900 mb-2 text-2xl font-bold">
-              Quản lý Rạp Chiếu Phim
+              Quáº£n lÃ½ Ráº¡p Chiáº¿u Phim
             </h2>
             <p className="text-gray-600 block">
-              Quản lý thông tin các rạp chiếu phim trong hệ thống
+              Quáº£n lÃ½ thÃ´ng tin cÃ¡c ráº¡p chiáº¿u phim trong há»‡ thá»‘ng
             </p>
           </div>
           <Button
@@ -313,7 +313,7 @@ const Cinemas = () => {
             className="rounded-lg"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Thêm rạp mới
+            ThÃªm ráº¡p má»›i
           </Button>
         </div>
 
@@ -322,11 +322,11 @@ const Cinemas = () => {
           <div className="p-4 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block mb-2 font-semibold text-sm">Tìm kiếm</label>
+                <label className="block mb-2 font-semibold text-sm">TÃ¬m kiáº¿m</label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Tìm kiếm theo tên rạp, địa chỉ..."
+                    placeholder="TÃ¬m kiáº¿m theo tÃªn ráº¡p, Ä‘á»‹a chá»‰..."
                     value={searchText}
                     onChange={(e) => {
                       setSearchText(e.target.value);
@@ -337,33 +337,33 @@ const Cinemas = () => {
                 </div>
               </div>
               <div>
-                <label className="block mb-2 font-semibold text-sm">Trạng thái</label>
+                <label className="block mb-2 font-semibold text-sm">Tráº¡ng thÃ¡i</label>
                 <Select
                   value={statusFilter}
                   onValueChange={handleStatusFilterChange}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Tất cả trạng thái" />
+                    <SelectValue placeholder="Táº¥t cáº£ tráº¡ng thÃ¡i" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                    <SelectItem value="active">Hoạt động</SelectItem>
-                    <SelectItem value="inactive">Không hoạt động</SelectItem>
-                    <SelectItem value="maintenance">Bảo trì</SelectItem>
+                    <SelectItem value="all">Táº¥t cáº£ tráº¡ng thÃ¡i</SelectItem>
+                    <SelectItem value="active">Hoáº¡t Ä‘á»™ng</SelectItem>
+                    <SelectItem value="inactive">KhÃ´ng hoáº¡t Ä‘á»™ng</SelectItem>
+                    <SelectItem value="maintenance">Báº£o trÃ¬</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="block mb-2 font-semibold text-sm">Khu vực</label>
+                <label className="block mb-2 font-semibold text-sm">Khu vá»±c</label>
                 <Select
                   value={regionFilter ? regionFilter.toString() : "all"}
                   onValueChange={handleRegionFilterChange}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Tất cả khu vực" />
+                    <SelectValue placeholder="Táº¥t cáº£ khu vá»±c" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Tất cả khu vực</SelectItem>
+                    <SelectItem value="all">Táº¥t cáº£ khu vá»±c</SelectItem>
                     {regions.map(region => (
                       <SelectItem key={region.id} value={region.id.toString()}>
                         {region.name}
@@ -377,43 +377,43 @@ const Cinemas = () => {
             {hasActiveFilters && (
               <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-gray-200">
                 <span className="text-gray-500 text-sm flex items-center gap-1">
-                  <Search className="h-4 w-4" /> Đang lọc:
+                  <Search className="h-4 w-4" /> Äang lá»c:
                 </span>
                 {statusFilter !== 'all' && (
-                  <Tag color="blue" className="flex items-center gap-1 pr-1">
-                    <span>Trạng thái: {statusFilter === 'active' ? 'Hoạt động' : statusFilter === 'inactive' ? 'Không hoạt động' : 'Bảo trì'}</span>
+                  <StatusBadge tone="blue" className="flex items-center gap-1 pr-1">
+                    <span>Tráº¡ng thÃ¡i: {statusFilter === 'active' ? 'Hoáº¡t Ä‘á»™ng' : statusFilter === 'inactive' ? 'KhÃ´ng hoáº¡t Ä‘á»™ng' : 'Báº£o trÃ¬'}</span>
                     <button
                       onClick={() => handleStatusFilterChange('all')}
                       className="ml-1 hover:bg-gray-300 rounded-full p-0.5 transition-colors"
-                      aria-label="Xóa bộ lọc"
+                      aria-label="XÃ³a bá»™ lá»c"
                     >
                       <X className="h-3 w-3" />
                     </button>
-                  </Tag>
+                  </StatusBadge>
                 )}
                 {regionFilter && (
-                  <Tag color="green" className="flex items-center gap-1 pr-1">
-                    <span>Khu vực: {regions.find(r => r.id === regionFilter)?.name || regionFilter}</span>
+                  <StatusBadge tone="green" className="flex items-center gap-1 pr-1">
+                    <span>Khu vá»±c: {regions.find(r => r.id === regionFilter)?.name || regionFilter}</span>
                     <button
                       onClick={() => handleRegionFilterChange('all')}
                       className="ml-1 hover:bg-gray-300 rounded-full p-0.5 transition-colors"
-                      aria-label="Xóa bộ lọc"
+                      aria-label="XÃ³a bá»™ lá»c"
                     >
                       <X className="h-3 w-3" />
                     </button>
-                  </Tag>
+                  </StatusBadge>
                 )}
                 {searchText && (
-                  <Tag color="info" className="flex items-center gap-1 pr-1">
-                    <span>Tìm kiếm: {searchText}</span>
+                  <StatusBadge tone="info" className="flex items-center gap-1 pr-1">
+                    <span>TÃ¬m kiáº¿m: {searchText}</span>
                     <button
                       onClick={() => setSearchText('')}
                       className="ml-1 hover:bg-gray-300 rounded-full p-0.5 transition-colors"
-                      aria-label="Xóa tìm kiếm"
+                      aria-label="XÃ³a tÃ¬m kiáº¿m"
                     >
                       <X className="h-3 w-3" />
                     </button>
-                  </Tag>
+                  </StatusBadge>
                 )}
                 <Button
                   onClick={handleClearFilters}
@@ -421,7 +421,7 @@ const Cinemas = () => {
                   variant="outline"
                   size="sm"
                 >
-                  Xóa bộ lọc
+                  XÃ³a bá»™ lá»c
                 </Button>
               </div>
             )}
@@ -432,7 +432,7 @@ const Cinemas = () => {
         <div ref={tableRef}>
           <Card className="bg-white rounded-xl shadow-md border border-gray-200">
             <div className="border-b border-gray-200 px-5 py-4 mb-0">
-              <h3 className="text-base font-semibold m-0">Danh sách rạp chiếu phim</h3>
+              <h3 className="text-base font-semibold m-0">Danh sÃ¡ch ráº¡p chiáº¿u phim</h3>
             </div>
             <div className="p-5">
               {loading ? (
@@ -441,20 +441,20 @@ const Cinemas = () => {
                 </div>
               ) : (
                 <>
-                  <TableWrapper
-                    columns={columns}
+                  <DataTable
+                    fields={columns}
                     data={getFilteredCinemas()}
-                    rowKey="id"
-                    pagination={false}
+                    getRowId="id"
+                    pageControls={false}
                   />
                   <div className="mt-4 text-right">
                     <Pagination
-                      current={pagination.current}
-                      pageSize={pagination.pageSize}
-                      total={pagination.total}
+                      page={pagination.current}
+                      itemsPerPage={pagination.pageSize}
+                      totalItems={pagination.total}
                       onPageChange={(page, pageSize) => handleTableChange(page, pageSize)}
                       showSizeChanger
-                      showTotal={(total) => `Tổng ${total} rạp`}
+                      showTotal={(total) => `Tá»•ng ${total} ráº¡p`}
                       pageSizeOptions={['5', '10', '20', '50']}
                     />
                   </div>

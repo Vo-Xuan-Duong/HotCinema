@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Home, Store, MapPin, Clock, Play, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Tag } from '@/components/ui/tag';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Avatar } from '@/components/ui/avatar';
 import { Alert } from '@/components/ui/alert';
@@ -14,15 +14,15 @@ const CinemaSchedule = () => {
 
     const cinema = {
         id: 1,
-        name: 'Đồng Da',
-        fullName: 'DDC Đồng Da',
-        address: '890 Trần Hưng Đạo, Quận 5, Tp. Hồ Chí Minh',
-        city: 'Tp. Hồ Chí Minh',
-        chain: 'Đồng Da Cinema',
+        name: 'Äá»“ng Da',
+        fullName: 'DDC Äá»“ng Da',
+        address: '890 Tráº§n HÆ°ng Äáº¡o, Quáº­n 5, Tp. Há»“ ChÃ­ Minh',
+        city: 'Tp. Há»“ ChÃ­ Minh',
+        chain: 'Äá»“ng Da Cinema',
         logoText: 'DDC',
         color: '#ff6b35',
         bgColor: '#fff5f2',
-        description: 'Lịch chiếu phim Đồng Da - Lịch chiếu rạp toàn quốc đầy đủ & tiện lợi nhất tại Moveek. Rạp Đồng Da là 1 trong những cụm rạp lâu đời nhất của Sài Gòn. Hiện Đồng Da đã được nâng cấp với tên gọi mới DDcinema với mong muốn mang đến những trải nghiệm điện ảnh tốt hơn với giá vé rất cạnh tranh.'
+        description: 'Lá»‹ch chiáº¿u phim Äá»“ng Da - Lá»‹ch chiáº¿u ráº¡p toÃ n quá»‘c Ä‘áº§y Ä‘á»§ & tiá»‡n lá»£i nháº¥t táº¡i Moveek. Ráº¡p Äá»“ng Da lÃ  1 trong nhá»¯ng cá»¥m ráº¡p lÃ¢u Ä‘á»i nháº¥t cá»§a SÃ i GÃ²n. Hiá»‡n Äá»“ng Da Ä‘Ã£ Ä‘Æ°á»£c nÃ¢ng cáº¥p vá»›i tÃªn gá»i má»›i DDcinema vá»›i mong muá»‘n mang Ä‘áº¿n nhá»¯ng tráº£i nghiá»‡m Ä‘iá»‡n áº£nh tá»‘t hÆ¡n vá»›i giÃ¡ vÃ© ráº¥t cáº¡nh tranh.'
     };
 
     const weekDates = [
@@ -37,44 +37,44 @@ const CinemaSchedule = () => {
     const movies = [
         {
             id: 1,
-            title: 'Thanh Gươm Diệt Quỷ: Vô Hạn Thành',
+            title: 'Thanh GÆ°Æ¡m Diá»‡t Quá»·: VÃ´ Háº¡n ThÃ nh',
             englishTitle: 'Demon Slayer - Kimetsu no Yaiba - The Movie: Infinity Castle',
             rating: 'T16',
             duration: '2h35\'',
             genres: ['Action', 'Thriller', 'Animation', 'Fantasy'],
-            subtitle: '2D Phụ Đề Việt',
+            subtitle: '2D Phá»¥ Äá» Viá»‡t',
             poster: 'https://via.placeholder.com/150x200/ff6b35/ffffff?text=DEMON+SLAYER',
             showtimes: [
-                { time: '09:10', price: '65K', room: 'Phòng 1' },
-                { time: '10:05', price: '65K', room: 'Phòng 2' },
-                { time: '11:10', price: '65K', room: 'Phòng 1' },
-                { time: '12:00', price: '65K', room: 'Phòng 3' },
-                { time: '12:55', price: '65K', room: 'Phòng 2' },
-                { time: '14:00', price: '65K', room: 'Phòng 1' },
-                { time: '14:50', price: '65K', room: 'Phòng 4' },
-                { time: '15:45', price: '65K', room: 'Phòng 2' },
-                { time: '16:50', price: '65K', room: 'Phòng 3' },
-                { time: '17:40', price: '75K', room: 'Phòng 1' },
-                { time: '18:35', price: '75K', room: 'Phòng 2' },
-                { time: '19:40', price: '75K', room: 'Phòng 4' },
-                { time: '20:30', price: '75K', room: 'Phòng 3' },
-                { time: '21:25', price: '75K', room: 'Phòng 1' }
+                { time: '09:10', price: '65K', room: 'PhÃ²ng 1' },
+                { time: '10:05', price: '65K', room: 'PhÃ²ng 2' },
+                { time: '11:10', price: '65K', room: 'PhÃ²ng 1' },
+                { time: '12:00', price: '65K', room: 'PhÃ²ng 3' },
+                { time: '12:55', price: '65K', room: 'PhÃ²ng 2' },
+                { time: '14:00', price: '65K', room: 'PhÃ²ng 1' },
+                { time: '14:50', price: '65K', room: 'PhÃ²ng 4' },
+                { time: '15:45', price: '65K', room: 'PhÃ²ng 2' },
+                { time: '16:50', price: '65K', room: 'PhÃ²ng 3' },
+                { time: '17:40', price: '75K', room: 'PhÃ²ng 1' },
+                { time: '18:35', price: '75K', room: 'PhÃ²ng 2' },
+                { time: '19:40', price: '75K', room: 'PhÃ²ng 4' },
+                { time: '20:30', price: '75K', room: 'PhÃ²ng 3' },
+                { time: '21:25', price: '75K', room: 'PhÃ²ng 1' }
             ]
         },
         {
             id: 2,
-            title: 'Mang Mẹ Đi Bộ',
+            title: 'Mang Máº¹ Äi Bá»™',
             englishTitle: 'Leaving Mom',
             rating: 'K',
             duration: '1h52\'',
             genres: ['Drama', 'Family'],
-            subtitle: '2D Phụ Đề Anh',
+            subtitle: '2D Phá»¥ Äá» Anh',
             poster: 'https://via.placeholder.com/150x200/52c41a/ffffff?text=LEAVING+MOM',
             showtimes: [
-                { time: '11:50', price: '65K', room: 'Phòng 5' },
-                { time: '15:50', price: '65K', room: 'Phòng 5' },
-                { time: '19:50', price: '75K', room: 'Phòng 5' },
-                { time: '21:55', price: '75K', room: 'Phòng 5' }
+                { time: '11:50', price: '65K', room: 'PhÃ²ng 5' },
+                { time: '15:50', price: '65K', room: 'PhÃ²ng 5' },
+                { time: '19:50', price: '75K', room: 'PhÃ²ng 5' },
+                { time: '21:55', price: '75K', room: 'PhÃ²ng 5' }
             ]
         },
     ];
@@ -103,7 +103,7 @@ const CinemaSchedule = () => {
                                 title: (
                                     <>
                                         <Home className="h-4 w-4 inline mr-1" />
-                                        Trang chủ
+                                        Trang chá»§
                                     </>
                                 ),
                                 href: '/'
@@ -112,7 +112,7 @@ const CinemaSchedule = () => {
                                 title: (
                                     <>
                                         <Store className="h-4 w-4 inline mr-1" />
-                                        Rạp chiếu
+                                        Ráº¡p chiáº¿u
                                     </>
                                 ),
                                 href: '/cinemas'
@@ -136,7 +136,7 @@ const CinemaSchedule = () => {
                                 {cinema.name}
                             </h2>
                             <div className="flex flex-wrap gap-3 items-center">
-                                <Tag color="blue">{cinema.chain}</Tag>
+                                <StatusBadge tone="blue">{cinema.chain}</StatusBadge>
                                 <span className="text-gray-600 flex items-center gap-1">
                                     <MapPin className="h-4 w-4" /> {cinema.address}
                                 </span>
@@ -175,7 +175,7 @@ const CinemaSchedule = () => {
 
             <div className="max-w-[1200px] mx-auto px-4 md:px-6 py-6">
                 <Alert
-                    message="Nhận vào suất chiếu để tiến hành mua vé"
+                    message="Nháº­n vÃ o suáº¥t chiáº¿u Ä‘á»ƒ tiáº¿n hÃ nh mua vÃ©"
                     type="warning"
                     showIcon
                     className="mb-6 rounded-lg"
@@ -183,7 +183,7 @@ const CinemaSchedule = () => {
 
                 <div className="bg-blue-50 p-4 rounded-lg mb-6 border-2 border-blue-500">
                     <p className="text-blue-600 font-semibold">
-                        🎬 Đang hiển thị {movies.length} phim cho ngày {selectedDate}
+                        ðŸŽ¬ Äang hiá»ƒn thá»‹ {movies.length} phim cho ngÃ y {selectedDate}
                     </p>
                 </div>
             </div>
@@ -215,9 +215,9 @@ const CinemaSchedule = () => {
                                                 {movie.englishTitle}
                                             </p>
                                             <div className="flex flex-wrap gap-2 items-center">
-                                                <Tag color={getRatingColor(movie.rating)}>
+                                                <StatusBadge tone={getRatingColor(movie.rating)}>
                                                     {movie.rating}
-                                                </Tag>
+                                                </StatusBadge>
                                                 <span className="text-gray-500 text-sm">{movie.duration}</span>
                                                 <Button variant="link" size="sm" className="p-0 h-auto">
                                                     <Play className="h-4 w-4 mr-1" />

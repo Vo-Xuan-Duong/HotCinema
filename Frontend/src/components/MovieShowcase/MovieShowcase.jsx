@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tag } from '@/components/ui/tag';
-import { Rate } from '@/components/ui/rate';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { StarRating } from '@/components/ui/star-rating';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge-count';
 import { Tooltip } from '@/components/ui/tooltip';
 import { Empty } from '@/components/ui/empty';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Modal } from '@/components/ui/modal';
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
 import {
   Play,
   Calendar,
@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
-const MovieShowcase = ({ movies = [], title = "Phim đặc sắc", loading = false, maxItems = 12, showFilters = true, enableSlider = true, category = 'all' }) => {
+const MovieShowcase = ({ movies = [], title = "Phim Ä‘áº·c sáº¯c", loading = false, maxItems = 12, showFilters = true, enableSlider = true, category = 'all' }) => {
   const navigate = useNavigate();
   const [hoveredMovie, setHoveredMovie] = useState(null);
   const [likedMovies, setLikedMovies] = useState(new Set());
@@ -163,7 +163,7 @@ const MovieShowcase = ({ movies = [], title = "Phim đặc sắc", loading = fal
                   {title}
                 </h2>
                 <p className="text-gray-600 text-base block mt-2 md:hidden">
-                  Khám phá những bộ phim hay nhất đang chiếu tại HotCinemas
+                  KhÃ¡m phÃ¡ nhá»¯ng bá»™ phim hay nháº¥t Ä‘ang chiáº¿u táº¡i HotCinemas
                 </p>
               </div>
             </div>
@@ -175,7 +175,7 @@ const MovieShowcase = ({ movies = [], title = "Phim đặc sắc", loading = fal
           <div className="relative">
             {enableSlider && (
               <>
-                {/* Nút bên trái */}
+                {/* NÃºt bÃªn trÃ¡i */}
                 <Button
                   variant="outline"
                   size="icon"
@@ -186,7 +186,7 @@ const MovieShowcase = ({ movies = [], title = "Phim đặc sắc", loading = fal
                   <ChevronRight className="h-5 w-5 rotate-180" />
                 </Button>
 
-                {/* Nút bên phải */}
+                {/* NÃºt bÃªn pháº£i */}
                 <Button
                   variant="outline"
                   size="icon"
@@ -292,7 +292,7 @@ const MovieShowcase = ({ movies = [], title = "Phim đặc sắc", loading = fal
           <Empty
             description={
               <div className="flex flex-col items-center gap-2">
-                <p className="text-gray-600">Không có phim nào để hiển thị</p>
+                <p className="text-gray-600">KhÃ´ng cÃ³ phim nÃ o Ä‘á»ƒ hiá»ƒn thá»‹</p>
               </div>
             }
             className="my-12 py-8"
@@ -314,7 +314,7 @@ const MovieShowcase = ({ movies = [], title = "Phim đặc sắc", loading = fal
                   };
                   navigate('/movies', { state: { defaultFilter: filterMap[category] || 'all' } });
                 }}>
-                <span className="hidden md:inline">Xem thêm</span>
+                <span className="hidden md:inline">Xem thÃªm</span>
               </Button>
             </div>
           </div>
@@ -322,20 +322,20 @@ const MovieShowcase = ({ movies = [], title = "Phim đặc sắc", loading = fal
       </div>
 
       {/* Trailer Modal */}
-      <Modal
-        title={
+      <ResponsiveDialog
+        heading={
           <div className="flex items-center gap-2">
             <Play className="h-5 w-5" />
             <span>Trailer - {selectedMovie?.title}</span>
           </div>
         }
         open={trailerModalVisible}
-        onCancel={() => {
+        onClose={() => {
           setTrailerModalVisible(false);
           setSelectedMovie(null);
         }}
-        footer={null}
-        width={900}
+        actions={null}
+        maxWidth={900}
       >
         {(selectedMovie?.trailerUrl || selectedMovie?.trailer) && (
           <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
@@ -356,7 +356,7 @@ const MovieShowcase = ({ movies = [], title = "Phim đặc sắc", loading = fal
             />
           </div>
         )}
-      </Modal>
+      </ResponsiveDialog>
     </section >
   );
 };

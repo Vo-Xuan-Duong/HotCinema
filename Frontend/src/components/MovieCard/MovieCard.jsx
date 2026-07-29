@@ -1,8 +1,8 @@
-import React from 'react';
+﻿import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
-import { Rate } from '@/components/ui/rate';
-import { Tag } from '@/components/ui/tag';
+import { StarRating } from '@/components/ui/star-rating';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
 import { Play, Eye } from 'lucide-react';
 
@@ -30,9 +30,9 @@ const MovieCard = ({ movie, onTrailerClick, viewMode = 'grid' }) => {
               <img src={poster} alt={title} className="w-full h-full object-cover" />
             </Link>
             {ageLabel && (
-              <Tag className="absolute top-2 left-2 z-[2] font-bold uppercase tracking-wide" color="orange">
+              <StatusBadge className="absolute top-2 left-2 z-[2] font-bold uppercase tracking-wide" tone="orange">
                 {ageLabel}
-              </Tag>
+              </StatusBadge>
             )}
           </div>
           <div className="flex-1 p-5 md:p-4 flex flex-col justify-between">
@@ -41,13 +41,13 @@ const MovieCard = ({ movie, onTrailerClick, viewMode = 'grid' }) => {
                 <h3 className="m-0 text-xl font-semibold text-gray-800 md:text-lg">{title}</h3>
               </Link>
               <div className="flex items-center gap-2">
-                <Rate disabled value={rating / 2} allowHalf />
+                <StarRating readOnly value={rating / 2} precision={0.5} />
                 <span className="font-semibold text-[#f39c12]">{rating}/10</span>
               </div>
             </div>
             <div className="mb-3 flex flex-wrap gap-2">
               {genre && (
-                <Tag color="blue">{genre.split(', ')[0]}</Tag>
+                <StatusBadge tone="blue">{genre.split(', ')[0]}</StatusBadge>
               )}
               {duration && (
                 <span className="text-gray-600 text-sm">{duration}</span>
@@ -68,7 +68,7 @@ const MovieCard = ({ movie, onTrailerClick, viewMode = 'grid' }) => {
               <Link to={`/movies/${id}`}>
                 <Button>
                   <Eye className="h-4 w-4 mr-2" />
-                  Chi tiết
+                  Chi tiáº¿t
                 </Button>
               </Link>
               <Button
@@ -98,9 +98,9 @@ const MovieCard = ({ movie, onTrailerClick, viewMode = 'grid' }) => {
           <img alt={title} src={poster} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
         </Link>
         {ageLabel && (
-          <Tag className="absolute top-3 left-3 z-[2] font-bold uppercase tracking-wide text-xs px-1.5 py-0.5" color="orange">
+          <StatusBadge className="absolute top-3 left-3 z-[2] font-bold uppercase tracking-wide text-xs px-1.5 py-0.5" tone="orange">
             {ageLabel}
-          </Tag>
+          </StatusBadge>
         )}
         <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
           <Button
@@ -122,14 +122,14 @@ const MovieCard = ({ movie, onTrailerClick, viewMode = 'grid' }) => {
         </Link>
         <div className="mt-2">
           <div className="flex items-center gap-2 mb-2">
-            <Rate disabled value={rating / 2} allowHalf />
+            <StarRating readOnly value={rating / 2} precision={0.5} />
             <span className="font-semibold text-[#f39c12]">{rating}/10</span>
           </div>
           <div className="flex flex-wrap gap-1">
             {genre && genre.split(', ').slice(0, 2).map((g, index) => (
-              <Tag key={index} color="blue" className="text-xs">
+              <StatusBadge key={index} tone="blue" className="text-xs">
                 {g}
-              </Tag>
+              </StatusBadge>
             ))}
           </div>
           {releaseDate && (
@@ -141,4 +141,4 @@ const MovieCard = ({ movie, onTrailerClick, viewMode = 'grid' }) => {
   );
 };
 
-export default MovieCard; 
+export default MovieCard;

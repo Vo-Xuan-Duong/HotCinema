@@ -1,3 +1,5 @@
+﻿import animate from 'tailwindcss-animate'
+
 /** @type {import('tailwindcss').Config} */
 export default {
     content: [
@@ -96,7 +98,7 @@ export default {
                     '0%, 100%': { transform: 'scale(1.08) translateY(0)' },
                     '50%': { transform: 'scale(1.10) translateY(-10px)' }
                 },
-                slideIn: {
+                expandIn: {
                     'from': { width: '0', opacity: '0' },
                     'to': { width: '80px', opacity: '1' }
                 },
@@ -134,7 +136,7 @@ export default {
                     '0%, 100%': { opacity: '1', transform: 'scale(1)' },
                     '50%': { opacity: '0.7', transform: 'scale(1.1)' }
                 },
-                fadeInUp: {
+                fadeInUpSoft: {
                     'from': { opacity: '0', transform: 'translateY(10px)' },
                     'to': { opacity: '1', transform: 'translateY(0)' }
                 },
@@ -158,8 +160,7 @@ export default {
         },
     },
     plugins: [
-        require('@tailwindcss/line-clamp'),
-        require('tailwindcss-animate'),
+        animate,
     ],
     corePlugins: {
         preflight: true,

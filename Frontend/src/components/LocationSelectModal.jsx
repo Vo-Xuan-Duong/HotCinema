@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Modal } from '@/components/ui/modal';
+﻿import React, { useMemo, useState } from 'react';
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
@@ -23,19 +23,19 @@ export default function LocationSelectModal({ open, onClose, onSelect, value, ci
     };
 
     return (
-        <Modal
+        <ResponsiveDialog
             open={open}
-            onCancel={onClose}
-            footer={null}
+            onClose={onClose}
+            actions={null}
             centered
-            width={780}
+            maxWidth={780}
             destroyOnClose
             className="location-select-modal"
-            title={<div className="location-modal-header"><span className="font-semibold text-lg">Chọn thành phố</span></div>}
+            heading={<div className="location-modal-header"><span className="font-semibold text-lg">Chá»n thÃ nh phá»‘</span></div>}
         >
             <div className="location-modal-toolbar">
                 <Input
-                    placeholder="Tìm thành phố ..."
+                    placeholder="TÃ¬m thÃ nh phá»‘ ..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     className="location-search-input"
@@ -57,13 +57,13 @@ export default function LocationSelectModal({ open, onClose, onSelect, value, ci
                 })}
                 {!filtered.length && (
                     <div className="no-results">
-                        <p className="text-gray-500">Không tìm thấy thành phố phù hợp.</p>
+                        <p className="text-gray-500">KhÃ´ng tÃ¬m tháº¥y thÃ nh phá»‘ phÃ¹ há»£p.</p>
                     </div>
                 )}
             </div>
             <div className="location-modal-footer">
-                <Button onClick={onClose} className="close-modal-btn">Đóng</Button>
+                <Button onClick={onClose} className="close-modal-btn">ÄÃ³ng</Button>
             </div>
-        </Modal>
+        </ResponsiveDialog>
     );
 }

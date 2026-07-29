@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Search, Play, Calendar, Clock, Star, Heart, Share2, Ticket, Filter, Grid, List, SortAsc, SortDesc, ArrowUp, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tag } from '@/components/ui/tag';
-import { Rate } from '@/components/ui/rate';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { StarRating } from '@/components/ui/star-rating';
 import { Pagination } from '@/components/ui/pagination';
 import { Empty } from '@/components/ui/empty';
 import { Tooltip } from '@/components/ui/tooltip';
@@ -56,7 +56,7 @@ const Movies = () => {
         return () => clearTimeout(timer);
     }, [searchText]);
 
-     
+
     useEffect(() => {
         loadMovies();
     }, [currentPage, pageSize, sortBy, sortOrder, debouncedSearch, selectedGenre, selectedYear]);
@@ -70,7 +70,7 @@ const Movies = () => {
         return () => clearTimeout(timer);
     }, [currentPage, pageSize]);
 
-     
+
     useEffect(() => {
         if (debouncedSearch || selectedGenre !== 'all' || selectedStatus !== 'all' || selectedYear !== 'all') {
             if (currentPage !== 1) {
@@ -233,7 +233,7 @@ const Movies = () => {
     };
 
     const formatGenre = (genre) => {
-        if (!genre) return 'Chưa phân loại';
+        if (!genre) return 'ChÆ°a phÃ¢n loáº¡i';
 
         if (typeof genre === 'string') {
             const cleaned = genre.replace(/Phim\s+/g, '');
@@ -254,14 +254,14 @@ const Movies = () => {
                 })
                 .filter(Boolean);
 
-            if (cleanedGenres.length === 0) return 'Chưa phân loại';
+            if (cleanedGenres.length === 0) return 'ChÆ°a phÃ¢n loáº¡i';
             if (cleanedGenres.length > 2) {
                 return `${cleanedGenres[0]}, ${cleanedGenres[1]}...`;
             }
             return cleanedGenres.join(', ');
         }
 
-        return 'Chưa phân loại';
+        return 'ChÆ°a phÃ¢n loáº¡i';
     };
 
     const paginatedMovies = filteredMovies;
@@ -272,7 +272,7 @@ const Movies = () => {
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
-                        placeholder="Tìm kiếm phim..."
+                        placeholder="TÃ¬m kiáº¿m phim..."
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
                         className="pl-10 h-9"
@@ -283,10 +283,10 @@ const Movies = () => {
                     onValueChange={setSelectedGenre}
                 >
                     <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Tất cả thể loại" />
+                        <SelectValue placeholder="Táº¥t cáº£ thá»ƒ loáº¡i" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">Tất cả thể loại</SelectItem>
+                        <SelectItem value="all">Táº¥t cáº£ thá»ƒ loáº¡i</SelectItem>
                         {genres.map(genre => (
                             <SelectItem key={genre.id} value={genre.name}>
                                 {genre.name}
@@ -299,13 +299,13 @@ const Movies = () => {
                     onValueChange={setSelectedStatus}
                 >
                     <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Tất cả phim" />
+                        <SelectValue placeholder="Táº¥t cáº£ phim" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">Tất cả phim</SelectItem>
-                        <SelectItem value="NOW_SHOWING">Đang chiếu</SelectItem>
-                        <SelectItem value="COMING_SOON">Sắp chiếu</SelectItem>
-                        <SelectItem value="ARCHIVED">Đã chiếu</SelectItem>
+                        <SelectItem value="all">Táº¥t cáº£ phim</SelectItem>
+                        <SelectItem value="NOW_SHOWING">Äang chiáº¿u</SelectItem>
+                        <SelectItem value="COMING_SOON">Sáº¯p chiáº¿u</SelectItem>
+                        <SelectItem value="ARCHIVED">ÄÃ£ chiáº¿u</SelectItem>
                     </SelectContent>
                 </Select>
                 <Select
@@ -313,10 +313,10 @@ const Movies = () => {
                     onValueChange={setSelectedYear}
                 >
                     <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Tất cả năm" />
+                        <SelectValue placeholder="Táº¥t cáº£ nÄƒm" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">Tất cả năm</SelectItem>
+                        <SelectItem value="all">Táº¥t cáº£ nÄƒm</SelectItem>
                         <SelectItem value="2025">2025</SelectItem>
                         <SelectItem value="2024">2024</SelectItem>
                         <SelectItem value="2023">2023</SelectItem>
@@ -325,7 +325,7 @@ const Movies = () => {
                     </SelectContent>
                 </Select>
                 <Button onClick={resetFilters} className="h-9 w-full">
-                    Đặt lại
+                    Äáº·t láº¡i
                 </Button>
             </div>
         </Card>
@@ -333,7 +333,7 @@ const Movies = () => {
 
     const MovieCard = ({ movie }) => {
         const status = getMovieStatus(movie);
-        const statusText = status === 'upcoming' ? 'Sắp chiếu' : status === 'archived' ? 'Đã chiếu' : 'Đang chiếu';
+        const statusText = status === 'upcoming' ? 'Sáº¯p chiáº¿u' : status === 'archived' ? 'ÄÃ£ chiáº¿u' : 'Äang chiáº¿u';
         const statusColor = status === 'upcoming' ? 'blue' : status === 'archived' ? 'default' : 'volcano';
 
         return (
@@ -360,9 +360,9 @@ const Movies = () => {
                             </h3>
                         </Tooltip>
                         <div className="space-y-1.5">
-                            <Tag color="blue" className="text-xs">
+                            <StatusBadge tone="blue" className="text-xs">
                                 {formatGenre(movie.genre)}
-                            </Tag>
+                            </StatusBadge>
                             <div className="flex justify-between items-center text-xs text-gray-600">
                                 <span className="flex items-center gap-1">
                                     <Clock className="h-3 w-3" />
@@ -383,7 +383,7 @@ const Movies = () => {
                             }}
                         >
                             <Ticket className="h-3 w-3 mr-1" />
-                            Đặt vé ngay
+                            Äáº·t vÃ© ngay
                         </Button>
                     </div>
                 </Card>
@@ -407,7 +407,7 @@ const Movies = () => {
                         <Badge
                             count={(() => {
                                 const status = getMovieStatus(movie);
-                                return status === 'upcoming' ? 'Sắp chiếu' : status === 'archived' ? 'Đã chiếu' : 'Đang chiếu';
+                                return status === 'upcoming' ? 'Sáº¯p chiáº¿u' : status === 'archived' ? 'ÄÃ£ chiáº¿u' : 'Äang chiáº¿u';
                             })()}
                             className="absolute top-1 right-1"
                         />
@@ -417,10 +417,10 @@ const Movies = () => {
                             {movie.title}
                         </h4>
                         <div className="flex flex-wrap gap-2 mb-2">
-                            <Tag color="blue">{formatGenre(movie.genre)}</Tag>
+                            <StatusBadge tone="blue">{formatGenre(movie.genre)}</StatusBadge>
                             <span className="text-xs text-gray-600 flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
-                                {movie.durationFormatted || (movie.duration ? `${movie.duration} phút` : 'N/A')}
+                                {movie.durationFormatted || (movie.duration ? `${movie.duration} phÃºt` : 'N/A')}
                             </span>
                             <span className="text-xs text-gray-600 flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
@@ -439,7 +439,7 @@ const Movies = () => {
                             </div>
                             <span className="text-xs text-gray-600 flex items-center gap-1">
                                 <Eye className="h-3 w-3" />
-                                {movie.views?.toLocaleString()} lượt xem
+                                {movie.views?.toLocaleString()} lÆ°á»£t xem
                             </span>
                         </div>
                         <div className="flex flex-col gap-2 w-full">
@@ -451,7 +451,7 @@ const Movies = () => {
                                 }}
                             >
                                 <Ticket className="h-3.5 w-3.5 mr-1" />
-                                Đặt vé
+                                Äáº·t vÃ©
                             </Button>
                             <div className="flex gap-2">
                                 <Button
@@ -481,7 +481,7 @@ const Movies = () => {
     );
 
     if (loading) {
-        return <ContentLoader message="Đang tải danh sách phim..." />;
+        return <ContentLoader message="Äang táº£i danh sÃ¡ch phim..." />;
     }
 
     return (
@@ -509,9 +509,9 @@ const Movies = () => {
                             {filteredMovies.length > 0 && (
                                 <div className="mt-5 flex justify-center items-center">
                                     <Pagination
-                                        current={currentPage}
-                                        pageSize={pageSize}
-                                        total={totalMovies}
+                                        page={currentPage}
+                                        itemsPerPage={pageSize}
+                                        totalItems={totalMovies}
                                         onPageChange={(page) => setCurrentPage(page)}
                                         onPageSizeChange={(size) => {
                                             setPageSize(size);
@@ -521,7 +521,7 @@ const Movies = () => {
                                         pageSizeOptions={['15', '30', '45', '60']}
                                         showQuickJumper
                                         showTotal={(total, range) =>
-                                            `${range[0]}-${range[1]} của ${total} phim`
+                                            `${range[0]}-${range[1]} cá»§a ${total} phim`
                                         }
                                     />
                                 </div>
@@ -531,9 +531,9 @@ const Movies = () => {
                         <Empty
                             description={
                                 <div className="flex flex-col items-center gap-3">
-                                    <p>Không tìm thấy phim nào phù hợp</p>
+                                    <p>KhÃ´ng tÃ¬m tháº¥y phim nÃ o phÃ¹ há»£p</p>
                                     <Button onClick={resetFilters}>
-                                        Đặt lại bộ lọc
+                                        Äáº·t láº¡i bá»™ lá»c
                                     </Button>
                                 </div>
                             }

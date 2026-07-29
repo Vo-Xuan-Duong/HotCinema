@@ -1,8 +1,8 @@
-import * as React from "react"
+﻿import * as React from "react"
 import * as TabsPrimitive from "@radix-ui/react-tabs"
 import { cn } from "@/lib/utils"
 
-const TabsRoot = TabsPrimitive.Root
+const Tabs = TabsPrimitive.Root
 
 const TabsList = React.forwardRef(({ className, ...props }, ref) => (
   <TabsPrimitive.List
@@ -39,46 +39,5 @@ const TabsContent = React.forwardRef(({ className, ...props }, ref) => (
   />
 ))
 TabsContent.displayName = TabsPrimitive.Content.displayName
-
-const Tabs = React.forwardRef(({
-  items,
-  activeKey,
-  defaultActiveKey,
-  onChange,
-  className,
-  ...props
-}, ref) => {
-  if (!items?.length) {
-    return <TabsRoot ref={ref} className={className} {...props} />
-  }
-
-  const value = activeKey ?? undefined
-  const defaultValue = defaultActiveKey ?? items[0]?.key
-
-  return (
-    <TabsRoot
-      ref={ref}
-      value={value}
-      defaultValue={defaultValue}
-      onValueChange={onChange}
-      className={cn("w-full", className)}
-      {...props}
-    >
-      <TabsList className="mb-4">
-        {items.map((item) => (
-          <TabsTrigger key={item.key} value={item.key} disabled={item.disabled}>
-            {item.label}
-          </TabsTrigger>
-        ))}
-      </TabsList>
-      {items.map((item) => (
-        <TabsContent key={item.key} value={item.key}>
-          {item.children}
-        </TabsContent>
-      ))}
-    </TabsRoot>
-  )
-})
-Tabs.displayName = "Tabs"
 
 export { Tabs, TabsList, TabsTrigger, TabsContent }

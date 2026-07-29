@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Search, MapPin, Phone, Clock, Star, Home, Store, ChevronRight, Grid, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Tag } from '@/components/ui/tag';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Avatar } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -21,7 +21,7 @@ const Cinemas = () => {
     const notification = useNotification();
     const [loading, setLoading] = useState(true);
     const [searchText, setSearchText] = useState('');
-    const [selectedRegion, setSelectedRegion] = useState('all'); // Lưu slug của region
+    const [selectedRegion, setSelectedRegion] = useState('all'); // LÆ°u slug cá»§a region
     const [selectedAmenities, setSelectedAmenities] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(9);
@@ -43,11 +43,11 @@ const Cinemas = () => {
                 const regionsData = Array.isArray(regionsResponse?.data?.content)
                     ? regionsResponse.data.content
                     : (Array.isArray(regionsResponse?.data) ? regionsResponse.data : []);
-                // Lưu toàn bộ region objects với slug
+                // LÆ°u toÃ n bá»™ region objects vá»›i slug
                 setRegions(regionsData);
             } catch (error) {
                 console.error('Error loading regions:', error);
-                notification.error('Không thể tải danh sách khu vực');
+                notification.error('KhÃ´ng thá»ƒ táº£i danh sÃ¡ch khu vá»±c');
             }
         };
         fetchRegions();
@@ -59,13 +59,13 @@ const Cinemas = () => {
             setLoading(true);
             try {
                 const params = {
-                    page: currentPage - 1, // API thường dùng 0-based index
+                    page: currentPage - 1, // API thÆ°á»ng dÃ¹ng 0-based index
                     size: pageSize
                 };
 
                 const cinemasResponse = await cinemaService.getAllCinemas(params);
 
-                // Xử lý response có phân trang
+                // Xá»­ lÃ½ response cÃ³ phÃ¢n trang
                 let cinemasData = [];
                 let paginationData = {
                     total: 0,
@@ -75,7 +75,7 @@ const Cinemas = () => {
                 };
 
                 if (cinemasResponse?.data) {
-                    // Nếu có cấu trúc phân trang Spring Boot
+                    // Náº¿u cÃ³ cáº¥u trÃºc phÃ¢n trang Spring Boot
                     if (cinemasResponse.data.content) {
                         cinemasData = Array.isArray(cinemasResponse.data.content)
                             ? cinemasResponse.data.content
@@ -87,7 +87,7 @@ const Cinemas = () => {
                             pageSize: cinemasResponse.data.size || pageSize
                         };
                     }
-                    // Nếu là array trực tiếp
+                    // Náº¿u lÃ  array trá»±c tiáº¿p
                     else if (Array.isArray(cinemasResponse.data)) {
                         cinemasData = cinemasResponse.data;
                         paginationData = {
@@ -103,7 +103,7 @@ const Cinemas = () => {
                 setPagination(paginationData);
             } catch (error) {
                 console.error('Error loading cinemas:', error);
-                notification.error('Không thể tải danh sách rạp chiếu');
+                notification.error('KhÃ´ng thá»ƒ táº£i danh sÃ¡ch ráº¡p chiáº¿u');
                 setCinemas([]);
                 setPagination({
                     total: 0,
@@ -119,17 +119,17 @@ const Cinemas = () => {
         fetchCinemas();
     }, [currentPage, pageSize, notification]);
 
-    // Filter cinemas client-side (search và region filter)
+    // Filter cinemas client-side (search vÃ  region filter)
     const filteredCinemas = cinemas.filter(cinema => {
         const matchesSearch = !searchText ||
             cinema.name?.toLowerCase().includes(searchText.toLowerCase()) ||
             cinema.address?.toLowerCase().includes(searchText.toLowerCase());
 
-        // Kiểm tra region theo slug hoặc name
+        // Kiá»ƒm tra region theo slug hoáº·c name
         const cinemaRegionSlug = typeof cinema.region === 'object' ? cinema.region?.slug : null;
         const cinemaRegionName = typeof cinema.region === 'object' ? cinema.region?.name : null;
-        const matchesRegion = selectedRegion === 'all' || 
-            cinemaRegionSlug === selectedRegion || 
+        const matchesRegion = selectedRegion === 'all' ||
+            cinemaRegionSlug === selectedRegion ||
             cinemaRegionName === selectedRegion;
 
         return matchesSearch && matchesRegion;
@@ -143,7 +143,7 @@ const Cinemas = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    // Reset về trang 1 khi filter thay đổi
+    // Reset vá» trang 1 khi filter thay Ä‘á»•i
     useEffect(() => {
         if (currentPage !== 1) {
             setCurrentPage(1);
@@ -151,7 +151,7 @@ const Cinemas = () => {
     }, [searchText, selectedRegion]);
 
     if (loading) {
-        return <ContentLoader message="Đang tải danh sách rạp..." />;
+        return <ContentLoader message="Äang táº£i danh sÃ¡ch ráº¡p..." />;
     }
 
     return (
@@ -163,7 +163,7 @@ const Cinemas = () => {
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
                                 <Input
-                                    placeholder="Tìm kiếm tên rạp hoặc địa chỉ..."
+                                    placeholder="TÃ¬m kiáº¿m tÃªn ráº¡p hoáº·c Ä‘á»‹a chá»‰..."
                                     value={searchText}
                                     onChange={(e) => setSearchText(e.target.value)}
                                     className="pl-10 h-12 rounded-xl border-2 border-gray-200 text-base transition-all duration-300 hover:border-primary/60 hover:shadow-md focus:border-primary focus:shadow-lg"
@@ -176,7 +176,7 @@ const Cinemas = () => {
                                         className="w-full h-12 rounded-xl border-2 border-gray-200 font-semibold text-base transition-all duration-300 hover:border-primary hover:text-primary hover:bg-primary/5"
                                     >
                                         <MapPin className="h-4 w-4 mr-2" />
-                                        <span>Khu vực</span>
+                                        <span>Khu vá»±c</span>
                                         <ChevronDown className="h-4 w-4 ml-2" />
                                     </Button>
                                 </DropdownMenuTrigger>
@@ -185,7 +185,7 @@ const Cinemas = () => {
                                         onClick={() => setSelectedRegion('all')}
                                         className={selectedRegion === 'all' ? 'bg-primary/10' : ''}
                                     >
-                                        Tất cả khu vực
+                                        Táº¥t cáº£ khu vá»±c
                                     </DropdownMenuItem>
                                     {Array.isArray(regions) && regions.map(region => (
                                         <DropdownMenuItem
@@ -256,7 +256,7 @@ const Cinemas = () => {
                                                         }}
                                                     >
                                                         <Clock className="h-4 w-4 mr-2" />
-                                                        <span>XEM LỊCH CHIẾU</span>
+                                                        <span>XEM Lá»ŠCH CHIáº¾U</span>
                                                         <ChevronRight className="h-4 w-4 ml-2" />
                                                     </Button>
                                                 </div>
@@ -268,11 +268,11 @@ const Cinemas = () => {
 
                             <div className="flex justify-center items-center mt-12 pt-8 border-t border-gray-200">
                                 <Pagination
-                                    current={pagination.current}
-                                    total={pagination.total}
-                                    pageSize={pagination.pageSize}
-                                    onChange={handlePageChange}
-                                    onShowSizeChange={handlePageChange}
+                                    page={pagination.current}
+                                    totalItems={pagination.total}
+                                    itemsPerPage={pagination.pageSize}
+                                    onPageChange={handlePageChange}
+                                    onPageSizeChange={handlePageChange}
                                     showSizeChanger
                                     pageSizeOptions={['9', '18', '27', '36']}
                                 />
@@ -284,11 +284,11 @@ const Cinemas = () => {
                                 description={
                                     <div className="text-center py-8">
                                         <p className="text-gray-500 text-lg font-medium">
-                                            Không tìm thấy rạp chiếu phim nào
+                                            KhÃ´ng tÃ¬m tháº¥y ráº¡p chiáº¿u phim nÃ o
                                         </p>
                                         <div className="mt-4">
                                             <p className="text-gray-400 text-sm">
-                                                Thử thay đổi từ khóa tìm kiếm hoặc khu vực
+                                                Thá»­ thay Ä‘á»•i tá»« khÃ³a tÃ¬m kiáº¿m hoáº·c khu vá»±c
                                             </p>
                                         </div>
                                     </div>

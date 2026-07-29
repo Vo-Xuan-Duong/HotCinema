@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+﻿import React, { createContext, useContext, useState, useCallback } from 'react';
 import TrailerModal from '@/components/Trailer/TrailerModal';
 
 const TrailerModalContext = createContext();
@@ -19,7 +19,7 @@ export const TrailerModalProvider = ({ children }) => {
     setMovie(null);
   }, []);
 
-  // Xử lý chuyển đổi link YouTube sang embed và tự động phát
+  // Xá»­ lÃ½ chuyá»ƒn Ä‘á»•i link YouTube sang embed vÃ  tá»± Ä‘á»™ng phÃ¡t
   let trailerUrl = '';
   if (movie && movie.trailer) {
     trailerUrl = movie.trailer;
@@ -45,13 +45,6 @@ export const TrailerModalProvider = ({ children }) => {
         trailerUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&enablejsapi=1&origin=${window.location.origin}`;
       }
     }
-    // If already an embed URL, just add autoplay if not present
-    else if (trailerUrl.includes('youtube.com/embed/')) {
-      if (!trailerUrl.includes('autoplay=1')) {
-        const separator = trailerUrl.includes('?') ? '&' : '?';
-        trailerUrl += `${separator}autoplay=1&rel=0&modestbranding=1`;
-      }
-    }
   }
 
   return (
@@ -65,4 +58,4 @@ export const TrailerModalProvider = ({ children }) => {
       />
     </TrailerModalContext.Provider>
   );
-}; 
+};

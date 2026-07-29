@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+﻿import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Header from '@/components/Header/Header';
 import Footer from '@/components/Footer/Footer';
@@ -10,10 +10,10 @@ import { AuthModalProvider, useAuthModal } from '@/context/AuthModalContext';
 import { setAuthErrorCallback } from '@/utils/apiClient';
 import ScrollToTop from '@/components/ScrollToTop';
 
-// Memoized Header để tránh re-render không cần thiết
+// Memoized Header Ä‘á»ƒ trÃ¡nh re-render khÃ´ng cáº§n thiáº¿t
 const MemoizedHeader = React.memo(Header);
 
-// Memoized Footer để tránh re-render không cần thiết
+// Memoized Footer Ä‘á»ƒ trÃ¡nh re-render khÃ´ng cáº§n thiáº¿t
 const MemoizedFooter = React.memo(Footer);
 
 const UserLayoutContent = () => {
@@ -36,14 +36,14 @@ const UserLayoutContent = () => {
   return (
     <TrailerModalProvider>
       <ScrollToTop />
-      <div className="min-h-screen flex flex-col bg-[var(--primary-bg)]">
-        {/* Header chỉ re-render khi cần thiết */}
+      <div className="flex min-h-dvh flex-col bg-background text-foreground">
+        {/* Header chá»‰ re-render khi cáº§n thiáº¿t */}
         <MemoizedHeader />
-        {/* Chỉ phần này sẽ re-render khi route thay đổi */}
-        <main key={location.pathname} className="flex-1 min-h-screen bg-[var(--primary-bg)] p-0">
+        {/* Chá»‰ pháº§n nÃ y sáº½ re-render khi route thay Ä‘á»•i */}
+        <main key={location.pathname} className="min-w-0 flex-1 bg-background">
           <Outlet />
         </main>
-        {/* Footer không re-render khi route thay đổi */}
+        {/* Footer khÃ´ng re-render khi route thay Ä‘á»•i */}
         <MemoizedFooter />
 
         {/* Global Auth Modal */}

@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TableWrapper } from '@/components/ui/table-wrapper';
+import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
-import { Modal } from '@/components/ui/modal';
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Tag } from '@/components/ui/tag';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Card } from '@/components/ui/card';
-import { Statistic } from '@/components/ui/statistic';
+import { Metric } from '@/components/ui/metric';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
@@ -81,7 +81,7 @@ const RolesPermissions = () => {
             setPermissions(permissionsData);
         } catch (error) {
             console.error('Error loading permissions:', error);
-            showNotification('error', 'Lỗi', 'Không thể tải danh sách quyền');
+            showNotification('error', 'Lá»—i', 'KhÃ´ng thá»ƒ táº£i danh sÃ¡ch quyá»n');
             setPermissions([]);
         } finally {
             setLoadingPermissions(false);
@@ -128,7 +128,7 @@ const RolesPermissions = () => {
             }));
         } catch (error) {
             console.error('Error loading roles:', error);
-            showNotification('error', 'Lỗi', 'Không thể tải danh sách vai trò');
+            showNotification('error', 'Lá»—i', 'KhÃ´ng thá»ƒ táº£i danh sÃ¡ch vai trÃ²');
             setRoles([]);
             setPagination(prev => ({ ...prev, total: 0 }));
         } finally {
@@ -189,15 +189,15 @@ const RolesPermissions = () => {
         try {
             // Validation
             if (!formValues.name?.trim()) {
-                showNotification('error', 'Lỗi', 'Vui lòng nhập tên vai trò!');
+                showNotification('error', 'Lá»—i', 'Vui lÃ²ng nháº­p tÃªn vai trÃ²!');
                 return;
             }
             if (!formValues.code?.trim()) {
-                showNotification('error', 'Lỗi', 'Vui lòng nhập mã vai trò!');
+                showNotification('error', 'Lá»—i', 'Vui lÃ²ng nháº­p mÃ£ vai trÃ²!');
                 return;
             }
             if (!/^[A-Z_]+$/.test(formValues.code)) {
-                showNotification('error', 'Lỗi', 'Mã vai trò chỉ chứa chữ in hoa và dấu gạch dưới!');
+                showNotification('error', 'Lá»—i', 'MÃ£ vai trÃ² chá»‰ chá»©a chá»¯ in hoa vÃ  dáº¥u gáº¡ch dÆ°á»›i!');
                 return;
             }
 
@@ -208,7 +208,7 @@ const RolesPermissions = () => {
                 isActive: formValues.isActive !== undefined ? formValues.isActive : true
             };
             await roleService.createRole(createData);
-            showNotification('success', 'Thành công', 'Thêm vai trò thành công!');
+            showNotification('success', 'ThÃ nh cÃ´ng', 'ThÃªm vai trÃ² thÃ nh cÃ´ng!');
             setIsAddModalVisible(false);
             setFormValues({
                 name: '',
@@ -219,7 +219,7 @@ const RolesPermissions = () => {
             loadRoles();
         } catch (error) {
             console.error('Error creating role:', error);
-            showNotification('error', 'Lỗi', error.response?.data?.message || 'Không thể thêm vai trò');
+            showNotification('error', 'Lá»—i', error.response?.data?.message || 'KhÃ´ng thá»ƒ thÃªm vai trÃ²');
         }
     };
 
@@ -229,15 +229,15 @@ const RolesPermissions = () => {
         try {
             // Validation
             if (!formValues.name?.trim()) {
-                showNotification('error', 'Lỗi', 'Vui lòng nhập tên vai trò!');
+                showNotification('error', 'Lá»—i', 'Vui lÃ²ng nháº­p tÃªn vai trÃ²!');
                 return;
             }
             if (!formValues.code?.trim()) {
-                showNotification('error', 'Lỗi', 'Vui lòng nhập mã vai trò!');
+                showNotification('error', 'Lá»—i', 'Vui lÃ²ng nháº­p mÃ£ vai trÃ²!');
                 return;
             }
             if (!/^[A-Z_]+$/.test(formValues.code)) {
-                showNotification('error', 'Lỗi', 'Mã vai trò chỉ chứa chữ in hoa và dấu gạch dưới!');
+                showNotification('error', 'Lá»—i', 'MÃ£ vai trÃ² chá»‰ chá»©a chá»¯ in hoa vÃ  dáº¥u gáº¡ch dÆ°á»›i!');
                 return;
             }
 
@@ -248,7 +248,7 @@ const RolesPermissions = () => {
                 isActive: formValues.isActive !== undefined ? formValues.isActive : selectedRole.isActive
             };
             await roleService.updateRole(selectedRole.id, updateData);
-            showNotification('success', 'Thành công', 'Cập nhật vai trò thành công!');
+            showNotification('success', 'ThÃ nh cÃ´ng', 'Cáº­p nháº­t vai trÃ² thÃ nh cÃ´ng!');
             setIsEditModalVisible(false);
             setSelectedRole(null);
             setFormValues({
@@ -260,7 +260,7 @@ const RolesPermissions = () => {
             loadRoles();
         } catch (error) {
             console.error('Error updating role:', error);
-            showNotification('error', 'Lỗi', error.response?.data?.message || 'Không thể cập nhật vai trò');
+            showNotification('error', 'Lá»—i', error.response?.data?.message || 'KhÃ´ng thá»ƒ cáº­p nháº­t vai trÃ²');
         }
     };
 
@@ -268,11 +268,11 @@ const RolesPermissions = () => {
     const handleDeleteRole = async (id) => {
         try {
             await roleService.deleteRole(id);
-            showNotification('success', 'Thành công', 'Xóa vai trò thành công!');
+            showNotification('success', 'ThÃ nh cÃ´ng', 'XÃ³a vai trÃ² thÃ nh cÃ´ng!');
             loadRoles();
         } catch (error) {
             console.error('Error deleting role:', error);
-            showNotification('error', 'Lỗi', error.response?.data?.message || 'Không thể xóa vai trò');
+            showNotification('error', 'Lá»—i', error.response?.data?.message || 'KhÃ´ng thá»ƒ xÃ³a vai trÃ²');
         }
     };
 
@@ -281,15 +281,15 @@ const RolesPermissions = () => {
         try {
             if (isActive) {
                 await roleService.activateRole(id);
-                showNotification('success', 'Thành công', 'Đã kích hoạt vai trò!');
+                showNotification('success', 'ThÃ nh cÃ´ng', 'ÄÃ£ kÃ­ch hoáº¡t vai trÃ²!');
             } else {
                 await roleService.deactivateRole(id);
-                showNotification('success', 'Thành công', 'Đã vô hiệu hóa vai trò!');
+                showNotification('success', 'ThÃ nh cÃ´ng', 'ÄÃ£ vÃ´ hiá»‡u hÃ³a vai trÃ²!');
             }
             loadRoles();
         } catch (error) {
             console.error('Error changing role status:', error);
-            showNotification('error', 'Lỗi', error.response?.data?.message || 'Không thể thay đổi trạng thái vai trò');
+            showNotification('error', 'Lá»—i', error.response?.data?.message || 'KhÃ´ng thá»ƒ thay Ä‘á»•i tráº¡ng thÃ¡i vai trÃ²');
         }
     };
 
@@ -314,14 +314,14 @@ const RolesPermissions = () => {
                 await roleService.removePermissionsFromRole(selectedRole.id, toRemove);
             }
 
-            showNotification('success', 'Thành công', 'Cập nhật quyền thành công!');
+            showNotification('success', 'ThÃ nh cÃ´ng', 'Cáº­p nháº­t quyá»n thÃ nh cÃ´ng!');
             setIsPermissionModalVisible(false);
             setSelectedRole(null);
             setPermissionFormValues({ permissions: [] });
             loadRoles();
         } catch (error) {
             console.error('Error saving permissions:', error);
-            showNotification('error', 'Lỗi', error.response?.data?.message || 'Không thể cập nhật quyền');
+            showNotification('error', 'Lá»—i', error.response?.data?.message || 'KhÃ´ng thá»ƒ cáº­p nháº­t quyá»n');
         }
     };
 
@@ -363,7 +363,7 @@ const RolesPermissions = () => {
             });
         } catch (error) {
             console.error('Error loading role details:', error);
-            showNotification('error', 'Lỗi', 'Không thể tải chi tiết vai trò');
+            showNotification('error', 'Lá»—i', 'KhÃ´ng thá»ƒ táº£i chi tiáº¿t vai trÃ²');
             setSelectedRole(role);
             setIsPermissionModalVisible(true);
             const currentPermissionIds = role.permissions?.map(p => p.id) || [];
@@ -382,10 +382,10 @@ const RolesPermissions = () => {
     const renderStatus = (role) => {
         const isActive = role.isActive !== undefined ? role.isActive : role.active;
         return (
-            <Tag color={isActive ? 'green' : 'red'}>
+            <StatusBadge tone={isActive ? 'green' : 'red'}>
                 {isActive ? <CheckCircle2 className="h-3 w-3 mr-1 inline" /> : <Ban className="h-3 w-3 mr-1 inline" />}
-                {isActive ? 'Hoạt động' : 'Không hoạt động'}
-            </Tag>
+                {isActive ? 'Hoáº¡t Ä‘á»™ng' : 'KhÃ´ng hoáº¡t Ä‘á»™ng'}
+            </StatusBadge>
         );
     };
 
@@ -403,7 +403,7 @@ const RolesPermissions = () => {
             ),
         },
         {
-            title: 'Vai trò',
+            title: 'Vai trÃ²',
             key: 'role',
             width: 280,
             render: (_, record) => (
@@ -421,14 +421,14 @@ const RolesPermissions = () => {
                             {record.name || 'N/A'}
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
-                            <Tag color="blue" className="m-0">
+                            <StatusBadge tone="blue" className="m-0">
                                 {record.code || 'N/A'}
-                            </Tag>
+                            </StatusBadge>
                             {record.permissions?.length > 0 && (
-                                <Tag color="purple" className="m-0">
+                                <StatusBadge tone="purple" className="m-0">
                                     <Key className="h-3 w-3 mr-1" />
-                                    {record.permissions.length} quyền
-                                </Tag>
+                                    {record.permissions.length} quyá»n
+                                </StatusBadge>
                             )}
                         </div>
                     </div>
@@ -436,7 +436,7 @@ const RolesPermissions = () => {
             ),
         },
         {
-            title: 'Mô tả',
+            title: 'MÃ´ táº£',
             dataIndex: 'description',
             key: 'description',
             ellipsis: {
@@ -449,7 +449,7 @@ const RolesPermissions = () => {
             ),
         },
         {
-            title: 'Số quyền',
+            title: 'Sá»‘ quyá»n',
             key: 'permissionCount',
             width: 120,
             align: 'center',
@@ -457,25 +457,25 @@ const RolesPermissions = () => {
                 const count = record.permissions?.length || 0;
                 return (
                     <div className="flex items-center justify-center">
-                        <Tag
-                            color={count > 0 ? 'purple' : 'default'}
+                        <StatusBadge
+                            tone={count > 0 ? 'purple' : 'default'}
                             className="px-3 py-1 rounded-full"
                         >
                             <Key className="h-3 w-3 mr-1" />
                             {count}
-                        </Tag>
+                        </StatusBadge>
                     </div>
                 );
             },
         },
         {
-            title: 'Trạng thái',
+            title: 'Tráº¡ng thÃ¡i',
             key: 'status',
             width: 140,
             align: 'center',
             filters: [
-                { text: 'Hoạt động', value: 'active' },
-                { text: 'Không hoạt động', value: 'inactive' },
+                { text: 'Hoáº¡t Ä‘á»™ng', value: 'active' },
+                { text: 'KhÃ´ng hoáº¡t Ä‘á»™ng', value: 'inactive' },
             ],
             onFilter: (value, record) => {
                 const isActive = record.isActive !== undefined ? record.isActive : record.active;
@@ -488,7 +488,7 @@ const RolesPermissions = () => {
             ),
         },
         {
-            title: 'Thao tác',
+            title: 'Thao tÃ¡c',
             key: 'actions',
             width: 200,
             fixed: 'right',
@@ -502,7 +502,7 @@ const RolesPermissions = () => {
                             size="sm"
                             onClick={() => showDetailModal(record)}
                             className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600"
-                            title="Xem chi tiết"
+                            title="Xem chi tiáº¿t"
                         >
                             <Eye className="h-4 w-4" />
                         </Button>
@@ -511,7 +511,7 @@ const RolesPermissions = () => {
                             size="sm"
                             onClick={() => showEditModal(record)}
                             className="h-8 w-8 p-0 hover:bg-orange-50 hover:text-orange-600"
-                            title="Chỉnh sửa"
+                            title="Chá»‰nh sá»­a"
                         >
                             <Edit className="h-4 w-4" />
                         </Button>
@@ -520,7 +520,7 @@ const RolesPermissions = () => {
                             size="sm"
                             onClick={() => showPermissionModal(record)}
                             className="h-8 w-8 p-0 hover:bg-purple-50 hover:text-purple-600"
-                            title="Quản lý quyền"
+                            title="Quáº£n lÃ½ quyá»n"
                         >
                             <Settings className="h-4 w-4" />
                         </Button>
@@ -529,12 +529,12 @@ const RolesPermissions = () => {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => {
-                                    if (window.confirm('Vô hiệu hóa vai trò này?\nVai trò sẽ không thể sử dụng sau khi bị vô hiệu hóa.')) {
+                                    if (window.confirm('VÃ´ hiá»‡u hÃ³a vai trÃ² nÃ y?\nVai trÃ² sáº½ khÃ´ng thá»ƒ sá»­ dá»¥ng sau khi bá»‹ vÃ´ hiá»‡u hÃ³a.')) {
                                         handleStatusChange(record.id, false);
                                     }
                                 }}
                                 className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
-                                title="Vô hiệu hóa"
+                                title="VÃ´ hiá»‡u hÃ³a"
                             >
                                 <Ban className="h-4 w-4" />
                             </Button>
@@ -543,12 +543,12 @@ const RolesPermissions = () => {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => {
-                                    if (window.confirm('Kích hoạt vai trò này?')) {
+                                    if (window.confirm('KÃ­ch hoáº¡t vai trÃ² nÃ y?')) {
                                         handleStatusChange(record.id, true);
                                     }
                                 }}
                                 className="h-8 w-8 p-0 hover:bg-green-50 hover:text-green-600"
-                                title="Kích hoạt"
+                                title="KÃ­ch hoáº¡t"
                             >
                                 <CheckCircle2 className="h-4 w-4" />
                             </Button>
@@ -557,12 +557,12 @@ const RolesPermissions = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => {
-                                if (window.confirm('Xóa vai trò này?\nHành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa?')) {
+                                if (window.confirm('XÃ³a vai trÃ² nÃ y?\nHÃ nh Ä‘á»™ng nÃ y khÃ´ng thá»ƒ hoÃ n tÃ¡c. Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a?')) {
                                     handleDeleteRole(record.id);
                                 }
                             }}
                             className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
-                            title="Xóa"
+                            title="XÃ³a"
                         >
                             <Trash2 className="h-4 w-4" />
                         </Button>
@@ -584,7 +584,7 @@ const RolesPermissions = () => {
                         href: '/admin/dashboard'
                     },
                     {
-                        title: 'Quản lý vai trò và quyền',
+                        title: 'Quáº£n lÃ½ vai trÃ² vÃ  quyá»n',
                         icon: <Shield className="h-4 w-4" />
                     }
                 ]}
@@ -595,10 +595,10 @@ const RolesPermissions = () => {
                 <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
                     <div>
                         <h2 className="text-2xl font-bold text-gray-800 m-0 mb-2">
-                            Quản lý vai trò và quyền
+                            Quáº£n lÃ½ vai trÃ² vÃ  quyá»n
                         </h2>
                         <p className="text-gray-500 text-sm m-0">
-                            Quản lý vai trò và phân quyền cho người dùng trong hệ thống
+                            Quáº£n lÃ½ vai trÃ² vÃ  phÃ¢n quyá»n cho ngÆ°á»i dÃ¹ng trong há»‡ thá»‘ng
                         </p>
                     </div>
                     <Button
@@ -606,7 +606,7 @@ const RolesPermissions = () => {
                         onClick={showAddModal}
                     >
                         <Plus className="h-4 w-4 mr-2" />
-                        Thêm vai trò
+                        ThÃªm vai trÃ²
                     </Button>
                 </div>
             </div>
@@ -614,26 +614,26 @@ const RolesPermissions = () => {
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200">
-                    <Statistic
-                        title="Tổng vai trò"
+                    <Metric
+                        label="Tá»•ng vai trÃ²"
                         value={roleStats.total}
-                        prefix={<Shield className="h-4 w-4" />}
+                        leading={<Shield className="h-4 w-4" />}
                         valueStyle={{ color: '#1890ff' }}
                     />
                 </Card>
                 <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200">
-                    <Statistic
-                        title="Vai trò hoạt động"
+                    <Metric
+                        label="Vai trÃ² hoáº¡t Ä‘á»™ng"
                         value={roleStats.active}
-                        prefix={<CheckCircle2 className="h-4 w-4" />}
+                        leading={<CheckCircle2 className="h-4 w-4" />}
                         valueStyle={{ color: '#52c41a' }}
                     />
                 </Card>
                 <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200">
-                    <Statistic
-                        title="Vai trò không hoạt động"
+                    <Metric
+                        label="Vai trÃ² khÃ´ng hoáº¡t Ä‘á»™ng"
                         value={roleStats.inactive}
-                        prefix={<Ban className="h-4 w-4" />}
+                        leading={<Ban className="h-4 w-4" />}
                         valueStyle={{ color: '#ff4d4f' }}
                     />
                 </Card>
@@ -648,7 +648,7 @@ const RolesPermissions = () => {
                     <div>
                         <div className="relative">
                             <Input
-                                placeholder="Tìm kiếm theo tên, mã hoặc mô tả..."
+                                placeholder="TÃ¬m kiáº¿m theo tÃªn, mÃ£ hoáº·c mÃ´ táº£..."
                                 value={searchText}
                                 onChange={(e) => {
                                     setSearchText(e.target.value);
@@ -675,12 +675,12 @@ const RolesPermissions = () => {
                             onValueChange={handleStatusFilterChange}
                         >
                             <SelectTrigger className="h-10 w-full">
-                                <SelectValue placeholder="Lọc theo trạng thái" />
+                                <SelectValue placeholder="Lá»c theo tráº¡ng thÃ¡i" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">Tất cả</SelectItem>
-                                <SelectItem value="active">Hoạt động</SelectItem>
-                                <SelectItem value="inactive">Không hoạt động</SelectItem>
+                                <SelectItem value="all">Táº¥t cáº£</SelectItem>
+                                <SelectItem value="active">Hoáº¡t Ä‘á»™ng</SelectItem>
+                                <SelectItem value="inactive">KhÃ´ng hoáº¡t Ä‘á»™ng</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -695,34 +695,34 @@ const RolesPermissions = () => {
                 {loading ? (
                     <div className="p-12 text-center">
                         <Loader2 className="h-10 w-10 text-indigo-600 animate-spin mx-auto mb-4" />
-                        <p className="text-gray-500">Đang tải dữ liệu...</p>
+                        <p className="text-gray-500">Äang táº£i dá»¯ liá»‡u...</p>
                     </div>
                 ) : roles.length === 0 ? (
                     <div className="p-12 text-center">
-                        <Empty description="Chưa có vai trò nào" />
+                        <Empty description="ChÆ°a cÃ³ vai trÃ² nÃ o" />
                     </div>
                 ) : (
                     <>
-                        <TableWrapper
-                            columns={columns}
+                        <DataTable
+                            fields={columns}
                             data={roles}
-                            rowKey="id"
-                            pagination={false}
+                            getRowId="id"
+                            pageControls={false}
                             className="overflow-x-auto border border-gray-200 rounded-lg"
                         />
                         {pagination.total > 0 && (
                             <div className="mt-4 flex items-center justify-between flex-wrap gap-4 pt-4 border-t border-gray-200">
                                 <div className="text-sm text-gray-600">
-                                    Hiển thị {(pagination.current - 1) * pagination.pageSize + 1} - {Math.min(pagination.current * pagination.pageSize, pagination.total)} trong tổng số {pagination.total} vai trò
+                                    Hiá»ƒn thá»‹ {(pagination.current - 1) * pagination.pageSize + 1} - {Math.min(pagination.current * pagination.pageSize, pagination.total)} trong tá»•ng sá»‘ {pagination.total} vai trÃ²
                                 </div>
                                 <Pagination
-                                    current={pagination.current}
-                                    pageSize={pagination.pageSize}
-                                    total={pagination.total}
-                                    showSizeChanger={true}
-                                    showQuickJumper={true}
-                                    onChange={handleTableChange}
-                                    onShowSizeChange={handlePageSizeChange}
+                                    page={pagination.current}
+                                    itemsPerPage={pagination.pageSize}
+                                    totalItems={pagination.total}
+                                    allowPageSizeChange={true}
+                                    allowPageJump={true}
+                                    onPageChange={handleTableChange}
+                                    onPageSizeChange={handlePageSizeChange}
                                 />
                             </div>
                         )}
@@ -730,11 +730,11 @@ const RolesPermissions = () => {
                 )}
             </Card>
 
-            {/* Modal thêm vai trò */}
-            <Modal
-                title="Thêm vai trò mới"
+            {/* Modal thÃªm vai trÃ² */}
+            <ResponsiveDialog
+                heading="ThÃªm vai trÃ² má»›i"
                 open={isAddModalVisible}
-                onCancel={() => {
+                onClose={() => {
                     setIsAddModalVisible(false);
                     setFormValues({
                         name: '',
@@ -743,17 +743,17 @@ const RolesPermissions = () => {
                         isActive: true
                     });
                 }}
-                footer={null}
-                width={600}
+                actions={null}
+                maxWidth={600}
                 destroyOnClose
             >
                 <form onSubmit={handleAddRole} className="space-y-4 p-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Tên vai trò <span className="text-red-500">*</span>
+                            TÃªn vai trÃ² <span className="text-red-500">*</span>
                         </label>
                         <Input
-                            placeholder="Nhập tên vai trò"
+                            placeholder="Nháº­p tÃªn vai trÃ²"
                             value={formValues.name}
                             onChange={(e) => setFormValues(prev => ({ ...prev, name: e.target.value }))}
                         />
@@ -761,23 +761,23 @@ const RolesPermissions = () => {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Mã vai trò <span className="text-red-500">*</span>
+                            MÃ£ vai trÃ² <span className="text-red-500">*</span>
                         </label>
                         <Input
                             placeholder="VD: ADMIN, USER, MANAGER"
                             value={formValues.code}
                             onChange={(e) => setFormValues(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
                         />
-                        <p className="text-xs text-gray-500 mt-1">Chỉ chứa chữ in hoa và dấu gạch dưới</p>
+                        <p className="text-xs text-gray-500 mt-1">Chá»‰ chá»©a chá»¯ in hoa vÃ  dáº¥u gáº¡ch dÆ°á»›i</p>
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Mô tả
+                            MÃ´ táº£
                         </label>
                         <Textarea
                             rows={4}
-                            placeholder="Nhập mô tả vai trò"
+                            placeholder="Nháº­p mÃ´ táº£ vai trÃ²"
                             value={formValues.description}
                             onChange={(e) => setFormValues(prev => ({ ...prev, description: e.target.value }))}
                         />
@@ -785,14 +785,14 @@ const RolesPermissions = () => {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Trạng thái
+                            Tráº¡ng thÃ¡i
                         </label>
                         <div className="flex items-center space-x-2">
                             <Checkbox
                                 checked={formValues.isActive}
                                 onCheckedChange={(checked) => setFormValues(prev => ({ ...prev, isActive: checked }))}
                             />
-                            <span className="text-sm text-gray-700">Kích hoạt ngay sau khi tạo</span>
+                            <span className="text-sm text-gray-700">KÃ­ch hoáº¡t ngay sau khi táº¡o</span>
                         </div>
                     </div>
 
@@ -810,20 +810,20 @@ const RolesPermissions = () => {
                                 });
                             }}
                         >
-                            Hủy
+                            Há»§y
                         </Button>
                         <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
-                            Thêm vai trò
+                            ThÃªm vai trÃ²
                         </Button>
                     </div>
                 </form>
-            </Modal>
+            </ResponsiveDialog>
 
-            {/* Modal chỉnh sửa vai trò */}
-            <Modal
-                title="Chỉnh sửa vai trò"
+            {/* Modal chá»‰nh sá»­a vai trÃ² */}
+            <ResponsiveDialog
+                heading="Chá»‰nh sá»­a vai trÃ²"
                 open={isEditModalVisible}
-                onCancel={() => {
+                onClose={() => {
                     setIsEditModalVisible(false);
                     setSelectedRole(null);
                     setFormValues({
@@ -833,17 +833,17 @@ const RolesPermissions = () => {
                         isActive: true
                     });
                 }}
-                footer={null}
-                width={600}
+                actions={null}
+                maxWidth={600}
                 destroyOnClose
             >
                 <form onSubmit={handleEditRole} className="space-y-4 p-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Tên vai trò <span className="text-red-500">*</span>
+                            TÃªn vai trÃ² <span className="text-red-500">*</span>
                         </label>
                         <Input
-                            placeholder="Nhập tên vai trò"
+                            placeholder="Nháº­p tÃªn vai trÃ²"
                             value={formValues.name}
                             onChange={(e) => setFormValues(prev => ({ ...prev, name: e.target.value }))}
                         />
@@ -851,23 +851,23 @@ const RolesPermissions = () => {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Mã vai trò <span className="text-red-500">*</span>
+                            MÃ£ vai trÃ² <span className="text-red-500">*</span>
                         </label>
                         <Input
                             placeholder="VD: ADMIN, USER, MANAGER"
                             value={formValues.code}
                             onChange={(e) => setFormValues(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
                         />
-                        <p className="text-xs text-gray-500 mt-1">Chỉ chứa chữ in hoa và dấu gạch dưới</p>
+                        <p className="text-xs text-gray-500 mt-1">Chá»‰ chá»©a chá»¯ in hoa vÃ  dáº¥u gáº¡ch dÆ°á»›i</p>
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Mô tả
+                            MÃ´ táº£
                         </label>
                         <Textarea
                             rows={4}
-                            placeholder="Nhập mô tả vai trò"
+                            placeholder="Nháº­p mÃ´ táº£ vai trÃ²"
                             value={formValues.description}
                             onChange={(e) => setFormValues(prev => ({ ...prev, description: e.target.value }))}
                         />
@@ -875,14 +875,14 @@ const RolesPermissions = () => {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Trạng thái
+                            Tráº¡ng thÃ¡i
                         </label>
                         <div className="flex items-center space-x-2">
                             <Checkbox
                                 checked={formValues.isActive}
                                 onCheckedChange={(checked) => setFormValues(prev => ({ ...prev, isActive: checked }))}
                             />
-                            <span className="text-sm text-gray-700">Kích hoạt</span>
+                            <span className="text-sm text-gray-700">KÃ­ch hoáº¡t</span>
                         </div>
                     </div>
 
@@ -901,33 +901,33 @@ const RolesPermissions = () => {
                                 });
                             }}
                         >
-                            Hủy
+                            Há»§y
                         </Button>
                         <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
-                            Cập nhật
+                            Cáº­p nháº­t
                         </Button>
                     </div>
                 </form>
-            </Modal>
+            </ResponsiveDialog>
 
-            {/* Modal quản lý quyền */}
-            <Modal
-                title={`Quản lý quyền - ${selectedRole?.name || ''}`}
+            {/* Modal quáº£n lÃ½ quyá»n */}
+            <ResponsiveDialog
+                heading={`Quáº£n lÃ½ quyá»n - ${selectedRole?.name || ''}`}
                 open={isPermissionModalVisible}
-                onCancel={() => {
+                onClose={() => {
                     setIsPermissionModalVisible(false);
                     setSelectedRole(null);
                     setPermissionFormValues({ permissions: [] });
                 }}
-                footer={null}
-                width={700}
+                actions={null}
+                maxWidth={700}
                 destroyOnClose
             >
                 {selectedRole && (
                     <>
                         <Alert
-                            message="Chọn các quyền cho vai trò này"
-                            description="Bạn có thể chọn nhiều quyền. Các quyền đã chọn sẽ được áp dụng cho vai trò."
+                            message="Chá»n cÃ¡c quyá»n cho vai trÃ² nÃ y"
+                            description="Báº¡n cÃ³ thá»ƒ chá»n nhiá»u quyá»n. CÃ¡c quyá»n Ä‘Ã£ chá»n sáº½ Ä‘Æ°á»£c Ã¡p dá»¥ng cho vai trÃ²."
                             type="info"
                             showIcon
                             className="mb-4"
@@ -935,7 +935,7 @@ const RolesPermissions = () => {
                         <form onSubmit={handleSavePermissions} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-3">
-                                    Danh sách quyền
+                                    Danh sÃ¡ch quyá»n
                                 </label>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     {permissions.length > 0 ? (
@@ -960,7 +960,7 @@ const RolesPermissions = () => {
                                                         <Key className="h-4 w-4 text-gray-600" />
                                                         <span className="font-semibold text-gray-900">{permission.name}</span>
                                                         {permission.code && (
-                                                            <Tag className="bg-blue-100 text-blue-800">{permission.code}</Tag>
+                                                            <StatusBadge className="bg-blue-100 text-blue-800">{permission.code}</StatusBadge>
                                                         )}
                                                     </div>
                                                     {permission.description && (
@@ -973,7 +973,7 @@ const RolesPermissions = () => {
                                         ))
                                     ) : (
                                         <div className="col-span-2">
-                                            <Empty description="Không có quyền nào" />
+                                            <Empty description="KhÃ´ng cÃ³ quyá»n nÃ o" />
                                         </div>
                                     )}
                                 </div>
@@ -983,12 +983,12 @@ const RolesPermissions = () => {
                                 <>
                                     <Separator />
                                     <div>
-                                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Quyền hiện tại</h4>
+                                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Quyá»n hiá»‡n táº¡i</h4>
                                         <div className="flex flex-wrap gap-2">
                                             {selectedRole.permissions.map(permission => (
-                                                <Tag key={permission.id} className="bg-green-100 text-green-800">
+                                                <StatusBadge key={permission.id} className="bg-green-100 text-green-800">
                                                     {permission.name}
-                                                </Tag>
+                                                </StatusBadge>
                                             ))}
                                         </div>
                                     </div>
@@ -1005,34 +1005,34 @@ const RolesPermissions = () => {
                                         setPermissionFormValues({ permissions: [] });
                                     }}
                                 >
-                                    Hủy
+                                    Há»§y
                                 </Button>
                                 <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
-                                    Lưu quyền
+                                    LÆ°u quyá»n
                                 </Button>
                             </div>
                         </form>
                     </>
                 )}
-            </Modal>
+            </ResponsiveDialog>
 
-            {/* Modal chi tiết vai trò */}
-            <Modal
-                title="Chi tiết vai trò"
+            {/* Modal chi tiáº¿t vai trÃ² */}
+            <ResponsiveDialog
+                heading="Chi tiáº¿t vai trÃ²"
                 open={isDetailModalVisible}
-                onCancel={() => {
+                onClose={() => {
                     setIsDetailModalVisible(false);
                     setSelectedRole(null);
                 }}
-                footer={[
+                actions={[
                     <Button key="close" onClick={() => {
                         setIsDetailModalVisible(false);
                         setSelectedRole(null);
                     }}>
-                        Đóng
+                        ÄÃ³ng
                     </Button>
                 ]}
-                width={700}
+                maxWidth={700}
             >
                 {selectedRole && (
                     <div>
@@ -1042,38 +1042,38 @@ const RolesPermissions = () => {
                                 <span className="text-gray-900">{selectedRole.id || 'N/A'}</span>
                             </div>
                             <div>
-                                <span className="font-semibold text-gray-700">Tên vai trò: </span>
+                                <span className="font-semibold text-gray-700">TÃªn vai trÃ²: </span>
                                 <span className="text-gray-900">{selectedRole.name || 'N/A'}</span>
                             </div>
                             <div>
-                                <span className="font-semibold text-gray-700">Mã vai trò: </span>
-                                <Tag color="blue">{selectedRole.code || 'N/A'}</Tag>
+                                <span className="font-semibold text-gray-700">MÃ£ vai trÃ²: </span>
+                                <StatusBadge tone="blue">{selectedRole.code || 'N/A'}</StatusBadge>
                             </div>
                             <div>
-                                <span className="font-semibold text-gray-700">Mô tả: </span>
+                                <span className="font-semibold text-gray-700">MÃ´ táº£: </span>
                                 <span className="text-gray-900">{selectedRole.description || 'N/A'}</span>
                             </div>
                             <div>
-                                <span className="font-semibold text-gray-700">Trạng thái: </span>
+                                <span className="font-semibold text-gray-700">Tráº¡ng thÃ¡i: </span>
                                 {renderStatus(selectedRole)}
                             </div>
                             <div>
-                                <span className="font-semibold text-gray-700">Số quyền: </span>
-                                <Tag color="purple">
-                                    {selectedRole.permissions?.length || 0} quyền
-                                </Tag>
+                                <span className="font-semibold text-gray-700">Sá»‘ quyá»n: </span>
+                                <StatusBadge tone="purple">
+                                    {selectedRole.permissions?.length || 0} quyá»n
+                                </StatusBadge>
                             </div>
                             {selectedRole.permissions && selectedRole.permissions.length > 0 && (
                                 <div>
                                     <Separator className="my-4">
-                                        <span className="text-sm font-medium text-gray-500">Danh sách quyền</span>
+                                        <span className="text-sm font-medium text-gray-500">Danh sÃ¡ch quyá»n</span>
                                     </Separator>
                                     <div>
                                         {selectedRole.permissions.map(permission => (
-                                            <Tag key={permission.id} color="green" className="mb-2 mr-2">
+                                            <StatusBadge key={permission.id} tone="green" className="mb-2 mr-2">
                                                 {permission.name}
                                                 {permission.code && ` (${permission.code})`}
-                                            </Tag>
+                                            </StatusBadge>
                                         ))}
                                     </div>
                                 </div>
@@ -1081,10 +1081,9 @@ const RolesPermissions = () => {
                         </div>
                     </div>
                 )}
-            </Modal>
+            </ResponsiveDialog>
         </div>
     );
 };
 
 export default RolesPermissions;
-

@@ -1,18 +1,28 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { Eye, Printer, Download, Trash2, Calendar, Clock, Star, User, FileText, Search } from 'lucide-react';
 import moment from 'moment';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Tag } from '@/components/ui/tag';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { RangePicker } from '@/components/ui/date-picker';
+import { DateRangeField } from '@/components/ui/date-field';
 import { Empty } from '@/components/ui/empty';
-import { StatisticCard } from '@/components/ui/statistic';
-import { Rate } from '@/components/ui/rate';
-import { Modal } from '@/components/ui/modal';
-import { Descriptions } from '@/components/ui/descriptions';
-import { TableWrapper } from '@/components/ui/table-wrapper';
+import { MetricCard } from '@/components/ui/metric';
+import { StarRating } from '@/components/ui/star-rating';
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { DetailList, DetailItem } from '@/components/ui/detail-list';
+import { DataTable } from '@/components/ui/data-table';
 import { Tooltip } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
 import useAuth from '@/hooks/useAuth';
@@ -23,16 +33,16 @@ const mockBookings = [
         id: 'BK001',
         movie: 'Spider-Man: No Way Home',
         moviePoster: 'https://image.tmdb.org/t/p/w500/1g0dhYtq4irTY1GPXvft6k4YLjm.jpg',
-        cinema: 'CGV Vincom Đồng Khởi',
-        cinemaAddress: 'Tầng 3, Vincom Center, 72 Lê Thánh Tôn, Q.1',
-        room: 'Phòng 2',
+        cinema: 'CGV Vincom Äá»“ng Khá»Ÿi',
+        cinemaAddress: 'Táº§ng 3, Vincom Center, 72 LÃª ThÃ¡nh TÃ´n, Q.1',
+        room: 'PhÃ²ng 2',
         seats: ['G7', 'G8'],
         showtime: '2024-12-01T14:30:00',
         bookingDate: '2024-11-28T10:15:00',
         quantity: 2,
         totalPrice: 200000,
         status: 'completed',
-        paymentMethod: 'Thẻ tín dụng',
+        paymentMethod: 'Tháº» tÃ­n dá»¥ng',
         hasReviewed: true,
         rating: 5
     },
@@ -41,31 +51,31 @@ const mockBookings = [
         movie: 'Dune: Part Two',
         moviePoster: 'https://image.tmdb.org/t/p/w500/czembW0Rk1Ke7lCJGahbOhdCuhV.jpg',
         cinema: 'Lotte Cinema Landmark 81',
-        cinemaAddress: 'Tầng 4-5, Vincom Landmark 81, Vinhomes Central Park',
-        room: 'Phòng IMAX',
+        cinemaAddress: 'Táº§ng 4-5, Vincom Landmark 81, Vinhomes Central Park',
+        room: 'PhÃ²ng IMAX',
         seats: ['E5', 'E6'],
         showtime: '2024-12-15T19:00:00',
         bookingDate: '2024-12-10T16:30:00',
         quantity: 2,
         totalPrice: 300000,
         status: 'upcoming',
-        paymentMethod: 'Ví điện tử',
+        paymentMethod: 'VÃ­ Ä‘iá»‡n tá»­',
         hasReviewed: false
     },
     {
         id: 'BK003',
         movie: 'Avatar: The Way of Water',
         moviePoster: 'https://image.tmdb.org/t/p/w500/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg',
-        cinema: 'Galaxy Cinema Nguyễn Du',
-        cinemaAddress: 'Số 116 Nguyễn Du, Q.1',
-        room: 'Phòng 3D',
+        cinema: 'Galaxy Cinema Nguyá»…n Du',
+        cinemaAddress: 'Sá»‘ 116 Nguyá»…n Du, Q.1',
+        room: 'PhÃ²ng 3D',
         seats: ['H10'],
         showtime: '2024-11-20T16:45:00',
         bookingDate: '2024-11-18T14:20:00',
         quantity: 1,
         totalPrice: 120000,
         status: 'cancelled',
-        paymentMethod: 'Thẻ ATM',
+        paymentMethod: 'Tháº» ATM',
         refundAmount: 100000,
         hasReviewed: false
     }
@@ -78,7 +88,7 @@ const TicketViewer = ({ ticket }) => {
         <div className="bg-gradient-to-br from-purple-600 to-purple-800 rounded-xl p-6 text-white relative overflow-hidden">
             <div className="text-center mb-5 pb-4 border-b-2 border-dashed border-white/30">
                 <h2 className="text-white m-0 mb-2 text-2xl font-bold">HOT CINEMAS</h2>
-                <p className="m-0 text-sm opacity-90">VÉ XEM PHIM ĐIỆN TỬ</p>
+                <p className="m-0 text-sm opacity-90">VÃ‰ XEM PHIM ÄIá»†N Tá»¬</p>
             </div>
 
             <div className="grid grid-cols-2 gap-5 mb-5">
@@ -87,7 +97,7 @@ const TicketViewer = ({ ticket }) => {
                         <strong className="text-base">{ticket.movie}</strong>
                     </div>
                     <div className="text-sm opacity-90">
-                        📍 {ticket.cinema}
+                        ðŸ“ {ticket.cinema}
                     </div>
                     <div className="text-xs opacity-80 mt-1">
                         {ticket.cinemaAddress}
@@ -95,13 +105,13 @@ const TicketViewer = ({ ticket }) => {
                 </div>
                 <div className="text-right">
                     <div className="text-sm mb-1">
-                        📅 {moment(ticket.showtime).format('DD/MM/YYYY')}
+                        ðŸ“… {moment(ticket.showtime).format('DD/MM/YYYY')}
                     </div>
                     <div className="text-sm mb-1">
-                        🕐 {moment(ticket.showtime).format('HH:mm')}
+                        ðŸ• {moment(ticket.showtime).format('HH:mm')}
                     </div>
                     <div className="text-sm">
-                        🎬 {ticket.room}
+                        ðŸŽ¬ {ticket.room}
                     </div>
                 </div>
             </div>
@@ -109,15 +119,15 @@ const TicketViewer = ({ ticket }) => {
             <div className="bg-white/10 rounded-lg p-4 mb-4">
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <div className="text-xs opacity-80 mb-1">GHẾ NGỒI</div>
+                        <div className="text-xs opacity-80 mb-1">GHáº¾ NGá»’I</div>
                         <div className="text-lg font-bold">
                             {ticket.seats.join(', ')}
                         </div>
                     </div>
                     <div className="text-right">
-                        <div className="text-xs opacity-80 mb-1">TỔNG TIỀN</div>
+                        <div className="text-xs opacity-80 mb-1">Tá»”NG TIá»€N</div>
                         <div className="text-lg font-bold">
-                            {ticket.totalPrice.toLocaleString('vi-VN')} VNĐ
+                            {ticket.totalPrice.toLocaleString('vi-VN')} VNÄ
                         </div>
                     </div>
                 </div>
@@ -125,12 +135,12 @@ const TicketViewer = ({ ticket }) => {
 
             <div className="grid grid-cols-2 gap-4 text-xs">
                 <div>
-                    <div className="opacity-80">Mã vé: <strong>{ticket.id}</strong></div>
-                    <div className="opacity-80">Số lượng: {ticket.quantity} vé</div>
+                    <div className="opacity-80">MÃ£ vÃ©: <strong>{ticket.id}</strong></div>
+                    <div className="opacity-80">Sá»‘ lÆ°á»£ng: {ticket.quantity} vÃ©</div>
                 </div>
                 <div className="text-right">
-                    <div className="opacity-80">Ngày đặt: {moment(ticket.bookingDate).format('DD/MM/YYYY')}</div>
-                    <div className="opacity-80">Thanh toán: {ticket.paymentMethod}</div>
+                    <div className="opacity-80">NgÃ y Ä‘áº·t: {moment(ticket.bookingDate).format('DD/MM/YYYY')}</div>
+                    <div className="opacity-80">Thanh toÃ¡n: {ticket.paymentMethod}</div>
                 </div>
             </div>
 
@@ -139,15 +149,16 @@ const TicketViewer = ({ ticket }) => {
             </div>
 
             <div className="mt-5 pt-4 border-t border-dashed border-white/30 text-center text-xs opacity-80">
-                <p className="m-0 mb-1">Vui lòng có mặt tại rạp trước 15 phút</p>
+                <p className="m-0 mb-1">Vui lÃ²ng cÃ³ máº·t táº¡i ráº¡p trÆ°á»›c 15 phÃºt</p>
                 <p className="m-0 mb-1">Hotline: 1900-6017 | Website: hotcinemas.vn</p>
-                <p className="m-0">Xem vé lúc: {moment().format('DD/MM/YYYY HH:mm:ss')}</p>
+                <p className="m-0">Xem vÃ© lÃºc: {moment().format('DD/MM/YYYY HH:mm:ss')}</p>
             </div>
         </div>
     );
 };
 
 const BookingHistory = () => {
+    const [bookingToCancel, setBookingToCancel] = useState(null);
     const { isAuthenticated } = useAuth();
     const notification = useNotification();
     const [searchText, setSearchText] = useState('');
@@ -196,11 +207,11 @@ const BookingHistory = () => {
 
     const getStatusText = (status) => {
         switch (status) {
-            case 'completed': return 'Đã hoàn thành';
-            case 'upcoming': return 'Sắp chiếu';
-            case 'cancelled': return 'Đã hủy';
-            case 'expired': return 'Đã hết hạn';
-            default: return 'Không xác định';
+            case 'completed': return 'ÄÃ£ hoÃ n thÃ nh';
+            case 'upcoming': return 'Sáº¯p chiáº¿u';
+            case 'cancelled': return 'ÄÃ£ há»§y';
+            case 'expired': return 'ÄÃ£ háº¿t háº¡n';
+            default: return 'KhÃ´ng xÃ¡c Ä‘á»‹nh';
         }
     };
 
@@ -220,7 +231,7 @@ const BookingHistory = () => {
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Vé xem phim - ${booking.id}</title>
+                <title>VÃ© xem phim - ${booking.id}</title>
                 <style>
                     body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
                     .ticket { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; max-width: 400px; margin: 0 auto; border-radius: 12px; padding: 24px; position: relative; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
@@ -245,47 +256,47 @@ const BookingHistory = () => {
                 <div class="ticket">
                     <div class="header">
                         <h1>HOT CINEMAS</h1>
-                        <p>VÉ XEM PHIM ĐIỆN TỬ</p>
+                        <p>VÃ‰ XEM PHIM ÄIá»†N Tá»¬</p>
                     </div>
                     <div class="content">
                         <div class="movie-info">
                             <h2>${booking.movie}</h2>
-                            <div>📍 ${booking.cinema}</div>
+                            <div>ðŸ“ ${booking.cinema}</div>
                             <div style="font-size: 12px; opacity: 0.8; margin-top: 4px;">${booking.cinemaAddress}</div>
                         </div>
                         <div class="cinema-info">
-                            <div>📅 ${moment(booking.showtime).format('DD/MM/YYYY')}</div>
-                            <div>🕐 ${moment(booking.showtime).format('HH:mm')}</div>
-                            <div>🎬 ${booking.room}</div>
+                            <div>ðŸ“… ${moment(booking.showtime).format('DD/MM/YYYY')}</div>
+                            <div>ðŸ• ${moment(booking.showtime).format('HH:mm')}</div>
+                            <div>ðŸŽ¬ ${booking.room}</div>
                         </div>
                     </div>
                     <div class="details">
                         <div class="details-grid">
                             <div>
-                                <div style="font-size: 12px; opacity: 0.8; margin-bottom: 4px;">GHẾ NGỒI</div>
+                                <div style="font-size: 12px; opacity: 0.8; margin-bottom: 4px;">GHáº¾ NGá»’I</div>
                                 <div class="seats">${booking.seats.join(', ')}</div>
                             </div>
                             <div class="price">
-                                <div style="font-size: 12px; opacity: 0.8; margin-bottom: 4px; text-align: right;">TỔNG TIỀN</div>
-                                <div>${booking.totalPrice.toLocaleString('vi-VN')} VNĐ</div>
+                                <div style="font-size: 12px; opacity: 0.8; margin-bottom: 4px; text-align: right;">Tá»”NG TIá»€N</div>
+                                <div>${booking.totalPrice.toLocaleString('vi-VN')} VNÄ</div>
                             </div>
                         </div>
                     </div>
                     <div class="booking-details">
                         <div>
-                            <div>Mã vé: <strong>${booking.id}</strong></div>
-                            <div>Số lượng: ${booking.quantity} vé</div>
+                            <div>MÃ£ vÃ©: <strong>${booking.id}</strong></div>
+                            <div>Sá»‘ lÆ°á»£ng: ${booking.quantity} vÃ©</div>
                         </div>
                         <div style="text-align: right;">
-                            <div>Ngày đặt: ${moment(booking.bookingDate).format('DD/MM/YYYY')}</div>
-                            <div>Thanh toán: ${booking.paymentMethod}</div>
+                            <div>NgÃ y Ä‘áº·t: ${moment(booking.bookingDate).format('DD/MM/YYYY')}</div>
+                            <div>Thanh toÃ¡n: ${booking.paymentMethod}</div>
                         </div>
                     </div>
                     <div class="qr-code">QR</div>
                     <div class="footer">
-                        <p>Vui lòng có mặt tại rạp trước 15 phút</p>
+                        <p>Vui lÃ²ng cÃ³ máº·t táº¡i ráº¡p trÆ°á»›c 15 phÃºt</p>
                         <p>Hotline: 1900-6017 | Website: hotcinemas.vn</p>
-                        <p>In vé lúc: ${moment().format('DD/MM/YYYY HH:mm:ss')}</p>
+                        <p>In vÃ© lÃºc: ${moment().format('DD/MM/YYYY HH:mm:ss')}</p>
                     </div>
                 </div>
             </body>
@@ -302,22 +313,16 @@ const BookingHistory = () => {
     };
 
     const handleDownloadTicket = (bookingId) => {
-        notification.success(`Đang tải vé ${bookingId}...`);
+        notification.success(`Äang táº£i vÃ© ${bookingId}...`);
     };
 
     const handleCancelBooking = (bookingId) => {
-        Modal.confirm({
-            title: 'Xác nhận hủy vé',
-            content: 'Bạn có chắc chắn muốn hủy vé này không? Hành động này không thể hoàn tác.',
-            onOk: () => {
-                notification.success(`Đã hủy vé ${bookingId}`);
-            }
-        });
+        setBookingToCancel(bookingId);
     };
 
     const columns = [
         {
-            title: 'Mã vé',
+            title: 'MÃ£ vÃ©',
             dataIndex: 'id',
             key: 'id',
             width: 100,
@@ -347,7 +352,7 @@ const BookingHistory = () => {
             )
         },
         {
-            title: 'Rạp chiếu',
+            title: 'Ráº¡p chiáº¿u',
             dataIndex: 'cinema',
             key: 'cinema',
             width: 180,
@@ -360,20 +365,20 @@ const BookingHistory = () => {
             )
         },
         {
-            title: 'Ghế',
+            title: 'Gháº¿',
             dataIndex: 'seats',
             key: 'seats',
             width: 100,
             render: (seats) => (
                 <div className="flex flex-wrap gap-1">
                     {seats.map(seat => (
-                        <Tag key={seat} color="blue">{seat}</Tag>
+                        <StatusBadge key={seat} tone="blue">{seat}</StatusBadge>
                     ))}
                 </div>
             )
         },
         {
-            title: 'Suất chiếu',
+            title: 'Suáº¥t chiáº¿u',
             dataIndex: 'showtime',
             key: 'showtime',
             width: 140,
@@ -391,34 +396,34 @@ const BookingHistory = () => {
             )
         },
         {
-            title: 'Tổng tiền',
+            title: 'Tá»•ng tiá»n',
             dataIndex: 'totalPrice',
             key: 'totalPrice',
             width: 120,
             render: (price) => (
                 <span className="font-semibold text-primary">
-                    {new Intl.NumberFormat('vi-VN').format(price)}đ
+                    {new Intl.NumberFormat('vi-VN').format(price)}Ä‘
                 </span>
             )
         },
         {
-            title: 'Trạng thái',
+            title: 'Tráº¡ng thÃ¡i',
             dataIndex: 'status',
             key: 'status',
             width: 120,
             render: (status) => (
-                <Tag color={getStatusColor(status)}>
+                <StatusBadge tone={getStatusColor(status)}>
                     {getStatusText(status)}
-                </Tag>
+                </StatusBadge>
             )
         },
         {
-            title: 'Thao tác',
+            title: 'Thao tÃ¡c',
             key: 'actions',
             width: 180,
             render: (_, record) => (
                 <div className="flex items-center gap-2">
-                    <Tooltip content="Xem chi tiết">
+                    <Tooltip content="Xem chi tiáº¿t">
                         <Button
                             variant="ghost"
                             size="sm"
@@ -429,7 +434,7 @@ const BookingHistory = () => {
                     </Tooltip>
                     {(record.status === 'completed' || record.status === 'upcoming') && (
                         <>
-                            <Tooltip content="Xem vé">
+                            <Tooltip content="Xem vÃ©">
                                 <Button
                                     variant="ghost"
                                     size="sm"
@@ -439,7 +444,7 @@ const BookingHistory = () => {
                                     <FileText className="h-4 w-4" />
                                 </Button>
                             </Tooltip>
-                            <Tooltip content="In vé">
+                            <Tooltip content="In vÃ©">
                                 <Button
                                     variant="ghost"
                                     size="sm"
@@ -452,7 +457,7 @@ const BookingHistory = () => {
                         </>
                     )}
                     {record.status === 'completed' && (
-                        <Tooltip content="Tải vé">
+                        <Tooltip content="Táº£i vÃ©">
                             <Button
                                 variant="ghost"
                                 size="sm"
@@ -463,7 +468,7 @@ const BookingHistory = () => {
                         </Tooltip>
                     )}
                     {record.status === 'upcoming' && (
-                        <Tooltip content="Hủy vé">
+                        <Tooltip content="Há»§y vÃ©">
                             <Button
                                 variant="ghost"
                                 size="sm"
@@ -491,10 +496,10 @@ const BookingHistory = () => {
             <div className="p-12 text-center min-h-screen flex items-center justify-center">
                 <Card className="max-w-md mx-auto">
                     <User className="w-12 h-12 text-primary mx-auto mb-5" />
-                    <h3 className="text-xl font-bold mb-2">Bạn chưa đăng nhập</h3>
-                    <p className="text-gray-600 mb-4">Vui lòng đăng nhập để xem lịch sử đặt vé</p>
+                    <h3 className="text-xl font-bold mb-2">Báº¡n chÆ°a Ä‘Äƒng nháº­p</h3>
+                    <p className="text-gray-600 mb-4">Vui lÃ²ng Ä‘Äƒng nháº­p Ä‘á»ƒ xem lá»‹ch sá»­ Ä‘áº·t vÃ©</p>
                     <Button href="/login-demo">
-                        Đăng nhập
+                        ÄÄƒng nháº­p
                     </Button>
                 </Card>
             </div>
@@ -506,43 +511,43 @@ const BookingHistory = () => {
             <div className="max-w-[1200px] mx-auto">
                 <div className="mb-6">
                     <h2 className="text-blue-600 mb-2 text-2xl font-bold">
-                        📋 Lịch sử đặt vé
+                        ðŸ“‹ Lá»‹ch sá»­ Ä‘áº·t vÃ©
                     </h2>
                     <p className="text-gray-600 text-base">
-                        Quản lý và theo dõi tất cả các vé đã đặt của bạn
+                        Quáº£n lÃ½ vÃ  theo dÃµi táº¥t cáº£ cÃ¡c vÃ© Ä‘Ã£ Ä‘áº·t cá»§a báº¡n
                     </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     <Card>
-                        <StatisticCard
-                            title="Tổng số vé"
+                        <MetricCard
+                            label="Tá»•ng sá»‘ vÃ©"
                             value={totalBookings}
-                            valueStyle={{ color: '#3f8600' }}
+                            valueCss={{ color: '#3f8600' }}
                             icon={<Calendar className="h-6 w-6" />}
                         />
                     </Card>
                     <Card>
-                        <StatisticCard
-                            title="Đã hoàn thành"
+                        <MetricCard
+                            label="ÄÃ£ hoÃ n thÃ nh"
                             value={completedBookings}
-                            valueStyle={{ color: '#52c41a' }}
+                            valueCss={{ color: '#52c41a' }}
                             icon={<Star className="h-6 w-6" />}
                         />
                     </Card>
                     <Card>
-                        <StatisticCard
-                            title="Sắp chiếu"
+                        <MetricCard
+                            label="Sáº¯p chiáº¿u"
                             value={upcomingBookings}
-                            valueStyle={{ color: '#1890ff' }}
+                            valueCss={{ color: '#1890ff' }}
                             icon={<Clock className="h-6 w-6" />}
                         />
                     </Card>
                     <Card>
-                        <StatisticCard
-                            title="Tổng chi tiêu"
-                            value={`${new Intl.NumberFormat('vi-VN').format(totalSpent)}đ`}
-                            valueStyle={{ color: '#faad14' }}
+                        <MetricCard
+                            label="Tá»•ng chi tiÃªu"
+                            value={`${new Intl.NumberFormat('vi-VN').format(totalSpent)}Ä‘`}
+                            valueCss={{ color: '#faad14' }}
                             icon={<Star className="h-6 w-6" />}
                         />
                     </Card>
@@ -553,39 +558,39 @@ const BookingHistory = () => {
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                             <Input
-                                placeholder="Tìm kiếm theo tên phim, rạp, mã vé..."
+                                placeholder="TÃ¬m kiáº¿m theo tÃªn phim, ráº¡p, mÃ£ vÃ©..."
                                 value={searchText}
                                 onChange={e => setSearchText(e.target.value)}
                                 className="pl-10 h-10"
                             />
                         </div>
                         <Select
-                            placeholder="Trạng thái"
+                            placeholder="Tráº¡ng thÃ¡i"
                             value={statusFilter}
                             onValueChange={setStatusFilter}
                         >
-                            <option value="completed">Đã hoàn thành</option>
-                            <option value="upcoming">Sắp chiếu</option>
-                            <option value="cancelled">Đã hủy</option>
-                            <option value="expired">Đã hết hạn</option>
+                            <option value="completed">ÄÃ£ hoÃ n thÃ nh</option>
+                            <option value="upcoming">Sáº¯p chiáº¿u</option>
+                            <option value="cancelled">ÄÃ£ há»§y</option>
+                            <option value="expired">ÄÃ£ háº¿t háº¡n</option>
                         </Select>
-                        <RangePicker
+                        <DateRangeField
                             value={dateRange}
-                            onChange={setDateRange}
-                            format="DD/MM/YYYY"
+                            onValueChange={setDateRange}
+                            displayFormat="DD/MM/YYYY"
                         />
                     </div>
                 </Card>
 
                 <Card>
                     {filteredBookings.length === 0 ? (
-                        <Empty description="Không tìm thấy vé nào" />
+                        <Empty description="KhÃ´ng tÃ¬m tháº¥y vÃ© nÃ o" />
                     ) : (
-                        <TableWrapper
-                            columns={columns}
-                            dataSource={filteredBookings}
-                            rowKey="id"
-                            pagination={{
+                        <DataTable
+                            fields={columns}
+                            rows={filteredBookings}
+                            getRowId="id"
+                            pageControls={{
                                 showSizeChanger: true,
                                 showQuickJumper: true,
                             }}
@@ -593,14 +598,14 @@ const BookingHistory = () => {
                     )}
                 </Card>
 
-                <Modal
-                    title="Chi tiết đặt vé"
+                <ResponsiveDialog
+                    heading="Chi tiáº¿t Ä‘áº·t vÃ©"
                     open={detailModalVisible}
-                    onCancel={() => setDetailModalVisible(false)}
+                    onClose={() => setDetailModalVisible(false)}
                     width={700}
                     footer={[
                         <Button key="close" variant="outline" onClick={() => setDetailModalVisible(false)}>
-                            Đóng
+                            ÄÃ³ng
                         </Button>,
                         (selectedBooking?.status === 'completed' || selectedBooking?.status === 'upcoming') && (
                             <Button
@@ -609,7 +614,7 @@ const BookingHistory = () => {
                                 className="bg-blue-600 text-white"
                             >
                                 <FileText className="h-4 w-4 mr-2" />
-                                Xem vé
+                                Xem vÃ©
                             </Button>
                         ),
                         (selectedBooking?.status === 'completed' || selectedBooking?.status === 'upcoming') && (
@@ -619,7 +624,7 @@ const BookingHistory = () => {
                                 className="bg-green-600 text-white"
                             >
                                 <Printer className="h-4 w-4 mr-2" />
-                                In vé
+                                In vÃ©
                             </Button>
                         ),
                         selectedBooking?.status === 'completed' && (
@@ -628,7 +633,7 @@ const BookingHistory = () => {
                                 onClick={() => handleDownloadTicket(selectedBooking?.id)}
                             >
                                 <Download className="h-4 w-4 mr-2" />
-                                Tải vé
+                                Táº£i vÃ©
                             </Button>
                         ),
                         selectedBooking?.status === 'upcoming' && (
@@ -641,7 +646,7 @@ const BookingHistory = () => {
                                 }}
                             >
                                 <Trash2 className="h-4 w-4 mr-2" />
-                                Hủy vé
+                                Há»§y vÃ©
                             </Button>
                         )
                     ].filter(Boolean)}
@@ -661,68 +666,68 @@ const BookingHistory = () => {
                                     <h4 className="text-lg font-bold mb-2">
                                         {selectedBooking.movie}
                                     </h4>
-                                    <Tag color={getStatusColor(selectedBooking.status)} className="mb-4">
+                                    <StatusBadge tone={getStatusColor(selectedBooking.status)} className="mb-4">
                                         {getStatusText(selectedBooking.status)}
-                                    </Tag>
+                                    </StatusBadge>
                                     <Separator className="mb-4" />
-                                    <Descriptions column={1}>
-                                        <Descriptions.Item label="Mã vé">
+                                    <DetailList columns={1}>
+                                        <DetailItem label="MÃ£ vÃ©">
                                             <span className="font-semibold">{selectedBooking.id}</span>
-                                        </Descriptions.Item>
-                                        <Descriptions.Item label="Rạp chiếu">
+                                        </DetailItem>
+                                        <DetailItem label="Ráº¡p chiáº¿u">
                                             {selectedBooking.cinema}
-                                        </Descriptions.Item>
-                                        <Descriptions.Item label="Địa chỉ">
+                                        </DetailItem>
+                                        <DetailItem label="Äá»‹a chá»‰">
                                             {selectedBooking.cinemaAddress}
-                                        </Descriptions.Item>
-                                        <Descriptions.Item label="Phòng chiếu">
+                                        </DetailItem>
+                                        <DetailItem label="PhÃ²ng chiáº¿u">
                                             {selectedBooking.room}
-                                        </Descriptions.Item>
-                                        <Descriptions.Item label="Ghế ngồi">
+                                        </DetailItem>
+                                        <DetailItem label="Gháº¿ ngá»“i">
                                             <div className="flex flex-wrap gap-1">
                                                 {selectedBooking.seats.map(seat => (
-                                                    <Tag key={seat} color="blue">{seat}</Tag>
+                                                    <StatusBadge key={seat} tone="blue">{seat}</StatusBadge>
                                                 ))}
                                             </div>
-                                        </Descriptions.Item>
-                                        <Descriptions.Item label="Suất chiếu">
+                                        </DetailItem>
+                                        <DetailItem label="Suáº¥t chiáº¿u">
                                             {moment(selectedBooking.showtime).format('DD/MM/YYYY HH:mm')}
-                                        </Descriptions.Item>
-                                        <Descriptions.Item label="Ngày đặt">
+                                        </DetailItem>
+                                        <DetailItem label="NgÃ y Ä‘áº·t">
                                             {moment(selectedBooking.bookingDate).format('DD/MM/YYYY HH:mm')}
-                                        </Descriptions.Item>
-                                        <Descriptions.Item label="Phương thức thanh toán">
+                                        </DetailItem>
+                                        <DetailItem label="PhÆ°Æ¡ng thá»©c thanh toÃ¡n">
                                             {selectedBooking.paymentMethod}
-                                        </Descriptions.Item>
-                                        <Descriptions.Item label="Tổng tiền">
+                                        </DetailItem>
+                                        <DetailItem label="Tá»•ng tiá»n">
                                             <span className="font-semibold text-primary text-lg">
-                                                {new Intl.NumberFormat('vi-VN').format(selectedBooking.totalPrice)}đ
+                                                {new Intl.NumberFormat('vi-VN').format(selectedBooking.totalPrice)}Ä‘
                                             </span>
-                                        </Descriptions.Item>
+                                        </DetailItem>
                                         {selectedBooking.status === 'cancelled' && selectedBooking.refundAmount && (
-                                            <Descriptions.Item label="Số tiền hoàn">
+                                            <DetailItem label="Sá»‘ tiá»n hoÃ n">
                                                 <span className="font-semibold text-green-600">
-                                                    {new Intl.NumberFormat('vi-VN').format(selectedBooking.refundAmount)}đ
+                                                    {new Intl.NumberFormat('vi-VN').format(selectedBooking.refundAmount)}Ä‘
                                                 </span>
-                                            </Descriptions.Item>
+                                            </DetailItem>
                                         )}
                                         {selectedBooking.hasReviewed && (
-                                            <Descriptions.Item label="Đánh giá của bạn">
-                                                <Rate disabled value={selectedBooking.rating} />
-                                            </Descriptions.Item>
+                                            <DetailItem label="ÄÃ¡nh giÃ¡ cá»§a báº¡n">
+                                                <StarRating readOnly value={selectedBooking.rating} />
+                                            </DetailItem>
                                         )}
-                                    </Descriptions>
+                                    </DetailList>
                                 </div>
                             </div>
                         </div>
                     )}
-                </Modal>
+                </ResponsiveDialog>
 
-                <Modal
-                    title={
+                <ResponsiveDialog
+                    heading={
                         <span className="flex items-center gap-2">
                             <FileText className="h-5 w-5" />
-                            Xem vé
+                            Xem vÃ©
                         </span>
                     }
                     open={ticketViewerVisible}
@@ -730,7 +735,7 @@ const BookingHistory = () => {
                     width={600}
                     footer={[
                         <Button key="close" variant="outline" onClick={() => setTicketViewerVisible(false)}>
-                            Đóng
+                            ÄÃ³ng
                         </Button>,
                         <Button
                             key="print"
@@ -740,12 +745,34 @@ const BookingHistory = () => {
                             }}
                         >
                             <Printer className="h-4 w-4 mr-2" />
-                            In vé
+                            In vÃ©
                         </Button>
                     ]}
                 >
                     {ticketToView && <TicketViewer ticket={ticketToView} />}
-                </Modal>
+                </ResponsiveDialog>
+
+                <AlertDialog open={Boolean(bookingToCancel)} onOpenChange={(open) => !open && setBookingToCancel(null)}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>XÃ¡c nháº­n há»§y vÃ©</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n há»§y vÃ© nÃ y khÃ´ng? HÃ nh Ä‘á»™ng nÃ y khÃ´ng thá»ƒ hoÃ n tÃ¡c.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Giá»¯ láº¡i vÃ©</AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={() => {
+                                    notification.success(`ÄÃ£ há»§y vÃ© ${bookingToCancel}`);
+                                    setBookingToCancel(null);
+                                }}
+                            >
+                                Há»§y vÃ©
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </div>
     );

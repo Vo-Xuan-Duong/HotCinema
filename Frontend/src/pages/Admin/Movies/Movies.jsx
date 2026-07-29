@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { TableWrapper } from '@/components/ui/table-wrapper';
+import { DataTable } from '@/components/ui/data-table';
 import { Pagination } from '@/components/ui/pagination';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Tag } from '@/components/ui/tag';
-import { Rate } from '@/components/ui/rate';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { StarRating } from '@/components/ui/star-rating';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import {
   Edit,
@@ -69,7 +69,7 @@ const Movies = () => {
       const searchParams = {
         page: pagination.current - 1, // Backend uses 0-based index
         size: pagination.pageSize,
-        sort: 'releaseDate,desc' // Sắp xếp theo ngày phát hành từ mới đến cũ
+        sort: 'releaseDate,desc' // Sáº¯p xáº¿p theo ngÃ y phÃ¡t hÃ nh tá»« má»›i Ä‘áº¿n cÅ©
       };
 
       // Add keyword if searchText exists
@@ -114,43 +114,43 @@ const Movies = () => {
         response = await movieService.getAllMovies(listParams);
       }
 
-      // Xử lý response với nhiều cấu trúc có thể có
+      // Xá»­ lÃ½ response vá»›i nhiá»u cáº¥u trÃºc cÃ³ thá»ƒ cÃ³
       console.log('Full response:', response);
 
       let moviesData = [];
       let totalCount = 0;
 
-      // Case 1: Response có cấu trúc Page object: { content: [...], totalElements, ... }
+      // Case 1: Response cÃ³ cáº¥u trÃºc Page object: { content: [...], totalElements, ... }
       if (response && Array.isArray(response.content)) {
         moviesData = response.content;
         totalCount = response.totalElements || response.content.length;
       }
-      // Case 2: Response có data.content (nested trong data)
+      // Case 2: Response cÃ³ data.content (nested trong data)
       else if (response?.data && Array.isArray(response.data.content)) {
         moviesData = response.data.content;
         totalCount = response.data.totalElements || response.data.content.length;
       }
-      // Case 3: Response là array trực tiếp
+      // Case 3: Response lÃ  array trá»±c tiáº¿p
       else if (Array.isArray(response)) {
         moviesData = response;
         totalCount = response.length;
       }
-      // Case 4: Response có data là array
+      // Case 4: Response cÃ³ data lÃ  array
       else if (response?.data && Array.isArray(response.data)) {
         moviesData = response.data;
         totalCount = response.data.length;
       }
-      // Case 5: Response có items thay vì content
+      // Case 5: Response cÃ³ items thay vÃ¬ content
       else if (response && Array.isArray(response.items)) {
         moviesData = response.items;
         totalCount = response.totalElements || response.items.length;
       }
-      // Case 6: Response có results thay vì content
+      // Case 6: Response cÃ³ results thay vÃ¬ content
       else if (response && Array.isArray(response.results)) {
         moviesData = response.results;
         totalCount = response.totalElements || response.results.length;
       }
-      // Default: không có dữ liệu
+      // Default: khÃ´ng cÃ³ dá»¯ liá»‡u
       else {
         console.warn('Unexpected response structure:', response);
         moviesData = [];
@@ -167,7 +167,7 @@ const Movies = () => {
       }));
     } catch (error) {
       console.error('Error loading movies:', error);
-      notification.error('Lỗi khi tải danh sách phim');
+      notification.error('Lá»—i khi táº£i danh sÃ¡ch phim');
       setMovies([]);
       setPagination(prev => ({ ...prev, total: 0 }));
     } finally {
@@ -186,11 +186,11 @@ const Movies = () => {
   const handleDeleteMovie = async (movieId) => {
     try {
       await movieService.deleteMovie(movieId);
-      notification.success('Xóa phim thành công!');
-      loadMovies(); // Reload danh sách
+      notification.success('XÃ³a phim thÃ nh cÃ´ng!');
+      loadMovies(); // Reload danh sÃ¡ch
     } catch (error) {
       console.error('Error deleting movie:', error);
-      notification.error(error.response?.data?.message || 'Lỗi khi xóa phim');
+      notification.error(error.response?.data?.message || 'Lá»—i khi xÃ³a phim');
     }
   };
 
@@ -258,13 +258,13 @@ const Movies = () => {
       ),
     },
     {
-      title: 'Tên Phim',
+      title: 'TÃªn Phim',
       dataIndex: 'title',
       key: 'title',
       width: 280,
       render: (title, record) => {
         const durationMinutes = record.durationMinutes || record.durationFormatted || record.runtime || record.duration || 0;
-        const durationFormatted = record.durationFormatted || `${durationMinutes} phút`;
+        const durationFormatted = record.durationFormatted || `${durationMinutes} phÃºt`;
 
         return (
           <div>
@@ -288,9 +288,9 @@ const Movies = () => {
             </div>
             {record.rating && (
               <div>
-                <Tag color="purple" style={{ fontSize: '11px', margin: 0 }}>
+                <StatusBadge tone="purple" style={{ fontSize: '11px', margin: 0 }}>
                   {record.rating}
-                </Tag>
+                </StatusBadge>
               </div>
             )}
           </div>
@@ -298,7 +298,7 @@ const Movies = () => {
       },
     },
     {
-      title: 'Thể Loại',
+      title: 'Thá»ƒ Loáº¡i',
       dataIndex: 'genres',
       key: 'genres',
       render: (genres, record) => {
@@ -309,9 +309,9 @@ const Movies = () => {
         return (
           <div>
             {genreList.slice(0, 3).map((g, index) => (
-              <Tag key={index} color="blue" style={{ marginBottom: '4px' }}>
+              <StatusBadge key={index} tone="blue" style={{ marginBottom: '4px' }}>
                 {g}
-              </Tag>
+              </StatusBadge>
             ))}
             {genreList.length > 3 && <span className="text-gray-500">...</span>}
           </div>
@@ -319,13 +319,13 @@ const Movies = () => {
       },
     },
     {
-      title: 'Ngày Phát Hành',
+      title: 'NgÃ y PhÃ¡t HÃ nh',
       dataIndex: 'releaseDate',
       key: 'releaseDate',
       render: (date) => date ? dayjs(date).format('DD/MM/YYYY') : '-'
     },
     {
-      title: 'Đánh Giá',
+      title: 'ÄÃ¡nh GiÃ¡',
       dataIndex: 'averageRating',
       key: 'averageRating',
       width: 140,
@@ -364,42 +364,42 @@ const Movies = () => {
               )}
             </div>
             {ratingValue > 0 && (
-              <Rate
-                disabled
+              <StarRating
+                readOnly
                 value={ratingValue / 2}
-                allowHalf
+                precision={0.5}
                 style={{ fontSize: '12px' }}
                 count={5}
               />
             )}
             {ratingValue === 0 && (
-              <span className="text-gray-500 text-[11px]">Chưa có đánh giá</span>
+              <span className="text-gray-500 text-[11px]">ChÆ°a cÃ³ Ä‘Ã¡nh giÃ¡</span>
             )}
           </div>
         );
       },
     },
     {
-      title: 'Trạng thái',
+      title: 'Tráº¡ng thÃ¡i',
       dataIndex: 'status',
       key: 'status',
       render: (status) => {
         // Map status values to display
         const statusMap = {
-          'NOW_SHOWING': { text: 'Đang chiếu', color: 'green' },
-          'COMING_SOON': { text: 'Sắp chiếu', color: 'orange' },
-          'ENDED': { text: 'Đã kết thúc', color: 'default' }
+          'NOW_SHOWING': { text: 'Äang chiáº¿u', color: 'green' },
+          'COMING_SOON': { text: 'Sáº¯p chiáº¿u', color: 'orange' },
+          'ENDED': { text: 'ÄÃ£ káº¿t thÃºc', color: 'default' }
         };
         const statusInfo = statusMap[status] || { text: status || 'N/A', color: 'default' };
         return (
-          <Tag color={statusInfo.color}>
+          <StatusBadge tone={statusInfo.color}>
             {statusInfo.text}
-          </Tag>
+          </StatusBadge>
         );
       },
     },
     {
-      title: 'Thao Tác',
+      title: 'Thao TÃ¡c',
       key: 'actions',
       render: (_, record) => (
         <div className="flex items-center gap-2">
@@ -409,20 +409,20 @@ const Movies = () => {
             className="bg-blue-500 hover:bg-blue-600 text-white"
           >
             <Edit className="h-4 w-4 mr-1" />
-            Sửa
+            Sá»­a
           </Button>
           <Button
             variant="destructive"
             size="sm"
             onClick={() => {
-              if (window.confirm('Bạn có chắc chắn muốn xóa phim này?')) {
+              if (window.confirm('Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a phim nÃ y?')) {
                 handleDeleteMovie(record.id);
               }
             }}
             className="bg-red-500 hover:bg-red-600 text-white"
           >
             <Trash2 className="h-4 w-4 mr-1" />
-            Xóa
+            XÃ³a
           </Button>
         </div>
       ),
@@ -441,7 +441,7 @@ const Movies = () => {
             href: '/admin/dashboard'
           },
           {
-            title: 'Quản lý phim',
+            title: 'Quáº£n lÃ½ phim',
             icon: <Film className="h-4 w-4" />
           }
         ]}
@@ -451,15 +451,15 @@ const Movies = () => {
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
           <div>
-            <h2 className="m-0 mb-2 text-gray-800 text-2xl font-bold">Quản lý Phim</h2>
-            <p className="text-gray-500">Quản lý và theo dõi tất cả các bộ phim trong hệ thống</p>
+            <h2 className="m-0 mb-2 text-gray-800 text-2xl font-bold">Quáº£n lÃ½ Phim</h2>
+            <p className="text-gray-500">Quáº£n lÃ½ vÃ  theo dÃµi táº¥t cáº£ cÃ¡c bá»™ phim trong há»‡ thá»‘ng</p>
           </div>
           <Button
             size="lg"
             onClick={handleAddMovie}
             className="rounded-lg shadow-md hover:shadow-lg transition-shadow bg-blue-600 hover:bg-blue-700 text-white"
           >
-            + Thêm Phim Mới
+            + ThÃªm Phim Má»›i
           </Button>
         </div>
 
@@ -467,11 +467,11 @@ const Movies = () => {
         <div className="space-y-4">
           <div className="flex gap-4 flex-wrap items-end">
             <div className="flex-1 min-w-[300px]">
-              <label className="block mb-2 font-semibold">Tìm kiếm</label>
+              <label className="block mb-2 font-semibold">TÃ¬m kiáº¿m</label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Tìm kiếm phim theo tên hoặc thể loại..."
+                  placeholder="TÃ¬m kiáº¿m phim theo tÃªn hoáº·c thá»ƒ loáº¡i..."
                   value={searchText}
                   onChange={(e) => {
                     setSearchText(e.target.value);
@@ -483,34 +483,34 @@ const Movies = () => {
             </div>
 
             <div className="min-w-[200px]">
-              <label className="block mb-2 font-semibold">Trạng thái</label>
+              <label className="block mb-2 font-semibold">Tráº¡ng thÃ¡i</label>
               <Select
                 value={filters.status ? filters.status : "all"}
                 onValueChange={(value) => handleFilterChange('status', value === 'all' ? null : value)}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Tất cả trạng thái" />
+                  <SelectValue placeholder="Táº¥t cáº£ tráº¡ng thÃ¡i" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                  <SelectItem value="NOW_SHOWING">Đang chiếu</SelectItem>
-                  <SelectItem value="COMING_SOON">Sắp chiếu</SelectItem>
-                  <SelectItem value="ENDED">Đã kết thúc</SelectItem>
+                  <SelectItem value="all">Táº¥t cáº£ tráº¡ng thÃ¡i</SelectItem>
+                  <SelectItem value="NOW_SHOWING">Äang chiáº¿u</SelectItem>
+                  <SelectItem value="COMING_SOON">Sáº¯p chiáº¿u</SelectItem>
+                  <SelectItem value="ENDED">ÄÃ£ káº¿t thÃºc</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="min-w-[200px]">
-              <label className="block mb-2 font-semibold">Thể loại</label>
+              <label className="block mb-2 font-semibold">Thá»ƒ loáº¡i</label>
               <Select
                 value={filters.genreId ? filters.genreId.toString() : "all"}
                 onValueChange={(value) => handleFilterChange('genreId', value === 'all' ? null : parseInt(value))}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Tất cả thể loại" />
+                  <SelectValue placeholder="Táº¥t cáº£ thá»ƒ loáº¡i" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tất cả thể loại</SelectItem>
+                  <SelectItem value="all">Táº¥t cáº£ thá»ƒ loáº¡i</SelectItem>
                   {genres.map(genre => (
                     <SelectItem key={genre.id} value={genre.id.toString()}>
                       {genre.name}
@@ -521,16 +521,16 @@ const Movies = () => {
             </div>
 
             <div className="min-w-[150px]">
-              <label className="block mb-2 font-semibold">Năm phát hành</label>
+              <label className="block mb-2 font-semibold">NÄƒm phÃ¡t hÃ nh</label>
               <Select
                 value={filters.releaseYear ? filters.releaseYear.toString() : "all"}
                 onValueChange={(value) => handleFilterChange('releaseYear', value === 'all' ? null : parseInt(value))}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Tất cả năm" />
+                  <SelectValue placeholder="Táº¥t cáº£ nÄƒm" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tất cả năm</SelectItem>
+                  <SelectItem value="all">Táº¥t cáº£ nÄƒm</SelectItem>
                   {Array.from({ length: 30 }, (_, i) => {
                     const year = new Date().getFullYear() - i;
                     return (
@@ -544,19 +544,19 @@ const Movies = () => {
             </div>
 
             <div className="min-w-[150px]">
-              <label className="block mb-2 font-semibold">Đánh giá tối thiểu</label>
+              <label className="block mb-2 font-semibold">ÄÃ¡nh giÃ¡ tá»‘i thiá»ƒu</label>
               <Select
                 value={filters.rating ? filters.rating.toString() : "all"}
                 onValueChange={(value) => handleFilterChange('rating', value === 'all' ? null : parseFloat(value))}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Tất cả" />
+                  <SelectValue placeholder="Táº¥t cáº£" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tất cả</SelectItem>
-                  <SelectItem value="7">7.0+ ⭐</SelectItem>
-                  <SelectItem value="8">8.0+ ⭐⭐</SelectItem>
-                  <SelectItem value="9">9.0+ ⭐⭐⭐</SelectItem>
+                  <SelectItem value="all">Táº¥t cáº£</SelectItem>
+                  <SelectItem value="7">7.0+ â­</SelectItem>
+                  <SelectItem value="8">8.0+ â­â­</SelectItem>
+                  <SelectItem value="9">9.0+ â­â­â­</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -567,7 +567,7 @@ const Movies = () => {
                 className="rounded-lg border-gray-300 text-gray-700 hover:bg-gray-50"
                 variant="outline"
               >
-                Xóa bộ lọc
+                XÃ³a bá»™ lá»c
               </Button>
             )}
           </div>
@@ -575,70 +575,70 @@ const Movies = () => {
           {hasActiveFilters && (
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-gray-500 text-sm flex items-center gap-1">
-                <Filter className="h-4 w-4" /> Đang lọc:
+                <Filter className="h-4 w-4" /> Äang lá»c:
               </span>
               {filters.status && (
-                <Tag color="blue" className="flex items-center gap-1 pr-1">
-                  <span>Trạng thái: {filters.status === 'NOW_SHOWING' ? 'Đang chiếu' : filters.status === 'COMING_SOON' ? 'Sắp chiếu' : 'Đã kết thúc'}</span>
+                <StatusBadge tone="blue" className="flex items-center gap-1 pr-1">
+                  <span>Tráº¡ng thÃ¡i: {filters.status === 'NOW_SHOWING' ? 'Äang chiáº¿u' : filters.status === 'COMING_SOON' ? 'Sáº¯p chiáº¿u' : 'ÄÃ£ káº¿t thÃºc'}</span>
                   <button
                     onClick={() => handleFilterChange('status', null)}
                     className="ml-1 hover:bg-gray-300 rounded-full p-0.5 transition-colors"
-                    aria-label="Xóa bộ lọc"
+                    aria-label="XÃ³a bá»™ lá»c"
                   >
                     <X className="h-3 w-3" />
                   </button>
-                </Tag>
+                </StatusBadge>
               )}
               {filters.genreId && (
-                <Tag color="green" className="flex items-center gap-1 pr-1">
-                  <span>Thể loại: {genres.find(g => g.id === filters.genreId)?.name || filters.genreId}</span>
+                <StatusBadge tone="green" className="flex items-center gap-1 pr-1">
+                  <span>Thá»ƒ loáº¡i: {genres.find(g => g.id === filters.genreId)?.name || filters.genreId}</span>
                   <button
                     onClick={() => handleFilterChange('genreId', null)}
                     className="ml-1 hover:bg-gray-300 rounded-full p-0.5 transition-colors"
-                    aria-label="Xóa bộ lọc"
+                    aria-label="XÃ³a bá»™ lá»c"
                   >
                     <X className="h-3 w-3" />
                   </button>
-                </Tag>
+                </StatusBadge>
               )}
               {filters.releaseYear && (
-                <Tag color="orange" className="flex items-center gap-1 pr-1">
-                  <span>Năm: {filters.releaseYear}</span>
+                <StatusBadge tone="orange" className="flex items-center gap-1 pr-1">
+                  <span>NÄƒm: {filters.releaseYear}</span>
                   <button
                     onClick={() => handleFilterChange('releaseYear', null)}
                     className="ml-1 hover:bg-gray-300 rounded-full p-0.5 transition-colors"
-                    aria-label="Xóa bộ lọc"
+                    aria-label="XÃ³a bá»™ lá»c"
                   >
                     <X className="h-3 w-3" />
                   </button>
-                </Tag>
+                </StatusBadge>
               )}
               {filters.rating && (
-                <Tag color="purple" className="flex items-center gap-1 pr-1">
-                  <span>Đánh giá: {filters.rating}+</span>
+                <StatusBadge tone="purple" className="flex items-center gap-1 pr-1">
+                  <span>ÄÃ¡nh giÃ¡: {filters.rating}+</span>
                   <button
                     onClick={() => handleFilterChange('rating', null)}
                     className="ml-1 hover:bg-gray-300 rounded-full p-0.5 transition-colors"
-                    aria-label="Xóa bộ lọc"
+                    aria-label="XÃ³a bá»™ lá»c"
                   >
                     <X className="h-3 w-3" />
                   </button>
-                </Tag>
+                </StatusBadge>
               )}
               {searchText && (
-                <Tag color="info" className="flex items-center gap-1 pr-1">
-                  <span>Tìm kiếm: {searchText}</span>
+                <StatusBadge tone="info" className="flex items-center gap-1 pr-1">
+                  <span>TÃ¬m kiáº¿m: {searchText}</span>
                   <button
                     onClick={() => setSearchText('')}
                     className="ml-1 hover:bg-gray-300 rounded-full p-0.5 transition-colors"
-                    aria-label="Xóa tìm kiếm"
+                    aria-label="XÃ³a tÃ¬m kiáº¿m"
                   >
                     <X className="h-3 w-3" />
                   </button>
-                </Tag>
+                </StatusBadge>
               )}
               <span className="text-gray-500 text-sm ml-2">
-                ({pagination.total} kết quả)
+                ({pagination.total} káº¿t quáº£)
               </span>
             </div>
           )}
@@ -655,25 +655,25 @@ const Movies = () => {
               </div>
             ) : (
               <>
-                <TableWrapper
-                  columns={columns}
-                  dataSource={movies}
-                  rowKey="id"
-                  pagination={false}
+                <DataTable
+                  fields={columns}
+                  rows={movies}
+                  getRowId="id"
+                  pageControls={false}
                 />
                 {pagination.total > 0 && (
                   <div className="mt-4 flex items-center justify-between flex-wrap gap-4">
                     <div className="text-sm text-gray-600">
-                      Hiển thị {(pagination.current - 1) * pagination.pageSize + 1} - {Math.min(pagination.current * pagination.pageSize, pagination.total)} của {pagination.total} phim
+                      Hiá»ƒn thá»‹ {(pagination.current - 1) * pagination.pageSize + 1} - {Math.min(pagination.current * pagination.pageSize, pagination.total)} cá»§a {pagination.total} phim
                     </div>
                     <Pagination
-                      current={pagination.current}
-                      pageSize={pagination.pageSize}
-                      total={pagination.total}
-                      showSizeChanger={true}
-                      showQuickJumper={true}
-                      onChange={handleTableChange}
-                      onShowSizeChange={handlePageSizeChange}
+                      page={pagination.current}
+                      itemsPerPage={pagination.pageSize}
+                      totalItems={pagination.total}
+                      allowPageSizeChange={true}
+                      allowPageJump={true}
+                      onPageChange={handleTableChange}
+                      onPageSizeChange={handlePageSizeChange}
                     />
                   </div>
                 )}

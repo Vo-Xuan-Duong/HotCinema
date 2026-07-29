@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tag } from '@/components/ui/tag';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Alert } from '@/components/ui/alert';
 import {
@@ -35,7 +35,7 @@ const ShowtimeSeatManagement = () => {
             setShowtime(showtimeData);
         } catch (error) {
             console.error('Error loading showtime:', error);
-            showNotification('error', 'Lỗi', 'Không thể tải thông tin lịch chiếu');
+            showNotification('error', 'Lá»—i', 'KhÃ´ng thá»ƒ táº£i thÃ´ng tin lá»‹ch chiáº¿u');
             navigate('/admin/schedules');
         } finally {
             setLoading(false);
@@ -59,13 +59,13 @@ const ShowtimeSeatManagement = () => {
             <div className="min-h-screen p-6">
                 <Alert
                     variant="default"
-                    title="Không tìm thấy thông tin"
-                    description="Lịch chiếu không tồn tại."
+                    title="KhÃ´ng tÃ¬m tháº¥y thÃ´ng tin"
+                    description="Lá»‹ch chiáº¿u khÃ´ng tá»“n táº¡i."
                     className="mb-4 bg-red-50 border-red-200"
                 />
                 <Button onClick={handleClose} variant="outline">
                     <ArrowLeft className="h-4 w-4 mr-2" />
-                    Quay lại
+                    Quay láº¡i
                 </Button>
             </div>
         );
@@ -83,12 +83,12 @@ const ShowtimeSeatManagement = () => {
                         href: '/admin/dashboard'
                     },
                     {
-                        title: 'Quản lý lịch chiếu',
+                        title: 'Quáº£n lÃ½ lá»‹ch chiáº¿u',
                         icon: <Calendar className="h-4 w-4" />,
                         href: '/admin/schedules'
                     },
                     {
-                        title: `Sơ đồ ghế - ${showtime.movieTitle || 'Lịch chiếu'}`,
+                        title: `SÆ¡ Ä‘á»“ gháº¿ - ${showtime.movieTitle || 'Lá»‹ch chiáº¿u'}`,
                         icon: <Grid3x3 className="h-4 w-4" />
                     },
                 ]}
@@ -104,9 +104,9 @@ const ShowtimeSeatManagement = () => {
                             </div>
                             <div>
                                 <h2 className="text-2xl font-bold m-0 text-gray-800">
-                                    Sơ đồ ghế
+                                    SÆ¡ Ä‘á»“ gháº¿
                                 </h2>
-                                <p className="text-sm text-gray-500 mt-1">Quản lý sơ đồ ghế cho lịch chiếu</p>
+                                <p className="text-sm text-gray-500 mt-1">Quáº£n lÃ½ sÆ¡ Ä‘á»“ gháº¿ cho lá»‹ch chiáº¿u</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
@@ -116,14 +116,14 @@ const ShowtimeSeatManagement = () => {
                                 {showtime.roomName && ` - ${showtime.roomName}`}
                             </span>
                             {showtime.format && (
-                                <Tag color="blue">
+                                <StatusBadge tone="blue">
                                     {showtime.format === 'TWO_D' ? '2D' :
                                         showtime.format === 'THREE_D' ? '3D' :
                                             showtime.format === 'IMAX' ? 'IMAX' :
                                                 showtime.format === 'IMAX_3D' ? 'IMAX 3D' :
                                                     showtime.format === 'FOUR_DX' ? '4DX' :
                                                         showtime.format === 'SCREEN_X' ? 'ScreenX' : showtime.format}
-                                </Tag>
+                                </StatusBadge>
                             )}
                         </div>
                     </div>
@@ -133,7 +133,7 @@ const ShowtimeSeatManagement = () => {
                         className="h-10"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Quay lại
+                        Quay láº¡i
                     </Button>
                 </div>
             </Card>
@@ -143,8 +143,8 @@ const ShowtimeSeatManagement = () => {
                 <SeatViewer
                     showtimeId={showtime.id}
                     selectedScreen={{
-                        name: showtime.roomName || 'Phòng chiếu',
-                        cinemaName: showtime.cinemaName || 'Rạp chiếu'
+                        name: showtime.roomName || 'PhÃ²ng chiáº¿u',
+                        cinemaName: showtime.cinemaName || 'Ráº¡p chiáº¿u'
                     }}
                 />
             </Card>
@@ -153,4 +153,3 @@ const ShowtimeSeatManagement = () => {
 };
 
 export default ShowtimeSeatManagement;
-

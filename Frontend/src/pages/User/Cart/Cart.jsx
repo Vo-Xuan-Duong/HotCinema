@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Trash2, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Tag } from '@/components/ui/tag';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Empty } from '@/components/ui/empty';
-import { List } from '@/components/ui/list';
+import { ContentList } from '@/components/ui/content-list';
 import { Separator } from '@/components/ui/separator';
-import { InputNumber } from '@/components/ui/input-number';
+import { NumberStepper } from '@/components/ui/number-stepper';
 import { useNavigate } from 'react-router-dom';
 import useNotification from '@/hooks/useNotification';
 
@@ -21,7 +21,7 @@ const Cart = () => {
             {
                 id: 1,
                 movieTitle: 'Transformer: Rise of the Beasts',
-                cinema: 'CGV Nguyễn Văn Cừ',
+                cinema: 'CGV Nguyá»…n VÄƒn Cá»«',
                 showtime: '19:30 - 21:45',
                 date: '2025-07-29',
                 seats: ['A5', 'A6'],
@@ -32,7 +32,7 @@ const Cart = () => {
             {
                 id: 2,
                 movieTitle: 'Avatar: The Way of Water',
-                cinema: 'Galaxy Nguyễn Du',
+                cinema: 'Galaxy Nguyá»…n Du',
                 showtime: '20:00 - 23:15',
                 date: '2025-07-30',
                 seats: ['B8', 'B9', 'B10'],
@@ -63,7 +63,7 @@ const Cart = () => {
 
     const removeItem = (id) => {
         setCartItems(prev => prev.filter(item => item.id !== id));
-        notification.success('Đã xóa khỏi giỏ hàng');
+        notification.success('ÄÃ£ xÃ³a khá»i giá» hÃ ng');
     };
 
     const getTotalPrice = () => {
@@ -76,7 +76,7 @@ const Cart = () => {
 
     const proceedToCheckout = () => {
         if (cartItems.length === 0) {
-            notification.warning('Giỏ hàng của bạn đang trống');
+            notification.warning('Giá» hÃ ng cá»§a báº¡n Ä‘ang trá»‘ng');
             return;
         }
 
@@ -94,10 +94,10 @@ const Cart = () => {
                 <div className="mb-8 text-center">
                     <h2 className="text-gray-900 mb-2 text-2xl font-bold flex items-center justify-center gap-2">
                         <ShoppingCart className="h-6 w-6" />
-                        Giỏ hàng của bạn
+                        Giá» hÃ ng cá»§a báº¡n
                     </h2>
                     <p className="text-gray-600">
-                        {cartItems.length > 0 ? `${getTotalItems()} vé phim` : 'Giỏ hàng trống'}
+                        {cartItems.length > 0 ? `${getTotalItems()} vÃ© phim` : 'Giá» hÃ ng trá»‘ng'}
                     </p>
                 </div>
 
@@ -107,20 +107,20 @@ const Cart = () => {
                             <Empty
                                 description={
                                     <div>
-                                        <p className="text-gray-600 mb-4">Giỏ hàng của bạn đang trống</p>
+                                        <p className="text-gray-600 mb-4">Giá» hÃ ng cá»§a báº¡n Ä‘ang trá»‘ng</p>
                                         <Button
                                             onClick={continueShopping}
                                             className="rounded-lg"
                                         >
-                                            Khám phá phim mới
+                                            KhÃ¡m phÃ¡ phim má»›i
                                         </Button>
                                     </div>
                                 }
                             />
                         ) : (
-                            <List
+                            <ContentList
                                 loading={loading}
-                                items={cartItems.map((item) => ({
+                                entries={cartItems.map((item) => ({
                                     key: item.id,
                                     content: (
                                         <Card className="w-full bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow mb-4">
@@ -139,12 +139,12 @@ const Cart = () => {
                                                 <div className="py-2">
                                                     <h4 className="text-gray-900 mb-3 text-lg font-semibold">{item.movieTitle}</h4>
                                                     <div className="flex flex-col gap-2 text-sm">
-                                                        <p className="text-gray-600">📍 {item.cinema}</p>
-                                                        <p className="text-gray-600">🕐 {item.showtime}</p>
-                                                        <p className="text-gray-600">📅 {item.date}</p>
+                                                        <p className="text-gray-600">ðŸ“ {item.cinema}</p>
+                                                        <p className="text-gray-600">ðŸ• {item.showtime}</p>
+                                                        <p className="text-gray-600">ðŸ“… {item.date}</p>
                                                         <div className="flex flex-wrap gap-1">
-                                                            🪑 {item.seats.map(seat => (
-                                                                <Tag key={seat} color="blue">{seat}</Tag>
+                                                            ðŸª‘ {item.seats.map(seat => (
+                                                                <StatusBadge key={seat} tone="blue">{seat}</StatusBadge>
                                                             ))}
                                                         </div>
                                                     </div>
@@ -153,17 +153,17 @@ const Cart = () => {
                                                 <div className="flex flex-col gap-4">
                                                     <div>
                                                         <p className="text-lg text-red-600 font-semibold mb-1">
-                                                            {(item.price * item.quantity).toLocaleString()}đ
+                                                            {(item.price * item.quantity).toLocaleString()}Ä‘
                                                         </p>
                                                         <p className="text-sm text-gray-500">
-                                                            {item.price.toLocaleString()}đ/vé
+                                                            {item.price.toLocaleString()}Ä‘/vÃ©
                                                         </p>
                                                     </div>
 
                                                     <div>
-                                                        <InputNumber
+                                                        <NumberStepper
                                                             value={item.quantity}
-                                                            onChange={(value) => updateQuantity(item.id, value)}
+                                                            onValueChange={(value) => updateQuantity(item.id, value)}
                                                             min={1}
                                                             className="w-full"
                                                         />
@@ -176,7 +176,7 @@ const Cart = () => {
                                                         className="text-red-600 hover:text-red-700"
                                                     >
                                                         <Trash2 className="h-4 w-4 mr-1" />
-                                                        Xóa
+                                                        XÃ³a
                                                     </Button>
                                                 </div>
                                             </div>
@@ -188,29 +188,29 @@ const Cart = () => {
                     </Card>
 
                     <Card className="bg-white rounded-xl shadow-md border border-gray-200 h-fit">
-                        <h4 className="text-lg font-semibold mb-4">Tóm tắt đơn hàng</h4>
+                        <h4 className="text-lg font-semibold mb-4">TÃ³m táº¯t Ä‘Æ¡n hÃ ng</h4>
                         <div className="flex flex-col gap-4">
                             <div className="flex justify-between items-center">
-                                <p className="text-gray-600">Số lượng vé:</p>
-                                <p className="text-gray-900 font-semibold">{getTotalItems()} vé</p>
+                                <p className="text-gray-600">Sá»‘ lÆ°á»£ng vÃ©:</p>
+                                <p className="text-gray-900 font-semibold">{getTotalItems()} vÃ©</p>
                             </div>
 
                             <div className="flex justify-between items-center">
-                                <p className="text-gray-600">Tạm tính:</p>
-                                <p className="text-gray-900">{getTotalPrice().toLocaleString()}đ</p>
+                                <p className="text-gray-600">Táº¡m tÃ­nh:</p>
+                                <p className="text-gray-900">{getTotalPrice().toLocaleString()}Ä‘</p>
                             </div>
 
                             <div className="flex justify-between items-center">
-                                <p className="text-gray-600">Phí dịch vụ:</p>
-                                <p className="text-gray-900">0đ</p>
+                                <p className="text-gray-600">PhÃ­ dá»‹ch vá»¥:</p>
+                                <p className="text-gray-900">0Ä‘</p>
                             </div>
 
                             <Separator />
 
                             <div className="flex justify-between items-center pt-2">
-                                <h4 className="text-gray-900 text-lg font-bold">Tổng cộng:</h4>
+                                <h4 className="text-gray-900 text-lg font-bold">Tá»•ng cá»™ng:</h4>
                                 <h4 className="text-red-600 text-lg font-bold">
-                                    {getTotalPrice().toLocaleString()}đ
+                                    {getTotalPrice().toLocaleString()}Ä‘
                                 </h4>
                             </div>
 
@@ -220,7 +220,7 @@ const Cart = () => {
                                     disabled={cartItems.length === 0}
                                     className="h-12 rounded-lg font-semibold"
                                 >
-                                    Tiến hành thanh toán
+                                    Tiáº¿n hÃ nh thanh toÃ¡n
                                 </Button>
 
                                 <Button
@@ -228,7 +228,7 @@ const Cart = () => {
                                     onClick={continueShopping}
                                     className="h-12 rounded-lg font-semibold"
                                 >
-                                    Tiếp tục mua vé
+                                    Tiáº¿p tá»¥c mua vÃ©
                                 </Button>
                             </div>
                         </div>
