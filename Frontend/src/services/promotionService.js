@@ -1,93 +1,67 @@
 import { apiClient } from '@/utils/apiClient';
+import { unwrapApiData } from '@/utils/apiResponse';
 import { ENDPOINTS } from '@/utils/constants';
 
-// Helpers to unwrap backend ResponseData envelope
-const unwrap = (res) => res?.data ?? res;
-
-const unwrapArray = (res) => {
-    const data = unwrap(res);
-    return Array.isArray(data?.content) ? data.content : (Array.isArray(data) ? data : []);
-};
-
-const base = ENDPOINTS.PROMOTIONS; // '/promotions'
+const base = ENDPOINTS.PROMOTIONS;
 
 const promotionService = {
-    // 1. GET /api/v1/promotions - Lấy tất cả promotions với phân trang
-    getAllPromotions: async (page = 0, size = 10, sort = '') => {
-        const params = { page, size };
-        if (sort) params.sort = sort;
-        const res = await apiClient.get(base, { params });
-        return unwrap(res);
-    },
+  async getAllPromotions(page = 0, size = 10, sort = '') {
+    const params = { page, size };
+    if (sort) params.sort = sort;
+    return unwrapApiData(await apiClient.get(base, { params }));
+  },
 
-    // 2. GET /api/v1/promotions/{id} - Lấy promotion theo ID
-    getPromotionById: async (id) => {
-        const res = await apiClient.get(`${base}/${id}`);
-        return unwrap(res);
-    },
+  async getPromotionById(id) {
+    return unwrapApiData(await apiClient.get(`${base}/${id}`));
+  },
 
-    // 3. POST /api/v1/promotions - Tạo promotion mới (Admin only)
-    createPromotion: async (promotionData) => {
-        const res = await apiClient.post(base, promotionData);
-        return unwrap(res);
-    },
+  async createPromotion(promotionData) {
+    return unwrapApiData(await apiClient.post(base, promotionData));
+  },
 
-    // 4. PUT /api/v1/promotions/{id} - Cập nhật promotion (Admin only)
-    updatePromotion: async (id, promotionData) => {
-        const res = await apiClient.put(`${base}/${id}`, promotionData);
-        return unwrap(res);
-    },
+  async updatePromotion(id, promotionData) {
+    return unwrapApiData(await apiClient.put(`${base}/${id}`, promotionData));
+  },
 
-    // 5. DELETE /api/v1/promotions/{id} - Xóa promotion (Admin only)
-    deletePromotion: async (id) => {
-        const res = await apiClient.delete(`${base}/${id}`);
-        return unwrap(res);
-    },
+  async deletePromotion(id) {
+    return unwrapApiData(await apiClient.delete(`${base}/${id}`));
+  },
 
-    // 6. POST /api/v1/promotions/{id}/activate - Kích hoạt promotion (Admin only)
-    activatePromotion: async (id) => {
-        const res = await apiClient.post(`${base}/${id}/activate`);
-        return unwrap(res);
-    },
+  async activatePromotion(id) {
+    return unwrapApiData(await apiClient.post(`${base}/${id}/activate`));
+  },
 
-    // 7. POST /api/v1/promotions/{id}/deactivate - Vô hiệu hóa promotion (Admin only)
-    deactivatePromotion: async (id) => {
-        const res = await apiClient.post(`${base}/${id}/deactivate`);
-        return unwrap(res);
-    },
+  async deactivatePromotion(id) {
+    return unwrapApiData(await apiClient.post(`${base}/${id}/deactivate`));
+  },
 
-    // 8. GET /api/v1/promotions/code/{code} - Lấy promotion theo code
-    getPromotionByCode: async (code) => {
-        const res = await apiClient.get(`${base}/code/${code}`);
-        return unwrap(res);
-    },
+  async getPromotionByCode(code) {
+    return unwrapApiData(await apiClient.get(`${base}/code/${encodeURIComponent(code)}`));
+  },
 
-    // 9. GET /api/v1/promotions/active - Lấy tất cả promotions đang active
-    getActivePromotions: async (page = 0, size = 10, sort = '') => {
-        const params = { page, size };
-        if (sort) params.sort = sort;
-        const res = await apiClient.get(`${base}/active`, { params });
-        return unwrap(res);
-    },
+  async getActivePromotions(page = 0, size = 10, sort = '') {
+    const params = { page, size };
+    if (sort) params.sort = sort;
+    return unwrapApiData(await apiClient.get(`${base}/active`, { params }));
+  },
 
-    // Helper: Toggle promotion status (activate/deactivate)
-    togglePromotionStatus: async (id, currentStatus) => {
-        if (currentStatus === true || currentStatus === 'active') {
-            return promotionService.deactivatePromotion(id);
-        } else {
-            return promotionService.activatePromotion(id);
-        }
-    },
+  async togglePromotionStatus(id, currentStatus) {
+    return currentStatus === true || currentStatus === 'active'
+      ? promotionService.deactivatePromotion(id)
+      : promotionService.activatePromotion(id);
+  },
 
-    getVoucherByCode: async (code) => {
-        return promotionService.getPromotionByCode(code);
-    },
-    getActiveVouchers: async (page = 0, size = 10, sort = '') => {
-        return promotionService.getActivePromotions(page, size, sort);
-    },
-    toggleVoucherStatus: async (id, currentStatus) => {
-        return promotionService.togglePromotionStatus(id, currentStatus);
-    }
+  async getVoucherByCode(code) {
+    return promotionService.getPromotionByCode(code);
+  },
+
+  async getActiveVouchers(page = 0, size = 10, sort = '') {
+    return promotionService.getActivePromotions(page, size, sort);
+  },
+
+  async toggleVoucherStatus(id, currentStatus) {
+    return promotionService.togglePromotionStatus(id, currentStatus);
+  },
 };
 
 export default promotionService;
