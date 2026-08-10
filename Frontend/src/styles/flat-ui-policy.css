@@ -2,7 +2,7 @@
  * HotCinema flat visual + compact density policy
  * - 4px radius for normal UI surfaces
  * - no decorative shadows
- * - no visible borders/dividers
+ * - subtle 1px semantic borders
  * - reduced non-essential whitespace across shared layouts
  * - focus remains accessible through outline instead of box-shadow rings
  */
@@ -35,46 +35,32 @@ body *::after {
   filter: none !important;
 }
 
-/* Borderless surfaces. Preserve border width internally so existing layout does
- * not jump; make the border visually transparent instead.
+/* Keep Tailwind/Shadcn border widths and semantic colors. The global base layer
+ * already maps neutral borders to the `border` token, so cards, dialogs, tables,
+ * dropdowns and dividers render as a thin 1px line without any shadow.
  */
-:where(
-  .border,
-  .border-x,
-  .border-y,
-  .border-t,
-  .border-r,
-  .border-b,
-  .border-l,
-  [class*="border-border"],
-  [class*="border-input"]
-) {
-  border-color: transparent !important;
-}
 
-:where([class*="divide-"]) > :not([hidden]) ~ :not([hidden]) {
-  border-color: transparent !important;
-}
-
-/* Flat controls need tonal separation after their borders are removed. */
+/* Form controls use a slightly stronger input border so they remain clear on
+ * both light and dark themes while still looking lightweight.
+ */
 input:not([type="checkbox"]):not([type="radio"]),
 textarea,
 button[role="combobox"] {
-  border-color: transparent !important;
-  background-color: hsl(var(--muted) / 0.55) !important;
+  border-color: hsl(var(--input) / 0.9) !important;
+  background-color: hsl(var(--background)) !important;
 }
 
 [role="checkbox"][data-state="unchecked"],
 [role="radio"][data-state="unchecked"] {
-  border-color: transparent !important;
-  background-color: hsl(var(--muted)) !important;
+  border-color: hsl(var(--input) / 0.9) !important;
+  background-color: hsl(var(--background)) !important;
 }
 
-/* Outline-style actions become flat tonal actions instead of invisible buttons. */
+/* Outline actions keep a visible light border instead of relying on shadow. */
 button[class*="border-input"],
 a[class*="border-input"] {
-  border-color: transparent !important;
-  background-color: hsl(var(--muted) / 0.7) !important;
+  border-color: hsl(var(--input) / 0.85) !important;
+  background-color: hsl(var(--background)) !important;
 }
 
 /* Compact common page spacing without collapsing content hierarchy. */
@@ -122,7 +108,9 @@ a[class*="border-input"] {
 .success-message,
 .app-warning-message,
 .warning-message {
-  border-color: transparent !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-color: hsl(var(--border) / 0.85) !important;
   border-radius: 4px !important;
   box-shadow: none !important;
 }
