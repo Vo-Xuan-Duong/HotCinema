@@ -1,16 +1,8 @@
-import * as React from 'react';
+import { sanitizeLegacyColorClassName } from '@/lib/stylePolicy';
 import { cn } from '@/lib/utils';
 
-const LEGACY_COLOR_CLASS = /^(?:bg|text|border|ring)-(?:white|black|gray|slate|zinc|neutral|red|orange|amber|yellow|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)(?:-\d{2,3})?(?:\/\d+)?$/;
-
-const sanitizeClassName = (className) => className
-  ?.split(/\s+/)
-  .filter(Boolean)
-  .filter((token) => !LEGACY_COLOR_CLASS.test(token))
-  .join(' ');
-
 const Badge = ({ count, showZero = false, children, className, ...props }) => {
-  const safeClassName = sanitizeClassName(className);
+  const safeClassName = sanitizeLegacyColorClassName(className);
 
   // Some legacy pages used badge-count as a normal inline badge. Keep that
   // behavior compatible, but force it through semantic Shadcn colors.
