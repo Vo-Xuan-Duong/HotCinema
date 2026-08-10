@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import FeaturesSection from '@/components/FeaturesSection/FeaturesSection';
-import GlobalBackTop from '@/components/GlobalBackTop/GlobalBackTop';
 import HeroModern from '@/components/HeroSection/HeroModern';
 import MovieShowcase from '@/components/MovieShowcase/MovieShowcase';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -78,31 +77,31 @@ const Home = () => {
   if (loading) {
     return (
       <div className="min-h-dvh bg-background pt-16 text-foreground">
-        <div className="relative h-[60vh] w-full overflow-hidden">
+        <div className="relative h-[56vh] w-full overflow-hidden">
           <Skeleton className="h-full w-full rounded-none" />
           <div className="absolute inset-0 flex items-center bg-black/40">
-            <div className="mx-auto flex w-full max-w-7xl gap-8 px-4 sm:px-6 lg:px-8">
-              <Skeleton className="hidden aspect-[2/3] w-72 rounded-lg opacity-50 lg:block" />
-              <div className="flex flex-1 flex-col justify-center gap-4">
-                <Skeleton className="h-12 w-3/4 opacity-50" />
-                <Skeleton className="h-6 w-1/2 opacity-50" />
-                <Skeleton className="h-24 w-full opacity-50" />
-                <div className="mt-4 flex gap-4">
-                  <Skeleton className="h-11 w-32 rounded-md opacity-50" />
-                  <Skeleton className="h-11 w-32 rounded-md opacity-50" />
+            <div className="mx-auto flex w-full max-w-7xl gap-5 px-4 sm:px-6 lg:px-8">
+              <Skeleton className="hidden aspect-[2/3] w-60 rounded-md opacity-50 lg:block" />
+              <div className="flex flex-1 flex-col justify-center gap-3">
+                <Skeleton className="h-10 w-2/3 opacity-50" />
+                <Skeleton className="h-5 w-2/5 opacity-50" />
+                <Skeleton className="h-20 w-full opacity-50" />
+                <div className="mt-2 flex gap-3">
+                  <Skeleton className="h-9 w-28 rounded-md opacity-50" />
+                  <Skeleton className="h-9 w-28 rounded-md opacity-50" />
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="mx-auto mt-10 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto mt-5 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
           {[1, 2, 3].map((section) => (
-            <div key={section} className="mb-12">
-              <Skeleton className="mb-6 h-8 w-56" />
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5">
-                {[1, 2, 3, 4, 5].map((item) => (
-                  <Skeleton key={item} className="h-[380px] w-full rounded-xl" />
+            <div key={section} className="mb-6">
+              <Skeleton className="mb-3 h-7 w-48" />
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
+                {Array.from({ length: 7 }).map((_, item) => (
+                  <Skeleton key={item} className="aspect-[2/3] w-full rounded-md" />
                 ))}
               </div>
             </div>
@@ -118,26 +117,12 @@ const Home = () => {
         <HeroModern movies={heroMovies} />
       </section>
 
-      <main className="mx-auto w-full max-w-7xl">
-        <MovieShowcase
-          movies={upcomingMovies}
-          title="Phim sắp chiếu"
-          category="upcoming"
-        />
-        <MovieShowcase
-          movies={nowShowingMovies}
-          title="Phim đang chiếu"
-          category="now-showing"
-        />
-        <MovieShowcase
-          movies={topRatedMovies}
-          title="Phim được đánh giá cao"
-          category="top-rated"
-        />
+      <main className="w-full">
+        <MovieShowcase movies={upcomingMovies} title="Phim sắp chiếu" category="upcoming" />
+        <MovieShowcase movies={nowShowingMovies} title="Phim đang chiếu" category="now-showing" />
+        <MovieShowcase movies={topRatedMovies} title="Phim được đánh giá cao" category="top-rated" />
         <FeaturesSection />
       </main>
-
-      <GlobalBackTop visibilityHeight={300} />
     </div>
   );
 };
