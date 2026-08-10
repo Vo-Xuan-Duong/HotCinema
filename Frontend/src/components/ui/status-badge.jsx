@@ -21,11 +21,27 @@ const tones = {
   default: 'status-neutral',
 };
 
-function StatusBadge({ tone = 'neutral', leading, children, className, ...props }) {
+const sanitizeStyle = (style) => {
+  if (!style) return undefined;
+
+  const {
+    color: _color,
+    background: _background,
+    backgroundColor: _backgroundColor,
+    border: _border,
+    borderColor: _borderColor,
+    ...layoutStyle
+  } = style;
+
+  return layoutStyle;
+};
+
+function StatusBadge({ tone = 'neutral', leading, children, className, style, ...props }) {
   return (
     <Badge
       variant="outline"
       className={cn('inline-flex items-center gap-1 font-medium', tones[tone] || tones.neutral, className)}
+      style={sanitizeStyle(style)}
       {...props}
     >
       {leading}
