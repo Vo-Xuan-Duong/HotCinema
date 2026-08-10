@@ -13,8 +13,16 @@ const Register = () => {
   };
 
   const handleClose = () => {
-    const from = location.state?.from?.pathname || '/';
-    navigate(from);
+    const from = location.state?.from;
+    if (typeof from === 'string' && from.startsWith('/')) {
+      navigate(from);
+      return;
+    }
+    if (from?.pathname) {
+      navigate(`${from.pathname}${from.search || ''}`);
+      return;
+    }
+    navigate('/');
   };
 
   const handleSwitchToOTP = (email) => {
