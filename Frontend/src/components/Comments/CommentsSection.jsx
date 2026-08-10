@@ -1,42 +1,109 @@
-﻿import React, { useState, useEffect } from 'react';
-import useAuth from '@/hooks/useAuth';
-import reviewService from '@/services/reviewService';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { useCallback, useEffect, useState } from 'react';
+import { Clock, Edit, Loader2, MessageCircle, Reply, Send, Trash2, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge-count';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Empty } from '@/components/ui/empty';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { StarRating } from '@/components/ui/star-rating';
-import {
-  Star,
-  Send,
-  Reply,
-  Edit,
-  Trash2,
-  MoreVertical,
-  ThumbsUp,
-  MessageCircle,
-  Clock,
-  User,
-  Loader2
-} from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import useAuth from '@/hooks/useAuth';
 import useNotification from '@/hooks/useNotification';
+import reviewService from '@/services/reviewService';
+
+const PAGE_SIZE = 10;
+
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return 'Không rõ thời gian';
+
+  const diffInSeconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+  if (diffInSeconds < 60) return 'Vừa xong';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} phút trước`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} giờ trước`;
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} ngày trước`;
+  return date.toLocaleDateString('vi-VN');
+};
+
+const getDisplayName = (review) => review?.fullName || review?.userName || 'Người dùng';
+
+const mapReview = (review) => ({
+  ...review,
+  userName: review.fullName || review.userName,
+  userAvatarUrl: review.avatarUrl || review.userAvatarUrl,
+  replies: (review.replies || []).map((reply) => ({
+    ...reply,
+    userName: reply.fullName || reply.userName,
+    userAvatarUrl: reply.avatarUrl || reply.userAvatarUrl,
+  })),
+});
+
+const ReviewAvatar = ({ review, size = 'md' }) => {
+  const displayName = getDisplayName(review);
+  return (
+    <Avatar className={size === 'sm' ? 'h-8 w-8 shrink-0' : 'h-10 w-10 shrink-0'}>
+      <AvatarImage src={review?.avatarUrl || review?.userAvatarUrl} alt={displayName} />
+      <AvatarFallback>
+        <User className={size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
+      </AvatarFallback>
+    </Avatar>
+  );
+};
+
+const InlineEditor = ({
+  text,
+  rating,
+  setText,
+  setRating,
+  onCancel,
+  onSave,
+  submitting,
+  compact = false,
+}) => (
+  <Card className="mt-3 border-primary/20 bg-muted/20 shadow-none">
+    <CardContent className={compact ? 'space-y-3 p-3' : 'space-y-4 p-4'}>
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Xếp hạng</label>
+        <div className="flex items-center gap-2">
+          <StarRating value={rating} onValueChange={setRating} />
+          <span className="text-xs text-muted-foreground">{rating || 0}/5</span>
+        </div>
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Nội dung</label>
+        <Textarea
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          placeholder="Nhập nội dung..."
+          maxLength={500}
+          className={compact ? 'min-h-20 resize-none' : 'min-h-24 resize-none'}
+        />
+        <p className="text-right text-xs text-muted-foreground">{text.length}/500 ký tự</p>
+      </div>
+      <div className="flex justify-end gap-2 border-t border-border pt-3">
+        <Button type="button" variant="outline" size="sm" onClick={onCancel}>Hủy</Button>
+        <Button type="button" size="sm" onClick={onSave} disabled={!text.trim() || rating === 0 || submitting}>
+          {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Edit className="mr-2 h-4 w-4" />}
+          Lưu thay đổi
+        </Button>
+      </div>
+    </CardContent>
+  </Card>
+);
 
 const CommentsSection = ({ movieId }) => {
+  const { user, isAuthenticated } = useAuth();
+  const notification = useNotification();
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
-  const [rating, setRating] = useState(0); // 1-5 sao
+  const [rating, setRating] = useState(0);
   const [sortBy, setSortBy] = useState('newest');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [hoveredStar, setHoveredStar] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState({
-    page: 0,
-    size: 10,
-    totalPages: 0,
-    totalElements: 0
-  });
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pagination, setPagination] = useState({ page: 0, size: PAGE_SIZE, totalPages: 0, totalElements: 0 });
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [editingComment, setEditingComment] = useState(null);
@@ -45,137 +112,83 @@ const CommentsSection = ({ movieId }) => {
   const [averageRating, setAverageRating] = useState(0);
   const [ratingCount, setRatingCount] = useState(0);
   const [expandedReplies, setExpandedReplies] = useState({});
-  const notification = useNotification();
 
-  // Safely get auth context
-  let user = null;
-  let isAuthenticated = false;
+  const sortParam = {
+    newest: 'createdAt,desc',
+    oldest: 'createdAt,asc',
+    rating: 'rating,desc',
+  }[sortBy] || 'createdAt,desc';
 
-  try {
-    const auth = useAuth();
-    user = auth.user;
-    isAuthenticated = auth.isAuthenticated;
-  } catch (error) {
-    console.warn('Auth context not available:', error);
-  }
-
-  // Load comments and average rating from API
-  useEffect(() => {
-    if (movieId) {
-      loadComments();
-      loadAverageRating();
-    }
-  }, [movieId, sortBy]);
-
-  const loadAverageRating = async () => {
+  const loadAverageRating = useCallback(async () => {
+    if (!movieId) return;
     try {
-      const result = await reviewService.getAverageRating(movieId);
-      // Xử lý response có thể có nhiều cấu trúc
-      const data = result?.data || result;
-      setAverageRating(data?.averageRating || 0);
-      setRatingCount(data?.countRating || 0);
+      const data = await reviewService.getAverageRating(movieId);
+      setAverageRating(Number(data?.averageRating) || 0);
+      setRatingCount(Number(data?.countRating ?? data?.count) || 0);
     } catch (error) {
       console.error('Error loading average rating:', error);
       setAverageRating(0);
       setRatingCount(0);
     }
-  };
+  }, [movieId]);
 
-  const loadComments = async (page = 0) => {
+  const loadComments = useCallback(async (page = 0, { append = false } = {}) => {
+    if (!movieId) return;
+    append ? setLoadingMore(true) : setLoading(true);
+
     try {
-      setLoading(true);
-
-      // Map sortBy to API sort parameter
-      let sortParam;
-      switch (sortBy) {
-        case 'newest':
-          sortParam = 'createdAt,desc';
-          break;
-        case 'oldest':
-          sortParam = 'createdAt,asc';
-          break;
-        case 'rating':
-          sortParam = 'rating,desc';
-          break;
-        default:
-          sortParam = 'createdAt,desc';
-      }
-
       const response = await reviewService.getReviewsByMovie(movieId, {
         page,
-        size: pagination.size,
-        sort: sortParam
+        size: PAGE_SIZE,
+        sort: sortParam,
       });
+      const content = Array.isArray(response) ? response : response?.content || [];
+      const mapped = content.map(mapReview);
 
-      // Xử lý response từ API (có thể có nhiều cấu trúc)
-      const reviewsData = response?.content || response?.data?.content || response?.data || [];
-
-      const mappedComments = reviewsData.map(review => ({
-        id: review.id, // Long
-        comment: review.comment, // String
-        rating: review.rating, // Integer (1-5)
-        userId: review.userId, // Long
-        fullName: review.fullName, // String
-        avatarUrl: review.avatarUrl, // String
-        createdAt: review.createdAt, // LocalDateTime
-        replies: (review.replies || []).map(reply => ({
-          id: reply.id, // Long
-          comment: reply.comment, // String
-          rating: reply.rating, // Integer (1-5)
-          userId: reply.userId, // Long
-          fullName: reply.fullName, // String
-          avatarUrl: reply.avatarUrl, // String
-          createdAt: reply.createdAt, // LocalDateTime
-          replies: reply.replies || [] // List<ReviewResponse> (nested, có thể rỗng)
-        })),
-        // Giữ các trường hiện có trong phản hồi.
-        userName: review.fullName,
-        userAvatarUrl: review.avatarUrl,
-        user: review.user || null
-      }));
-
-      setComments(mappedComments);
+      setComments((previous) => append ? [...previous, ...mapped] : mapped);
       setPagination({
-        page: response?.number || response?.data?.number || 0,
-        size: response?.size || response?.data?.size || 10,
-        totalPages: response?.totalPages || response?.data?.totalPages || 0,
-        totalElements: response?.totalElements || response?.data?.totalElements || mappedComments.length
+        page: Array.isArray(response) ? page : response?.number ?? page,
+        size: Array.isArray(response) ? PAGE_SIZE : response?.size ?? PAGE_SIZE,
+        totalPages: Array.isArray(response) ? 1 : response?.totalPages ?? 1,
+        totalElements: Array.isArray(response) ? response.length : response?.totalElements ?? mapped.length,
       });
     } catch (error) {
       console.error('Error loading comments:', error);
-      setComments([]);
+      if (!append) setComments([]);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
+  }, [movieId, sortParam]);
+
+  useEffect(() => {
+    if (!movieId) return;
+    loadComments(0);
+    loadAverageRating();
+  }, [movieId, sortBy, loadAverageRating, loadComments]);
+
+  const refreshReviews = async () => {
+    await Promise.all([loadComments(0), loadAverageRating()]);
   };
 
-  const handleSubmitComment = async (e) => {
-    e.preventDefault();
+  const handleSubmitComment = async (event) => {
+    event.preventDefault();
     if (!newComment.trim() || !isAuthenticated || !user || !movieId || rating === 0) return;
 
     setIsSubmitting(true);
-
     try {
-      // ReviewRequest: { movieId: Long, comment: String, rating: Integer, parentId?: Long }
-      const commentData = {
-        movieId: Number(movieId), // Long
-        comment: newComment.trim(), // String
-        rating: Number(rating) // Integer (1-5)
-        // parentId không có vì đây là review gốc
-      };
-
-      await reviewService.createReview(commentData);
-
-      // Reload comments and average rating after successful creation
-      await loadComments(0);
-      await loadAverageRating();
-
+      await reviewService.createReview({
+        movieId: Number(movieId),
+        comment: newComment.trim(),
+        rating: Number(rating),
+      });
       setNewComment('');
       setRating(0);
+      await refreshReviews();
       notification.success('Đã gửi bình luận thành công');
     } catch (error) {
       console.error('Error submitting comment:', error);
-      notification.error(error?.response?.data?.message || 'Không thể gửi bình luận. Vui lòng thử lại.');
+      notification.error(error.response?.data?.message || 'Không thể gửi bình luận. Vui lòng thử lại.');
     } finally {
       setIsSubmitting(false);
     }
@@ -185,28 +198,19 @@ const CommentsSection = ({ movieId }) => {
     if (!replyText.trim() || !isAuthenticated || !user || !movieId) return;
 
     setIsSubmitting(true);
-
     try {
-      // ReviewRequest: { movieId: Long, comment: String, rating: Integer, parentId?: Long }
-      const replyData = {
-        movieId: Number(movieId), // Long
-        comment: replyText.trim(), // String
-        rating: 5, // Integer (1-5), Reply mặc định 5 sao
-        parentId: Number(parentId) // Long
-      };
-
-      await reviewService.addReply(parentId, replyData);
-
-      // Reload comments after successful reply
-      await loadComments(pagination.page);
-      await loadAverageRating();
-
+      await reviewService.addReply(parentId, {
+        movieId: Number(movieId),
+        comment: replyText.trim(),
+        rating: 5,
+      });
       setReplyText('');
       setReplyingTo(null);
+      await refreshReviews();
       notification.success('Đã gửi phản hồi thành công');
     } catch (error) {
       console.error('Error submitting reply:', error);
-      notification.error(error?.response?.data?.message || 'Không thể gửi phản hồi. Vui lòng thử lại.');
+      notification.error(error.response?.data?.message || 'Không thể gửi phản hồi. Vui lòng thử lại.');
     } finally {
       setIsSubmitting(false);
     }
@@ -215,614 +219,305 @@ const CommentsSection = ({ movieId }) => {
   const handleDeleteComment = async (commentId) => {
     try {
       await reviewService.deleteReview(commentId);
-      await loadComments(pagination.page);
-      await loadAverageRating();
+      await refreshReviews();
       notification.success('Đã xóa bình luận thành công');
     } catch (error) {
       console.error('Error deleting comment:', error);
-      notification.error(error?.response?.data?.message || 'Không thể xóa bình luận. Vui lòng thử lại.');
+      notification.error(error.response?.data?.message || 'Không thể xóa bình luận. Vui lòng thử lại.');
     }
   };
 
-  const handleEditComment = (comment) => {
-    // Kiểm tra nếu userId của comment khớp với userId của user hiện tại
-    if (!user || !comment.userId) {
-      notification.error('Không thể chỉnh sửa bình luận này');
-      return;
-    }
-
-    const commentUserId = String(comment.userId);
-    const currentUserId = String(user.id);
-
-    if (commentUserId !== currentUserId) {
+  const startEdit = (review) => {
+    if (!user || !review?.userId || String(user.id) !== String(review.userId)) {
       notification.error('Bạn chỉ có thể chỉnh sửa bình luận của chính mình');
       return;
     }
-
-    setEditingComment(comment.id);
-    setEditText(comment.comment);
-    setEditRating(comment.rating || 0); // Backend trả về 1-5 sao
+    setEditingComment(review.id);
+    setEditText(review.comment || '');
+    setEditRating(Number(review.rating) || 0);
   };
 
-  const handleUpdateComment = async (commentId) => {
-    if (!editText.trim() || editRating === 0) return;
-
-    // Tìm comment hoặc reply trong danh sách
-    let targetComment = null;
-    let parentId = null;
-
-    // Tìm trong comments
-    for (const comment of comments) {
-      if (comment.id === commentId) {
-        targetComment = comment;
-        parentId = null; // Đây là comment gốc
-        break;
-      }
-      // Tìm trong replies
-      if (comment.replies && comment.replies.length > 0) {
-        const reply = comment.replies.find(r => r.id === commentId);
-        if (reply) {
-          targetComment = reply;
-          parentId = comment.id; // Đây là reply, parentId là id của comment cha
-          break;
-        }
-      }
-    }
-
-    if (!targetComment || !user || !targetComment.userId) {
-      notification.error('Không thể cập nhật bình luận này');
-      setEditingComment(null);
-      setEditText('');
-      setEditRating(0);
-      return;
-    }
-
-    if (String(user.id) !== String(targetComment.userId)) {
-      notification.error('Bạn chỉ có thể chỉnh sửa bình luận của chính mình');
-      setEditingComment(null);
-      setEditText('');
-      setEditRating(0);
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      // ReviewRequest: { movieId: Long, comment: String, rating: Integer, parentId?: Long }
-      const updateData = {
-        movieId: Number(movieId), // Long
-        comment: editText.trim(), // String
-        rating: Number(editRating), // Integer (1-5)
-        parentId: parentId ? Number(parentId) : null // Long (null cho review gốc, có giá trị cho reply)
-      };
-
-      await reviewService.updateReview(commentId, updateData);
-      await loadComments(pagination.page);
-      await loadAverageRating();
-
-      setEditingComment(null);
-      setEditText('');
-      setEditRating(0);
-      notification.success('Đã cập nhật bình luận thành công');
-    } catch (error) {
-      console.error('Error updating comment:', error);
-      notification.error(error?.response?.data?.message || 'Không thể cập nhật bình luận. Vui lòng thử lại.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleCancelEdit = () => {
+  const cancelEdit = () => {
     setEditingComment(null);
     setEditText('');
     setEditRating(0);
   };
 
-  const renderStars = (starRating, interactive = false, onStarClick = null) => {
-    // starRating là số sao từ 1-5
-    return (
-      <div className="flex gap-0.5 items-center">
-        {[1, 2, 3, 4, 5].map((star) => {
-          const displayRating = interactive ? (hoveredStar || starRating) : starRating;
-          const isFilled = star <= Math.floor(displayRating);
-          const isHalfFilled = star === Math.ceil(displayRating) && displayRating % 1 !== 0 && displayRating > Math.floor(displayRating);
-          return (
-            <div key={star} className="relative">
-              <Star
-                className={`h-5 w-5 ${isFilled ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'} ${interactive ? 'transition-all duration-200 cursor-pointer hover:scale-110' : ''}`}
-                onClick={() => interactive && onStarClick && onStarClick(star)}
-                onMouseEnter={() => interactive && setHoveredStar(star)}
-                onMouseLeave={() => interactive && setHoveredStar(0)}
-              />
-              {isHalfFilled && (
-                <div className="absolute inset-0 overflow-hidden" style={{ width: '50%' }}>
-                  <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    );
+  const findReview = (reviewId) => {
+    for (const comment of comments) {
+      if (comment.id === reviewId) return { review: comment, parentId: null };
+      const reply = comment.replies?.find((item) => item.id === reviewId);
+      if (reply) return { review: reply, parentId: comment.id };
+    }
+    return null;
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now - date) / 1000);
+  const handleUpdateComment = async (commentId) => {
+    if (!editText.trim() || editRating === 0) return;
+    const target = findReview(commentId);
 
-    if (diffInSeconds < 60) return 'Vừa xong';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} phút trước`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} giờ trước`;
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} ngày trước`;
+    if (!target?.review || !user || String(user.id) !== String(target.review.userId)) {
+      notification.error('Bạn chỉ có thể chỉnh sửa bình luận của chính mình');
+      cancelEdit();
+      return;
+    }
 
-    return date.toLocaleDateString('vi-VN');
+    setIsSubmitting(true);
+    try {
+      await reviewService.updateReview(commentId, {
+        movieId: Number(movieId),
+        comment: editText.trim(),
+        rating: Number(editRating),
+        parentId: target.parentId ? Number(target.parentId) : null,
+      });
+      cancelEdit();
+      await refreshReviews();
+      notification.success('Đã cập nhật bình luận thành công');
+    } catch (error) {
+      console.error('Error updating comment:', error);
+      notification.error(error.response?.data?.message || 'Không thể cập nhật bình luận. Vui lòng thử lại.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  if (loading) {
+  if (loading && comments.length === 0) {
     return (
-      <div className="py-12 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-        <span className="ml-3 text-muted-foreground">Đang tải bình luận...</span>
+      <div className="flex min-h-48 items-center justify-center gap-3 text-muted-foreground">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <span className="text-sm">Đang tải bình luận...</span>
       </div>
     );
   }
 
   return (
-    <div className="py-8 w-full max-w-4xl mx-auto">
-      {/* Header with title and rating */}
-      <div className="mb-6">
-        <div className="flex justify-between items-start flex-wrap gap-4">
-          <div className="flex-1">
-            <h2 className="text-3xl font-bold text-foreground mb-4">Đánh giá và Bình luận</h2>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                {renderStars(averageRating)}
-                <span className="font-bold text-lg text-foreground ml-2">
-                  {averageRating > 0 ? averageRating.toFixed(1) : '0.0'}
-                </span>
-                <span className="text-muted-foreground text-sm">/5</span>
-              </div>
-              <span className="text-muted-foreground text-sm">
-                {ratingCount} {ratingCount === 1 ? 'Đánh giá' : 'Đánh giá'}
-              </span>
-            </div>
+    <section className="mx-auto w-full max-w-4xl py-8">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight">Đánh giá và bình luận</h2>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <StarRating readOnly value={averageRating} />
+            <span className="font-semibold">{averageRating.toFixed(1)}/5</span>
+            <span className="text-sm text-muted-foreground">{ratingCount} đánh giá</span>
           </div>
-          <Button
-            onClick={() => document.getElementById('comment-form')?.scrollIntoView({ behavior: 'smooth' })}
-            variant="outline"
-            className="bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300"
-          >
-            Viết đánh giá
-          </Button>
         </div>
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Mới nhất</SelectItem>
+            <SelectItem value="oldest">Cũ nhất</SelectItem>
+            <SelectItem value="rating">Đánh giá cao</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {isAuthenticated && user ? (
-        <Card className="p-4 mb-6 border-border bg-card" id="comment-form">
-          <form onSubmit={handleSubmitComment} className="space-y-4">
-            <div className="flex gap-4 items-start">
-              <Avatar className="h-10 w-10 flex-shrink-0">
-                <AvatarImage src={user.avatarUrl} alt={user.username || user.name} />
-                <AvatarFallback className="bg-gray-200">
-                  <User className="h-5 w-5 text-muted-foreground" />
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 space-y-3">
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Đánh giá của bạn</label>
-                  <div className="flex items-center gap-2 mb-3">
-                    {renderStars(rating, true, setRating)}
-                    {rating > 0 && (
-                      <span className="text-sm text-muted-foreground ml-2">{rating}/5</span>
-                    )}
-                    {rating === 0 && (
-                      <span className="text-xs text-gray-400 ml-2">(Chọn số sao)</span>
-                    )}
-                  </div>
+        <Card id="comment-form" className="mb-6 shadow-sm">
+          <CardContent className="p-4 sm:p-5">
+            <form onSubmit={handleSubmitComment} className="flex gap-3">
+              <ReviewAvatar review={{ fullName: user.fullName || user.name, avatarUrl: user.avatarUrl }} />
+              <div className="min-w-0 flex-1 space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium">Đánh giá của bạn</span>
+                  <StarRating value={rating} onValueChange={setRating} />
+                  <span className="text-xs text-muted-foreground">{rating || 0}/5</span>
                 </div>
                 <Textarea
                   value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Viết bình luận của bạn..."
-                  className="min-h-[80px] resize-none border-gray-300 bg-background"
-                  rows="3"
+                  onChange={(event) => setNewComment(event.target.value)}
+                  placeholder="Chia sẻ cảm nhận của bạn về bộ phim..."
+                  className="min-h-24 resize-none"
                   maxLength={500}
                 />
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">
-                    {newComment.length}/500 ký tự
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="submit"
-                      variant="ghost"
-                      size="sm"
-                      disabled={!newComment.trim() || isSubmitting || rating === 0}
-                      className="h-8 w-8 p-0 text-gray-400 hover:text-muted-foreground disabled:opacity-50"
-                    >
-                      {isSubmitting ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Send className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs text-muted-foreground">{newComment.length}/500 ký tự</span>
+                  <Button type="submit" size="sm" disabled={!newComment.trim() || rating === 0 || isSubmitting}>
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                    Gửi đánh giá
+                  </Button>
                 </div>
               </div>
-            </div>
-          </form>
+            </form>
+          </CardContent>
         </Card>
       ) : (
-        <Card className="p-6 mb-6 bg-blue-50 border-blue-200">
-          <div className="text-center">
-            <MessageCircle className="h-12 w-12 mx-auto text-blue-500 mb-3" />
-            <p className="text-gray-700 mb-3">
-              Vui lòng <a href="/login" className="text-blue-600 font-semibold hover:underline">đăng nhập</a> để bình luận và đánh giá phim
-            </p>
-          </div>
+        <Card className="mb-6 border-primary/20 bg-primary/5 shadow-none">
+          <CardContent className="flex flex-col items-center p-6 text-center">
+            <MessageCircle className="h-9 w-9 text-primary" />
+            <p className="mt-3 text-sm text-muted-foreground">Đăng nhập để bình luận và đánh giá phim.</p>
+            <Button asChild size="sm" className="mt-4"><Link to="/auth/login">Đăng nhập</Link></Button>
+          </CardContent>
         </Card>
       )}
 
-      <div className="space-y-6">
-        {comments.map((comment) => (
-          <div key={comment.id} className="flex gap-4">
-            <Avatar className="h-10 w-10 flex-shrink-0">
-              <AvatarImage
-                src={comment.avatarUrl || comment.userAvatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.fullName || comment.userName || 'User')}&background=random&size=80`}
-                alt={comment.fullName || comment.userName}
-              />
-              <AvatarFallback className="bg-gray-200">
-                <User className="h-5 w-5 text-muted-foreground" />
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-3 mb-2">
-                <h4 className="font-semibold text-foreground">{comment.fullName || comment.userName}</h4>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  {renderStars(comment.rating || 0)}
-                </div>
-              </div>
+      {comments.length === 0 ? (
+        <Card><CardContent className="py-4"><Empty description="Chưa có bình luận nào. Hãy là người đầu tiên chia sẻ cảm nhận." /></CardContent></Card>
+      ) : (
+        <div className="space-y-5">
+          {comments.map((comment) => {
+            const ownsComment = user && comment.userId && String(user.id) === String(comment.userId);
+            const visibleReplies = expandedReplies[comment.id] ? comment.replies : comment.replies?.slice(0, 2);
 
-              {editingComment === comment.id ? (
-                <Card className="mt-3 p-4 bg-blue-50 border-blue-200">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Edit className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm font-semibold text-gray-700">Chỉnh sửa bình luận</span>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-2 block">Xếp hạng:</label>
-                      <div className="flex items-center gap-2">
-                        {renderStars(editRating, true, setEditRating)}
-                        {editRating > 0 ? (
-                          <span className="text-sm text-muted-foreground ml-2">{editRating}/5</span>
-                        ) : (
-                          <span className="text-xs text-gray-400 ml-2">(Chọn số sao)</span>
-                        )}
+            return (
+              <Card key={comment.id} className="shadow-none">
+                <CardContent className="p-4 sm:p-5">
+                  <div className="flex gap-3">
+                    <ReviewAvatar review={comment} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold">{getDisplayName(comment)}</p>
+                          <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                            <Clock className="h-3.5 w-3.5" />
+                            {formatDate(comment.createdAt)}
+                          </div>
+                        </div>
+                        <StarRating readOnly value={Number(comment.rating) || 0} />
                       </div>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-2 block">Nội dung:</label>
-                      <Textarea
-                        value={editText}
-                        onChange={(e) => setEditText(e.target.value)}
-                        className="min-h-[100px] resize-none border-gray-300"
-                        rows="4"
-                        maxLength={500}
-                        placeholder="Nhập nội dung bình luận..."
-                      />
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-xs text-muted-foreground">
-                          {editText.length}/500 ký tự
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex justify-end gap-2 pt-2 border-t border-border">
-                      <Button
-                        variant="outline"
-                        onClick={handleCancelEdit}
-                        size="sm"
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        Hủy
-                      </Button>
-                      <Button
-                        onClick={() => handleUpdateComment(comment.id)}
-                        disabled={!editText.trim() || editRating === 0 || isSubmitting}
-                        size="sm"
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50"
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Đang lưu...
-                          </>
-                        ) : (
-                          <>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Lưu thay đổi
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ) : (
-                <>
-                  <p className="text-foreground leading-relaxed mb-3">{comment.comment}</p>
-                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5" />
-                      {formatDate(comment.createdAt)}
-                    </span>
-                    {isAuthenticated && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-auto px-2 py-1 text-xs font-normal text-muted-foreground hover:text-blue-600 hover:bg-blue-50"
-                        onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
-                      >
-                        <Reply className="h-3.5 w-3.5 mr-1" />
-                        Trả lời
-                      </Button>
-                    )}
-                    {user && comment.userId && String(user.id) === String(comment.userId) && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-auto px-2 py-1 text-xs font-normal text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50"
-                          onClick={() => handleEditComment(comment)}
-                        >
-                          <Edit className="h-3.5 w-3.5 mr-1" />
-                          Sửa
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-auto px-2 py-1 text-xs font-normal text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => {
-                            if (window.confirm('Bạn có chắc chắn muốn xóa bình luận này?')) {
-                              handleDeleteComment(comment.id);
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5 mr-1" />
-                          Xóa
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </>
-              )}
 
-              {replyingTo === comment.id && isAuthenticated && (
-                <Card className="mt-4 p-4 bg-background border-border">
-                  <div className="space-y-3">
-                    <Textarea
-                      value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
-                      placeholder="Viết phản hồi của bạn..."
-                      className="min-h-[80px]"
-                      rows="3"
-                    />
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setReplyingTo(null);
-                          setReplyText('');
-                        }}
-                      >
-                        Hủy
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => handleSubmitReply(comment.id)}
-                        disabled={!replyText.trim() || isSubmitting}
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Đang gửi...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="h-4 w-4 mr-2" />
-                            Gửi
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              )}
-
-              {comment.replies && comment.replies.length > 0 && (
-                <div className="mt-4 ml-6 pl-4 border-l-2 border-gray-300 space-y-4">
-                  {(expandedReplies[comment.id] ? comment.replies : comment.replies.slice(0, 2)).map((reply) => (
-                    <div key={reply.id} className="flex gap-3">
-                      <Avatar className="h-8 w-8 flex-shrink-0">
-                        <AvatarImage
-                          src={reply.avatarUrl || reply.userAvatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(reply.fullName || reply.userName || 'User')}&background=random&size=80`}
-                          alt={reply.fullName || reply.userName}
+                      {editingComment === comment.id ? (
+                        <InlineEditor
+                          text={editText}
+                          rating={editRating}
+                          setText={setEditText}
+                          setRating={setEditRating}
+                          onCancel={cancelEdit}
+                          onSave={() => handleUpdateComment(comment.id)}
+                          submitting={isSubmitting}
                         />
-                        <AvatarFallback className="bg-gray-200">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        {editingComment === reply.id ? (
-                          <Card className="mt-2 p-3 bg-blue-50 border-blue-200">
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Edit className="h-3.5 w-3.5 text-blue-600" />
-                                <span className="text-xs font-semibold text-gray-700">Chỉnh sửa phản hồi</span>
-                              </div>
-                              <div>
-                                <label className="text-xs font-medium text-gray-700 mb-1 block">Xếp hạng:</label>
-                                <div className="flex items-center gap-2">
-                                  {renderStars(editRating, true, setEditRating)}
-                                  {editRating > 0 ? (
-                                    <span className="text-xs text-muted-foreground ml-1">{editRating}/5</span>
+                      ) : (
+                        <>
+                          <p className="mt-3 whitespace-pre-wrap text-sm leading-6">{comment.comment}</p>
+                          <div className="mt-3 flex flex-wrap gap-1">
+                            {isAuthenticated && (
+                              <Button type="button" variant="ghost" size="sm" onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}>
+                                <Reply className="mr-1.5 h-3.5 w-3.5" />Trả lời
+                              </Button>
+                            )}
+                            {ownsComment && (
+                              <>
+                                <Button type="button" variant="ghost" size="sm" onClick={() => startEdit(comment)}>
+                                  <Edit className="mr-1.5 h-3.5 w-3.5" />Sửa
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => window.confirm('Bạn có chắc muốn xóa bình luận này?') && handleDeleteComment(comment.id)}
+                                >
+                                  <Trash2 className="mr-1.5 h-3.5 w-3.5" />Xóa
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </>
+                      )}
+
+                      {replyingTo === comment.id && isAuthenticated && (
+                        <div className="mt-4 space-y-3 rounded-lg border border-border bg-muted/20 p-3">
+                          <Textarea
+                            value={replyText}
+                            onChange={(event) => setReplyText(event.target.value)}
+                            placeholder="Viết phản hồi của bạn..."
+                            className="min-h-20 resize-none"
+                            maxLength={500}
+                          />
+                          <div className="flex justify-end gap-2">
+                            <Button type="button" variant="outline" size="sm" onClick={() => { setReplyingTo(null); setReplyText(''); }}>Hủy</Button>
+                            <Button type="button" size="sm" onClick={() => handleSubmitReply(comment.id)} disabled={!replyText.trim() || isSubmitting}>
+                              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                              Gửi phản hồi
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {comment.replies?.length > 0 && (
+                        <div className="mt-5 space-y-4 border-l-2 border-border pl-4 sm:ml-4">
+                          {visibleReplies.map((reply) => {
+                            const ownsReply = user && reply.userId && String(user.id) === String(reply.userId);
+                            return (
+                              <div key={reply.id} className="flex gap-3">
+                                <ReviewAvatar review={reply} size="sm" />
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-start justify-between gap-2">
+                                    <div>
+                                      <p className="text-sm font-semibold">{getDisplayName(reply)}</p>
+                                      <p className="mt-1 text-xs text-muted-foreground">{formatDate(reply.createdAt)}</p>
+                                    </div>
+                                    {Number(reply.rating) > 0 && <StarRating readOnly value={Number(reply.rating)} className="scale-90 origin-right" />}
+                                  </div>
+
+                                  {editingComment === reply.id ? (
+                                    <InlineEditor
+                                      compact
+                                      text={editText}
+                                      rating={editRating}
+                                      setText={setEditText}
+                                      setRating={setEditRating}
+                                      onCancel={cancelEdit}
+                                      onSave={() => handleUpdateComment(reply.id)}
+                                      submitting={isSubmitting}
+                                    />
                                   ) : (
-                                    <span className="text-xs text-gray-400 ml-1">(Chọn số sao)</span>
+                                    <>
+                                      <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{reply.comment}</p>
+                                      {ownsReply && (
+                                        <div className="mt-2 flex gap-1">
+                                          <Button type="button" variant="ghost" size="sm" onClick={() => startEdit(reply)}>
+                                            <Edit className="mr-1.5 h-3 w-3" />Sửa
+                                          </Button>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-destructive hover:text-destructive"
+                                            onClick={() => window.confirm('Bạn có chắc muốn xóa phản hồi này?') && handleDeleteComment(reply.id)}
+                                          >
+                                            <Trash2 className="mr-1.5 h-3 w-3" />Xóa
+                                          </Button>
+                                        </div>
+                                      )}
+                                    </>
                                   )}
                                 </div>
                               </div>
-                              <div>
-                                <label className="text-xs font-medium text-gray-700 mb-1 block">Nội dung:</label>
-                                <Textarea
-                                  value={editText}
-                                  onChange={(e) => setEditText(e.target.value)}
-                                  className="min-h-[60px] resize-none border-gray-300 text-sm"
-                                  rows="2"
-                                  maxLength={500}
-                                  placeholder="Nhập nội dung phản hồi..."
-                                />
-                                <span className="text-xs text-muted-foreground">{editText.length}/500 ký tự</span>
-                              </div>
-                              <div className="flex justify-end gap-2 pt-1 border-t border-border">
-                                <Button
-                                  variant="outline"
-                                  onClick={handleCancelEdit}
-                                  size="sm"
-                                  className="text-xs h-7 text-muted-foreground hover:text-foreground"
-                                >
-                                  Hủy
-                                </Button>
-                                <Button
-                                  onClick={() => handleUpdateComment(reply.id)}
-                                  disabled={!editText.trim() || editRating === 0 || isSubmitting}
-                                  size="sm"
-                                  className="bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 text-xs h-7"
-                                >
-                                  {isSubmitting ? (
-                                    <>
-                                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                      Đang lưu...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Edit className="h-3 w-3 mr-1" />
-                                      Lưu
-                                    </>
-                                  )}
-                                </Button>
-                              </div>
-                            </div>
-                          </Card>
-                        ) : (
-                          <>
-                            <div className="mb-1">
-                              <h5 className="font-semibold text-sm text-foreground">{reply.fullName || reply.userName}</h5>
-                            </div>
-                            <p className="text-foreground text-sm leading-relaxed mb-2">{reply.comment}</p>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {formatDate(reply.createdAt)}
-                              </span>
-                              {isAuthenticated && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-auto px-2 py-0.5 text-xs font-normal text-muted-foreground hover:text-blue-600 hover:bg-blue-50"
-                                  onClick={() => setReplyingTo(replyingTo === reply.id ? null : reply.id)}
-                                >
-                                  <Reply className="h-3 w-3 mr-1" />
-                                  Trả lời
-                                </Button>
-                              )}
-                              {user && reply.userId && String(user.id) === String(reply.userId) && (
-                                <>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-auto px-2 py-0.5 text-xs font-normal text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50"
-                                    onClick={() => handleEditComment(reply)}
-                                  >
-                                    <Edit className="h-3 w-3 mr-1" />
-                                    Sửa
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-auto px-2 py-0.5 text-xs font-normal text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    onClick={() => {
-                                      if (window.confirm('Bạn có chắc chắn muốn xóa phản hồi này?')) {
-                                        handleDeleteComment(reply.id);
-                                      }
-                                    }}
-                                  >
-                                    <Trash2 className="h-3 w-3 mr-1" />
-                                    Xóa
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                          </>
-                        )}
-                      </div>
+                            );
+                          })}
+
+                          {comment.replies.length > 2 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setExpandedReplies((previous) => ({ ...previous, [comment.id]: !previous[comment.id] }))}
+                            >
+                              {expandedReplies[comment.id] ? 'Ẩn bớt' : `Xem thêm ${comment.replies.length - 2} phản hồi`}
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  ))}
-                  {comment.replies.length > 2 && !expandedReplies[comment.id] && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="ml-11 text-muted-foreground hover:text-foreground text-xs"
-                      onClick={() => setExpandedReplies({ ...expandedReplies, [comment.id]: true })}
-                    >
-                      Xem thêm {comment.replies.length - 2} phản hồi
-                    </Button>
-                  )}
-                  {expandedReplies[comment.id] && comment.replies.length > 2 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="ml-11 text-muted-foreground hover:text-foreground text-xs"
-                      onClick={() => setExpandedReplies({ ...expandedReplies, [comment.id]: false })}
-                    >
-                      Ẩn bớt
-                    </Button>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-
-        {pagination.page < pagination.totalPages - 1 && (
-          <div className="flex justify-center mt-6">
-            <Button
-              variant="outline"
-              onClick={() => loadComments(pagination.page + 1)}
-              disabled={loading}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Đang tải...
-                </>
-              ) : (
-                'Xem thêm bình luận'
-              )}
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {comments.length === 0 && (
-        <Card className="p-12 text-center">
-          <MessageCircle className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-          <p className="text-muted-foreground text-lg mb-2">Chưa có bình luận nào</p>
-          <p className="text-muted-foreground text-sm">Hãy là người đầu tiên chia sẻ suy nghĩ của bạn về bộ phim này!</p>
-        </Card>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       )}
-    </div>
+
+      {pagination.page < pagination.totalPages - 1 && (
+        <div className="mt-6 flex justify-center">
+          <Button type="button" variant="outline" onClick={() => loadComments(pagination.page + 1, { append: true })} disabled={loadingMore}>
+            {loadingMore && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Xem thêm bình luận
+          </Button>
+        </div>
+      )}
+
+      {comments.length > 0 && <><Separator className="mt-8" /><p className="mt-3 text-center text-xs text-muted-foreground">{pagination.totalElements} bình luận và phản hồi</p></>}
+    </section>
   );
 };
 

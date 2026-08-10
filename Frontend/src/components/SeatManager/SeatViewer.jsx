@@ -10,6 +10,13 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import useSeatWebSocket from '@/hooks/useSeatWebSocket';
+import {
+  getSeatStatusLabel,
+  getSeatTypeLabel,
+  getSeatVisualClass,
+  normalizeSeatStatus,
+  normalizeSeatType,
+} from '@/lib/seatPresentation';
 import { cn } from '@/lib/utils';
 import showtimeService from '@/services/showtimeService';
 import { unwrapApiArray } from '@/utils/apiResponse';
@@ -20,22 +27,6 @@ const EMPTY_LAYOUT = {
   vipSeats: 0,
   bookedSeats: 0,
   availableSeats: 0,
-};
-
-const TYPE_LABELS = {
-  normal: 'Thường',
-  vip: 'VIP',
-  couple: 'Đôi',
-  sweetbox: 'Sweetbox',
-};
-
-const STATUS_LABELS = {
-  available: 'Còn trống',
-  held: 'Đang giữ',
-  booked: 'Đã đặt',
-  unavailable: 'Không khả dụng',
-  maintenance: 'Bảo trì',
-  blocked: 'Bị chặn',
 };
 
 const numberToRowLabel = (rowNumber) => {
@@ -50,30 +41,6 @@ const numberToRowLabel = (rowNumber) => {
   }
 
   return result || 'A';
-};
-
-const mapSeatType = (value) => {
-  const typeMap = {
-    REGULAR: 'normal',
-    NORMAL: 'normal',
-    VIP: 'vip',
-    COUPLE: 'couple',
-    SWEETBOX: 'sweetbox',
-  };
-  return typeMap[String(value || '').toUpperCase()] || 'normal';
-};
-
-const mapSeatStatus = (value) => {
-  const statusMap = {
-    AVAILABLE: 'available',
-    HELD: 'held',
-    RESERVED: 'held',
-    BOOKED: 'booked',
-    UNAVAILABLE: 'unavailable',
-    MAINTENANCE: 'maintenance',
-    BLOCKED: 'blocked',
-  };
-  return statusMap[String(value || '').toUpperCase()] || 'available';
 };
 
 const buildSeatLayout = (seats) => {
@@ -95,8 +62,8 @@ const buildSeatLayout = (seats) => {
       name: seat.name || `${rowLabel}${seatNumber}`,
       row: rowLabel,
       number: seatNumber,
-      type: mapSeatType(seat.seatType),
-      status: mapSeatStatus(seat.status),
+      type: normalizeSeatType(seat.seatType),
+      status: normalizeSeatStatus(seat.status || seat.seatStatus),
       col: Number(seat.col) || seatNumber,
     };
   });
@@ -123,19 +90,6 @@ const buildSeatLayout = (seats) => {
   };
 };
 
-const getSeatClassName = (seat) => {
-  if (seat.status === 'booked') return 'seat-booked';
-  if (seat.status === 'held') return 'seat-held';
-  if (['unavailable', 'maintenance', 'blocked'].includes(seat.status)) return 'seat-disabled';
-
-  return {
-    vip: 'seat-vip',
-    couple: 'seat-couple',
-    sweetbox: 'seat-sweetbox',
-    normal: 'seat-normal',
-  }[seat.type] || 'seat-normal';
-};
-
 const SeatIcon = ({ seat, className = 'h-3 w-3' }) => {
   if (seat.status === 'booked') return <User className={className} />;
   if (seat.status === 'held') return <Clock className={className} />;
@@ -158,9 +112,10 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
 
   const updateSeatStatus = useCallback((seatIds = [], status) => {
     setSeatLayout((previous) => {
+      const normalizedStatus = normalizeSeatStatus(status);
       const rows = previous.rows.map((row) => ({
         ...row,
-        seats: row.seats.map((seat) => (seatIds.includes(seat.id) ? { ...seat, status } : seat)),
+        seats: row.seats.map((seat) => (seatIds.includes(seat.id) ? { ...seat, status: normalizedStatus } : seat)),
       }));
       const seats = rows.flatMap((row) => row.seats);
 
@@ -306,12 +261,12 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                               <div
                                 tabIndex={0}
                                 role="img"
-                                aria-label={`Ghế ${seat.name}, ${TYPE_LABELS[seat.type]}, ${STATUS_LABELS[seat.status]}`}
+                                aria-label={`Ghế ${seat.name}, ${getSeatTypeLabel(seat.type)}, ${getSeatStatusLabel(seat.status)}`}
                                 className={cn(
                                   'flex h-9 items-center justify-center rounded-md text-[10px] font-semibold outline-none transition-transform focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                                   'hover:scale-105',
                                   isCoupleSeat ? 'w-[76px]' : 'w-9',
-                                  getSeatClassName(seat)
+                                  getSeatVisualClass(seat)
                                 )}
                                 style={{ gridColumn: isCoupleSeat ? `${currentColumn} / span 2` : currentColumn }}
                               >
@@ -323,8 +278,8 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                             </TooltipTrigger>
                             <TooltipContent className="space-y-1">
                               <p className="font-semibold">Ghế {seat.name}</p>
-                              <p>Loại: {TYPE_LABELS[seat.type] || 'Thường'}</p>
-                              <p>Trạng thái: {STATUS_LABELS[seat.status] || 'Không xác định'}</p>
+                              <p>Loại: {getSeatTypeLabel(seat.type)}</p>
+                              <p>Trạng thái: {getSeatStatusLabel(seat.status)}</p>
                               <p>Vị trí: Hàng {seat.row}, cột {seat.col}</p>
                             </TooltipContent>
                           </Tooltip>
@@ -341,7 +296,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
       </Card>
 
       <Card className="shadow-none">
-        <CardHeader className="border-b p-4">
+        <CardHeader className="border-b border-border p-4">
           <CardTitle className="text-sm">Chú thích</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-x-5 gap-y-3 p-4">

@@ -1,3 +1,4 @@
+import { cloneElement, isValidElement } from 'react';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { sanitizeLegacyColorClassName, sanitizeSemanticStyle } from '@/lib/stylePolicy';
@@ -11,39 +12,68 @@ const toneStyle = {
   destructive: { color: 'hsl(var(--destructive))' },
 };
 
+const sanitizeSlot = (slot) => {
+  if (!isValidElement(slot)) return slot;
+  return cloneElement(slot, {
+    className: sanitizeLegacyColorClassName(slot.props.className),
+    style: sanitizeSemanticStyle(slot.props.style),
+  });
+};
+
 const Metric = ({
   label,
   value,
   leading,
   trailing,
+  prefix,
+  suffix,
+  formatter,
   tone = 'neutral',
   valueClassName,
   valueCss,
+  valueStyle,
   className,
-}) => (
-  <div className={cn('space-y-1', className)}>
-    {label && <p className="text-sm text-muted-foreground">{label}</p>}
-    <div className="flex min-w-0 items-baseline gap-2">
-      {leading && <span className="shrink-0 text-muted-foreground">{leading}</span>}
-      <p
-        className={cn(
-          'truncate text-2xl font-semibold tracking-tight text-foreground',
-          sanitizeLegacyColorClassName(valueClassName)
+}) => {
+  const formattedValue = typeof formatter === 'function' ? formatter(value) : value;
+  const leadingContent = leading ?? prefix;
+  const trailingContent = trailing ?? suffix;
+
+  return (
+    <div className={cn('space-y-1', className)}>
+      {label && <p className="text-sm text-muted-foreground">{label}</p>}
+      <div className="flex min-w-0 items-baseline gap-2">
+        {leadingContent && (
+          <span className="shrink-0 text-primary">{sanitizeSlot(leadingContent)}</span>
         )}
-        style={{ ...sanitizeSemanticStyle(valueCss), ...(toneStyle[tone] || {}) }}
-      >
-        {value}
-      </p>
-      {trailing && <span className="shrink-0 text-sm text-muted-foreground">{trailing}</span>}
+        <p
+          className={cn(
+            'truncate text-2xl font-semibold tracking-tight text-foreground',
+            sanitizeLegacyColorClassName(valueClassName)
+          )}
+          style={{
+            ...sanitizeSemanticStyle(valueStyle),
+            ...sanitizeSemanticStyle(valueCss),
+            ...(toneStyle[tone] || {}),
+          }}
+        >
+          {formattedValue}
+        </p>
+        {trailingContent !== undefined && trailingContent !== null && (
+          <span className="shrink-0 text-sm text-muted-foreground">{sanitizeSlot(trailingContent)}</span>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const MetricCard = ({
   label,
   value,
   leading,
   trailing,
+  prefix,
+  suffix,
+  formatter,
   icon,
   trend,
   trendValue,
@@ -59,12 +89,15 @@ const MetricCard = ({
           value={value}
           leading={leading}
           trailing={trailing}
+          prefix={prefix}
+          suffix={suffix}
+          formatter={formatter}
           tone={tone}
           valueClassName={valueClassName}
         />
         {icon && (
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-            {icon}
+            {sanitizeSlot(icon)}
           </div>
         )}
       </div>

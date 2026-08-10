@@ -1,72 +1,57 @@
-import * as React from "react"
-import { cn } from "@/lib/utils"
+import * as React from 'react';
+import { cn } from '@/lib/utils';
 
-const RadioGroup = ({ 
-  value,
-  onChange,
-  children,
-  className,
-  ...props 
-}) => {
-  return (
-    <div className={cn("flex flex-col gap-3", className)} {...props}>
-      {React.Children.map(children, child => {
-        if (React.isValidElement(child)) {
-          return React.cloneElement(child, {
-            checked: child.props.value === value,
-            onChange: () => onChange?.(child.props.value)
-          });
-        }
-        return child;
-      })}
-    </div>
-  )
-}
+const RadioGroup = ({ value, onChange, children, className, ...props }) => (
+  <div role="radiogroup" className={cn('flex flex-col gap-3', className)} {...props}>
+    {React.Children.map(children, (child) => {
+      if (!React.isValidElement(child)) return child;
+      return React.cloneElement(child, {
+        checked: child.props.value === value,
+        onChange: () => onChange?.(child.props.value),
+      });
+    })}
+  </div>
+);
 
-const RadioButton = ({ 
+const RadioButton = ({
   value,
   checked = false,
   onChange,
   children,
   className,
-  ...props 
-}) => {
-  return (
-    <label
+  disabled = false,
+  ...props
+}) => (
+  <label
+    className={cn(
+      'flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors',
+      checked ? 'border-primary bg-primary/5' : 'border-input bg-background hover:border-primary/50 hover:bg-accent/40',
+      disabled && 'cursor-not-allowed opacity-50',
+      className
+    )}
+    {...props}
+  >
+    <input
+      type="radio"
+      value={value}
+      checked={checked}
+      disabled={disabled}
+      onChange={onChange}
+      className="sr-only"
+    />
+    <span
+      aria-hidden="true"
       className={cn(
-        "flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all",
-        checked
-          ? "border-primary bg-primary/5"
-          : "border-border hover:border-primary/50",
-        className
+        'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-input bg-background transition-colors',
+        checked && 'border-primary'
       )}
-      onClick={onChange}
-      {...props}
     >
-      <input
-        type="radio"
-        value={value}
-        checked={checked}
-        onChange={onChange}
-        className="sr-only"
-      />
-      <div className={cn(
-        "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-        checked
-          ? "border-primary"
-          : "border-gray-300"
-      )}>
-        {checked && (
-          <div className="w-3 h-3 rounded-full bg-primary" />
-        )}
-      </div>
-      {children}
-    </label>
-  )
-}
+      {checked && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
+    </span>
+    <span className="min-w-0 flex-1">{children}</span>
+  </label>
+);
 
-RadioGroup.Button = RadioButton
+RadioGroup.Button = RadioButton;
 
-export { RadioGroup }
-
-
+export { RadioGroup };
