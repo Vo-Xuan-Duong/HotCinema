@@ -7,7 +7,6 @@ import { DataTable } from '@/components/ui/data-table';
 import { DetailItem, DetailList } from '@/components/ui/detail-list';
 import { Empty } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
-import { MetricCard } from '@/components/ui/metric';
 import { Pagination } from '@/components/ui/pagination';
 import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -58,9 +57,9 @@ const getRoleTone = (role) => {
 const getUserStatus = (user) => user?.isActive === false ? 'inactive' : 'active';
 
 const UserAvatar = ({ user, size = 'md' }) => (
-  <Avatar className={size === 'lg' ? 'h-16 w-16' : 'h-10 w-10'}>
+  <Avatar className={size === 'lg' ? 'h-14 w-14' : 'h-9 w-9'}>
     <AvatarImage src={user?.avatarUrl || user?.avatar} alt={user?.fullName || user?.email || 'Người dùng'} />
-    <AvatarFallback><User className={size === 'lg' ? 'h-6 w-6' : 'h-4 w-4'} /></AvatarFallback>
+    <AvatarFallback><User className={size === 'lg' ? 'h-5 w-5' : 'h-4 w-4'} /></AvatarFallback>
   </Avatar>
 );
 
@@ -242,25 +241,21 @@ const AdminUsers = () => {
     {
       title: 'Người dùng',
       key: 'user',
-      width: 320,
+      width: 360,
       render: (_, record) => (
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
           <UserAvatar user={record} />
           <div className="min-w-0">
             <Button type="button" variant="link" className="h-auto max-w-full justify-start p-0 font-semibold" onClick={() => openDetail(record)}>
               <span className="truncate">{record.fullName || 'Chưa có tên'}</span>
             </Button>
-            <p className="mt-1 truncate text-xs text-muted-foreground">{record.email || 'Chưa có email'}</p>
-            <p className="mt-1 text-xs text-muted-foreground">ID: {record.id}</p>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">{record.email || 'Chưa có email'}</p>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              {record.phone || 'Chưa có SĐT'} · ID {record.id}
+            </p>
           </div>
         </div>
       ),
-    },
-    {
-      title: 'Số điện thoại',
-      dataIndex: 'phone',
-      key: 'phone',
-      render: (phone) => phone || <span className="text-muted-foreground">—</span>,
     },
     {
       title: 'Vai trò',
@@ -278,7 +273,7 @@ const AdminUsers = () => {
       title: 'Thao tác',
       key: 'actions',
       render: (_, record) => (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           <Button type="button" variant="ghost" size="icon" onClick={() => openDetail(record)} aria-label={`Xem ${record.fullName || record.email}`}>
             <Eye className="h-4 w-4" />
           </Button>
@@ -304,7 +299,7 @@ const AdminUsers = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <AdminPageHeader
         title="Quản lý người dùng"
         description="Quản lý tài khoản, vai trò và trạng thái truy cập của người dùng trong HotCinema."
@@ -314,64 +309,72 @@ const AdminUsers = () => {
         ]}
         actions={(
           <Button type="button" onClick={openCreate}>
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="h-4 w-4" />
             Thêm người dùng
           </Button>
         )}
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <MetricCard label="Tổng người dùng" value={pagination.total} icon={<UsersIcon className="h-5 w-5" />} />
-        <MetricCard label="Hoạt động trên trang" value={pageStats.active} icon={<CheckCircle2 className="h-5 w-5" />} />
-        <MetricCard label="Không hoạt động trên trang" value={pageStats.inactive} icon={<Ban className="h-5 w-5" />} />
-      </div>
-
-      <Card className="shadow-sm">
-        <CardContent className="pt-6">
-          <div className="relative max-w-xl">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={searchText}
-              onChange={(event) => {
-                setSearchText(event.target.value);
-                setPagination((previous) => ({ ...previous, current: 1 }));
-              }}
-              placeholder="Tìm theo họ tên hoặc email..."
-              className="pl-9"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card ref={tableRef} className="shadow-sm">
+      <Card ref={tableRef}>
         <CardContent className="p-0">
+          <div className="flex flex-col gap-3 border-b border-border p-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="rounded-md border bg-muted/25 px-3 py-1.5">
+                <span className="text-xs text-muted-foreground">Tổng</span>
+                <strong className="ml-2 text-sm tabular-nums">{pagination.total.toLocaleString('vi-VN')}</strong>
+              </div>
+              <div className="rounded-md border bg-muted/25 px-3 py-1.5">
+                <span className="text-xs text-muted-foreground">Hoạt động</span>
+                <strong className="ml-2 text-sm tabular-nums">{pageStats.active}</strong>
+              </div>
+              <div className="rounded-md border bg-muted/25 px-3 py-1.5">
+                <span className="text-xs text-muted-foreground">Không hoạt động</span>
+                <strong className="ml-2 text-sm tabular-nums">{pageStats.inactive}</strong>
+              </div>
+            </div>
+
+            <div className="relative w-full lg:max-w-md">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchText}
+                onChange={(event) => {
+                  setSearchText(event.target.value);
+                  setPagination((previous) => ({ ...previous, current: 1 }));
+                }}
+                placeholder="Tìm theo họ tên hoặc email..."
+                className="pl-9"
+              />
+            </div>
+          </div>
+
           {loading ? (
-            <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-muted-foreground">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <div className="flex min-h-48 flex-col items-center justify-center gap-2 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
               <span className="text-sm">Đang tải danh sách người dùng...</span>
             </div>
           ) : users.length ? (
-            <>
-              <DataTable fields={columns} rows={users} getRowId="id" pageControls={false} />
-              <div className="border-t border-border p-4">
-                <Pagination
-                  page={pagination.current}
-                  itemsPerPage={pagination.pageSize}
-                  totalItems={pagination.total}
-                  showSizeChanger
-                  showQuickJumper
-                  pageSizeOptions={[10, 20, 50]}
-                  showTotal={(total, range) => `${range[0]}-${range[1]} của ${total} người dùng`}
-                  onPageChange={(page) => {
-                    setPagination((previous) => ({ ...previous, current: page }));
-                    tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }}
-                  onPageSizeChange={(size) => setPagination((previous) => ({ ...previous, current: 1, pageSize: size }))}
-                />
-              </div>
-            </>
+            <DataTable fields={columns} rows={users} getRowId="id" framed={false} />
           ) : (
-            <Empty description="Không tìm thấy người dùng phù hợp" className="min-h-64" />
+            <Empty description="Không tìm thấy người dùng phù hợp" className="min-h-40" />
+          )}
+
+          {!loading && users.length > 0 && (
+            <div className="border-t border-border p-3">
+              <Pagination
+                page={pagination.current}
+                itemsPerPage={pagination.pageSize}
+                totalItems={pagination.total}
+                showSizeChanger
+                showQuickJumper
+                pageSizeOptions={[10, 20, 50]}
+                showTotal={(total, range) => `${range[0]}-${range[1]} của ${total} người dùng`}
+                onPageChange={(page) => {
+                  setPagination((previous) => ({ ...previous, current: page }));
+                  tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                onPageSizeChange={(size) => setPagination((previous) => ({ ...previous, current: 1, pageSize: size }))}
+              />
+            </div>
           )}
         </CardContent>
       </Card>
@@ -384,32 +387,32 @@ const AdminUsers = () => {
         actions={null}
         maxWidth={640}
       >
-        <form onSubmit={handleSave} className="space-y-5">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
+        <form onSubmit={handleSave} className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
               <label htmlFor="user-full-name" className="text-sm font-medium">Họ và tên <span className="text-destructive">*</span></label>
               <Input id="user-full-name" value={formValues.fullName} onChange={(event) => setFormValues((previous) => ({ ...previous, fullName: event.target.value }))} required />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label htmlFor="user-email" className="text-sm font-medium">Email <span className="text-destructive">*</span></label>
               <Input id="user-email" type="email" value={formValues.email} onChange={(event) => setFormValues((previous) => ({ ...previous, email: event.target.value }))} required />
             </div>
           </div>
 
           {!selectedUser && (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label htmlFor="user-password" className="text-sm font-medium">Mật khẩu <span className="text-destructive">*</span></label>
               <Input id="user-password" type="password" minLength={6} autoComplete="new-password" value={formValues.password} onChange={(event) => setFormValues((previous) => ({ ...previous, password: event.target.value }))} required />
               <p className="text-xs text-muted-foreground">Tối thiểu 6 ký tự.</p>
             </div>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
               <label htmlFor="user-phone" className="text-sm font-medium">Số điện thoại</label>
               <Input id="user-phone" value={formValues.phone} onChange={(event) => setFormValues((previous) => ({ ...previous, phone: event.target.value }))} />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <label className="text-sm font-medium">Vai trò <span className="text-destructive">*</span></label>
               <Select value={formValues.role} onValueChange={(value) => setFormValues((previous) => ({ ...previous, role: value }))}>
                 <SelectTrigger><SelectValue placeholder="Chọn vai trò" /></SelectTrigger>
@@ -423,26 +426,27 @@ const AdminUsers = () => {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="user-address" className="text-sm font-medium">Địa chỉ</label>
-            <Input id="user-address" value={formValues.address} onChange={(event) => setFormValues((previous) => ({ ...previous, address: event.target.value }))} />
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
+            <div className="space-y-1.5">
+              <label htmlFor="user-address" className="text-sm font-medium">Địa chỉ</label>
+              <Input id="user-address" value={formValues.address} onChange={(event) => setFormValues((previous) => ({ ...previous, address: event.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Trạng thái</label>
+              <Select value={formValues.status} onValueChange={(value) => setFormValues((previous) => ({ ...previous, status: value }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Hoạt động</SelectItem>
+                  <SelectItem value="inactive">Không hoạt động</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Trạng thái</label>
-            <Select value={formValues.status} onValueChange={(value) => setFormValues((previous) => ({ ...previous, status: value }))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Hoạt động</SelectItem>
-                <SelectItem value="inactive">Không hoạt động</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex justify-end gap-2 border-t border-border pt-4">
+          <div className="flex justify-end gap-2 border-t border-border pt-3">
             <Button type="button" variant="outline" onClick={() => setEditorOpen(false)}>Hủy</Button>
             <Button type="submit" disabled={saving}>
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               {selectedUser ? 'Lưu thay đổi' : 'Thêm người dùng'}
             </Button>
           </div>
@@ -457,13 +461,13 @@ const AdminUsers = () => {
         maxWidth={640}
       >
         {selectedUser && (
-          <div className="space-y-5">
-            <div className="flex items-center gap-4">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
               <UserAvatar user={selectedUser} size="lg" />
               <div className="min-w-0">
                 <p className="truncate text-lg font-semibold">{selectedUser.fullName || 'Chưa có tên'}</p>
                 <p className="truncate text-sm text-muted-foreground">{selectedUser.email}</p>
-                <div className="mt-2 flex flex-wrap gap-2">
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
                   <StatusBadge tone={getRoleTone(selectedUser.role)}>{getRoleLabel(selectedUser.role)}</StatusBadge>
                   {getUserStatus(selectedUser) === 'active'
                     ? <StatusBadge tone="success">Hoạt động</StatusBadge>
@@ -483,7 +487,7 @@ const AdminUsers = () => {
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setDetailOpen(false)}>Đóng</Button>
               <Button type="button" onClick={() => { setDetailOpen(false); openEdit(selectedUser); }}>
-                <Edit className="mr-2 h-4 w-4" />
+                <Edit className="h-4 w-4" />
                 Chỉnh sửa
               </Button>
             </div>
