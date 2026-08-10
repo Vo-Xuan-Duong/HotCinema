@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Empty } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -40,7 +39,7 @@ import {
 } from '@/lib/seatPresentation';
 import { cn } from '@/lib/utils';
 import seatService from '@/services/seatService';
-import { unwrapApiArray, unwrapApiData } from '@/utils/apiResponse';
+import { unwrapApiArray } from '@/utils/apiResponse';
 
 const EMPTY_LAYOUT = {
   rows: [],
@@ -75,6 +74,7 @@ const normalizeSeat = (seat) => {
   const rowLabel = getSeatRowLabel(seat);
   const nameMatch = seat?.name?.match(/^[A-Z]+(\d+)$/i);
   const seatNumber = Number(seat?.col) || Number(nameMatch?.[1]) || 0;
+  const parsedRowIndex = Number(seat?.row);
 
   return {
     ...seat,
@@ -82,7 +82,7 @@ const normalizeSeat = (seat) => {
     name: seat.name || `${rowLabel}${seatNumber}`,
     row: rowLabel,
     rowLabel,
-    rowIndex: Number(seat.row) || 0,
+    rowIndex: Number.isFinite(parsedRowIndex) ? parsedRowIndex : 0,
     number: seatNumber,
     col: Number(seat.col) || seatNumber,
     type: normalizeSeatType(seat.seatType || seat.type),
@@ -111,7 +111,7 @@ const buildSeatLayout = (rawSeats) => {
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([label, rowSeats]) => ({
       label,
-      rowIndex: rowSeats[0]?.rowIndex || 0,
+      rowIndex: rowSeats[0]?.rowIndex ?? 0,
       seats: rowSeats.sort((left, right) => left.col - right.col),
     }));
 
@@ -238,17 +238,22 @@ const SeatManager = ({ selectedScreen }) => {
     );
   };
 
+  const resolveRowIndex = (row) => {
+    const parsed = Number(row?.rowIndex);
+    return Number.isFinite(parsed) ? parsed : row.label.charCodeAt(0) - 64;
+  };
+
   const handleAddSeatAtPosition = async (row, col) => {
     if (row.seats.some((seat) => seat.col === col)) {
       notification.warning(`Cột ${col} trong hàng ${row.label} đã có ghế.`);
       return;
     }
-    await createSeatAt(row.label, row.rowIndex || row.label.charCodeAt(0) - 64, col);
+    await createSeatAt(row.label, resolveRowIndex(row), col);
   };
 
   const handleAddSeat = async (row) => {
     const maxCol = row.seats.length ? Math.max(...row.seats.map((seat) => seat.col)) : 0;
-    await createSeatAt(row.label, row.rowIndex || row.label.charCodeAt(0) - 64, maxCol + 1);
+    await createSeatAt(row.label, resolveRowIndex(row), maxCol + 1);
   };
 
   const handleAddRow = async () => {
@@ -262,8 +267,11 @@ const SeatManager = ({ selectedScreen }) => {
       label = numberToRowLabel(rowNumber);
     }
 
-    const maxExistingRowIndex = Math.max(0, ...seatLayout.rows.map((row) => Number(row.rowIndex) || 0));
-    const rowIndex = Math.max(rowNumber, maxExistingRowIndex + 1);
+    const rowIndexes = seatLayout.rows
+      .map((row) => Number(row.rowIndex))
+      .filter(Number.isFinite);
+    const maxExistingRowIndex = rowIndexes.length ? Math.max(...rowIndexes) : 0;
+    const rowIndex = maxExistingRowIndex + 1;
     const seatsPerRow = Number(selectedScreen.seatsPerRow) || 10;
 
     await runSeatAction(
@@ -576,11 +584,11 @@ const SeatManager = ({ selectedScreen }) => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Hàng</label>
-                <Input value={selectedSeat.rowIndex || '-'} disabled />
+                <Input value={selectedSeat.rowIndex ?? '-'} disabled />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Cột</label>
-                <Input value={selectedSeat.col || '-'} disabled />
+                <Input value={selectedSeat.col ?? '-'} disabled />
               </div>
             </div>
 
