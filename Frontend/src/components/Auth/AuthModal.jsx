@@ -1,73 +1,75 @@
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useEffect, useState } from 'react';
 import LoginForm from '@/components/Auth/LoginForm';
-import RegisterForm from '@/components/Auth/RegisterForm';
 import OTPVerificationForm from '@/components/Auth/OTPVerificationForm';
+import RegisterForm from '@/components/Auth/RegisterForm';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
+const modalCopy = {
+  login: {
+    title: 'Đăng nhập HotCinema',
+    description: 'Đăng nhập để đặt vé, quản lý giao dịch và lưu trải nghiệm của bạn.',
+  },
+  register: {
+    title: 'Tạo tài khoản HotCinema',
+    description: 'Tạo tài khoản mới để đặt vé nhanh hơn và quản lý lịch sử giao dịch.',
+  },
+  otp: {
+    title: 'Xác thực tài khoản',
+    description: 'Hoàn tất bước xác thực email để kích hoạt tài khoản.',
+  },
+};
 
 const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
-    const [currentMode, setCurrentMode] = useState(initialMode);
-    const [registerEmail, setRegisterEmail] = useState('');
+  const [currentMode, setCurrentMode] = useState(initialMode);
+  const [registerEmail, setRegisterEmail] = useState('');
 
-    useEffect(() => {
-        if (isOpen) {
-            setCurrentMode(initialMode);
-            setRegisterEmail('');
-        }
-    }, [isOpen, initialMode]);
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentMode(initialMode);
+      setRegisterEmail('');
+    }
+  }, [isOpen, initialMode]);
 
-    const handleSwitchToRegister = () => {
-        setCurrentMode('register');
-    };
+  const copy = modalCopy[currentMode] || modalCopy.login;
 
-    const handleSwitchToLogin = () => {
-        setCurrentMode('login');
-    };
+  return (
+    <Dialog open={isOpen} onOpenChange={(nextOpen) => !nextOpen && onClose?.()}>
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-md overflow-y-auto p-0 sm:max-h-[90dvh]">
+        <DialogHeader className="border-b border-border px-6 py-5 text-left">
+          <p className="text-sm font-medium text-primary">HotCinema</p>
+          <DialogTitle className="text-xl">{copy.title}</DialogTitle>
+          <DialogDescription>{copy.description}</DialogDescription>
+        </DialogHeader>
 
-    const handleSwitchToOTP = (email) => {
-        setRegisterEmail(email);
-        setCurrentMode('otp');
-    };
-
-    const handleOTPSuccess = () => {
-        setCurrentMode('login');
-        setRegisterEmail('');
-    };
-
-    const handleBackToRegister = () => {
-        setCurrentMode('register');
-    };
-
-    return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-[420px] bg-gradient-to-br from-white to-gray-50 border border-border rounded-2xl shadow-[0_10px_30px_-5px_rgba(0,0,0,0.12),0_4px_16px_-2px_rgba(0,0,0,0.08)]">
-                <DialogHeader className="bg-gradient-to-b from-white/90 to-white/75 border-b border-border pb-4">
-                    <DialogTitle className="text-2xl font-bold text-center bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent">
-                        🎬 HotCinemas
-                    </DialogTitle>
-                </DialogHeader>
-                <div className="p-0">
-                    {currentMode === 'login' ? (
-                        <LoginForm
-                            onSwitchToRegister={handleSwitchToRegister}
-                            onClose={onClose}
-                        />
-                    ) : currentMode === 'otp' ? (
-                        <OTPVerificationForm
-                            email={registerEmail}
-                            onSuccess={handleOTPSuccess}
-                            onBack={handleBackToRegister}
-                        />
-                    ) : (
-                        <RegisterForm
-                            onSwitchToLogin={handleSwitchToLogin}
-                            onSwitchToOTP={handleSwitchToOTP}
-                            onClose={onClose}
-                        />
-                    )}
-                </div>
-            </DialogContent>
-        </Dialog>
-    );
+        <div className="px-6 py-5">
+          {currentMode === 'login' ? (
+            <LoginForm
+              onSwitchToRegister={() => setCurrentMode('register')}
+              onClose={onClose}
+            />
+          ) : currentMode === 'otp' ? (
+            <OTPVerificationForm
+              email={registerEmail}
+              onSuccess={() => {
+                setCurrentMode('login');
+                setRegisterEmail('');
+              }}
+              onBack={() => setCurrentMode('register')}
+            />
+          ) : (
+            <RegisterForm
+              onSwitchToLogin={() => setCurrentMode('login')}
+              onSwitchToOTP={(email) => {
+                setRegisterEmail(email);
+                setCurrentMode('otp');
+              }}
+              onClose={onClose}
+            />
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 export default AuthModal;
