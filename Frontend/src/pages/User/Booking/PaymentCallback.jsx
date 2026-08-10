@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
+import { CheckCircle2, Clock3, Loader2, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
-import paymentService from '@/services/paymentService';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import paymentService from '@/services/paymentService';
 
 const PaymentCallback = () => {
   const navigate = useNavigate();
@@ -18,18 +18,14 @@ const PaymentCallback = () => {
       try {
         const rawPending = localStorage.getItem('pendingPayment');
         const pending = rawPending ? JSON.parse(rawPending) : null;
-        if (!pending?.bookingId) {
-          throw new Error('Không tìm thấy giao dịch đang chờ xác nhận.');
-        }
+        if (!pending?.bookingId) throw new Error('Không tìm thấy giao dịch đang chờ xác nhận.');
 
         const payments = await paymentService.getPaymentsByBookingId(pending.bookingId);
         const payment = payments.find((item) => (
           item.id === pending.paymentId || item.transactionId === pending.transactionId
         )) || payments[0];
 
-        if (!payment) {
-          throw new Error('Hệ thống chưa ghi nhận giao dịch.');
-        }
+        if (!payment) throw new Error('Hệ thống chưa ghi nhận giao dịch.');
 
         const paymentStatus = String(payment.paymentStatus || '').toUpperCase();
         if (paymentStatus === 'SUCCESS') {
@@ -70,23 +66,27 @@ const PaymentCallback = () => {
     };
 
     verifyPayment();
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [navigate]);
+
+  const StatusIcon = status === 'success'
+    ? CheckCircle2
+    : status === 'pending'
+      ? Clock3
+      : status === 'failed'
+        ? XCircle
+        : Loader2;
 
   return (
     <main className="container mx-auto flex min-h-[70vh] max-w-xl items-center px-4 py-10">
       <Card className="w-full text-center">
         <CardHeader>
           <div className="mx-auto mb-3">
-            {status === 'processing' && <Loader2 className="size-12 animate-spin text-primary" />}
-            {status === 'success' && <CheckCircle2 className="size-12 text-emerald-600" />}
-            {(status === 'failed' || status === 'pending') && <XCircle className="size-12 text-amber-600" />}
+            <StatusIcon
+              className={`h-12 w-12 ${status === 'processing' ? 'animate-spin text-primary' : status === 'success' ? 'text-[hsl(var(--success))]' : status === 'pending' ? 'text-[hsl(var(--warning))]' : 'text-destructive'}`}
+            />
           </div>
-          <CardTitle>
-            {status === 'processing' ? 'Đang xác nhận thanh toán' : 'Trạng thái thanh toán'}
-          </CardTitle>
+          <CardTitle>{status === 'processing' ? 'Đang xác nhận thanh toán' : 'Trạng thái thanh toán'}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
           <Alert
