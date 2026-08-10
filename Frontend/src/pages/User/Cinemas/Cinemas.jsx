@@ -3,7 +3,7 @@ import { Building2, ChevronRight, Clock, MapPin, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ContentLoader from '@/components/Loading/ContentLoader';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Empty } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
@@ -13,7 +13,7 @@ import regionService from '@/services/regionService';
 import useNotification from '@/hooks/useNotification';
 import { unwrapApiData } from '@/utils/apiResponse';
 
-const DEFAULT_PAGE_SIZE = 9;
+const DEFAULT_PAGE_SIZE = 12;
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 const toCollection = (response) => {
@@ -120,31 +120,37 @@ const Cinemas = () => {
   }
 
   return (
-    <div className="min-h-dvh bg-background pb-16 pt-20 text-foreground">
+    <div className="min-h-dvh bg-background pb-8 pt-20 text-foreground">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        <header className="mb-8 space-y-2">
-          <p className="text-sm font-medium text-primary">HotCinema</p>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Hệ thống rạp chiếu</h1>
-          <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-            Tìm rạp phù hợp theo tên, địa chỉ hoặc khu vực và xem lịch chiếu đang có.
-          </p>
+        <header className="mb-4 flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-primary">HotCinema</p>
+            <h1 className="mt-0.5 text-2xl font-semibold tracking-tight sm:text-3xl">Hệ thống rạp chiếu</h1>
+            <p className="mt-1 max-w-3xl text-sm leading-5 text-muted-foreground">
+              Tìm rạp theo tên, địa chỉ hoặc khu vực và mở lịch chiếu ngay từ danh sách.
+            </p>
+          </div>
+          <div className="shrink-0 text-sm text-muted-foreground">
+            {filteredCinemas.length > 0 ? `${filteredCinemas.length} rạp trên trang` : 'Không có kết quả'}
+            {loading && <span className="text-xs"> · Đang cập nhật</span>}
+          </div>
         </header>
 
-        <Card className="mb-8 shadow-sm">
-          <CardContent className="grid gap-3 pt-6 md:grid-cols-[minmax(0,1fr)_240px]">
+        <Card className="mb-4">
+          <CardContent className="grid gap-2 p-3 md:grid-cols-[minmax(0,1fr)_220px]">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={searchText}
                 onChange={(event) => setSearchText(event.target.value)}
                 placeholder="Tìm tên rạp hoặc địa chỉ..."
-                className="h-10 pl-9"
+                className="pl-9"
                 aria-label="Tìm kiếm rạp"
               />
             </div>
 
             <Select value={selectedRegion} onValueChange={setSelectedRegion}>
-              <SelectTrigger className="h-10">
+              <SelectTrigger>
                 <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
                 <SelectValue placeholder="Khu vực" />
               </SelectTrigger>
@@ -160,78 +166,67 @@ const Cinemas = () => {
           </CardContent>
         </Card>
 
-        <div className="mb-5 flex items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
-            {filteredCinemas.length > 0
-              ? `${filteredCinemas.length} rạp trên trang hiện tại`
-              : 'Không có kết quả phù hợp'}
-          </p>
-          {loading && <span className="text-xs text-muted-foreground">Đang cập nhật...</span>}
-        </div>
-
         {filteredCinemas.length > 0 ? (
           <>
-            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
               {filteredCinemas.map((cinema) => {
                 const mapUrl = GOOGLE_MAPS_API_KEY && cinema.address
                   ? `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}&q=${encodeURIComponent(cinema.address)}&zoom=15`
                   : null;
 
                 return (
-                  <Card key={cinema.id} className="group flex h-full flex-col overflow-hidden shadow-sm transition-colors hover:border-primary/40">
-                    <div className="relative h-48 overflow-hidden border-b border-border bg-muted">
-                      {mapUrl ? (
-                        <iframe
-                          title={`Bản đồ ${cinema.name}`}
-                          src={mapUrl}
-                          loading="lazy"
-                          referrerPolicy="no-referrer-when-downgrade"
-                          className="absolute inset-0 h-full w-full border-0"
-                          allowFullScreen
-                        />
-                      ) : (
-                        <div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-background text-primary shadow-sm">
-                            <MapPin className="h-5 w-5" />
+                  <Card key={cinema.id} className="group overflow-hidden transition-colors hover:border-primary/40">
+                    <div className="grid h-full sm:grid-cols-[128px_minmax(0,1fr)]">
+                      <div className="relative h-28 overflow-hidden border-b border-border bg-muted sm:h-full sm:min-h-36 sm:border-b-0 sm:border-r">
+                        {mapUrl ? (
+                          <iframe
+                            title={`Bản đồ ${cinema.name}`}
+                            src={mapUrl}
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                            className="absolute inset-0 h-full w-full border-0"
+                            allowFullScreen
+                          />
+                        ) : (
+                          <div className="flex h-full flex-col items-center justify-center gap-1.5 text-center text-muted-foreground">
+                            <MapPin className="h-5 w-5 text-primary" />
+                            <span className="px-2 text-[11px] leading-4">Chưa có bản đồ</span>
                           </div>
-                          <span className="text-sm">Bản đồ chưa được cấu hình</span>
+                        )}
+                      </div>
+
+                      <CardContent className="flex min-w-0 flex-col p-3">
+                        <div className="flex min-w-0 items-start gap-2">
+                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                            <Building2 className="h-3.5 w-3.5" />
+                          </span>
+                          <Link to={`/cinemas/${cinema.id}`} className="line-clamp-2 text-sm font-semibold leading-5 hover:text-primary">
+                            {cinema.name}
+                          </Link>
                         </div>
-                      )}
+
+                        <div className="mt-2 flex items-start gap-1.5 text-xs leading-4 text-muted-foreground">
+                          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                          <span className="line-clamp-2">{cinema.address || 'Chưa cập nhật địa chỉ'}</span>
+                        </div>
+
+                        <Button asChild variant="outline" size="sm" className="mt-auto w-full justify-between pt-0 sm:mt-3">
+                          <Link to={`/cinemas/${cinema.id}`}>
+                            <span className="flex items-center gap-1.5">
+                              <Clock className="h-3.5 w-3.5" />
+                              Lịch chiếu
+                            </span>
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </Link>
+                        </Button>
+                      </CardContent>
                     </div>
-
-                    <CardHeader className="pb-3">
-                      <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <Building2 className="h-5 w-5" />
-                      </div>
-                      <CardTitle className="line-clamp-2 text-lg">
-                        <Link to={`/cinemas/${cinema.id}`} className="hover:text-primary">
-                          {cinema.name}
-                        </Link>
-                      </CardTitle>
-                    </CardHeader>
-
-                    <CardContent className="flex-1">
-                      <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                        <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                        <span className="line-clamp-3 leading-6">{cinema.address || 'Chưa cập nhật địa chỉ'}</span>
-                      </div>
-                    </CardContent>
-
-                    <CardFooter className="pt-0">
-                      <Button asChild className="w-full">
-                        <Link to={`/cinemas/${cinema.id}`}>
-                          <Clock className="mr-2 h-4 w-4" />
-                          Xem lịch chiếu
-                          <ChevronRight className="ml-auto h-4 w-4" />
-                        </Link>
-                      </Button>
-                    </CardFooter>
                   </Card>
                 );
               })}
             </div>
 
-            <div className="mt-10 border-t border-border pt-8">
+            <div className="mt-5 border-t border-border pt-3">
               <Pagination
                 page={currentPage}
                 totalItems={totalItems}
@@ -245,16 +240,17 @@ const Cinemas = () => {
                   setCurrentPage(1);
                 }}
                 showSizeChanger
-                pageSizeOptions={[9, 18, 27, 36]}
+                pageSizeOptions={[12, 24, 36, 48]}
+                showTotal={(total, range) => `${range[0]}-${range[1]} của ${total} rạp`}
               />
             </div>
           </>
         ) : (
           <Card>
-            <CardContent className="py-4">
+            <CardContent className="py-3">
               <Empty
                 description={
-                  <div className="space-y-2 text-center">
+                  <div className="space-y-1 text-center">
                     <p>Không tìm thấy rạp chiếu phim phù hợp.</p>
                     <p className="text-xs text-muted-foreground">Thử thay đổi từ khóa hoặc khu vực đang chọn.</p>
                   </div>
