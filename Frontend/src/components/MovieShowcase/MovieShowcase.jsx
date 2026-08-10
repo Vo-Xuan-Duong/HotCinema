@@ -84,7 +84,7 @@ const MovieShowcase = ({
   const scrollByPage = (direction) => {
     const element = scrollContainerRef.current;
     if (!element) return;
-    element.scrollBy({ left: direction * element.clientWidth * 0.9, behavior: 'smooth' });
+    element.scrollBy({ left: direction * element.clientWidth * 0.92, behavior: 'smooth' });
     window.setTimeout(checkScrollButtons, 350);
   };
 
@@ -100,13 +100,13 @@ const MovieShowcase = ({
 
   if (loading) {
     return (
-      <section className="py-6 sm:py-8">
+      <section className="py-4 sm:py-5">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <Skeleton className="mb-6 h-8 w-56" />
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5">
-            {Array.from({ length: Math.min(maxItems, 5) }).map((_, index) => (
-              <div key={index} className="space-y-3">
-                <Skeleton className="aspect-[2/3] w-full rounded-lg" />
+          <Skeleton className="mb-3 h-7 w-48" />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
+            {Array.from({ length: Math.min(maxItems, 7) }).map((_, index) => (
+              <div key={index} className="space-y-2">
+                <Skeleton className="aspect-[2/3] w-full rounded-md" />
                 <Skeleton className="h-4 w-4/5" />
                 <Skeleton className="h-3 w-3/5" />
               </div>
@@ -118,19 +118,14 @@ const MovieShowcase = ({
   }
 
   return (
-    <section className="py-6 sm:py-8">
+    <section className="py-4 sm:py-5">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-              <Star className="h-5 w-5" />
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <Star className="h-4 w-4" />
             </div>
-            <div className="min-w-0">
-              <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">{title}</h2>
-              <p className="mt-1 hidden text-sm text-muted-foreground sm:block">
-                Khám phá những bộ phim nổi bật tại HotCinema.
-              </p>
-            </div>
+            <h2 className="truncate text-xl font-semibold tracking-tight text-foreground sm:text-2xl">{title}</h2>
           </div>
 
           {filteredMovies.length > 0 && category !== 'top-rated' && (
@@ -142,7 +137,7 @@ const MovieShowcase = ({
         </div>
 
         {filteredMovies.length === 0 ? (
-          <Empty description="Không có phim để hiển thị" className="my-8 rounded-lg border bg-card" />
+          <Empty description="Không có phim để hiển thị" className="my-5 rounded-md border bg-card" />
         ) : (
           <div className="relative">
             {enableSlider && canScrollLeft && (
@@ -150,7 +145,7 @@ const MovieShowcase = ({
                 type="button"
                 variant="secondary"
                 size="icon"
-                className="absolute -left-3 top-1/2 z-20 hidden -translate-y-1/2 rounded-full shadow-md md:inline-flex"
+                className="absolute -left-2 top-1/2 z-20 hidden -translate-y-1/2 rounded-full md:inline-flex"
                 onClick={() => scrollByPage(-1)}
                 aria-label="Xem phim phía trước"
               >
@@ -161,19 +156,19 @@ const MovieShowcase = ({
             <div
               ref={scrollContainerRef}
               onScroll={checkScrollButtons}
-              className={enableSlider ? 'custom-scrollbar overflow-x-auto scroll-smooth pb-3' : ''}
+              className={enableSlider ? 'custom-scrollbar overflow-x-auto scroll-smooth pb-2' : ''}
             >
               <div
                 className={
                   enableSlider
-                    ? 'flex gap-4'
-                    : 'grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'
+                    ? 'flex gap-3'
+                    : 'grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7'
                 }
               >
                 {filteredMovies.map((movie, index) => (
                   <div
                     key={movie.id || `${movie.title}-${index}`}
-                    className={enableSlider ? 'w-[70vw] max-w-[260px] shrink-0 sm:w-[240px] lg:w-[220px]' : 'min-w-0'}
+                    className={enableSlider ? 'w-[62vw] max-w-[220px] shrink-0 sm:w-[210px] lg:w-[200px] xl:w-[190px]' : 'min-w-0'}
                   >
                     <MovieCard
                       movie={movie}
@@ -189,7 +184,7 @@ const MovieShowcase = ({
                 type="button"
                 variant="secondary"
                 size="icon"
-                className="absolute -right-3 top-1/2 z-20 hidden -translate-y-1/2 rounded-full shadow-md md:inline-flex"
+                className="absolute -right-2 top-1/2 z-20 hidden -translate-y-1/2 rounded-full md:inline-flex"
                 onClick={() => scrollByPage(1)}
                 aria-label="Xem thêm phim"
               >
