@@ -1,113 +1,84 @@
 import { apiClient } from '@/utils/apiClient';
+import { unwrapApiArray, unwrapApiData } from '@/utils/apiResponse';
 import { ENDPOINTS } from '@/utils/constants';
 
-// Helpers to unwrap backend ResponseData envelope
-// unwrap: Lấy data từ ResponseData envelope { statusCode, message, data }
-const unwrap = (res) => res?.data ?? res;
-
-// unwrapArray: Chỉ lấy mảng content (không có thông tin phân trang)
-const unwrapArray = (res) => {
-  const data = unwrap(res);
-  return Array.isArray(data?.content) ? data.content : (Array.isArray(data) ? data : []);
-};
-
-const base = ENDPOINTS.MOVIES; // '/movies'
+const base = ENDPOINTS.MOVIES;
 
 const movieService = {
-  // List (paginated) - returns full Page object with pagination info
   async listPage(params) {
-    const res = await apiClient.get(base, { params });
-    return unwrap(res); // Trả về { content: [...], totalElements, totalPages, size, number, ... }
+    return unwrapApiData(await apiClient.get(base, { params }));
   },
 
-  // List content only (array of items) - no pagination info
   async list(params) {
-    const res = await apiClient.get(base, { params });
-    return unwrapArray(res); // Chỉ trả về mảng content
+    return unwrapApiArray(await apiClient.get(base, { params }));
   },
 
-  // Get by id
   async getMovieById(id) {
-    const res = await apiClient.get(`${base}/${id}`);
-    return unwrap(res);
+    return unwrapApiData(await apiClient.get(`${base}/${id}`));
   },
 
-  // By genre (paginated)
   async getByGenrePage(genre, params) {
-    const res = await apiClient.get(`${base}/genre/${encodeURIComponent(genre)}`, { params });
-    return unwrap(res); // Trả về full Page object
+    return unwrapApiData(await apiClient.get(`${base}/genre/${encodeURIComponent(genre)}`, { params }));
   },
+
   async getByGenre(genre, params) {
-    const res = await apiClient.get(`${base}/genre/${encodeURIComponent(genre)}`, { params });
-    return unwrapArray(res); // Chỉ trả về mảng
+    return unwrapApiArray(await apiClient.get(`${base}/genre/${encodeURIComponent(genre)}`, { params }));
   },
 
-  // Coming soon (paginated)
   async getComingSoonPage(params) {
-    const res = await apiClient.get(`${base}/coming-soon`, { params });
-    return unwrap(res);
+    return unwrapApiData(await apiClient.get(`${base}/coming-soon`, { params }));
   },
+
   async getComingSoon(params) {
-    const res = await apiClient.get(`${base}/coming-soon`, { params });
-    return unwrapArray(res);
+    return unwrapApiArray(await apiClient.get(`${base}/coming-soon`, { params }));
   },
 
-  // Now showing (paginated)
   async getNowShowingPage(params) {
-    const res = await apiClient.get(`${base}/now-showing`, { params });
-    return unwrap(res);
+    return unwrapApiData(await apiClient.get(`${base}/now-showing`, { params }));
   },
+
   async getNowShowing(params) {
-    const res = await apiClient.get(`${base}/now-showing`, { params });
-    return unwrapArray(res);
+    return unwrapApiArray(await apiClient.get(`${base}/now-showing`, { params }));
   },
 
-  // Top rated (paginated)
   async getTopRatedPage(params) {
-    const res = await apiClient.get(`${base}/top-rated`, { params });
-    return unwrap(res);
+    return unwrapApiData(await apiClient.get(`${base}/top-rated`, { params }));
   },
+
   async getTopRated(params) {
-    const res = await apiClient.get(`${base}/top-rated`, { params });
-    return unwrapArray(res);
+    return unwrapApiArray(await apiClient.get(`${base}/top-rated`, { params }));
   },
 
-  // Search (paginated) - supports keyword, genre, language, page, size, sort
   async searchPage(params) {
-    const res = await apiClient.get(`${base}/search`, { params });
-    return unwrap(res);
-  },
-  async search(params) {
-    const res = await apiClient.get(`${base}/search`, { params });
-    return unwrapArray(res);
+    return unwrapApiData(await apiClient.get(`${base}/search`, { params }));
   },
 
-  // Create / Update / Delete
-  async createMovie(body) {
-    const res = await apiClient.post(base, body);
-    return unwrap(res);
+  async search(params) {
+    return unwrapApiArray(await apiClient.get(`${base}/search`, { params }));
   },
+
+  async createMovie(body) {
+    return unwrapApiData(await apiClient.post(base, body));
+  },
+
   async updateMovie(id, body) {
-    const res = await apiClient.put(`${base}/${id}`, body);
-    return unwrap(res);
+    return unwrapApiData(await apiClient.put(`${base}/${id}`, body));
   },
 
   async activeMovie(id) {
-    const res = await apiClient.patch(`${base}/${id}/activate`);
-    return unwrap(res);
+    return unwrapApiData(await apiClient.patch(`${base}/${id}/activate`));
   },
+
   async deactiveMovie(id) {
-    const res = await apiClient.patch(`${base}/${id}/deactivate`);
-    return unwrap(res);
+    return unwrapApiData(await apiClient.patch(`${base}/${id}/deactivate`));
   },
 
   async deleteMovie(id) {
-    const res = await apiClient.delete(`${base}/${id}`);
-    return unwrap(res);
+    return unwrapApiData(await apiClient.delete(`${base}/${id}`));
   },
+
   async deleteAllMovies() {
-    const res = await apiClient.delete(base);
-    return unwrap(res);
+    return unwrapApiData(await apiClient.delete(base));
   },
 };
 
