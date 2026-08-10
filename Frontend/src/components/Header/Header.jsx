@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Bell,
   Calendar,
@@ -6,6 +6,7 @@ import {
   Clapperboard,
   Clock,
   LayoutDashboard,
+  Loader2,
   LogOut,
   Menu as MenuIcon,
   Moon,
@@ -40,31 +41,8 @@ import { NavLinks } from '@/components/ui/nav-links';
 import { useTheme } from '@/context/ThemeContext';
 import useAuth from '@/hooks/useAuth';
 import useNotification from '@/hooks/useNotification';
+import notificationService from '@/services/notificationService';
 import { userHasAdminAccess } from '@/utils/adminRole';
-
-const initialNotifications = [
-  {
-    id: 1,
-    title: 'Đặt vé thành công',
-    content: 'Bạn đã đặt vé xem phim thành công.',
-    time: '5 phút trước',
-    read: false,
-  },
-  {
-    id: 2,
-    title: 'Ưu đãi mới',
-    content: 'Ưu đãi mới đang chờ bạn khám phá.',
-    time: '1 giờ trước',
-    read: false,
-  },
-  {
-    id: 3,
-    title: 'Phim mới sắp ra mắt',
-    content: 'Danh sách phim sắp chiếu vừa được cập nhật.',
-    time: '3 giờ trước',
-    read: true,
-  },
-];
 
 const menuItems = [
   { href: '/', icon: <Home className="h-4 w-4" />, label: 'Trang chủ' },
@@ -72,6 +50,21 @@ const menuItems = [
   { href: '/schedule', icon: <Calendar className="h-4 w-4" />, label: 'Lịch chiếu' },
   { href: '/cinemas', icon: <Store className="h-4 w-4" />, label: 'Rạp chiếu' },
 ];
+
+const extractNotifications = (response) => {
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response?.content)) return response.content;
+  return [];
+};
+
+const isUnread = (item) => (item?.isRead ?? item?.read ?? false) === false;
+
+const formatNotificationTime = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString('vi-VN');
+};
 
 const Header = () => {
   const navigate = useNavigate();
@@ -81,11 +74,34 @@ const Header = () => {
   const { theme, toggleTheme } = useTheme();
   const [mobileMenuVisible, setMobileMenuVisible] = useState(false);
   const [searchValue, setSearchValue] = useState('');
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+
+  const loadNotifications = useCallback(async () => {
+    if (!isAuthenticated) {
+      setNotifications([]);
+      return;
+    }
+
+    try {
+      setNotificationsLoading(true);
+      const response = await notificationService.list({ page: 0, size: 5, sort: 'createdAt,desc' });
+      setNotifications(extractNotifications(response));
+    } catch (error) {
+      console.error('Error loading header notifications:', error);
+      setNotifications([]);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
 
   const notificationCount = useMemo(
-    () => (isAuthenticated ? notifications.filter((item) => !item.read).length : 0),
-    [isAuthenticated, notifications]
+    () => notifications.filter(isUnread).length,
+    [notifications]
   );
 
   const displayName = user?.fullName || user?.name || user?.email || 'Tài khoản';
@@ -112,16 +128,43 @@ const Header = () => {
     }
   };
 
-  const markAsRead = (id) => {
-    setNotifications((items) => items.map((item) => (item.id === id ? { ...item, read: true } : item)));
+  const markAsRead = async (item) => {
+    if (!isUnread(item)) return;
+    const previous = notifications;
+    setNotifications((items) => items.map((entry) => (
+      entry.id === item.id ? { ...entry, isRead: true, read: true } : entry
+    )));
+    try {
+      await notificationService.markAsRead(item.id);
+    } catch (error) {
+      console.error('Error marking header notification as read:', error);
+      setNotifications(previous);
+      notification.error('Không thể đánh dấu thông báo đã đọc');
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications((items) => items.map((item) => ({ ...item, read: true })));
+  const markAllAsRead = async () => {
+    const previous = notifications;
+    setNotifications((items) => items.map((item) => ({ ...item, isRead: true, read: true })));
+    try {
+      await notificationService.markAllAsRead();
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      setNotifications(previous);
+      notification.error('Không thể đánh dấu tất cả thông báo đã đọc');
+    }
   };
 
-  const deleteNotification = (id) => {
-    setNotifications((items) => items.filter((item) => item.id !== id));
+  const deleteNotification = async (item) => {
+    const previous = notifications;
+    setNotifications((items) => items.filter((entry) => entry.id !== item.id));
+    try {
+      await notificationService.delete(item.id);
+    } catch (error) {
+      console.error('Error deleting header notification:', error);
+      setNotifications(previous);
+      notification.error('Không thể xóa thông báo');
+    }
   };
 
   return (
@@ -183,7 +226,7 @@ const Header = () => {
           </Button>
 
           {isAuthenticated && (
-            <DropdownMenu>
+            <DropdownMenu onOpenChange={(open) => open && loadNotifications()}>
               <DropdownMenuTrigger asChild>
                 <Button type="button" variant="ghost" size="icon" aria-label="Thông báo">
                   <Badge count={notificationCount}>
@@ -205,48 +248,64 @@ const Header = () => {
                 </div>
 
                 <div className="max-h-80 overflow-y-auto p-1">
-                  {notifications.length === 0 ? (
+                  {notificationsLoading ? (
+                    <div className="flex items-center justify-center gap-2 p-6 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Đang tải...
+                    </div>
+                  ) : notifications.length === 0 ? (
                     <p className="p-6 text-center text-sm text-muted-foreground">Không có thông báo</p>
                   ) : (
-                    notifications.map((item) => (
-                      <div
-                        key={item.id}
-                        className={`group rounded-md p-3 ${item.read ? 'bg-background' : 'bg-muted/60'}`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                            <Bell className="h-4 w-4" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-foreground">{item.title}</p>
-                            <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.content}</p>
-                            <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-                              <Clock className="h-3 w-3" />
-                              {item.time}
-                            </p>
-                          </div>
-                          <div className="flex shrink-0 gap-1">
-                            {!item.read && (
-                              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => markAsRead(item.id)}>
-                                <Check className="h-3.5 w-3.5" />
-                                <span className="sr-only">Đánh dấu đã đọc</span>
+                    notifications.map((item) => {
+                      const unread = isUnread(item);
+                      return (
+                        <div
+                          key={item.id}
+                          className={`group rounded-md p-3 ${unread ? 'bg-muted/60' : 'bg-background'}`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                              <Bell className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium text-foreground">{item.title || 'Thông báo'}</p>
+                              <p className="mt-1 line-clamp-3 text-xs leading-5 text-muted-foreground">{item.content || item.message || 'Không có nội dung'}</p>
+                              {item.createdAt && (
+                                <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Clock className="h-3 w-3" />
+                                  {formatNotificationTime(item.createdAt)}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex shrink-0 gap-1">
+                              {unread && (
+                                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => markAsRead(item)}>
+                                  <Check className="h-3.5 w-3.5" />
+                                  <span className="sr-only">Đánh dấu đã đọc</span>
+                                </Button>
+                              )}
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                onClick={() => deleteNotification(item)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                <span className="sr-only">Xóa thông báo</span>
                               </Button>
-                            )}
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                              onClick={() => deleteNotification(item.id)}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                              <span className="sr-only">Xóa thông báo</span>
-                            </Button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
+                </div>
+
+                <div className="border-t p-2">
+                  <Button type="button" variant="ghost" className="w-full" onClick={() => handleNavigate('/notifications')}>
+                    Xem tất cả thông báo
+                  </Button>
                 </div>
               </DropdownMenuContent>
             </DropdownMenu>
