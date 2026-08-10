@@ -127,7 +127,7 @@ const AdminCinemas = () => {
           <img
             src={record.image || record.imageUrl || record.bannerUrl || '/brand-placeholder.svg'}
             alt={record.name || 'Rạp chiếu'}
-            className="h-12 w-18 shrink-0 rounded-md border border-border bg-muted object-cover"
+            className="h-12 w-20 shrink-0 rounded-md border border-border bg-muted object-cover"
             onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }}
           />
           <div className="min-w-0">
@@ -296,7 +296,7 @@ const AdminCinemas = () => {
               <span className="text-sm">Đang tải danh sách rạp...</span>
             </div>
           ) : cinemas.length ? (
-            <DataTable fields={columns} rows={cinemas} getRowId="id" pageControls={false} framed={false} />
+            <DataTable fields={columns} rows={cinemas} getRowId="id" framed={false} />
           ) : (
             <Empty description="Không có rạp phù hợp với bộ lọc hiện tại" className="min-h-40" />
           )}
