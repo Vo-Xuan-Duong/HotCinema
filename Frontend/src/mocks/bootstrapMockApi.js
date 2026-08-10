@@ -45,6 +45,8 @@ const pageOf = (items, params = {}) => {
   };
 };
 
+const nextId = (items, floor = 1) => Math.max(floor - 1, ...items.map((item) => Number(item.id) || 0)) + 1;
+
 const mockJwt = (user) => {
   const payload = {
     sub: String(user.id),
@@ -136,6 +138,31 @@ const cinemaDateSchedule = (db, cinemaId, date, params) => {
   return pageOf([...groups.values()], params);
 };
 
+const createMockSeat = (db, body = {}) => {
+  const roomId = Number(body.roomId ?? body.theaterId);
+  const row = Number(body.row || 1);
+  const col = Number(body.col || 1);
+  const rowLabel = String(body.rowLabel || String.fromCharCode(64 + Math.min(Math.max(row, 1), 26)));
+  const seatType = String(body.seatType || body.type || 'REGULAR').toUpperCase();
+  const seatStatus = String(body.seatStatus || body.status || 'AVAILABLE').toUpperCase();
+  return {
+    id: nextId(db.seats, 1000),
+    roomId,
+    theaterId: roomId,
+    row,
+    col,
+    rowLabel,
+    seatNumber: String(col),
+    name: body.name || `${rowLabel}${col}`,
+    seatType,
+    type: seatType === 'REGULAR' ? 'standard' : seatType.toLowerCase(),
+    seatStatus,
+    status: seatStatus.toLowerCase(),
+    isActive: !['BLOCKED', 'MAINTENANCE', 'UNAVAILABLE'].includes(seatStatus),
+    price: Number(body.price || 0),
+  };
+};
+
 const authAwareMockAdapter = async (config) => {
   const method = String(config.method || 'get').toLowerCase();
   const path = String(config.url || '').split('?')[0].replace(/\/$/, '');
@@ -189,6 +216,53 @@ const authAwareMockAdapter = async (config) => {
       config,
       cinemaDateSchedule(getMockDatabase(), Number(cinemaDateMatch[1]), decodeURIComponent(cinemaDateMatch[2]), params),
     );
+  }
+
+  // SeatManager creates individual seats using theaterId and can generate a room layout in bulk.
+  // Normalize both paths to roomId so reloading the seat list immediately reflects the mutation.
+  if (method === 'post' && path === '/seats') {
+    const db = getMockDatabase();
+    const seat = createMockSeat(db, parseBody(config));
+    db.seats.push(seat);
+    persistMockDatabase();
+    return mockResponse(config, seat);
+  }
+  const bulkSeatMatch = path.match(/^\/seats\/theater\/(\d+)\/create-bulk$/);
+  if (method === 'post' && bulkSeatMatch) {
+    const db = getMockDatabase();
+    const roomId = Number(bulkSeatMatch[1]);
+    const params = getParams(config);
+    const rows = Math.max(1, Number(params.rows || 8));
+    const seatsPerRow = Math.max(1, Number(params.seatsPerRow || 10));
+    const created = [];
+
+    for (let row = 1; row <= rows; row += 1) {
+      for (let col = 1; col <= seatsPerRow; col += 1) {
+        const exists = db.seats.some((seat) => seat.roomId === roomId && Number(seat.row) === row && Number(seat.col) === col);
+        if (exists) continue;
+        const seat = createMockSeat(db, {
+          theaterId: roomId,
+          row,
+          col,
+          name: `${String.fromCharCode(64 + Math.min(row, 26))}${col}`,
+          seatType: row >= Math.max(4, rows - 2) ? 'VIP' : 'REGULAR',
+          seatStatus: 'AVAILABLE',
+        });
+        db.seats.push(seat);
+        created.push(seat);
+      }
+    }
+    persistMockDatabase();
+    return mockResponse(config, created);
+  }
+  const deleteRoomSeatsMatch = path.match(/^\/seats\/theater\/(\d+)$/);
+  if (method === 'delete' && deleteRoomSeatsMatch) {
+    const db = getMockDatabase();
+    const roomId = Number(deleteRoomSeatsMatch[1]);
+    const removed = db.seats.filter((seat) => seat.roomId === roomId);
+    db.seats = db.seats.filter((seat) => seat.roomId !== roomId);
+    persistMockDatabase();
+    return mockResponse(config, removed);
   }
 
   // notificationService uses POST for read state changes. Keep those mutations
