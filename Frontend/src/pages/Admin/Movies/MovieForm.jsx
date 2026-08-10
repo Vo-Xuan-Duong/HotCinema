@@ -1,645 +1,322 @@
-﻿import React, { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, Check, ChevronDown, Film, Image as ImageIcon, Loader2, Play, Save } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Card } from '@/components/ui/card';
+import { AdminPageHeader } from '@/layouts/admin/AdminPageHeader';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { NumberStepper } from '@/components/ui/number-stepper';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Separator } from '@/components/ui/separator';
-import { Breadcrumb } from '@/components/ui/breadcrumb';
-import { Checkbox } from '@/components/ui/checkbox';
-import { StatusBadge } from '@/components/ui/status-badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import {
-    ArrowLeft,
-    Save,
-    Image as ImageIcon,
-    Home,
-    Loader2,
-    X,
-    ChevronDown,
-    Check,
-    Film
-} from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Textarea } from '@/components/ui/textarea';
 import movieService from '@/services/movieService';
 import genreService from '@/services/genreService';
-import { useNotification } from '@/hooks/useNotification';
+import useNotification from '@/hooks/useNotification';
+
+const DEFAULT_FORM = {
+  title: '',
+  originalTitle: '',
+  description: '',
+  durationMinutes: 120,
+  releaseDate: '',
+  language: '',
+  subtitle: '',
+  rating: '',
+  posterUrl: '',
+  backdropUrl: '',
+  trailerUrl: '',
+  director: '',
+  actors: '',
+  genres: [],
+  status: 'NOW_SHOWING',
+};
+
+const classificationOptions = [
+  ['G', 'G - Mọi lứa tuổi'],
+  ['PG', 'PG - Có hướng dẫn của phụ huynh'],
+  ['PG13', 'PG-13 - Không khuyến khích dưới 13 tuổi'],
+  ['R', 'R - Hạn chế dưới 17 tuổi'],
+  ['NC17', 'NC-17 - Từ 17 tuổi trở lên'],
+];
+
+const statusOptions = [
+  ['NOW_SHOWING', 'Đang chiếu'],
+  ['COMING_SOON', 'Sắp chiếu'],
+  ['ENDED', 'Đã kết thúc'],
+];
+
+const getYouTubeId = (url) => {
+  if (!url) return '';
+  const match = url.match(/^.*(?:youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
+  return match?.[1]?.length === 11 ? match[1] : '';
+};
+
+const getEmbedUrl = (url) => {
+  if (!url) return '';
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    const id = getYouTubeId(url);
+    return id ? `https://www.youtube.com/embed/${id}` : '';
+  }
+  if (url.includes('vimeo.com')) {
+    const id = url.match(/vimeo.com\/(\d+)/)?.[1];
+    return id ? `https://player.vimeo.com/video/${id}` : '';
+  }
+  if (url.includes('/embed/') || url.includes('player.vimeo.com')) return url;
+  return '';
+};
+
+const Field = ({ label, required = false, hint, children }) => (
+  <label className="block space-y-2 text-sm font-medium">
+    <span>{label}{required && <span className="ml-1 text-destructive">*</span>}</span>
+    {children}
+    {hint && <span className="block text-xs font-normal text-muted-foreground">{hint}</span>}
+  </label>
+);
+
+const normalizeMovie = (movie) => ({
+  title: movie?.title || '',
+  originalTitle: movie?.originalTitle || '',
+  description: movie?.description || '',
+  durationMinutes: Number(movie?.durationMinutes ?? movie?.duration ?? 120),
+  releaseDate: movie?.releaseDate ? String(movie.releaseDate).split('T')[0] : '',
+  language: movie?.language || '',
+  subtitle: movie?.subtitle || '',
+  rating: movie?.rating || '',
+  posterUrl: movie?.posterUrl || '',
+  backdropUrl: movie?.backdropUrl || '',
+  trailerUrl: movie?.trailerUrl || '',
+  director: movie?.director || '',
+  actors: Array.isArray(movie?.actors) ? movie.actors.join(', ') : movie?.actors || '',
+  genres: Array.isArray(movie?.genres) ? movie.genres.map((genre) => genre?.id ?? genre) : [],
+  status: movie?.status || 'NOW_SHOWING',
+});
 
 const MovieForm = () => {
-    const navigate = useNavigate();
-    const { id } = useParams();
-    const { showNotification } = useNotification();
-    const [loading, setLoading] = useState(false);
-    const [loadingMovie, setLoadingMovie] = useState(false);
-    const [genres, setGenres] = useState([]);
-    const [movieData, setMovieData] = useState(null);
-    const [previewPoster, setPreviewPoster] = useState(null);
-    const [previewBackdrop, setPreviewBackdrop] = useState(null);
-    const [previewTrailer, setPreviewTrailer] = useState(null);
-    const [selectedGenres, setSelectedGenres] = useState([]);
-    const [rating, setRating] = useState('');
-    const [status, setStatus] = useState('NOW_SHOWING');
-    const [genresPopoverOpen, setGenresPopoverOpen] = useState(false);
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const notification = useNotification();
+  const isEditMode = Boolean(id);
+  const [form, setForm] = useState(DEFAULT_FORM);
+  const [genres, setGenres] = useState([]);
+  const [genresLoading, setGenresLoading] = useState(true);
+  const [movieLoading, setMovieLoading] = useState(isEditMode);
+  const [saving, setSaving] = useState(false);
+  const [genresOpen, setGenresOpen] = useState(false);
 
-    const isEditMode = !!id;
+  useEffect(() => {
+    let active = true;
+    genreService.getAllGenres()
+      .then((result) => {
+        if (active) setGenres(Array.isArray(result) ? result : []);
+      })
+      .catch((error) => {
+        console.error('Error loading genres:', error);
+        if (active) notification.error('Không thể tải danh sách thể loại');
+      })
+      .finally(() => active && setGenresLoading(false));
+    return () => { active = false; };
+  }, [notification]);
 
-    useEffect(() => {
-        const loadGenres = async () => {
-            try {
-                const genresList = await genreService.getAllGenres();
-                setGenres(genresList);
-            } catch (error) {
-                console.error('Error loading genres:', error);
-            }
-        };
-        loadGenres();
-    }, []);
-
-    // Load movie data if in edit mode
-    useEffect(() => {
-        if (isEditMode && id) {
-            const loadMovie = async () => {
-                try {
-                    setLoadingMovie(true);
-                    const movie = await movieService.getMovieById(id);
-
-                    // Set preview images
-                    if (movie.posterUrl) {
-                        setPreviewPoster(movie.posterUrl);
-                    }
-                    if (movie.backdropUrl) {
-                        setPreviewBackdrop(movie.backdropUrl);
-                    }
-                    if (movie.trailerUrl) {
-                        setPreviewTrailer(movie.trailerUrl);
-                    }
-
-                    // Set selected genres
-                    if (movie.genres && Array.isArray(movie.genres)) {
-                        const genreIds = movie.genres.map(g => g.id || g);
-                        setSelectedGenres(genreIds);
-                    }
-
-                    // Set form values
-                    setRating(movie.rating || '');
-                    setStatus(movie.status || 'NOW_SHOWING');
-
-                    setMovieData(movie);
-                } catch (error) {
-                    console.error('Error loading movie:', error);
-                    showNotification('error', 'Lỗi', 'Không thể tải thông tin phim');
-                    navigate('/admin/movies');
-                } finally {
-                    setLoadingMovie(false);
-                }
-            };
-            loadMovie();
+  useEffect(() => {
+    if (!isEditMode) return undefined;
+    let active = true;
+    setMovieLoading(true);
+    movieService.getMovieById(id)
+      .then((movie) => {
+        if (active) setForm(normalizeMovie(movie));
+      })
+      .catch((error) => {
+        console.error('Error loading movie:', error);
+        if (active) {
+          notification.error('Không thể tải thông tin phim');
+          navigate('/admin/movies');
         }
-    }, [id, isEditMode, navigate, showNotification]);
+      })
+      .finally(() => active && setMovieLoading(false));
+    return () => { active = false; };
+  }, [id, isEditMode, navigate, notification]);
 
-    const handlePosterUrlChange = (e) => {
-        const url = e.target.value;
-        if (url && (url.startsWith('http') || url.startsWith('https'))) {
-            setPreviewPoster(url);
-        } else {
-            setPreviewPoster(null);
-        }
+  const setField = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+
+  const selectedGenreKeys = useMemo(() => new Set(form.genres.map((genreId) => String(genreId))), [form.genres]);
+
+  const toggleGenre = (genreId, checked) => {
+    setForm((current) => {
+      const exists = current.genres.some((idValue) => String(idValue) === String(genreId));
+      if (checked && !exists) return { ...current, genres: [...current.genres, genreId] };
+      if (!checked && exists) return { ...current, genres: current.genres.filter((idValue) => String(idValue) !== String(genreId)) };
+      return current;
+    });
+  };
+
+  const validate = () => {
+    if (!form.title.trim()) return 'Vui lòng nhập tên phim';
+    if (!form.releaseDate) return 'Vui lòng chọn ngày phát hành';
+    if (!Number.isFinite(Number(form.durationMinutes)) || Number(form.durationMinutes) <= 0) return 'Thời lượng phim phải lớn hơn 0';
+    if (form.genres.length === 0) return 'Vui lòng chọn ít nhất một thể loại';
+    return null;
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const validationError = validate();
+    if (validationError) {
+      notification.error(validationError);
+      return;
+    }
+
+    const payload = {
+      title: form.title.trim(),
+      originalTitle: form.originalTitle.trim() || form.title.trim(),
+      description: form.description.trim(),
+      durationMinutes: Number(form.durationMinutes),
+      releaseDate: form.releaseDate || null,
+      language: form.language.trim(),
+      subtitle: form.subtitle.trim(),
+      rating: form.rating || '',
+      posterUrl: form.posterUrl.trim(),
+      backdropUrl: form.backdropUrl.trim(),
+      trailerUrl: form.trailerUrl.trim(),
+      director: form.director.trim(),
+      actors: form.actors.split(',').map((actor) => actor.trim()).filter(Boolean),
+      genres: form.genres,
+      status: form.status,
     };
 
-    const handleBackdropUrlChange = (e) => {
-        const url = e.target.value;
-        if (url && (url.startsWith('http') || url.startsWith('https'))) {
-            setPreviewBackdrop(url);
-        } else {
-            setPreviewBackdrop(null);
-        }
-    };
+    try {
+      setSaving(true);
+      if (isEditMode) {
+        await movieService.updateMovie(id, payload);
+        notification.success('Cập nhật phim thành công');
+      } else {
+        await movieService.createMovie(payload);
+        notification.success('Thêm phim mới thành công');
+      }
+      navigate('/admin/movies');
+    } catch (error) {
+      console.error('Error saving movie:', error);
+      notification.error(error?.response?.data?.message || 'Không thể lưu phim');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-    const handleTrailerUrlChange = (e) => {
-        const url = e.target.value;
-        if (url && (url.startsWith('http') || url.startsWith('https'))) {
-            setPreviewTrailer(url);
-        } else {
-            setPreviewTrailer(null);
-        }
-    };
+  const trailerEmbed = getEmbedUrl(form.trailerUrl);
 
-    const handleGenreToggle = (genreId) => {
-        setSelectedGenres(prev => {
-            if (prev.includes(genreId)) {
-                return prev.filter(id => id !== genreId);
-            } else {
-                return [...prev, genreId];
-            }
-        });
-    };
+  return (
+    <div className="space-y-6">
+      <AdminPageHeader
+        title={isEditMode ? 'Chỉnh sửa phim' : 'Thêm phim mới'}
+        description={isEditMode ? 'Cập nhật thông tin phim và nội dung hiển thị.' : 'Thêm một bộ phim mới vào danh mục HotCinema.'}
+        breadcrumbs={[
+          { title: 'Dashboard', href: '/admin/dashboard' },
+          { title: 'Phim', href: '/admin/movies' },
+          { title: isEditMode ? 'Chỉnh sửa' : 'Thêm mới' },
+        ]}
+        actions={<Button variant="outline" onClick={() => navigate('/admin/movies')}><ArrowLeft className="h-4 w-4" />Quay lại</Button>}
+      />
 
-    // Helper function to extract YouTube video ID
-    const getYouTubeId = (url) => {
-        if (!url) return '';
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-        const match = url.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : '';
-    };
-
-    // Helper function to get embed URL
-    const getEmbedUrl = (url) => {
-        if (!url) return '';
-
-        // YouTube URLs
-        if (url.includes('youtube.com') || url.includes('youtu.be')) {
-            const videoId = getYouTubeId(url);
-            if (videoId) {
-                return `https://www.youtube.com/embed/${videoId}`;
-            }
-        }
-
-        // Vimeo URLs
-        if (url.includes('vimeo.com')) {
-            const vimeoId = url.match(/vimeo.com\/(\d+)/)?.[1];
-            if (vimeoId) {
-                return `https://player.vimeo.com/video/${vimeoId}`;
-            }
-        }
-
-        // If already an embed URL, return as is
-        if (url.includes('embed') || url.includes('player.vimeo.com')) {
-            return url;
-        }
-
-        return '';
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            setLoading(true);
-
-            const formData = new FormData(e.target);
-            const values = {
-                title: formData.get('title'),
-                originalTitle: formData.get('originalTitle'),
-                description: formData.get('description'),
-                durationMinutes: parseInt(formData.get('durationMinutes')) || 0,
-                releaseDate: formData.get('releaseDate'),
-                language: formData.get('language'),
-                subtitle: formData.get('subtitle'),
-                rating: rating,
-                posterUrl: formData.get('posterUrl'),
-                backdropUrl: formData.get('backdropUrl'),
-                trailerUrl: formData.get('trailerUrl'),
-                director: formData.get('director'),
-                actors: formData.get('actors'),
-                genres: selectedGenres,
-                status: status
-            };
-
-            // Chuẩn bị data theo format MovieRequest
-            const movieRequest = {
-                title: values.title,
-                originalTitle: values.originalTitle || values.title,
-                description: values.description || '',
-                durationMinutes: values.durationMinutes || 0,
-                releaseDate: values.releaseDate || null,
-                language: values.language || '',
-                subtitle: values.subtitle || '',
-                rating: values.rating || '',
-                posterUrl: values.posterUrl || '',
-                backdropUrl: values.backdropUrl || '',
-                trailerUrl: values.trailerUrl || '',
-                director: values.director || '',
-                actors: values.actors && Array.isArray(values.actors)
-                    ? values.actors
-                    : (values.actors ? values.actors.split(',').map(a => a.trim()).filter(a => a) : []),
-                genres: values.genres || [],
-                status: values.status || 'NOW_SHOWING'
-            };
-
-            if (isEditMode) {
-                await movieService.updateMovie(id, movieRequest);
-                showNotification('success', 'Thành công', 'Cập nhật phim thành công!');
-            } else {
-                await movieService.createMovie(movieRequest);
-                showNotification('success', 'Thành công', 'Thêm phim mới thành công!');
-            }
-            navigate('/admin/movies');
-        } catch (error) {
-            console.error('Error creating movie:', error);
-            showNotification('error', 'Lỗi', error.response?.data?.message || 'Lỗi khi tạo phim');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <div className="relative z-10">
-            {/* Breadcrumb */}
-            <Breadcrumb
-                className="mb-6"
-                items={[
-                    {
-                        title: 'Dashboard',
-                        icon: <Home className="h-4 w-4" />,
-                        href: '/admin/dashboard'
-                    },
-                    {
-                        title: 'Quản lý phim',
-                        icon: <Film className="h-4 w-4" />,
-                        href: '/admin/movies'
-                    },
-                    {
-                        title: isEditMode ? `Chỉnh sửa phim : ${movieData?.title}` : 'Thêm phim mới'
-                    }
-                ]}
-            />
-
-            {/* Header */}
-            <div className="mb-6">
-                <div className="flex items-center gap-4 mb-4">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate('/admin/movies')}
-                        className="flex items-center gap-2"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                    <div>
-                        <h2 className="m-0 mb-2 text-foreground text-2xl font-bold">
-                            {isEditMode ? 'Chỉnh Sửa Phim' : 'Thêm Phim Mới'}
-                        </h2>
-                        <p className="text-muted-foreground text-sm">Thêm phim mới vào hệ thống</p>
-                    </div>
+      {movieLoading ? (
+        <div className="flex min-h-64 items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Đang tải thông tin phim...</div>
+      ) : (
+        <form onSubmit={handleSubmit} className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader><CardTitle className="text-lg">Thông tin cơ bản</CardTitle></CardHeader>
+              <CardContent className="space-y-5">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field label="Tên phim" required><Input value={form.title} onChange={(event) => setField('title', event.target.value)} placeholder="Tên phim" /></Field>
+                  <Field label="Tên gốc"><Input value={form.originalTitle} onChange={(event) => setField('originalTitle', event.target.value)} placeholder="Tên phim gốc" /></Field>
                 </div>
-            </div>
+                <Field label="Mô tả" hint="Tối đa 1000 ký tự"><Textarea rows={5} maxLength={1000} value={form.description} onChange={(event) => setField('description', event.target.value)} /></Field>
 
-            {/* Form */}
-            <Card className="rounded-xl shadow-md border border-border p-6">
-                {loadingMovie ? (
-                    <div className="text-center py-8">
-                        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-gray-400" />
-                        <p className="text-muted-foreground">Đang tải thông tin phim...</p>
-                    </div>
-                ) : (
-                    <form onSubmit={handleSubmit}>
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            {/* Left Column - Main Info */}
-                            <div className="lg:col-span-2 space-y-6">
-                                <div>
-                                    <h4 className="mb-4 text-lg font-semibold">Thông tin cơ bản</h4>
-                                </div>
-
-                                <div>
-                                    <label className="block mb-2 font-semibold">Tên Phim <span className="text-red-500">*</span></label>
-                                    <Input
-                                        name="title"
-                                        placeholder="Nhập tên phim"
-                                        defaultValue={movieData?.title || ''}
-                                        required
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block mb-2 font-semibold">Tên Gốc</label>
-                                    <p className="text-xs text-muted-foreground mb-1">Tên phim gốc (nếu khác tên tiếng Việt)</p>
-                                    <Input
-                                        name="originalTitle"
-                                        placeholder="Tên phim gốc"
-                                        defaultValue={movieData?.originalTitle || ''}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block mb-2 font-semibold">Mô tả</label>
-                                    <Textarea
-                                        name="description"
-                                        rows={4}
-                                        placeholder="Nhập mô tả về phim"
-                                        maxLength={1000}
-                                        defaultValue={movieData?.description || ''}
-                                    />
-                                    <p className="text-xs text-muted-foreground mt-1">Tối đa 1000 ký tự</p>
-                                </div>
-
-                                <div>
-                                    <label className="block mb-2 font-semibold">Thể Loại <span className="text-red-500">*</span></label>
-                                    <p className="text-xs text-muted-foreground mb-3">Chọn các thể loại của phim (có thể chọn nhiều)</p>
-
-                                    {/* Genres Select Dropdown */}
-                                    <Popover open={genresPopoverOpen} onOpenChange={setGenresPopoverOpen}>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                className="w-full justify-between h-auto min-h-[40px] py-2"
-                                            >
-                                                <div className="flex flex-wrap gap-1.5 flex-1 text-left">
-                                                    {selectedGenres.length === 0 ? (
-                                                        <span className="text-muted-foreground">Chọn thể loại...</span>
-                                                    ) : (
-                                                        selectedGenres.map(genreId => {
-                                                            const genre = genres.find(g => g.id === genreId);
-                                                            if (!genre) return null;
-                                                            return (
-                                                                <StatusBadge
-                                                                    key={genreId}
-                                                                    tone="blue"
-                                                                    className="text-xs px-2 py-0.5"
-                                                                >
-                                                                    {genre.name}
-                                                                </StatusBadge>
-                                                            );
-                                                        })
-                                                    )}
-                                                </div>
-                                                <ChevronDown className="h-4 w-4 opacity-50 ml-2 shrink-0" />
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-full p-0" align="start">
-                                            <div className="max-h-64 overflow-y-auto custom-scrollbar">
-                                                {genres.length === 0 ? (
-                                                    <div className="text-center py-8">
-                                                        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-gray-400" />
-                                                        <p className="text-sm text-muted-foreground">Đang tải thể loại...</p>
-                                                    </div>
-                                                ) : (
-                                                    <div className="p-1">
-                                                        {genres.map(genre => {
-                                                            const isSelected = selectedGenres.includes(genre.id);
-                                                            return (
-                                                                <label
-                                                                    key={genre.id}
-                                                                    className="flex items-center space-x-2 px-2 py-1.5 rounded-md hover:bg-background cursor-pointer transition-colors"
-                                                                >
-                                                                    <Checkbox
-                                                                        checked={isSelected}
-                                                                        onCheckedChange={() => handleGenreToggle(genre.id)}
-                                                                        className="h-4 w-4"
-                                                                    />
-                                                                    <span className="text-sm flex-1 leading-tight">{genre.name}</span>
-                                                                    {isSelected && (
-                                                                        <Check className="h-3.5 w-3.5 text-blue-600 shrink-0" />
-                                                                    )}
-                                                                </label>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </PopoverContent>
-                                    </Popover>
-
-
-                                    {selectedGenres.length === 0 && (
-                                        <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
-                                            <span>âš ï¸</span> Vui lòng chọn ít nhất một thể loại
-                                        </p>
-                                    )}
-                                </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block mb-2 font-semibold">Ngày Phát Hành <span className="text-red-500">*</span></label>
-                                        <Input
-                                            name="releaseDate"
-                                            type="date"
-                                            defaultValue={movieData?.releaseDate ? movieData.releaseDate.split('T')[0] : ''}
-                                            required
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block mb-2 font-semibold">Thời Lượng (phút) <span className="text-red-500">*</span></label>
-                                        <NumberStepper
-                                            name="durationMinutes"
-                                            min={1}
-                                            placeholder="Ví dụ: 120"
-                                            defaultValue={movieData?.durationMinutes || 0}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block mb-2 font-semibold">Ngôn Ngữ</label>
-                                        <Input
-                                            name="language"
-                                            placeholder="Ví dụ: Tiếng Việt, English"
-                                            defaultValue={movieData?.language || ''}
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block mb-2 font-semibold">Phụ Đề</label>
-                                        <Input
-                                            name="subtitle"
-                                            placeholder="Ví dụ: Tiếng Việt, English"
-                                            defaultValue={movieData?.subtitle || ''}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block mb-2 font-semibold">Phân Loại</label>
-                                        <Select
-                                            value={rating}
-                                            onValueChange={setRating}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Chọn phân loại" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="G">G - Mọi lứa tuổi</SelectItem>
-                                                <SelectItem value="PG">PG - Có sự hướng dẫn của phụ huynh</SelectItem>
-                                                <SelectItem value="PG13">PG-13 - Không khuyến khích cho trẻ dưới 13 tuổi</SelectItem>
-                                                <SelectItem value="R">R - Hạn chế cho trẻ dưới 17 tuổi</SelectItem>
-                                                <SelectItem value="NC17">NC-17 - Chỉ dành cho người từ 17 tuổi trở lên</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div>
-                                        <label className="block mb-2 font-semibold">Đạo Diễn</label>
-                                        <Input
-                                            name="director"
-                                            placeholder="Nhập tên đạo diễn"
-                                            defaultValue={movieData?.director || ''}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block mb-2 font-semibold">Diễn Viên</label>
-                                    <p className="text-xs text-muted-foreground mb-1">Nhập tên các diễn viên phân cách bằng dấu phẩy</p>
-                                    <Input
-                                        name="actors"
-                                        placeholder="Ví dụ: Diễn viên 1, Diễn viên 2, Diễn viên 3"
-                                        defaultValue={movieData?.actors && Array.isArray(movieData.actors) ? movieData.actors.join(', ') : (movieData?.actors || '')}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block mb-2 font-semibold">Trạng Thái <span className="text-red-500">*</span></label>
-                                    <Select
-                                        value={status}
-                                        onValueChange={setStatus}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="NOW_SHOWING">Đang chiếu</SelectItem>
-                                            <SelectItem value="COMING_SOON">Sắp chiếu</SelectItem>
-                                            <SelectItem value="ENDED">Đã kết thúc</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <Separator />
-
-                                <div>
-                                    <h4 className="mb-4 text-lg font-semibold">URLs</h4>
-                                </div>
-
-                                <div>
-                                    <label className="block mb-2 font-semibold">Poster URL</label>
-                                    <p className="text-xs text-muted-foreground mb-1">URL hình ảnh poster của phim</p>
-                                    <div className="relative">
-                                        <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                        <Input
-                                            name="posterUrl"
-                                            placeholder="Nhập URL hình ảnh poster"
-                                            onChange={handlePosterUrlChange}
-                                            className="pl-10"
-                                            defaultValue={movieData?.posterUrl || ''}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block mb-2 font-semibold">Backdrop URL</label>
-                                    <p className="text-xs text-muted-foreground mb-1">URL hình nền của phim</p>
-                                    <div className="relative">
-                                        <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                        <Input
-                                            name="backdropUrl"
-                                            placeholder="Nhập URL hình nền"
-                                            onChange={handleBackdropUrlChange}
-                                            className="pl-10"
-                                            defaultValue={movieData?.backdropUrl || ''}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block mb-2 font-semibold">Trailer URL</label>
-                                    <p className="text-xs text-muted-foreground mb-1">URL video trailer (YouTube, Vimeo, etc.)</p>
-                                    <Input
-                                        name="trailerUrl"
-                                        placeholder="Nhập URL trailer"
-                                        onChange={handleTrailerUrlChange}
-                                        defaultValue={movieData?.trailerUrl || ''}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Right Column - Preview */}
-                            <div className="lg:col-span-1">
-                                <div className="sticky top-4">
-                                    <h4 className="mb-4 text-lg font-semibold">Xem trước</h4>
-
-                                    {previewPoster && (
-                                        <div className="mb-4">
-                                            <p className="font-semibold text-sm mb-2">Poster:</p>
-                                            <img
-                                                src={previewPoster}
-                                                alt="Poster preview"
-                                                className="rounded-lg w-full max-h-[400px] object-cover"
-                                                onError={(e) => {
-                                                    e.target.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMIAAADDCAYAAADQvc6UAAABRWlDQ1BJQ0MgUHJvZmlsZQAAKJFjYGASSSwoyGFhYGDIzSspCnJ3UoiIjFJgf8LAwSDCIMogwMCcmFxc4BgQ4ANUwgCjUcG3awyMIPqyLsis7PPOq3QdDFcvjV3jOD1boQVTPQrgSkktTgbSf4A4LbmgqISBgTEFyFYuLykAsTuAbJEioKOA7DkgdjqEvQHEToKwj4DVhAQ5A9k3gGyB5IxEoBmML4BsnSQk8XQkNtReEOBxcfXxUQg1Mjc0dyHgXNJBSWpFCYh2zi+oLMpMzyhRcASGUqqCZ16yno6CkYGRAQMDKMwhqj/fAIcloxgHQqxAjIHBEugw5sUIsSQpBobtQPdLciLEVJYzMPBHMDBsayhILEqEO4DxG0txmrERhM29nYGBddr//5/DGRjYNRkY/l7////39v///y4Dmn+LgeHANwDrkl1AuO+pmgAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAwqADAAQAAAABAAAAwwAAAAD9b/HnAAAHlklEQVR4Ae3dP3Ik1RUG8A+b3YjNhwhFN9+JKMfBzosgQuAIu4FLRsQm3E7RZrNLRIsNFNkuWqB3sJJWlHfIeXPnzM3MO2z/5u77jdU6M8V9//e9n6GkqbLU4sOHDx/m5/Xr1w/+/bBpL4H/l5PO9vR3O78dT81Qp92b5pPz0+8T6/N+8/9/+fVn7t7bf/63/0/n9m4/vd34+u+XB9zd3d3/df7vf/+7/z8xEACBgwkgBLAHBBoJIAQwCAReCCAEL7b1sgkBhAB2gEAjAYTgxbYWVe+lhQBCsKW+dHIDEALaDjk/fH749PLs2bNHj958nz579uz5pz5+/Pihn3/y5Mn8+vXrB9/3v41d2Q4QcCaAEJxJbj9g/7b/5cuX8z1wNr59l9aVBBCCKx0/7hG5dv+e+9qd/xJACOD3IABgT1qVpwkT+wf47bdvBMrr1cPq5v+Q1nTNTgj9ybt373bffE9P98/rN2+O+5YNNfLt27f7gX969VfO/zGGlzdu3Pjdvnr4nP7mHz9/+VLe7Xl9yvPl+ZNHj/7Y7dt9fu+lXQg9JP0N+cvzH95/9dXvvsE/CeE/Dz99+qn92vO6Pc/zF7c+/a5p++n3ypK3tSz+5z9fhKCFm9HpkuJuDQIIwRrmXpVGggihka3ndAgBIYBAgABCAANAoJEAQmiE6zmdR8UcwBVDQAhXGNqxRxAC2AECCCEAS0CgkQBCaITrOd3D/vYTt74Y4+P/fu9hU89rEoLnfau1QggNO6B+1eKr18+afpVCQ9meTh8++7LbcBfqt9m76+3Lhgts9CbY7a47Rqnq+SHYzKqcGEK7LBEC7ZRLFACBWQK6iboMhKALr38hQlBPBysWQNDFkkYI/kLCZ4S2D6/1v33byNczOkLA5oIAQgApQaBNACE0cvWcziNhq8dCCNvbYP73fH8h3/v43kft7UmEsL3d3J6JELa3ATeiwdAQQrcFCKEbBydYSQAhrOyGq+tOACF0I7n6CbZU8J7S9l5KCGF7O3AjGgwNIXQbgxC6kXAiBBSCQAAgBBAKAggBDAKBRgIIoRGu53R8wD5rj0K4JOz9CKE7SYTQjeTeAp4/4LY+e/HZ9tCvP9V/K6VDFW+/5cC/cCUWWe8hBGe6COGGw+m7s3BfdQihuOOFvEMIFyJvOwwhtPPtPRshdCe6/wCE0M/2ZmdCCDdj33w1CECAED6gAFQhQGYJhHCaH+/enWazPgQRwvrOvjKE4Kx2YGP1hxDO/kAIF8Jd0+EIwfnDqlv9IYR6xkMqHUKofDjVvwtF9xMdICFsF0UQJ1CCELaTw57kCOGGP0KofsDs/hBCPeO1lY5XtWvj1k5HCP1sERrO/xMhhMwFEELmZnp+9gWEcK6YZfmgK8tgYhFCrDgShJCo3IUfFSEgBBA4JYAQEAIINBJACNp+VWMH8n9Ur/PvZFkuWYAQlnOjJSCAEMAAEGgkgBAa4XpOR0heDhrvr6Jnb7J8BNQNEaKWKzpKz94gBMdlgxAccc47FCE4kzx3OERB3VoQQh1X50qEgBAQAggECCAEMAAEGgkghEa4ntMREtuq4e+H2FYdGzn1jfCyFpbEhPjACyGw6QhCIDOEsB9yFcKa/5H89PXl/wQX3fzjRxC8x9fRV++LmVz9lUPyW14wJMrWrVdVCL+n2PY1+x9I6RfCtauNnr81jw6f6a8iHJ+b8W9I6f8OFfNdMO1mfRhCx+sKHy+MsFcdl8lMEoIzOYQAhH42G9+8P37E29c37x56/rqx7s1K9OhXkLzHJyT8z1bLOjV93nXPn78jhPnRFxBP0vv8Bs5Bb8/3tz8/2H5+WNqWrdf9ZzO9dZAQfN3qUv1dEU7vYH3rjRbqQxGtfr0H1g7LdxC7KXz79L3e1L78M6OXuM7tq1W9dhP3z0PdgE3qd3yDzxfdz4hR7t7fd4+CMP9O+9fPPtlqRQ8HrPP39hBCGPOJDTrL8PCCqrdvPR6gZPqKwWZ5x5mAm2NvjKkBhFCDtVRdxm8hfZ6KEPrZbncmQtju9vY9GiG087VeQBsACGAQCCCmr8n6vvsG98GcQAIhJFJZFsElFQJJ1JZlNhACywgREAqE4KYBJyH4fhP1H1vOz1vOJwYlm7qH8JJJ3gohX7O1J+/aeqe99/FWCNX6JvyKQNJQFJkN2AhCyCy/05+dEJxBru1whKCNj+t0hOAKc2WHIwQ3jI57EiF45GfVkwRACAAEAmoIXKr5w8pPEgghzPJ6e2Mxm2C3HXJKAiGk5J72syNEhAACpwQQAkJAoJEAQmiE6zmdR8K2YzxHbdxoY4w2pxJACJgEAo0EEEIjXM/pPCKmjOT+KlrKz6m/yYfF5LlNMwP9BbSsOT9XeWe6e9iXiEFfQ6c7CkI4PVEK6nOTfbKe17e1PelCfgf0rAAhOK+AMzqE4Izz3OEQgqJFBYv60IQQiw9CAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFAAAFA/AkJQyFeQcqSMUDdm/LlP/TcfRBN3FhgAAAAAElFTkSuQmCC";
-                                                }}
-                                            />
-                                        </div>
-                                    )}
-
-                                    {previewBackdrop && (
-                                        <div className="mb-4">
-                                            <p className="font-semibold text-sm mb-2">Backdrop:</p>
-                                            <img
-                                                src={previewBackdrop}
-                                                alt="Backdrop preview"
-                                                className="rounded-lg w-full max-h-[200px] object-cover"
-                                                onError={(e) => {
-                                                    e.target.src = "data:image/png;base64,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";
-                                                }}
-                                            />
-                                        </div>
-                                    )}
-
-                                    {previewTrailer && getEmbedUrl(previewTrailer) && (
-                                        <div className="mb-4">
-                                            <p className="font-semibold text-sm mb-2">Trailer:</p>
-                                            <div className="relative pb-[56.25%] h-0 rounded-lg overflow-hidden">
-                                                <iframe
-                                                    className="absolute top-0 left-0 w-full h-full border-none rounded-lg"
-                                                    src={getEmbedUrl(previewTrailer)}
-                                                    title="Trailer Preview"
-                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                    allowFullScreen
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {!previewPoster && !previewBackdrop && !previewTrailer && (
-                                        <div className="text-center py-8 text-gray-400">
-                                            <ImageIcon className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-                                            <p className="text-sm text-muted-foreground">
-                                                Nhập URL để xem trước
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                <Field label="Thể loại" required hint="Có thể chọn nhiều thể loại">
+                  <Popover open={genresOpen} onOpenChange={setGenresOpen}>
+                    <PopoverTrigger asChild>
+                      <Button type="button" variant="outline" className="h-auto min-h-10 w-full justify-between py-2">
+                        <span className="flex flex-wrap gap-1.5 text-left">
+                          {form.genres.length === 0 ? <span className="text-muted-foreground">Chọn thể loại...</span> : form.genres.map((genreId) => {
+                            const genre = genres.find((item) => String(item.id) === String(genreId));
+                            return genre ? <StatusBadge key={String(genreId)} tone="info">{genre.name}</StatusBadge> : null;
+                          })}
+                        </span>
+                        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-[min(32rem,calc(100vw-2rem))] p-2">
+                      {genresLoading ? (
+                        <div className="flex min-h-24 items-center justify-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Đang tải thể loại...</div>
+                      ) : genres.length === 0 ? (
+                        <p className="p-4 text-center text-sm text-muted-foreground">Chưa có thể loại</p>
+                      ) : (
+                        <div className="max-h-64 space-y-1 overflow-y-auto">
+                          {genres.map((genre) => {
+                            const checked = selectedGenreKeys.has(String(genre.id));
+                            return (
+                              <label key={genre.id} className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/50">
+                                <Checkbox checked={checked} onCheckedChange={(value) => toggleGenre(genre.id, value === true)} />
+                                <span className="flex-1 text-sm">{genre.name}</span>
+                                {checked && <Check className="h-4 w-4 text-primary" />}
+                              </label>
+                            );
+                          })}
                         </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                </Field>
 
-                        <Separator className="my-6" />
+                <div className="grid gap-4 md:grid-cols-3">
+                  <Field label="Ngày phát hành" required><Input type="date" value={form.releaseDate} onChange={(event) => setField('releaseDate', event.target.value)} /></Field>
+                  <Field label="Thời lượng (phút)" required><NumberStepper min={1} value={form.durationMinutes} onValueChange={(value) => setField('durationMinutes', value)} /></Field>
+                  <Field label="Phân loại"><Select value={form.rating || 'none'} onValueChange={(value) => setField('rating', value === 'none' ? '' : value)}><SelectTrigger><SelectValue placeholder="Chọn phân loại" /></SelectTrigger><SelectContent><SelectItem value="none">Chưa phân loại</SelectItem>{classificationOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></Field>
+                </div>
 
-                        <div className="flex justify-end gap-4 mt-6">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => navigate('/admin/movies')}
-                                disabled={loading}
-                            >
-                                Hủy
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={loading}
-                                className="bg-blue-600 hover:bg-blue-700 text-white"
-                            >
-                                {loading ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        Đang xử lý...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save className="h-4 w-4 mr-2" />
-                                        {isEditMode ? 'Cập Nhật' : 'Thêm Phim'}
-                                    </>
-                                )}
-                            </Button>
-                        </div>
-                    </form>
-                )}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field label="Ngôn ngữ"><Input value={form.language} onChange={(event) => setField('language', event.target.value)} placeholder="Tiếng Việt, English..." /></Field>
+                  <Field label="Phụ đề"><Input value={form.subtitle} onChange={(event) => setField('subtitle', event.target.value)} placeholder="Tiếng Việt, English..." /></Field>
+                  <Field label="Đạo diễn"><Input value={form.director} onChange={(event) => setField('director', event.target.value)} /></Field>
+                  <Field label="Trạng thái"><Select value={form.status} onValueChange={(value) => setField('status', value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{statusOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></Field>
+                </div>
+                <Field label="Diễn viên" hint="Phân cách nhiều diễn viên bằng dấu phẩy"><Input value={form.actors} onChange={(event) => setField('actors', event.target.value)} placeholder="Diễn viên 1, Diễn viên 2" /></Field>
+              </CardContent>
             </Card>
-        </div>
-    );
+
+            <Card>
+              <CardHeader><CardTitle className="text-lg">Media URLs</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <Field label="Poster URL"><div className="relative"><ImageIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={form.posterUrl} onChange={(event) => setField('posterUrl', event.target.value)} className="pl-9" placeholder="https://..." /></div></Field>
+                <Field label="Backdrop URL"><div className="relative"><ImageIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={form.backdropUrl} onChange={(event) => setField('backdropUrl', event.target.value)} className="pl-9" placeholder="https://..." /></div></Field>
+                <Field label="Trailer URL" hint="Hỗ trợ YouTube/Vimeo để xem trước"><div className="relative"><Play className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={form.trailerUrl} onChange={(event) => setField('trailerUrl', event.target.value)} className="pl-9" placeholder="https://..." /></div></Field>
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => navigate('/admin/movies')}>Hủy</Button>
+              <Button type="submit" disabled={saving || movieLoading}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}{saving ? 'Đang lưu...' : isEditMode ? 'Lưu thay đổi' : 'Thêm phim'}</Button>
+            </div>
+          </div>
+
+          <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start">
+            <Card>
+              <CardHeader><CardTitle className="text-base">Xem trước poster</CardTitle></CardHeader>
+              <CardContent>
+                <img src={form.posterUrl || '/brand-placeholder.svg'} alt="Poster preview" className="aspect-[2/3] w-full rounded-md border object-cover" onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }} />
+              </CardContent>
+            </Card>
+            {form.backdropUrl && (
+              <Card><CardHeader><CardTitle className="text-base">Backdrop</CardTitle></CardHeader><CardContent><img src={form.backdropUrl} alt="Backdrop preview" className="aspect-video w-full rounded-md border object-cover" onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }} /></CardContent></Card>
+            )}
+            {trailerEmbed && (
+              <Card><CardHeader><CardTitle className="text-base">Trailer</CardTitle></CardHeader><CardContent><iframe src={trailerEmbed} title="Trailer preview" className="aspect-video w-full rounded-md border" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></CardContent></Card>
+            )}
+          </aside>
+        </form>
+      )}
+    </div>
+  );
 };
 
 export default MovieForm;
