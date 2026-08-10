@@ -1,25 +1,28 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays, Loader2, RefreshCw, Search, Ticket, XCircle } from 'lucide-react';
 import useAuth from '@/hooks/useAuth';
 import bookingService from '@/services/bookingService';
 import useNotification from '@/hooks/useNotification';
 import { Alert } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Empty } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { StatusBadge } from '@/components/ui/status-badge';
 
-const statusLabels = {
-  pending: 'Chờ xác nhận',
-  confirmed: 'Đã xác nhận',
-  completed: 'Đã hoàn thành',
-  cancelled: 'Đã hủy',
-  canceled: 'Đã hủy',
+const statusMeta = (status) => {
+  const value = String(status || 'PENDING').toUpperCase();
+  if (value === 'CONFIRMED' || value === 'PAID') return { label: 'Đã xác nhận', tone: 'success' };
+  if (value === 'COMPLETED') return { label: 'Đã hoàn thành', tone: 'success' };
+  if (value === 'CANCELLED' || value === 'CANCELED') return { label: 'Đã hủy', tone: 'neutral' };
+  if (value === 'FAILED') return { label: 'Thất bại', tone: 'destructive' };
+  if (value === 'EXPIRED') return { label: 'Hết hạn', tone: 'neutral' };
+  if (value === 'REFUNDED') return { label: 'Đã hoàn tiền', tone: 'info' };
+  return { label: 'Chờ xác nhận', tone: 'warning' };
 };
 
-const normalizeStatus = (status) => String(status || 'pending').toLowerCase();
 const asArray = (value) => {
   const data = value?.data ?? value;
   if (Array.isArray(data)) return data;
@@ -41,7 +44,7 @@ const BookingHistory = () => {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('all');
 
-  const loadBookings = async () => {
+  const loadBookings = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
     setError('');
@@ -54,16 +57,16 @@ const BookingHistory = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
   useEffect(() => {
     loadBookings();
-  }, [user?.id]);
+  }, [loadBookings]);
 
   const filteredBookings = useMemo(() => {
     const keyword = query.trim().toLowerCase();
     return bookings.filter((booking) => {
-      const bookingStatus = normalizeStatus(booking.status);
+      const bookingStatus = String(booking.bookingStatus || booking.paymentStatus || booking.status || 'PENDING').toUpperCase();
       const matchesStatus = status === 'all' || bookingStatus === status;
       const searchable = [
         booking.bookingCode,
@@ -80,13 +83,13 @@ const BookingHistory = () => {
     if (!window.confirm(`Hủy đơn ${booking.bookingCode || booking.id}?`)) return;
     setCancellingId(booking.id);
     try {
-      await bookingService.updateBookingStatus(booking.id, 'cancelled');
+      await bookingService.updateBookingStatus(booking.id, 'CANCELLED');
       setBookings((items) => items.map((item) => (
-        item.id === booking.id ? { ...item, status: 'cancelled' } : item
+        item.id === booking.id ? { ...item, status: 'CANCELLED', bookingStatus: 'CANCELLED' } : item
       )));
       notification.success('Đã hủy đơn đặt vé.');
     } catch (requestError) {
-      notification.error(requestError?.message || 'Không thể hủy đơn đặt vé.');
+      notification.error(requestError?.response?.data?.message || requestError?.message || 'Không thể hủy đơn đặt vé.');
     } finally {
       setCancellingId(null);
     }
@@ -114,20 +117,22 @@ const BookingHistory = () => {
           <SelectTrigger aria-label="Lọc trạng thái"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tất cả trạng thái</SelectItem>
-            <SelectItem value="pending">Chờ xác nhận</SelectItem>
-            <SelectItem value="confirmed">Đã xác nhận</SelectItem>
-            <SelectItem value="completed">Đã hoàn thành</SelectItem>
-            <SelectItem value="cancelled">Đã hủy</SelectItem>
+            <SelectItem value="PENDING">Chờ xác nhận</SelectItem>
+            <SelectItem value="CONFIRMED">Đã xác nhận</SelectItem>
+            <SelectItem value="COMPLETED">Đã hoàn thành</SelectItem>
+            <SelectItem value="CANCELLED">Đã hủy</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" onClick={loadBookings}>
-          <RefreshCw className="mr-2 size-4" /> Làm mới
+        <Button variant="outline" onClick={loadBookings} disabled={loading}>
+          {loading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <RefreshCw className="mr-2 size-4" />}
+          Làm mới
         </Button>
       </div>
 
       {error && (
         <Alert
           variant="destructive"
+          showIcon
           className="mb-6"
           message="Không thể tải lịch sử"
           description={error}
@@ -140,23 +145,21 @@ const BookingHistory = () => {
         </div>
       ) : filteredBookings.length === 0 ? (
         <Card className="border-dashed">
-          <CardContent className="flex min-h-64 flex-col items-center justify-center gap-4 text-center">
-            <Ticket className="size-12 text-muted-foreground" />
-            <div>
-              <h2 className="font-semibold">Chưa có đơn đặt vé phù hợp</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {bookings.length ? 'Hãy thay đổi từ khóa hoặc bộ lọc.' : 'Các đơn đặt vé sẽ xuất hiện tại đây.'}
-              </p>
-            </div>
-            {!bookings.length && <Button asChild><Link to="/movies">Chọn phim ngay</Link></Button>}
+          <CardContent className="py-12">
+            <Empty description={bookings.length ? 'Không có đơn đặt vé phù hợp với bộ lọc' : 'Bạn chưa có đơn đặt vé nào'} />
+            {!bookings.length && <div className="mt-5 flex justify-center"><Button asChild><Link to="/movies">Chọn phim ngay</Link></Button></div>}
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-5 md:grid-cols-2">
           {filteredBookings.map((booking) => {
-            const bookingStatus = normalizeStatus(booking.status);
-            const canCancel = ['pending', 'confirmed'].includes(bookingStatus);
+            const rawStatus = booking.bookingStatus || booking.paymentStatus || booking.status || 'PENDING';
+            const normalizedStatus = String(rawStatus).toUpperCase();
+            const meta = statusMeta(rawStatus);
+            const canCancel = ['PENDING', 'CONFIRMED'].includes(normalizedStatus);
             const code = booking.bookingCode || String(booking.id);
+            const showDate = booking.showDate || booking.showtimeDate || booking.date || booking.showtime?.date;
+            const startTime = booking.startTime || booking.showtime?.startTime;
             return (
               <Card key={booking.id || code} className="overflow-hidden">
                 <CardHeader className="space-y-3">
@@ -165,9 +168,7 @@ const BookingHistory = () => {
                       <p className="text-xs text-muted-foreground">Mã đặt vé</p>
                       <CardTitle className="text-lg">{code}</CardTitle>
                     </div>
-                    <Badge variant={bookingStatus === 'cancelled' || bookingStatus === 'canceled' ? 'destructive' : 'secondary'}>
-                      {statusLabels[bookingStatus] || booking.status}
-                    </Badge>
+                    <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
@@ -175,11 +176,11 @@ const BookingHistory = () => {
                   <p>{booking.cinemaName || booking.cinema?.name || 'Chưa có tên rạp'}{booking.roomName ? ` · ${booking.roomName}` : ''}</p>
                   <p className="flex items-center gap-2 text-muted-foreground">
                     <CalendarDays className="size-4" />
-                    {booking.showtimeDate || booking.date || booking.showtime?.date || 'Chưa có ngày'} · {booking.startTime || booking.showtime?.startTime || '—'}
+                    {showDate || 'Chưa có ngày'} · {startTime || '—'}
                   </p>
                   <div className="flex items-center justify-between border-t pt-3">
-                    <span className="text-muted-foreground">{booking.seats?.length || booking.tickets?.length || 0} ghế</span>
-                    <strong>{formatMoney(booking.totalAmount || booking.totalPrice)}</strong>
+                    <span className="text-muted-foreground"><Ticket className="mr-1 inline size-4" />{booking.seats?.length || booking.tickets?.length || 0} ghế</span>
+                    <strong>{formatMoney(booking.finalAmount ?? booking.totalAmount ?? booking.totalPrice)}</strong>
                   </div>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-2 border-t bg-muted/30 py-4 sm:flex-row">

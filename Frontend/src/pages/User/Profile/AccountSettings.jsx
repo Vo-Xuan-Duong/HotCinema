@@ -1,1067 +1,544 @@
-﻿import React, { useState, useEffect } from 'react';
-import { User, Lock, Bell, Clock, Edit, Camera, CheckCircle2, XCircle, Download, Printer, Loader2, Copy } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import QRCode from 'qrcode';
-import dayjs from 'dayjs';
+import {
+  Camera,
+  Clock,
+  Copy,
+  Download,
+  Eye,
+  Loader2,
+  Lock,
+  Printer,
+  RefreshCw,
+  Ticket,
+  User,
+} from 'lucide-react';
+import { Alert } from '@/components/ui/alert';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DetailItem, DetailList } from '@/components/ui/detail-list';
+import { Empty } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { InputPassword } from '@/components/ui/input-password';
-import { Avatar } from '@/components/ui/avatar';
-import { StatusBadge } from '@/components/ui/status-badge';
+import { Label } from '@/components/ui/label';
+import { Pagination } from '@/components/ui/pagination';
 import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
-import { DetailList, DetailItem } from '@/components/ui/detail-list';
-import { Upload } from '@/components/ui/upload';
-import { Badge } from '@/components/ui/badge-count';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import useAuth from '@/hooks/useAuth';
+import useNotification from '@/hooks/useNotification';
 import bookingService from '@/services/bookingService';
 import ticketService from '@/services/ticketService';
 import userService from '@/services/userService';
-import useNotification from '@/hooks/useNotification';
 import { uploadAvatar } from '@/utils/cloudinary';
-import { useForm } from 'react-hook-form';
+
+const PAGE_SIZE = 5;
+
+const initialProfile = {
+  fullName: '',
+  email: '',
+  phone: '',
+  birthDate: '',
+};
+
+const initialPassword = {
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: '',
+};
+
+const formatMoney = (value) => new Intl.NumberFormat('vi-VN', {
+  style: 'currency',
+  currency: 'VND',
+}).format(Number(value || 0));
+
+const formatDateTime = (value) => {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('vi-VN');
+};
+
+const getStatus = (status) => {
+  const value = String(status || '').toUpperCase();
+  const map = {
+    PENDING: { tone: 'warning', label: 'Chờ xử lý' },
+    CONFIRMED: { tone: 'success', label: 'Đã xác nhận' },
+    PAID: { tone: 'success', label: 'Đã thanh toán' },
+    COMPLETED: { tone: 'success', label: 'Hoàn thành' },
+    CANCELLED: { tone: 'destructive', label: 'Đã hủy' },
+    CANCELED: { tone: 'destructive', label: 'Đã hủy' },
+    FAILED: { tone: 'destructive', label: 'Thất bại' },
+    REFUNDED: { tone: 'info', label: 'Đã hoàn tiền' },
+  };
+  return map[value] || { tone: 'neutral', label: status || 'N/A' };
+};
 
 const AccountSettings = () => {
-    const { user, updateProfile } = useAuth();
-    const notification = useNotification();
-    const form = useForm({
-        defaultValues: {
-            fullName: '',
-            email: '',
-            phone: '',
-            birthDate: ''
-        }
+  const { user, updateProfile, syncUser } = useAuth();
+  const notification = useNotification();
+  const fileInputRef = useRef(null);
+
+  const [profile, setProfile] = useState(initialProfile);
+  const [password, setPassword] = useState(initialPassword);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState('');
+
+  const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyTotal, setHistoryTotal] = useState(0);
+
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [generatedQr, setGeneratedQr] = useState('');
+
+  useEffect(() => {
+    setProfile({
+      fullName: user?.fullName || '',
+      email: user?.email || '',
+      phone: user?.phoneNumber || '',
+      birthDate: user?.birthDate || '',
     });
-    const passwordForm = useForm({
-        defaultValues: {
-            currentPassword: '',
-            newPassword: '',
-            confirmPassword: ''
-        }
-    });
-    const [loading, setLoading] = useState(false);
-    const [activeMenu, setActiveMenu] = useState('info');
-    const [isEditingInfo, setIsEditingInfo] = useState(false);
-    const [isEditingPassword, setIsEditingPassword] = useState(false);
-    const [bookingHistory, setBookingHistory] = useState([]);
-    const [bookingLoading, setBookingLoading] = useState(false);
-    const [selectedBooking, setSelectedBooking] = useState(null);
-    const [detailModalVisible, setDetailModalVisible] = useState(false);
-    const [detailLoading, setDetailLoading] = useState(false);
-    const [generatedQR, setGeneratedQR] = useState(null);
-    const [bookingPagination, setBookingPagination] = useState({ page: 0, size: 5, totalPages: 0, totalElements: 0 });
-    const [avatarLoading, setAvatarLoading] = useState(false);
-    const [avatarPreview, setAvatarPreview] = useState(null);
+  }, [user]);
 
-    useEffect(() => {
-        if (user) {
-            form.reset({
-                fullName: user.fullName || '',
-                email: user.email || '',
-                phone: user.phoneNumber || '',
-                birthDate: user.birthDate || ''
-            });
-        }
-    }, [user, form]);
+  const avatarUrl = avatarPreview || user?.avatarUrl || user?.avatar || '';
+  const displayName = user?.fullName || user?.username || user?.email || 'Người dùng';
+  const initials = useMemo(() => {
+    const source = displayName.trim();
+    if (!source) return 'U';
+    return source.split(/\s+/).slice(-2).map((part) => part[0]).join('').toUpperCase();
+  }, [displayName]);
 
+  const loadHistory = async (page = historyPage) => {
+    if (!user?.id) return;
+    setHistoryLoading(true);
+    try {
+      const response = await bookingService.getBookingHistoryByUserId(user.id, {
+        page: page - 1,
+        size: PAGE_SIZE,
+      });
+      const items = Array.isArray(response) ? response : (response?.content || []);
+      setHistory(items);
+      setHistoryTotal(response?.totalElements ?? items.length);
+      setHistoryPage(page);
+    } catch (error) {
+      setHistory([]);
+      setHistoryTotal(0);
+      notification.error(error?.message || 'Không thể tải lịch sử đặt vé');
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
-    useEffect(() => {
-        if (activeMenu === 'history' && user?.id) {
-            loadBookingHistory();
-        }
-    }, [activeMenu, user]);
+  useEffect(() => {
+    if (user?.id) loadHistory(1);
+  }, [user?.id]);
 
+  const handleProfileSubmit = async (event) => {
+    event.preventDefault();
+    if (!profile.fullName.trim() || !profile.email.trim()) {
+      notification.warning('Vui lòng nhập họ tên và email');
+      return;
+    }
 
-    useEffect(() => {
-        if (activeMenu === 'history' && user?.id && bookingPagination.page > 0) {
-            loadMoreBookings();
-        }
-    }, [bookingPagination.page]);
+    setSavingProfile(true);
+    try {
+      await updateProfile({
+        fullName: profile.fullName.trim(),
+        email: profile.email.trim(),
+        phoneNumber: profile.phone.trim(),
+        birthDate: profile.birthDate || null,
+      });
+      notification.success('Cập nhật thông tin thành công');
+    } catch (error) {
+      notification.error(error?.response?.data?.message || error?.message || 'Không thể cập nhật thông tin');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
-    const loadBookingHistory = async () => {
-        if (!user?.id) return;
+  const handlePasswordSubmit = async (event) => {
+    event.preventDefault();
+    if (!user?.id) return;
+    if (!password.currentPassword || !password.newPassword || !password.confirmPassword) {
+      notification.warning('Vui lòng nhập đầy đủ thông tin mật khẩu');
+      return;
+    }
+    if (password.newPassword !== password.confirmPassword) {
+      notification.warning('Mật khẩu xác nhận không khớp');
+      return;
+    }
 
-        setBookingLoading(true);
-        try {
-            const params = {
-                page: 0,
-                size: bookingPagination.size
-            };
-            const response = await bookingService.getBookingHistoryByUserId(user.id, params);
+    setSavingPassword(true);
+    try {
+      await userService.changePassword(user.id, {
+        oldPassword: password.currentPassword,
+        newPassword: password.newPassword,
+        confirmNewPassword: password.confirmPassword,
+      });
+      setPassword(initialPassword);
+      notification.success('Đổi mật khẩu thành công');
+    } catch (error) {
+      notification.error(error?.response?.data?.message || error?.message || 'Không thể đổi mật khẩu');
+    } finally {
+      setSavingPassword(false);
+    }
+  };
 
-            if (response?.content) {
-                setBookingHistory(response.content);
-                setBookingPagination({
-                    page: 0,
-                    size: bookingPagination.size,
-                    totalPages: response.totalPages || 0,
-                    totalElements: response.totalElements || 0
-                });
-            } else if (Array.isArray(response)) {
-                setBookingHistory(response);
-            } else {
-                setBookingHistory([]);
-            }
-        } catch (error) {
-            console.error('Error loading booking history:', error);
-            notification.error('Không thể tải lịch sử đặt vé');
-            setBookingHistory([]);
-        } finally {
-            setBookingLoading(false);
-        }
-    };
+  const handleAvatarFile = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !user?.id) return;
 
-    const generateQRCode = async (bookingCode) => {
-        try {
-            const qrDataUrl = await QRCode.toDataURL(bookingCode, {
-                width: 250,
-                margin: 2,
-                color: {
-                    dark: '#000000',
-                    light: '#FFFFFF'
-                }
-            });
-            setGeneratedQR(qrDataUrl);
-        } catch (error) {
-            console.error('Error generating QR code:', error);
-        }
-    };
+    if (!file.type.startsWith('image/')) {
+      notification.warning('Chỉ có thể tải lên file ảnh');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      notification.warning('Ảnh phải nhỏ hơn 2MB');
+      return;
+    }
 
-    const handleViewBookingDetail = async (bookingCode) => {
-        setDetailLoading(true);
-        setDetailModalVisible(true);
-        setGeneratedQR(null);
-        try {
-            const response = await bookingService.getBookingByCode(bookingCode);
-            setSelectedBooking(response);
+    setAvatarPreview(URL.createObjectURL(file));
+    setAvatarLoading(true);
+    try {
+      const uploadedUrl = await uploadAvatar(file);
+      await userService.updateAvatar(user.id, uploadedUrl);
+      syncUser({ ...user, avatar: uploadedUrl, avatarUrl: uploadedUrl });
+      setAvatarPreview('');
+      notification.success('Cập nhật avatar thành công');
+    } catch (error) {
+      setAvatarPreview('');
+      notification.error(error?.message || 'Không thể cập nhật avatar');
+    } finally {
+      setAvatarLoading(false);
+    }
+  };
 
-            if (!response.qrCodeBase64) {
-                await generateQRCode(response.bookingCode);
-            }
-        } catch (error) {
-            console.error('Error loading booking detail:', error);
-            notification.error('Không thể tải thông tin đặt vé');
-            setDetailModalVisible(false);
-        } finally {
-            setDetailLoading(false);
-        }
-    };
+  const openBookingDetail = async (bookingCode) => {
+    if (!bookingCode) return;
+    setDetailOpen(true);
+    setDetailLoading(true);
+    setSelectedBooking(null);
+    setGeneratedQr('');
+    try {
+      const booking = await bookingService.getBookingByCode(bookingCode);
+      setSelectedBooking(booking);
+      if (!booking?.qrCodeBase64 && booking?.bookingCode) {
+        setGeneratedQr(await QRCode.toDataURL(`BOOKING:${booking.bookingCode}`, {
+          width: 250,
+          margin: 2,
+          color: { dark: '#000000', light: '#FFFFFF' },
+        }));
+      }
+    } catch (error) {
+      setDetailOpen(false);
+      notification.error(error?.message || 'Không thể tải chi tiết đặt vé');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
 
-    const handleCloseDetailModal = () => {
-        setDetailModalVisible(false);
-        setSelectedBooking(null);
-        setGeneratedQR(null);
-    };
+  const downloadTicket = async (booking = selectedBooking) => {
+    if (!booking?.id) {
+      notification.warning('Không tìm thấy booking để tải vé');
+      return;
+    }
+    try {
+      const blob = await ticketService.downloadBookingPDF(booking.id);
+      ticketService.triggerDownload(blob, `ticket-${booking.bookingCode || booking.id}.pdf`);
+      notification.success('Tải vé thành công');
+    } catch (error) {
+      notification.error(error?.message || 'Không thể tải vé');
+    }
+  };
 
-    const handleDownloadQR = async () => {
-        if (!selectedBooking?.id) return;
+  const copyBookingCode = async () => {
+    if (!selectedBooking?.bookingCode) return;
+    await navigator.clipboard.writeText(selectedBooking.bookingCode);
+    notification.success('Đã sao chép mã đặt vé');
+  };
 
-        try {
-            const blob = await ticketService.downloadBookingPDF(selectedBooking.id);
-            ticketService.triggerDownload(blob, `ticket-${selectedBooking.bookingCode}.pdf`);
-            notification.success('Đã tải xuống vé thành công');
-        } catch (error) {
-            console.error('Error downloading ticket:', error);
-            notification.error('Không thể tải xuống vé');
-        }
-    };
-
-    const handlePrintTicket = () => {
-        window.print();
-    };
-
-    const getStatusConfig = (status) => {
-        const configs = {
-            'PENDING': { color: 'orange', icon: <Clock className="h-4 w-4" />, text: 'Đang chờ thanh toán' },
-            'PAID': { color: 'green', icon: <CheckCircle2 className="h-4 w-4" />, text: 'Đã thanh toán' },
-            'CANCELLED': { color: 'default', icon: <XCircle className="h-4 w-4" />, text: 'Đã hủy' },
-            'FAILED': { color: 'red', icon: <XCircle className="h-4 w-4" />, text: 'Thanh toán lỗi' },
-            'REFUNDED': { color: 'blue', icon: <CheckCircle2 className="h-4 w-4" />, text: 'Đã hoàn tiền' }
-        };
-        return configs[status] || configs['PENDING'];
-    };
-
-    const loadMoreBookings = async () => {
-        if (!user?.id) return;
-
-        setBookingLoading(true);
-        try {
-            const params = {
-                page: bookingPagination.page,
-                size: bookingPagination.size
-            };
-            const response = await bookingService.getBookingHistoryByUserId(user.id, params);
-
-            if (response?.content) {
-                setBookingHistory(prev => [...prev, ...response.content]);
-                setBookingPagination(prev => ({
-                    ...prev,
-                    totalPages: response.totalPages || 0,
-                    totalElements: response.totalElements || 0
-                }));
-            }
-        } catch (error) {
-            console.error('Error loading more bookings:', error);
-            notification.error('Không thể tải thêm lịch sử');
-        } finally {
-            setBookingLoading(false);
-        }
-    };
-
-    const handleSaveInfo = async (values) => {
-        setLoading(true);
-        try {
-            const updateData = {
-                fullName: values.fullName,
-                email: values.email,
-                phoneNumber: values.phone,
-                birthDate: values.birthDate
-            };
-
-            await updateProfile(updateData);
-            notification.success('Cập nhật thông tin thành công!');
-            setIsEditingInfo(false);
-        } catch (error) {
-            notification.error(error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật thông tin!');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const updateAvatarUrl = async (avatarUrl) => {
-        if (!user?.id) return;
-
-        try {
-            await userService.updateAvatar(user.id, avatarUrl);
-            await updateProfile({ avatar: avatarUrl });
-            setAvatarPreview(null);
-            setAvatarLoading(false);
-            notification.success('Cập nhật avatar thành công!');
-        } catch (error) {
-            console.error('Error updating avatar:', error);
-            setAvatarLoading(false);
-            notification.error('Cập nhật avatar thất bại. Vui lòng thử lại!');
-        }
-    };
-
-    const beforeUpload = (file) => {
-        const isImage = file.type.startsWith('image/');
-        if (!isImage) {
-            notification.error('Chỉ có thể tải lên file ảnh!');
-            return false;
-        }
-
-        const isLt2M = file.size / 1024 / 1024 < 2;
-        if (!isLt2M) {
-            notification.error('Ảnh phải nhỏ hơn 2MB!');
-            return false;
-        }
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            setAvatarPreview(e.target.result);
-        };
-        reader.readAsDataURL(file);
-
-        return true;
-    };
-
-    const handleAvatarUpload = async (options) => {
-        const { file, onSuccess, onError, onProgress } = options;
-
-        setAvatarLoading(true);
-
-        try {
-            const avatarUrl = await uploadAvatar(file);
-
-            if (onProgress) {
-                onProgress({ percent: 100 });
-            }
-
-            await updateAvatarUrl(avatarUrl);
-
-            if (onSuccess) {
-                onSuccess({ url: avatarUrl }, file);
-            }
-        } catch (error) {
-            console.error('Avatar upload error:', error);
-            setAvatarLoading(false);
-            notification.error(error.message || 'Tải lên avatar thất bại. Vui lòng thử lại!');
-
-            if (onError) {
-                onError(error);
-            }
-        }
-    };
-
-    const handleChangePassword = async (values) => {
-        setLoading(true);
-        try {
-            if (values.newPassword !== values.confirmPassword) {
-                notification.error('Mật khẩu xác nhận không khớp!');
-                setLoading(false);
-                return;
-            }
-
-            await userService.changePassword(user.id, {
-                oldPassword: values.currentPassword,
-                newPassword: values.newPassword,
-                confirmNewPassword: values.confirmPassword
-            });
-            notification.success('Đổi mật khẩu thành công!');
-            passwordForm.reset();
-            setIsEditingPassword(false);
-        } catch (_error) {
-            notification.error('Có lỗi xảy ra khi đổi mật khẩu!');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleCancel = () => {
-        if (activeMenu === 'info') {
-            form.reset();
-            setIsEditingInfo(false);
-        } else if (activeMenu === 'security') {
-            passwordForm.reset();
-            setIsEditingPassword(false);
-        }
-    };
-
-    const handleEdit = () => {
-        if (activeMenu === 'info') {
-            setIsEditingInfo(true);
-        } else if (activeMenu === 'security') {
-            setIsEditingPassword(true);
-        }
-    };
-
-    const handleCopyCode = () => {
-        if (selectedBooking?.bookingCode) {
-            navigator.clipboard.writeText(selectedBooking.bookingCode);
-            notification.success('Đã sao chép mã đặt vé');
-        }
-    };
-
-    const menuItems = [
-        {
-            key: 'info',
-            icon: <User className="h-4 w-4" />,
-            label: 'Thông tin cá nhân'
-        },
-        {
-            key: 'security',
-            icon: <Lock className="h-4 w-4" />,
-            label: 'Mật khẩu & Bảo mật'
-        },
-        {
-            key: 'history',
-            icon: <Clock className="h-4 w-4" />,
-            label: 'Lịch sử đặt vé'
-        },
-        {
-            key: 'notifications',
-            icon: <Bell className="h-4 w-4" />,
-            label: 'Cài đặt thông báo'
-        }
-    ];
-
+  if (!user) {
     return (
-        <div className="min-h-screen bg-background py-8 px-4">
-            <div className="max-w-[1200px] mx-auto">
-                <h2 className="text-foreground mb-6 text-2xl font-bold">Cài đặt Tài khoản</h2>
-                {!user && (
-                    <div className="p-5 text-center text-red-600 bg-red-50 rounded-lg border border-red-200">
-                        <p>Vui lòng đăng nhập để xem thông tin cá nhân</p>
-                    </div>
-                )}
-
-                <div className="flex gap-6 flex-col lg:flex-row">
-                    <div className="lg:w-64 flex-shrink-0">
-                        <Card className="bg-card rounded-xl shadow-md border border-border p-6 mb-6">
-                            <div className="flex flex-col items-center mb-6 pb-6 border-b border-border">
-                                <Badge
-                                    count={
-                                        <Upload
-                                            beforeUpload={beforeUpload}
-                                            onChange={(info) => {
-                                                if (info.file) {
-                                                    handleAvatarUpload({
-                                                        file: info.file.originFileObj || info.file,
-                                                        onSuccess: () => { },
-                                                        onError: () => { },
-                                                        onProgress: () => { }
-                                                    });
-                                                }
-                                            }}
-                                            accept="image/*"
-                                            maxCount={1}
-                                        >
-                                            <Button
-                                                size="icon"
-                                                className="rounded-full shadow-lg hover:scale-110 transition-transform"
-                                                disabled={avatarLoading}
-                                            >
-                                                {avatarLoading ? (
-                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                ) : (
-                                                    <Camera className="h-4 w-4" />
-                                                )}
-                                            </Button>
-                                        </Upload>
-                                    }
-                                >
-                                    <Avatar
-                                        className="w-20 h-20 border-2 border-gray-300 mb-3"
-                                        src={avatarPreview || user?.avatarUrl}
-                                    >
-                                        <User className="h-10 w-10" />
-                                    </Avatar>
-                                </Badge>
-                                <div className="text-center mt-2">
-                                    <p className="font-semibold text-foreground mb-1">
-                                        {user?.fullName || user?.username || 'Người dùng'}
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {user?.email || ''}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-1">
-                                {menuItems.map(item => (
-                                    <div
-                                        key={item.key}
-                                        className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-all duration-200 ${activeMenu === item.key
-                                            ? 'bg-primary text-white'
-                                            : 'text-gray-700 hover:bg-gray-100'
-                                            }`}
-                                        onClick={() => setActiveMenu(item.key)}
-                                    >
-                                        <span className="text-lg">{item.icon}</span>
-                                        <span className="font-medium">{item.label}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </Card>
-                    </div>
-
-                    <div className="flex-1">
-                        {activeMenu === 'info' && (
-                            <Card className="bg-card rounded-xl shadow-md border border-border p-6">
-                                <div className="mb-6">
-                                    <h3 className="text-foreground mb-2 text-xl font-bold">Thông tin cá nhân</h3>
-                                    <p className="text-muted-foreground">
-                                        Cập nhật thông tin và địa chỉ email của bạn.
-                                    </p>
-                                </div>
-
-                                <Form {...form}>
-                                    <form onSubmit={form.handleSubmit(handleSaveInfo)} className="space-y-4">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <FormField
-                                                control={form.control}
-                                                name="fullName"
-                                                rules={{ required: 'Vui lòng nhập họ tên!', minLength: { value: 2, message: 'Họ tên phải có ít nhất 2 ký tự!' } }}
-                                                render={({ field, fieldState }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Họ và tên</FormLabel>
-                                                        <FormControl>
-                                                            <Input
-                                                                {...field}
-                                                                placeholder="Nguyễn Văn A"
-                                                                disabled={!isEditingInfo}
-                                                                className="h-10 rounded-lg"
-                                                            />
-                                                        </FormControl>
-                                                        <FormMessage fieldState={fieldState} />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <FormField
-                                                control={form.control}
-                                                name="email"
-                                                rules={{ required: 'Vui lòng nhập email!', type: 'email', message: 'Email không hợp lệ!' }}
-                                                render={({ field, fieldState }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Địa chỉ email</FormLabel>
-                                                        <FormControl>
-                                                            <Input
-                                                                {...field}
-                                                                placeholder="nguyenvana@email.com"
-                                                                disabled={!isEditingInfo}
-                                                                className="h-10 rounded-lg"
-                                                            />
-                                                        </FormControl>
-                                                        <FormMessage fieldState={fieldState} />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <FormField
-                                                control={form.control}
-                                                name="phone"
-                                                rules={{ pattern: { value: /^[0-9]{10,11}$/, message: 'Số điện thoại không hợp lệ!' } }}
-                                                render={({ field, fieldState }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Số điện thoại</FormLabel>
-                                                        <FormControl>
-                                                            <Input
-                                                                {...field}
-                                                                placeholder="Thêm số điện thoại"
-                                                                disabled={!isEditingInfo}
-                                                                className="h-10 rounded-lg"
-                                                            />
-                                                        </FormControl>
-                                                        <FormMessage fieldState={fieldState} />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <FormField
-                                                control={form.control}
-                                                name="birthDate"
-                                                render={({ field, fieldState }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Ngày sinh</FormLabel>
-                                                        <FormControl>
-                                                            <Input
-                                                                {...field}
-                                                                type="date"
-                                                                placeholder="mm/dd/yyyy"
-                                                                disabled={!isEditingInfo}
-                                                                className="h-10 rounded-lg"
-                                                            />
-                                                        </FormControl>
-                                                        <FormMessage fieldState={fieldState} />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        </div>
-                                    </form>
-                                </Form>
-                            </Card>
-                        )}
-
-                        {activeMenu === 'security' && (
-                            <Card className="bg-card rounded-xl shadow-md border border-border p-6">
-                                <div className="mb-6">
-                                    <h3 className="text-foreground mb-2 text-xl font-bold">Mật khẩu & Bảo mật</h3>
-                                    <p className="text-muted-foreground">
-                                        Thay đổi mật khẩu để bảo vệ tài khoản của bạn.
-                                    </p>
-                                </div>
-
-                                <Form {...passwordForm}>
-                                    <form onSubmit={passwordForm.handleSubmit(handleChangePassword)} className="space-y-4">
-                                        <FormField
-                                            control={passwordForm.control}
-                                            name="currentPassword"
-                                            rules={{ required: 'Vui lòng nhập mật khẩu hiện tại!' }}
-                                            render={({ field, fieldState }) => (
-                                                <FormItem>
-                                                    <FormLabel>Mật khẩu hiện tại</FormLabel>
-                                                    <FormControl>
-                                                        <InputPassword
-                                                            {...field}
-                                                            placeholder="••••••••••"
-                                                            disabled={!isEditingPassword}
-                                                            className="h-10 rounded-lg"
-                                                        />
-                                                    </FormControl>
-                                                    <FormMessage fieldState={fieldState} />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <FormField
-                                                control={passwordForm.control}
-                                                name="newPassword"
-                                                rules={{ required: 'Vui lòng nhập mật khẩu mới!', minLength: { value: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự!' } }}
-                                                render={({ field, fieldState }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Mật khẩu mới</FormLabel>
-                                                        <FormControl>
-                                                            <InputPassword
-                                                                {...field}
-                                                                placeholder="Nhập mật khẩu mới"
-                                                                disabled={!isEditingPassword}
-                                                                className="h-10 rounded-lg"
-                                                            />
-                                                        </FormControl>
-                                                        <FormMessage fieldState={fieldState} />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <FormField
-                                                control={passwordForm.control}
-                                                name="confirmPassword"
-                                                rules={{
-                                                    required: 'Vui lòng xác nhận mật khẩu!',
-                                                    validate: (value) => value === passwordForm.getValues('newPassword') || 'Mật khẩu xác nhận không khớp!'
-                                                }}
-                                                render={({ field, fieldState }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Xác nhận mật khẩu mới</FormLabel>
-                                                        <FormControl>
-                                                            <InputPassword
-                                                                {...field}
-                                                                placeholder="Nhập lại mật khẩu mới"
-                                                                disabled={!isEditingPassword}
-                                                                className="h-10 rounded-lg"
-                                                            />
-                                                        </FormControl>
-                                                        <FormMessage fieldState={fieldState} />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                        </div>
-                                    </form>
-                                </Form>
-                            </Card>
-                        )}
-
-                        {activeMenu === 'notifications' && (
-                            <Card className="bg-card rounded-xl shadow-md border border-border p-6">
-                                <div className="mb-6">
-                                    <h3 className="text-foreground mb-2 text-xl font-bold">Cài đặt thông báo</h3>
-                                    <p className="text-muted-foreground">
-                                        Quản lý cách bạn nhận thông báo từ chúng tôi.
-                                    </p>
-                                </div>
-                                <p className="text-muted-foreground">Tính năng đang được phát triển...</p>
-                            </Card>
-                        )}
-
-                        {activeMenu === 'history' && (
-                            <Card className="bg-card rounded-xl shadow-md border border-border p-6">
-                                <div className="mb-6">
-                                    <h3 className="text-foreground mb-2 text-xl font-bold">Lịch sử đặt vé</h3>
-                                    <p className="text-muted-foreground">
-                                        Xem lại tất cả các đơn đặt vé của bạn.
-                                    </p>
-                                </div>
-
-                                {bookingLoading ? (
-                                    <div className="text-center py-10">
-                                        <Loader2 className="w-8 h-8 text-primary mx-auto animate-spin" />
-                                        <p className="mt-4 text-muted-foreground">Đang tải lịch sử đặt vé...</p>
-                                    </div>
-                                ) : bookingHistory.length > 0 ? (
-                                    <div className="space-y-4">
-                                        {bookingHistory.map((booking) => {
-                                            let dateTimeStr = 'N/A';
-                                            if (booking.showDate && booking.startTime) {
-                                                try {
-                                                    const date = new Date(booking.showDate);
-                                                    const dateStr = date.toLocaleDateString('vi-VN', {
-                                                        day: '2-digit',
-                                                        month: '2-digit',
-                                                        year: 'numeric'
-                                                    });
-                                                    dateTimeStr = `${booking.startTime} - ${dateStr}`;
-                                                } catch (_e) {
-                                                    console.error('Date format error:', _e);
-                                                }
-                                            }
-
-                                            const seatsStr = booking.seats?.map(s => s.seatName).join(', ') || 'N/A';
-
-                                            const statusMap = {
-                                                'PENDING': 'Đang chờ thanh toán',
-                                                'PAID': 'Đã thanh toán',
-                                                'CANCELLED': 'Đã hủy',
-                                                'FAILED': 'Thanh toán lỗi',
-                                                'REFUNDED': 'Đã hoàn tiền'
-                                            };
-                                            const statusText = statusMap[booking.status] || booking.status || 'N/A';
-
-                                            return (
-                                                <div
-                                                    key={booking.id}
-                                                    className="flex gap-4 p-4 bg-background rounded-lg hover:bg-gray-100 cursor-pointer transition-all duration-200 border border-border"
-                                                    onClick={() => handleViewBookingDetail(booking.bookingCode)}
-                                                >
-                                                    <img
-                                                        src={booking.posterUrl || '/placeholder-movie.jpg'}
-                                                        alt={booking.movieTitle}
-                                                        className="w-20 h-28 object-cover rounded-lg flex-shrink-0"
-                                                        onError={(e) => {
-                                                            e.target.src = '/brand-placeholder.svg';
-                                                        }}
-                                                    />
-                                                    <div className="flex-1 flex justify-between items-start">
-                                                        <div className="flex-1">
-                                                            <p className="font-semibold text-foreground mb-1 text-base">
-                                                                {booking.movieTitle || 'Không có thông tin phim'}
-                                                            </p>
-                                                            <p className="text-sm text-muted-foreground mb-1">
-                                                                {booking.cinemaName || 'N/A'} • {dateTimeStr}
-                                                            </p>
-                                                            <p className="text-sm text-muted-foreground mb-1">
-                                                                Ghế: {seatsStr}
-                                                            </p>
-                                                            {booking.bookingCode && (
-                                                                <p className="text-xs text-muted-foreground mt-1">
-                                                                    Mã đặt vé: {booking.bookingCode}
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                        <div className="text-right ml-4">
-                                                            <p className="font-semibold text-blue-600 text-base mb-1">
-                                                                {(booking.finalAmount || 0).toLocaleString('vi-VN')}đ
-                                                            </p>
-                                                            <p className="text-xs text-muted-foreground">
-                                                                {statusText}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-
-                                        {bookingPagination.page < bookingPagination.totalPages - 1 && (
-                                            <div className="text-center mt-6">
-                                                <Button
-                                                    onClick={() => {
-                                                        setBookingPagination(prev => ({
-                                                            ...prev,
-                                                            page: prev.page + 1
-                                                        }));
-                                                    }}
-                                                    disabled={bookingLoading}
-                                                    className="min-w-[150px] rounded-lg h-10"
-                                                >
-                                                    {bookingLoading ? (
-                                                        <>
-                                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                            Đang tải...
-                                                        </>
-                                                    ) : (
-                                                        'Xem thêm'
-                                                    )}
-                                                </Button>
-                                                <p className="mt-3 text-sm text-muted-foreground">
-                                                    Trang {bookingPagination.page + 1} / {bookingPagination.totalPages}
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-10">
-                                        <p className="text-muted-foreground">Bạn chưa có đơn đặt vé nào</p>
-                                    </div>
-                                )}
-                            </Card>
-                        )}
-
-                        {(activeMenu === 'info' || activeMenu === 'security') && (
-                            <div className="flex gap-3 justify-end mt-6">
-                                {((activeMenu === 'info' && !isEditingInfo) || (activeMenu === 'security' && !isEditingPassword)) ? (
-                                    <Button
-                                        onClick={handleEdit}
-                                        className="h-12 rounded-lg font-semibold"
-                                    >
-                                        <Edit className="h-4 w-4 mr-2" />
-                                        Chỉnh sửa
-                                    </Button>
-                                ) : (
-                                    <>
-                                        <Button
-                                            variant="outline"
-                                            onClick={handleCancel}
-                                            className="h-12 rounded-lg font-semibold"
-                                        >
-                                            Hủy
-                                        </Button>
-                                        <Button
-                                            onClick={() => {
-                                                if (activeMenu === 'info') {
-                                                    form.handleSubmit(handleSaveInfo)();
-                                                } else if (activeMenu === 'security') {
-                                                    passwordForm.handleSubmit(handleChangePassword)();
-                                                }
-                                            }}
-                                            disabled={loading}
-                                            className="h-12 rounded-lg font-semibold"
-                                        >
-                                            {loading ? (
-                                                <>
-                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                    Đang lưu...
-                                                </>
-                                            ) : (
-                                                'Lưu thay đổi'
-                                            )}
-                                        </Button>
-                                    </>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            <ResponsiveDialog
-                heading="Chi tiết đặt vé"
-                open={detailModalVisible}
-                onClose={handleCloseDetailModal}
-                maxWidth={850}
-                actions={[
-                    <Button key="close" variant="outline" onClick={handleCloseDetailModal}>
-                        Đóng
-                    </Button>,
-                    <Button
-                        key="download"
-                        onClick={handleDownloadQR}
-                        disabled={!selectedBooking?.id}
-                    >
-                        <Download className="h-4 w-4 mr-2" />
-                        Tải vé PDF
-                    </Button>,
-                    <Button
-                        key="print"
-                        onClick={handlePrintTicket}
-                    >
-                        <Printer className="h-4 w-4 mr-2" />
-                        In vé
-                    </Button>
-                ]}
-            >
-                {detailLoading ? (
-                    <div className="text-center py-10">
-                        <Loader2 className="w-8 h-8 text-primary mx-auto animate-spin" />
-                        <p className="mt-4 text-muted-foreground">Đang tải...</p>
-                    </div>
-                ) : selectedBooking ? (
-                    <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-6 max-h-[70vh] overflow-y-auto">
-                        <div className="text-center">
-                            {selectedBooking.qrCodeBase64 || generatedQR ? (
-                                <img
-                                    src={selectedBooking.qrCodeBase64
-                                        ? `data:image/png;base64,${selectedBooking.qrCodeBase64}`
-                                        : generatedQR
-                                    }
-                                    alt="QR Code"
-                                    className="w-full max-w-[180px] border-2 border-border rounded-lg mb-3 p-1.5 bg-card mx-auto"
-                                />
-                            ) : (
-                                <div className="w-[180px] h-[180px] mx-auto mb-3 bg-gray-100 rounded-lg flex items-center justify-center">
-                                    <Loader2 className="w-6 h-6 text-primary animate-spin" />
-                                </div>
-                            )}
-                            <div className="mb-2">
-                                <p className="text-xs text-muted-foreground mb-1">Mã đặt vé</p>
-                                <div className="flex items-center gap-2 justify-center">
-                                    <h5 className="text-sm font-bold m-0">
-                                        {selectedBooking.bookingCode}
-                                    </h5>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={handleCopyCode}
-                                        className="h-6 w-6 p-0"
-                                    >
-                                        <Copy className="h-3 w-3" />
-                                    </Button>
-                                </div>
-                            </div>
-                            <StatusBadge
-                                tone={getStatusConfig(selectedBooking.status).color}
-                                className="text-xs px-2.5 py-1 rounded-full flex items-center gap-1"
-                            >
-                                {getStatusConfig(selectedBooking.status).icon}
-                                {getStatusConfig(selectedBooking.status).text}
-                            </StatusBadge>
-                            {(selectedBooking.moviePosterUrl || selectedBooking.posterUrl) && (
-                                <div className="mt-3 text-center">
-                                    <img
-                                        src={selectedBooking.moviePosterUrl || selectedBooking.posterUrl}
-                                        alt={selectedBooking.movieTitle}
-                                        className="w-full max-w-[150px] rounded-lg mx-auto"
-                                        onError={(e) => {
-                                            e.target.src = '/brand-placeholder.svg';
-                                        }}
-                                    />
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="space-y-4">
-                            <Card className="rounded-lg border border-border">
-                                <h4 className="font-semibold mb-3">Thông tin phim</h4>
-                                <DetailList columns={1}>
-                                    <DetailItem label="Tên phim">
-                                        <span className="font-semibold">{selectedBooking.movieTitle || 'N/A'}</span>
-                                    </DetailItem>
-                                    <DetailItem label="Định dạng">
-                                        {selectedBooking.formatType ||
-                                            (selectedBooking.movieFormat && selectedBooking.movieAudioType
-                                                ? `${selectedBooking.movieFormat} ${selectedBooking.movieAudioType}`
-                                                : selectedBooking.movieFormat || 'N/A')}
-                                    </DetailItem>
-                                </DetailList>
-                            </Card>
-
-                            <Card className="rounded-lg border border-border">
-                                <h4 className="font-semibold mb-3">Thông tin rạp</h4>
-                                <DetailList columns={1}>
-                                    <DetailItem label="Rạp chiếu">
-                                        <span className="font-semibold">{selectedBooking.cinemaName}</span>
-                                    </DetailItem>
-                                    <DetailItem label="Phòng chiếu">
-                                        {selectedBooking.roomName || 'N/A'}
-                                    </DetailItem>
-                                    <DetailItem label="Địa chỉ">
-                                        {selectedBooking.cinemaAddress || 'N/A'}
-                                    </DetailItem>
-                                </DetailList>
-                            </Card>
-
-                            <Card className="rounded-lg border border-border">
-                                <h4 className="font-semibold mb-3">Thông tin suất chiếu</h4>
-                                <DetailList columns={1}>
-                                    <DetailItem label="Ngày chiếu">
-                                        {selectedBooking.showtimeDateTime || selectedBooking.showDate ? (() => {
-                                            try {
-                                                const dateStr = selectedBooking.showtimeDateTime || selectedBooking.showDate;
-                                                const date = dayjs(dateStr);
-                                                if (date.isValid()) {
-                                                    const formatted = date.format('dddd, DD [Tháng] MM, YYYY');
-                                                    return formatted
-                                                        .replace('Monday', 'Thứ Hai')
-                                                        .replace('Tuesday', 'Thứ Ba')
-                                                        .replace('Wednesday', 'Thứ Tư')
-                                                        .replace('Thursday', 'Thứ Năm')
-                                                        .replace('Friday', 'Thứ Sáu')
-                                                        .replace('Saturday', 'Thứ Bảy')
-                                                        .replace('Sunday', 'Chủ Nhật');
-                                                }
-                                                return new Date(dateStr).toLocaleDateString('vi-VN', {
-                                                    weekday: 'long',
-                                                    day: '2-digit',
-                                                    month: '2-digit',
-                                                    year: 'numeric'
-                                                });
-                                            } catch (_e) {
-                                                return 'N/A';
-                                            }
-                                        })() : 'N/A'}
-                                    </DetailItem>
-                                    <DetailItem label="Giờ chiếu">
-                                        {(() => {
-                                            const startTime = selectedBooking.showtimeStartTime || selectedBooking.startTime;
-                                            const endTime = selectedBooking.showtimeEndTime || selectedBooking.endTime;
-
-                                            if (!startTime) return 'N/A';
-
-                                            // Format time from LocalTime (HH:mm:ss or HH:mm)
-                                            const formatTime = (timeStr) => {
-                                                if (!timeStr) return '';
-                                                if (/^\d{2}:\d{2}:\d{2}/.test(timeStr)) {
-                                                    return timeStr.substring(0, 5); // Extract HH:mm
-                                                } else if (/^\d{2}:\d{2}$/.test(timeStr)) {
-                                                    return timeStr;
-                                                } else {
-                                                    try {
-                                                        const time = dayjs(`2000-01-01 ${timeStr}`);
-                                                        if (time.isValid()) {
-                                                            return time.format('HH:mm');
-                                                        }
-                                                    } catch (_e) {
-                                                        return timeStr;
-                                                    }
-                                                }
-                                                return timeStr;
-                                            };
-
-                                            const formattedStart = formatTime(startTime);
-                                            const formattedEnd = formatTime(endTime);
-
-                                            return formattedEnd ? `${formattedStart} - ${formattedEnd}` : formattedStart;
-                                        })()}
-                                    </DetailItem>
-                                </DetailList>
-                            </Card>
-
-                            <Card className="rounded-lg border border-border">
-                                <h4 className="font-semibold mb-3">Thông tin ghế</h4>
-                                <div>
-                                    <p className="font-semibold mb-2">Ghế đã chọn: </p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {selectedBooking.seats && selectedBooking.seats.length > 0 ? (
-                                            selectedBooking.seats.map((seat, index) => (
-                                                <StatusBadge key={index} tone="blue">
-                                                    {seat.seatName || seat.name || seat.seatNumber || seat.id || `Ghế ${index + 1}`}
-                                                    {seat.seatType && ` - ${seat.seatType}`}
-                                                </StatusBadge>
-                                            ))
-                                        ) : selectedBooking.seatNumbers ? (
-                                            <span className="text-gray-700">{selectedBooking.seatNumbers}</span>
-                                        ) : (
-                                            <span className="text-muted-foreground">N/A</span>
-                                        )}
-                                    </div>
-                                </div>
-                            </Card>
-
-                            <Card className="rounded-lg border border-border">
-                                <h4 className="font-semibold mb-3">Thông tin thanh toán</h4>
-                                <DetailList columns={1}>
-                                    {(() => {
-                                        const totalAmount = selectedBooking.totalAmount || selectedBooking.originalPrice || 0;
-                                        const discountAmount = selectedBooking.discountAmount || 0;
-                                        const finalAmount = selectedBooking.finalAmount || selectedBooking.totalPrice || totalAmount;
-
-                                        return (
-                                            <>
-                                                {totalAmount > 0 && (
-                                                    <DetailItem label="Giá gốc">
-                                                        {typeof totalAmount === 'number'
-                                                            ? totalAmount.toLocaleString('vi-VN')
-                                                            : parseFloat(totalAmount || 0).toLocaleString('vi-VN')}đ
-                                                    </DetailItem>
-                                                )}
-                                                {discountAmount > 0 && (
-                                                    <DetailItem label="Giảm giá">
-                                                        <span className="text-red-600">
-                                                            -{typeof discountAmount === 'number'
-                                                                ? discountAmount.toLocaleString('vi-VN')
-                                                                : parseFloat(discountAmount || 0).toLocaleString('vi-VN')}đ
-                                                        </span>
-                                                    </DetailItem>
-                                                )}
-                                                <DetailItem label="Tổng tiền">
-                                                    <span className="font-semibold text-lg text-blue-600">
-                                                        {typeof finalAmount === 'number'
-                                                            ? finalAmount.toLocaleString('vi-VN')
-                                                            : parseFloat(finalAmount || 0).toLocaleString('vi-VN')}đ
-                                                    </span>
-                                                </DetailItem>
-                                            </>
-                                        );
-                                    })()}
-                                    <DetailItem label="Ngày đặt vé">
-                                        {selectedBooking.bookingDate ? (() => {
-                                            try {
-                                                return new Date(selectedBooking.bookingDate).toLocaleString('vi-VN', {
-                                                    day: '2-digit',
-                                                    month: '2-digit',
-                                                    year: 'numeric',
-                                                    hour: '2-digit',
-                                                    minute: '2-digit'
-                                                });
-                                            } catch (_e) {
-                                                return selectedBooking.bookingDate;
-                                            }
-                                        })() : 'N/A'}
-                                    </DetailItem>
-                                </DetailList>
-                            </Card>
-                        </div>
-                    </div>
-                ) : null}
-            </ResponsiveDialog>
-        </div>
+      <main className="container mx-auto max-w-5xl px-4 py-10">
+        <Alert variant="warning" showIcon message="Bạn cần đăng nhập" description="Vui lòng đăng nhập để xem cài đặt tài khoản." />
+      </main>
     );
+  }
+
+  const detailStatus = getStatus(selectedBooking?.status);
+  const detailQr = selectedBooking?.qrCodeBase64
+    ? `data:image/png;base64,${selectedBooking.qrCodeBase64}`
+    : generatedQr;
+
+  return (
+    <main className="container mx-auto max-w-6xl space-y-6 px-4 py-8 sm:py-12">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Cài đặt tài khoản</h1>
+        <p className="mt-1 text-muted-foreground">Quản lý hồ sơ, bảo mật và lịch sử đặt vé của bạn.</p>
+      </div>
+
+      <Card>
+        <CardContent className="flex flex-col items-center gap-4 p-6 sm:flex-row sm:items-center">
+          <div className="relative">
+            <Avatar className="h-24 w-24 border">
+              <AvatarImage src={avatarUrl} alt={displayName} />
+              <AvatarFallback className="text-xl font-semibold">{initials}</AvatarFallback>
+            </Avatar>
+            <Button
+              type="button"
+              size="icon"
+              className="absolute -bottom-1 -right-1 rounded-full"
+              disabled={avatarLoading}
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="Đổi ảnh đại diện"
+            >
+              {avatarLoading ? <Loader2 className="animate-spin" /> : <Camera />}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarFile}
+            />
+          </div>
+          <div className="min-w-0 text-center sm:text-left">
+            <h2 className="truncate text-xl font-semibold">{displayName}</h2>
+            <p className="truncate text-sm text-muted-foreground">{user.email}</p>
+            <p className="mt-2 text-xs text-muted-foreground">Ảnh JPG/PNG, tối đa 2MB.</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Tabs defaultValue="profile" className="space-y-5">
+        <div className="overflow-x-auto pb-1">
+          <TabsList className="min-w-max justify-start">
+            <TabsTrigger value="profile"><User className="mr-2 h-4 w-4" />Hồ sơ</TabsTrigger>
+            <TabsTrigger value="security"><Lock className="mr-2 h-4 w-4" />Bảo mật</TabsTrigger>
+            <TabsTrigger value="history"><Clock className="mr-2 h-4 w-4" />Lịch sử vé</TabsTrigger>
+          </TabsList>
+        </div>
+
+        <TabsContent value="profile">
+          <Card>
+            <CardHeader>
+              <CardTitle>Thông tin cá nhân</CardTitle>
+              <CardDescription>Cập nhật thông tin tài khoản đang sử dụng.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleProfileSubmit} className="grid gap-5 sm:grid-cols-2">
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="profile-name">Họ và tên</Label>
+                  <Input
+                    id="profile-name"
+                    value={profile.fullName}
+                    onChange={(event) => setProfile((current) => ({ ...current, fullName: event.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="profile-email">Email</Label>
+                  <Input
+                    id="profile-email"
+                    type="email"
+                    value={profile.email}
+                    onChange={(event) => setProfile((current) => ({ ...current, email: event.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="profile-phone">Số điện thoại</Label>
+                  <Input
+                    id="profile-phone"
+                    value={profile.phone}
+                    onChange={(event) => setProfile((current) => ({ ...current, phone: event.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="profile-birth-date">Ngày sinh</Label>
+                  <Input
+                    id="profile-birth-date"
+                    type="date"
+                    value={profile.birthDate || ''}
+                    onChange={(event) => setProfile((current) => ({ ...current, birthDate: event.target.value }))}
+                  />
+                </div>
+                <div className="flex items-end justify-end sm:col-span-2">
+                  <Button type="submit" disabled={savingProfile}>
+                    {savingProfile && <Loader2 className="animate-spin" />}
+                    Lưu thay đổi
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="security">
+          <Card>
+            <CardHeader>
+              <CardTitle>Mật khẩu & bảo mật</CardTitle>
+              <CardDescription>Đổi mật khẩu cho tài khoản hiện tại.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handlePasswordSubmit} className="max-w-xl space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="current-password">Mật khẩu hiện tại</Label>
+                  <InputPassword
+                    id="current-password"
+                    value={password.currentPassword}
+                    onChange={(event) => setPassword((current) => ({ ...current, currentPassword: event.target.value }))}
+                    autoComplete="current-password"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">Mật khẩu mới</Label>
+                  <InputPassword
+                    id="new-password"
+                    value={password.newPassword}
+                    onChange={(event) => setPassword((current) => ({ ...current, newPassword: event.target.value }))}
+                    autoComplete="new-password"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Xác nhận mật khẩu mới</Label>
+                  <InputPassword
+                    id="confirm-password"
+                    value={password.confirmPassword}
+                    onChange={(event) => setPassword((current) => ({ ...current, confirmPassword: event.target.value }))}
+                    autoComplete="new-password"
+                  />
+                </div>
+                <Button type="submit" disabled={savingPassword}>
+                  {savingPassword && <Loader2 className="animate-spin" />}
+                  Đổi mật khẩu
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history">
+          <Card>
+            <CardHeader className="flex-row items-start justify-between gap-4 space-y-0">
+              <div>
+                <CardTitle>Lịch sử đặt vé</CardTitle>
+                <CardDescription>Các đơn đặt vé của tài khoản này.</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => loadHistory(historyPage)} disabled={historyLoading}>
+                <RefreshCw className={historyLoading ? 'animate-spin' : ''} />
+                Làm mới
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {historyLoading ? (
+                <div className="flex min-h-48 items-center justify-center text-muted-foreground">
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />Đang tải lịch sử...
+                </div>
+              ) : history.length === 0 ? (
+                <Empty description="Chưa có đơn đặt vé" image={<Ticket className="mb-4 h-14 w-14 text-muted-foreground/35" />} />
+              ) : (
+                <div className="space-y-3">
+                  {history.map((booking) => {
+                    const status = getStatus(booking.status);
+                    const code = booking.bookingCode || String(booking.id || '');
+                    return (
+                      <div key={booking.id || code} className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-semibold">{booking.movieTitle || booking.movie?.title || 'Vé xem phim'}</p>
+                            <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
+                          </div>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {booking.cinemaName || booking.cinema?.name || 'N/A'}
+                            {booking.roomName ? ` · ${booking.roomName}` : ''}
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {code ? `Mã ${code} · ` : ''}{formatDateTime(booking.bookingDate || booking.createdAt)}
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-between gap-3 sm:justify-end">
+                          <strong>{formatMoney(booking.finalAmount ?? booking.totalPrice ?? booking.totalAmount)}</strong>
+                          <Button variant="outline" size="sm" onClick={() => openBookingDetail(code)} disabled={!code}>
+                            <Eye />Chi tiết
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {historyTotal > PAGE_SIZE && (
+                <Pagination
+                  page={historyPage}
+                  totalItems={historyTotal}
+                  itemsPerPage={PAGE_SIZE}
+                  onPageChange={loadHistory}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <ResponsiveDialog
+        open={detailOpen}
+        onClose={() => {
+          setDetailOpen(false);
+          setSelectedBooking(null);
+          setGeneratedQr('');
+        }}
+        heading={selectedBooking?.bookingCode ? `Vé ${selectedBooking.bookingCode}` : 'Chi tiết đặt vé'}
+        description="Thông tin vé được tải trực tiếp từ hệ thống đặt vé."
+        maxWidth={760}
+        actions={selectedBooking ? (
+          <div className="flex w-full flex-wrap justify-end gap-2">
+            <Button variant="outline" onClick={copyBookingCode}><Copy />Sao chép mã</Button>
+            <Button variant="outline" onClick={() => window.print()}><Printer />In</Button>
+            <Button onClick={() => downloadTicket()}><Download />Tải PDF</Button>
+          </div>
+        ) : null}
+      >
+        {detailLoading ? (
+          <div className="flex min-h-56 items-center justify-center text-muted-foreground">
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />Đang tải vé...
+          </div>
+        ) : selectedBooking ? (
+          <div className="grid gap-6 md:grid-cols-[220px_1fr]">
+            <div className="space-y-4 text-center">
+              {detailQr ? (
+                <img src={detailQr} alt="QR Code" className="mx-auto h-52 w-52 rounded-md border bg-white p-2" />
+              ) : (
+                <div className="mx-auto flex h-52 w-52 items-center justify-center rounded-md border bg-muted text-sm text-muted-foreground">
+                  QR không khả dụng
+                </div>
+              )}
+              <StatusBadge tone={detailStatus.tone}>{detailStatus.label}</StatusBadge>
+            </div>
+            <DetailList columns={2}>
+              <DetailItem label="Mã đặt vé">{selectedBooking.bookingCode || 'N/A'}</DetailItem>
+              <DetailItem label="Phim">{selectedBooking.movieTitle || 'N/A'}</DetailItem>
+              <DetailItem label="Rạp">{selectedBooking.cinemaName || 'N/A'}</DetailItem>
+              <DetailItem label="Phòng">{selectedBooking.roomName || 'N/A'}</DetailItem>
+              <DetailItem label="Suất chiếu">{formatDateTime(selectedBooking.showtimeDateTime)}</DetailItem>
+              <DetailItem label="Ghế">
+                {selectedBooking.seats?.map((seat) => seat.seatName || seat.name).filter(Boolean).join(', ') || 'N/A'}
+              </DetailItem>
+              <DetailItem label="Tổng tiền">{formatMoney(selectedBooking.finalAmount ?? selectedBooking.totalPrice ?? selectedBooking.totalAmount)}</DetailItem>
+              <DetailItem label="Ngày đặt">{formatDateTime(selectedBooking.bookingDate)}</DetailItem>
+            </DetailList>
+          </div>
+        ) : null}
+      </ResponsiveDialog>
+    </main>
+  );
 };
 
 export default AccountSettings;

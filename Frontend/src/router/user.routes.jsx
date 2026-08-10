@@ -21,7 +21,6 @@ const BookingFailed = React.lazy(() => import('@/pages/User/Booking/BookingFaile
 const PaymentCallback = React.lazy(() => import('@/pages/User/Booking/PaymentCallback'));
 const SearchResults = React.lazy(() => import('@/pages/User/Search/SearchResults'));
 const Notifications = React.lazy(() => import('@/pages/User/Notifications/Notifications'));
-const Cart = React.lazy(() => import('@/pages/User/Cart/Cart'));
 
 const CinemaScheduleRedirect = () => {
   const { cinemaId } = useParams();
@@ -46,7 +45,6 @@ export const userRoutes = {
     { path: 'schedule', element: lazyElement(Schedule, 'cinema', 'Đang tải lịch chiếu...') },
     { path: 'search', element: lazyElement(SearchResults, 'modern', 'Đang tìm kiếm...') },
     { path: 'notifications', element: protectedLazyElement(Notifications, 'modern', 'Đang tải thông báo...') },
-    { path: 'cart', element: protectedLazyElement(Cart, 'ticket', 'Đang tải giỏ hàng...') },
     { path: 'booking', element: protectedLazyElement(Booking, 'ticket', 'Đang tải trang đặt vé...') },
     { path: 'booking/seats/:showtimeId', element: protectedLazyElement(BookingSeatSelection, 'ticket', 'Đang tải sơ đồ ghế...') },
     { path: 'booking/payment', element: protectedLazyElement(BookingPayment, 'ticket', 'Đang tải trang thanh toán...') },

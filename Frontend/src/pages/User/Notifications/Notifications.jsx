@@ -1,196 +1,166 @@
-﻿import React, { useState, useEffect } from 'react';
-import { Bell, Check, Trash2, Eye } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Bell, Check, Eye, Gift, Loader2, Settings, Ticket, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Avatar } from '@/components/ui/avatar';
-import { StatusBadge } from '@/components/ui/status-badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Empty } from '@/components/ui/empty';
-import { ContentList } from '@/components/ui/content-list';
+import { StatusBadge } from '@/components/ui/status-badge';
 import notificationService from '@/services/notificationService';
 import useNotification from '@/hooks/useNotification';
 
+const notificationMeta = (type) => {
+  const normalized = String(type || 'SYSTEM').toUpperCase();
+  if (normalized === 'BOOKING') return { label: 'Đặt vé', tone: 'info', icon: Ticket };
+  if (normalized === 'PROMOTION') return { label: 'Khuyến mãi', tone: 'warning', icon: Gift };
+  return { label: 'Hệ thống', tone: 'neutral', icon: Settings };
+};
+
+const extractItems = (response) => {
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response?.content)) return response.content;
+  return [];
+};
+
 const Notifications = () => {
-    const [notifications, setNotifications] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const notification = useNotification();
+  const notification = useNotification();
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState(null);
+  const [markingAll, setMarkingAll] = useState(false);
 
-    useEffect(() => {
-        const fetchNotifications = async () => {
-            setLoading(true);
-            try {
-                const response = await notificationService.list();
-                // Response structure: { data: { content: [...] } }
-                const items = response?.data?.content || response?.content || [];
+  const loadNotifications = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await notificationService.list({ page: 0, size: 100, sort: 'createdAt,desc' });
+      setItems(extractItems(response));
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+      setItems([]);
+      notification.error(error?.message || 'Không tải được danh sách thông báo');
+    } finally {
+      setLoading(false);
+    }
+  }, [notification]);
 
-                setNotifications(items.map(n => ({
-                    id: n.id,
-                    type: n.type || 'system',
-                    title: n.title,
-                    message: n.message,
-                    time: n.createdAt ? new Date(n.createdAt).toLocaleString('vi-VN') : '',
-                    read: n.isRead,
-                    priority: 'medium' // Backend doesn't return priority yet, default to medium
-                })));
-            } catch (err) {
-                notification.error(err.message || 'Không tải được danh sách thông báo');
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchNotifications();
-    }, [notification]);
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
 
-    const getNotificationIcon = (type) => {
-        const icons = {
-            booking: '🎫',
-            promotion: '🎁',
-            reminder: '⏰',
-            system: '⚙️'
-        };
-        return icons[type] || '📬';
-    };
+  const unreadCount = useMemo(
+    () => items.filter((item) => item.isRead === false || item.read === false).length,
+    [items]
+  );
 
-    const getPriorityColor = (priority) => {
-        const colors = {
-            high: 'red',
-            medium: 'orange',
-            low: 'blue'
-        };
-        return colors[priority] || 'default';
-    };
+  const markAsRead = async (item) => {
+    const isRead = item.isRead ?? item.read;
+    if (isRead === true) return;
+    try {
+      setBusyId(item.id);
+      await notificationService.markAsRead(item.id);
+      setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, isRead: true, read: true } : entry));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      notification.error('Không thể đánh dấu đã đọc');
+    } finally {
+      setBusyId(null);
+    }
+  };
 
-    const markAsRead = async (id) => {
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-        try {
-            await notificationService.markAsRead(id);
-        } catch (err) {
-            notification.error('Không thể đánh dấu đã đọc');
-        }
-    };
+  const deleteNotification = async (item) => {
+    const previous = items;
+    setItems((current) => current.filter((entry) => entry.id !== item.id));
+    try {
+      setBusyId(item.id);
+      await notificationService.delete(item.id);
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      setItems(previous);
+      notification.error('Xóa thông báo thất bại');
+    } finally {
+      setBusyId(null);
+    }
+  };
 
-    const deleteNotification = async (id) => {
-        const prev = notifications;
-        setNotifications(prev.filter(n => n.id !== id));
-        try {
-            await notificationService.delete(id);
-        } catch (err) {
-            notification.error('Xóa thất bại');
-            setNotifications(prev);
-        }
-    };
+  const markAllAsRead = async () => {
+    const previous = items;
+    try {
+      setMarkingAll(true);
+      setItems((current) => current.map((entry) => ({ ...entry, isRead: true, read: true })));
+      await notificationService.markAllAsRead();
+      notification.success('Đã đánh dấu tất cả là đã đọc');
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      setItems(previous);
+      notification.error('Không thể đánh dấu tất cả đã đọc');
+    } finally {
+      setMarkingAll(false);
+    }
+  };
 
-    const markAllAsRead = async () => {
-        const prev = notifications;
-        setNotifications(prev.map(n => ({ ...n, read: true })));
-        try {
-            await notificationService.markAllAsRead();
-        } catch (err) {
-            notification.error('Không thể đánh dấu tất cả đã đọc');
-            setNotifications(prev);
-        }
-    };
-
-    const unreadCount = notifications.filter(notif => !notif.read).length;
-
-    return (
-        <div className="min-h-screen bg-background py-8 px-4">
-            <div className="max-w-[1200px] mx-auto">
-                <div className="bg-card rounded-xl shadow-md border border-border p-6 mb-6">
-                    <div className="flex justify-between items-center flex-wrap gap-4">
-                        <div>
-                            <h2 className="text-foreground mb-2 text-2xl font-bold flex items-center gap-2">
-                                <Bell className="h-6 w-6" />
-                                Thông báo
-                            </h2>
-                            <p className="text-muted-foreground">
-                                {unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : 'Tất cả thông báo đã được đọc'}
-                            </p>
-                        </div>
-                        {unreadCount > 0 && (
-                            <Button
-                                onClick={markAllAsRead}
-                                className="rounded-lg"
-                            >
-                                <Check className="h-4 w-4 mr-2" />
-                                Đánh dấu tất cả đã đọc
-                            </Button>
-                        )}
-                    </div>
-                </div>
-
-                <div>
-                    {notifications.length === 0 && !loading ? (
-                        <Empty description="Không có thông báo nào" />
-                    ) : (
-                        <ContentList
-                            loading={loading}
-                            entries={notifications.map((notification) => ({
-                                key: notification.id,
-                                content: (
-                                    <Card
-                                        className={`w-full rounded-lg shadow-sm border transition-all duration-300 ${!notification.read
-                                                ? 'bg-blue-50 border-blue-200 hover:shadow-md'
-                                                : 'bg-card border-border hover:shadow-md'
-                                            }`}
-                                    >
-                                        <div className="flex gap-4 p-4">
-                                            <Avatar className={`text-2xl ${notification.type === 'booking' ? 'bg-blue-100' :
-                                                    notification.type === 'promotion' ? 'bg-pink-100' :
-                                                        notification.type === 'reminder' ? 'bg-yellow-100' :
-                                                            'bg-gray-100'
-                                                }`}>
-                                                {getNotificationIcon(notification.type)}
-                                            </Avatar>
-                                            <div className="flex-1">
-                                                <div className="flex justify-between items-start flex-wrap gap-2 mb-2">
-                                                    <span className="text-foreground font-semibold">{notification.title}</span>
-                                                    <div className="flex gap-2">
-                                                        <StatusBadge tone={getPriorityColor(notification.priority)}>
-                                                            {notification.priority === 'high' ? 'Quan trọng' :
-                                                                notification.priority === 'medium' ? 'Thông thường' : 'Thấp'}
-                                                        </StatusBadge>
-                                                        {!notification.read && (
-                                                            <StatusBadge tone="red">Mới</StatusBadge>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <p className="text-gray-700 block mb-2">{notification.message}</p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {notification.time}
-                                                </p>
-                                                <div className="flex gap-2 mt-3">
-                                                    {!notification.read && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => markAsRead(notification.id)}
-                                                            className="rounded"
-                                                        >
-                                                            <Eye className="h-4 w-4 mr-1" />
-                                                            Đã đọc
-                                                        </Button>
-                                                    )}
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => deleteNotification(notification.id)}
-                                                        className="rounded text-red-600 hover:text-red-700"
-                                                    >
-                                                        <Trash2 className="h-4 w-4 mr-1" />
-                                                        Xóa
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </Card>
-                                )
-                            }))}
-                        />
-                    )}
-                </div>
+  return (
+    <div className="min-h-screen bg-background px-4 py-8">
+      <div className="mx-auto max-w-5xl space-y-6">
+        <Card>
+          <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-2xl"><Bell className="h-5 w-5" />Thông báo</CardTitle>
+              <p className="mt-2 text-sm text-muted-foreground">{unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : 'Tất cả thông báo đã được đọc'}</p>
             </div>
-        </div>
-    );
+            {unreadCount > 0 && (
+              <Button onClick={markAllAsRead} disabled={markingAll}>
+                {markingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                Đánh dấu tất cả đã đọc
+              </Button>
+            )}
+          </CardHeader>
+        </Card>
+
+        {loading ? (
+          <div className="flex min-h-48 items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Đang tải thông báo...</div>
+        ) : items.length === 0 ? (
+          <Empty description="Không có thông báo nào" />
+        ) : (
+          <div className="space-y-3">
+            {items.map((item) => {
+              const meta = notificationMeta(item.type);
+              const Icon = meta.icon;
+              const isRead = item.isRead ?? item.read ?? false;
+              const busy = busyId === item.id;
+              return (
+                <Card key={item.id} className={isRead ? '' : 'border-primary/30 bg-primary/[0.03]'}>
+                  <CardContent className="flex gap-4 p-4 sm:p-5">
+                    <div className="rounded-md border bg-muted/40 p-2.5"><Icon className="h-5 w-5 text-muted-foreground" /></div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <h3 className="font-medium text-foreground">{item.title || 'Thông báo'}</h3>
+                          <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{item.content || item.message || 'Không có nội dung'}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>
+                          {!isRead && <StatusBadge tone="info">Mới</StatusBadge>}
+                        </div>
+                      </div>
+                      <p className="mt-3 text-xs text-muted-foreground">{item.createdAt ? new Date(item.createdAt).toLocaleString('vi-VN') : ''}</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {!isRead && (
+                          <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => markAsRead(item)}>
+                            <Eye className="h-4 w-4" />Đã đọc
+                          </Button>
+                        )}
+                        <Button type="button" variant="ghost" size="sm" disabled={busy} className="text-destructive hover:text-destructive" onClick={() => deleteNotification(item)}>
+                          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}Xóa
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default Notifications;

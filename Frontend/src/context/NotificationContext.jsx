@@ -14,7 +14,7 @@ export const NotificationProvider = ({ children }) => {
     const [toasts, setToasts] = useState([]);
 
     const shouldShowNotification = useCallback((type, important) => {
-        if (type === 'error' || type === 'success') {
+        if (type === 'error' || type === 'success' || type === 'warning') {
             return true;
         }
         return important === true;
@@ -51,8 +51,8 @@ export const NotificationProvider = ({ children }) => {
         showNotification('error', message, duration, true);
     }, [showNotification]);
 
-    const warning = useCallback((message, duration, important = false) => {
-        showNotification('warning', message, duration, important);
+    const warning = useCallback((message, duration) => {
+        showNotification('warning', message, duration, true);
     }, [showNotification]);
 
     const info = useCallback((message, duration, important = false) => {
