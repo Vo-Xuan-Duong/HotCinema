@@ -12,6 +12,7 @@ import useNotification from '@/hooks/useNotification';
 import { unwrapApiData } from '@/utils/apiResponse';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+const BLOCKED_SHOWTIME_STATUSES = new Set(['CANCELLED', 'SOLD_OUT', 'FULL', 'SALES_ENDED', 'COMPLETED', 'POSTPONED']);
 
 const CinemaDetail = () => {
   const { id } = useParams();
@@ -72,7 +73,7 @@ const CinemaDetail = () => {
       const movieItems = content.map((movieData) => {
         const showtimes = (movieData.formats || [])
           .flatMap((format) => (format.showtimes || []).map((showtime) => ({
-            id: showtime.showtimeId,
+            id: showtime.showtimeId ?? showtime.id,
             time: showtime.startTime,
             roomName: showtime.roomName || 'Phòng',
             screeningFormat: format.formatType,
@@ -85,7 +86,7 @@ const CinemaDetail = () => {
           id: movieData.movieId,
           title: movieData.movieTitle,
           ageRating: movieData.formats?.[0]?.formatType || '2D',
-          poster: movieData.posterPath || '/brand-placeholder.svg',
+          poster: movieData.posterPath || movieData.posterUrl || '/brand-placeholder.svg',
           showtimes,
         };
       });
@@ -128,6 +129,11 @@ const CinemaDetail = () => {
     }
   };
 
+  const goToSeats = (showtime) => {
+    if (!showtime?.id || BLOCKED_SHOWTIME_STATUSES.has(String(showtime.status || '').toUpperCase())) return;
+    navigate(`/booking/seats/${showtime.id}`);
+  };
+
   if (loading) {
     return <ContentLoader message="Đang tải thông tin rạp..." />;
   }
@@ -149,6 +155,7 @@ const CinemaDetail = () => {
   const cinemaImages = [
     cinema.bannerUrl,
     cinema.imageUrl,
+    cinema.image,
     ...(Array.isArray(cinema.images) ? cinema.images : []),
   ].filter(Boolean);
 
@@ -248,17 +255,21 @@ const CinemaDetail = () => {
                         </div>
 
                         <div className="mt-4 flex flex-wrap gap-2">
-                          {movie.showtimes.map((showtime) => (
-                            <Button
-                              key={showtime.id}
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => navigate(`/booking/${showtime.id}`)}
-                            >
-                              {showtime.time}
-                            </Button>
-                          ))}
+                          {movie.showtimes.map((showtime) => {
+                            const blocked = BLOCKED_SHOWTIME_STATUSES.has(String(showtime.status || '').toUpperCase());
+                            return (
+                              <Button
+                                key={showtime.id}
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={blocked}
+                                onClick={() => goToSeats(showtime)}
+                              >
+                                {showtime.time}
+                              </Button>
+                            );
+                          })}
                         </div>
                       </div>
                     </CardContent>
