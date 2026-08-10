@@ -1,471 +1,317 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Building2, Edit, Eye, Home, Loader2, MapPin, Plus, Search, Trash2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { DataTable } from '@/components/ui/data-table';
+import { Empty } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { StatusBadge } from '@/components/ui/status-badge';
-import { Tooltip } from '@/components/ui/tooltip';
 import { Pagination } from '@/components/ui/pagination';
-import { Breadcrumb } from '@/components/ui/breadcrumb';
-import { Card } from '@/components/ui/card';
-import {
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
-  Store,
-  MapPin,
-  Home,
-  Search,
-  X,
-  Building2
-} from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { StatusBadge } from '@/components/ui/status-badge';
 import useNotification from '@/hooks/useNotification';
+import { AdminPageHeader } from '@/layouts/admin/AdminPageHeader';
 import cinemaService from '@/services/cinemaService';
 import regionService from '@/services/regionService';
+import { unwrapApiArray, unwrapApiData } from '@/utils/apiResponse';
 
-const Cinemas = () => {
+const DEFAULT_PAGE_SIZE = 10;
+
+const getCinemaStatus = (cinema) => {
+  const status = String(cinema?.status || '').toLowerCase();
+  if (status === 'maintenance') return { tone: 'warning', label: 'Bảo trì' };
+  if (status === 'inactive' || cinema?.isActive === false) return { tone: 'destructive', label: 'Không hoạt động' };
+  return { tone: 'success', label: 'Hoạt động' };
+};
+
+const AdminCinemas = () => {
   const navigate = useNavigate();
   const notification = useNotification();
+  const tableRef = useRef(null);
   const [cinemas, setCinemas] = useState([]);
   const [regions, setRegions] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [regionFilter, setRegionFilter] = useState(null);
+  const [regionFilter, setRegionFilter] = useState('all');
+  const [pagination, setPagination] = useState({ current: 1, pageSize: DEFAULT_PAGE_SIZE, total: 0 });
 
-  // Load regions on mount
   useEffect(() => {
-    loadRegions();
+    const timer = window.setTimeout(() => setDebouncedSearch(searchText.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [searchText]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    regionService.getRegionsAllNoPage()
+      .then((response) => {
+        if (!cancelled) setRegions(unwrapApiArray(response));
+      })
+      .catch((error) => {
+        console.error('Error loading regions:', error);
+        if (!cancelled) setRegions([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Pagination state
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0
-  });
-
-  // Load data when component mounts or when filters/pagination change
-  // Note: searchText is handled client-side via getFilteredCinemas()
-  useEffect(() => {
-    loadCinemas();
-  }, [pagination.current, pagination.pageSize, statusFilter, regionFilter]);
-
-  const loadCinemas = async () => {
+  const loadCinemas = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-
       const params = {
-        page: pagination.current - 1, // Backend uses 0-based indexing
-        size: pagination.pageSize
+        page: pagination.current - 1,
+        size: pagination.pageSize,
       };
+      if (statusFilter !== 'all') params.status = statusFilter;
+      if (regionFilter !== 'all') params.cityId = regionFilter;
 
-      // Apply filters
-      if (statusFilter !== 'all') {
-        params.status = statusFilter;
-      }
-      if (regionFilter) {
-        params.cityId = regionFilter; // Backend still uses cityId but data comes from regions
-      }
+      const response = debouncedSearch
+        ? await cinemaService.searchCinemas(debouncedSearch, params)
+        : await cinemaService.getAllCinemas(params);
+      const page = unwrapApiData(response) || {};
+      const content = Array.isArray(page) ? page : Array.isArray(page.content) ? page.content : [];
+      const total = Array.isArray(page) ? page.length : Number(page.totalElements ?? page.total) || content.length;
 
-      const response = await cinemaService.getAllCinemas(params);
-      console.log('Cinemas response:', response);
-
-      // Handle paginated response
-      const cinemasData = response?.data?.content || response?.data || [];
-      const total = response?.data?.totalElements || cinemasData.length;
-
-      setCinemas(cinemasData);
-      setPagination(prev => ({
-        ...prev,
-        total
-      }));
+      setCinemas(content);
+      setPagination((previous) => ({ ...previous, total }));
     } catch (error) {
       console.error('Error loading cinemas:', error);
-      notification.error('Lỗi khi tải danh sách rạp');
       setCinemas([]);
+      setPagination((previous) => ({ ...previous, total: 0 }));
+      notification.error('Không thể tải danh sách rạp');
     } finally {
       setLoading(false);
     }
+  }, [debouncedSearch, notification, pagination.current, pagination.pageSize, regionFilter, statusFilter]);
+
+  useEffect(() => {
+    loadCinemas();
+  }, [loadCinemas]);
+
+  const resetPage = () => setPagination((previous) => ({ ...previous, current: 1 }));
+
+  const clearFilters = () => {
+    setSearchText('');
+    setStatusFilter('all');
+    setRegionFilter('all');
+    resetPage();
   };
 
-  const loadRegions = async () => {
+  const handleDeleteCinema = async (cinema) => {
+    if (!window.confirm(`Xóa rạp “${cinema.name}”?`)) return;
+
     try {
-      const regionsResponse = await regionService.getRegionsAllNoPage();
-      console.log('Regions response:', regionsResponse);
-
-      let regionsData = [];
-      if (Array.isArray(regionsResponse?.data)) {
-        regionsData = regionsResponse.data;
-      } else if (Array.isArray(regionsResponse?.data?.data)) {
-        regionsData = regionsResponse.data.data;
-      } else if (regionsResponse?.data) {
-        regionsData = regionsResponse.data.content || regionsResponse.data.regions || [];
-      }
-
-      setRegions(regionsData);
-    } catch (error) {
-      console.error('Error loading regions:', error);
-      notification.error('Lỗi khi tải danh sách khu vực');
-    }
-  };
-
-  // Filter cinemas by search text
-  const getFilteredCinemas = () => {
-    if (!searchText) return cinemas;
-    return cinemas.filter(cinema => {
-      const matchesSearch = cinema.name?.toLowerCase().includes(searchText.toLowerCase()) ||
-        cinema.address?.toLowerCase().includes(searchText.toLowerCase());
-      return matchesSearch;
-    });
-  };
-
-  // Calculate statistics
-  const cinemaStats = {
-    total: pagination.total,
-    active: cinemas.filter(c => c.status === 'active' || c.isActive).length,
-    totalRooms: cinemas.reduce((sum, c) => sum + (c.numberOfRooms || 0), 0),
-  };
-
-  // Handle delete cinema
-  const handleDeleteCinema = async (cinemaId) => {
-    try {
-      await cinemaService.deleteCinema(cinemaId);
-      notification.success('Xóa rạp chiếu phim thành công!');
-      await loadCinemas(); // Reload current page
+      await cinemaService.deleteCinema(cinema.id);
+      notification.success('Xóa rạp chiếu thành công');
+      await loadCinemas();
     } catch (error) {
       console.error('Error deleting cinema:', error);
-      notification.error(error.response?.data?.message || 'Lỗi khi xóa rạp');
+      notification.error(error.response?.data?.message || 'Không thể xóa rạp');
     }
   };
 
-  // Handle pagination change
-  const handlePageChange = (page, pageSize) => {
-    setPagination(prev => ({
-      ...prev,
-      current: page,
-      pageSize
-    }));
-  };
+  const hasActiveFilters = Boolean(searchText.trim() || statusFilter !== 'all' || regionFilter !== 'all');
+  const selectedRegion = regions.find((region) => String(region.id) === regionFilter);
 
-  // Handle filter change
-  const handleStatusFilterChange = (value) => {
-    setStatusFilter(value);
-    setPagination(prev => ({ ...prev, current: 1 })); // Reset to first page
-  };
-
-  const handleRegionFilterChange = (value) => {
-    setRegionFilter(value === 'all' ? null : value);
-    setPagination(prev => ({ ...prev, current: 1 })); // Reset to first page
-  };
-
-  const handleClearFilters = () => {
-    setStatusFilter('all');
-    setRegionFilter(null);
-    setSearchText('');
-    setPagination(prev => ({ ...prev, current: 1 }));
-  };
-
-  const hasActiveFilters = statusFilter !== 'all' || regionFilter || searchText;
-
-  // Render trạng thái
-  const renderStatus = (status) => {
-    const statusConfig = {
-      active: { color: 'green', text: 'Hoạt động' },
-      inactive: { color: 'red', text: 'Không hoạt động' },
-      maintenance: { color: 'orange', text: 'Bảo trì' }
-    };
-    const config = statusConfig[status] || statusConfig.active;
-    return <StatusBadge tone={config.color}>{config.text}</StatusBadge>;
-  };
-
-  // Cấu hình cột bảng
   const columns = [
     {
-      title: 'Hình ảnh',
-      dataIndex: 'image',
-      key: 'image',
-      width: 100,
-      render: (image, record) => (
-        <img
-          src={image || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="}
-          alt={record.name}
-          className="w-[60px] h-[40px] object-cover rounded"
-        />
+      title: 'Rạp chiếu',
+      key: 'cinema',
+      width: 340,
+      render: (_, record) => (
+        <div className="flex min-w-0 items-center gap-3">
+          <img
+            src={record.image || record.imageUrl || record.bannerUrl || '/brand-placeholder.svg'}
+            alt={record.name || 'Rạp chiếu'}
+            className="h-14 w-20 shrink-0 rounded-md border border-border bg-muted object-cover"
+            onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }}
+          />
+          <div className="min-w-0">
+            <Button
+              type="button"
+              variant="link"
+              className="h-auto max-w-full justify-start p-0 font-semibold"
+              onClick={() => navigate(`/admin/cinemas/${record.id}`)}
+            >
+              <span className="truncate">{record.name || 'Chưa có tên'}</span>
+            </Button>
+            <p className="mt-1 flex items-start gap-1 text-xs leading-5 text-muted-foreground">
+              <MapPin className="mt-0.5 h-3 w-3 shrink-0" />
+              <span className="line-clamp-2">{record.address || 'Chưa cập nhật địa chỉ'}</span>
+            </p>
+          </div>
+        </div>
       ),
     },
     {
-      title: 'Tên rạp',
-      dataIndex: 'name',
-      key: 'name',
-      render: (text, record) => (
-        <span
-          onClick={() => navigate(`/admin/cinemas/detail/${record.id}`)}
-          style={{
-            color: '#1890ff',
-            cursor: 'pointer',
-            fontWeight: 500,
-            textDecoration: 'underline'
-          }}
-        >
-          {text}
-        </span>
-      ),
-    },
-    {
-      title: 'Địa chỉ',
-      dataIndex: 'address',
-      key: 'address',
-      ellipsis: true,
+      title: 'Khu vực',
+      key: 'region',
+      render: (_, record) => record.region?.name || record.regionName || record.cityName || '—',
     },
     {
       title: 'Phòng chiếu',
-      dataIndex: 'numberOfRooms',
-      key: 'numberOfRooms',
-      width: 100,
-      align: 'center',
-      // render: (rooms) => rooms?.length || 0,
+      key: 'rooms',
+      render: (_, record) => Number(record.numberOfRooms ?? record.rooms?.length ?? 0).toLocaleString('vi-VN'),
     },
     {
       title: 'Trạng thái',
-      dataIndex: 'status',
       key: 'status',
-      width: 120,
-      render: renderStatus,
+      render: (_, record) => {
+        const status = getCinemaStatus(record);
+        return <StatusBadge tone={status.tone}>{status.label}</StatusBadge>;
+      },
     },
     {
       title: 'Thao tác',
-      key: 'action',
-      width: 150,
+      key: 'actions',
       render: (_, record) => (
-        <div className="flex items-center gap-2">
-          <Tooltip content="Chỉnh sửa">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(`/admin/cinemas/${record.id}/edit`)}
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-          </Tooltip>
-          <Tooltip content="Xóa">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                if (window.confirm('Bạn có chắc chắn muốn xóa rạp này?')) {
-                  handleDeleteCinema(record.id);
-                }
-              }}
-              className="text-red-600 hover:text-red-700"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </Tooltip>
+        <div className="flex items-center gap-1">
+          <Button type="button" variant="ghost" size="icon" onClick={() => navigate(`/admin/cinemas/${record.id}`)} aria-label={`Xem ${record.name}`}>
+            <Eye className="h-4 w-4" />
+          </Button>
+          <Button type="button" variant="ghost" size="icon" onClick={() => navigate(`/admin/cinemas/${record.id}/edit`)} aria-label={`Sửa ${record.name}`}>
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="text-destructive hover:text-destructive"
+            onClick={() => handleDeleteCinema(record)}
+            aria-label={`Xóa ${record.name}`}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
       ),
     },
   ];
 
-  // Scroll to top when pagination changes
-  const tableRef = React.useRef(null);
-  const handleTableChange = (page, pageSize) => {
-    handlePageChange(page, pageSize);
-    setTimeout(() => {
-      tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
-  };
-
   return (
-    <div className="min-h-screen">
-      <div className="">
-        {/* Breadcrumb */}
-        <Breadcrumb
-          className="mb-6"
-          items={[
-            {
-              title: 'Dashboard',
-              icon: <Home className="h-4 w-4" />,
-              href: '/admin/dashboard'
-            },
-            {
-              title: 'Quản lý rạp',
-              icon: <Building2 className="h-4 w-4" />
-            }
-          ]}
-        />
-
-        {/* Header */}
-        <div className="flex justify-between items-start mb-6 flex-wrap gap-4">
-          <div>
-            <h2 className="text-foreground mb-2 text-2xl font-bold">
-              Quản lý Rạp Chiếu Phim
-            </h2>
-            <p className="text-muted-foreground block">
-              Quản lý thông tin các rạp chiếu phim trong hệ thống
-            </p>
-          </div>
-          <Button
-            onClick={() => navigate('/admin/cinemas/create')}
-            size="lg"
-            className="rounded-lg"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Thêm rạp mới
+    <div className="space-y-6">
+      <AdminPageHeader
+        title="Quản lý rạp chiếu"
+        description="Quản lý thông tin rạp, khu vực, phòng chiếu và trạng thái vận hành."
+        breadcrumbs={[
+          { title: 'Dashboard', icon: <Home className="h-4 w-4" />, href: '/admin/dashboard' },
+          { title: 'Quản lý rạp', icon: <Building2 className="h-4 w-4" /> },
+        ]}
+        actions={(
+          <Button type="button" onClick={() => navigate('/admin/cinemas/create')}>
+            <Plus className="mr-2 h-4 w-4" />
+            Thêm rạp
           </Button>
-        </div>
+        )}
+      />
 
-        {/* Search and Filter */}
-        <Card className="bg-card rounded-xl shadow-md border border-border mb-6">
-          <div className="p-4 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block mb-2 font-semibold text-sm">Tìm kiếm</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="Tìm kiếm theo tên rạp, địa chỉ..."
-                    value={searchText}
-                    onChange={(e) => {
-                      setSearchText(e.target.value);
-                      setPagination(prev => ({ ...prev, current: 1 }));
-                    }}
-                    className="rounded-lg pl-10"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block mb-2 font-semibold text-sm">Trạng thái</label>
-                <Select
-                  value={statusFilter}
-                  onValueChange={handleStatusFilterChange}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Tất cả trạng thái" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                    <SelectItem value="active">Hoạt động</SelectItem>
-                    <SelectItem value="inactive">Không hoạt động</SelectItem>
-                    <SelectItem value="maintenance">Bảo trì</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="block mb-2 font-semibold text-sm">Khu vực</label>
-                <Select
-                  value={regionFilter ? regionFilter.toString() : "all"}
-                  onValueChange={handleRegionFilterChange}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Tất cả khu vực" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tất cả khu vực</SelectItem>
-                    {regions.map(region => (
-                      <SelectItem key={region.id} value={region.id.toString()}>
-                        {region.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+      <Card className="shadow-sm">
+        <CardContent className="space-y-4 pt-6">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(260px,1fr)_190px_220px_auto]">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchText}
+                onChange={(event) => {
+                  setSearchText(event.target.value);
+                  resetPage();
+                }}
+                placeholder="Tìm theo tên hoặc địa chỉ..."
+                className="pl-9"
+              />
             </div>
+
+            <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); resetPage(); }}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                <SelectItem value="active">Hoạt động</SelectItem>
+                <SelectItem value="inactive">Không hoạt động</SelectItem>
+                <SelectItem value="maintenance">Bảo trì</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={regionFilter} onValueChange={(value) => { setRegionFilter(value); resetPage(); }}>
+              <SelectTrigger><SelectValue placeholder="Tất cả khu vực" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả khu vực</SelectItem>
+                {regions.map((region) => (
+                  <SelectItem key={region.id ?? region.name} value={String(region.id)}>{region.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             {hasActiveFilters && (
-              <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-border">
-                <span className="text-muted-foreground text-sm flex items-center gap-1">
-                  <Search className="h-4 w-4" /> Đang lọc:
-                </span>
-                {statusFilter !== 'all' && (
-                  <StatusBadge tone="blue" className="flex items-center gap-1 pr-1">
-                    <span>Trạng thái: {statusFilter === 'active' ? 'Hoạt động' : statusFilter === 'inactive' ? 'Không hoạt động' : 'Bảo trì'}</span>
-                    <button
-                      onClick={() => handleStatusFilterChange('all')}
-                      className="ml-1 hover:bg-gray-300 rounded-full p-0.5 transition-colors"
-                      aria-label="Xóa bộ lọc"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </StatusBadge>
-                )}
-                {regionFilter && (
-                  <StatusBadge tone="green" className="flex items-center gap-1 pr-1">
-                    <span>Khu vực: {regions.find(r => r.id === regionFilter)?.name || regionFilter}</span>
-                    <button
-                      onClick={() => handleRegionFilterChange('all')}
-                      className="ml-1 hover:bg-gray-300 rounded-full p-0.5 transition-colors"
-                      aria-label="Xóa bộ lọc"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </StatusBadge>
-                )}
-                {searchText && (
-                  <StatusBadge tone="info" className="flex items-center gap-1 pr-1">
-                    <span>Tìm kiếm: {searchText}</span>
-                    <button
-                      onClick={() => setSearchText('')}
-                      className="ml-1 hover:bg-gray-300 rounded-full p-0.5 transition-colors"
-                      aria-label="Xóa tìm kiếm"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </StatusBadge>
-                )}
-                <Button
-                  onClick={handleClearFilters}
-                  className="rounded-lg border-gray-300 text-gray-700 hover:bg-background"
-                  variant="outline"
-                  size="sm"
-                >
-                  Xóa bộ lọc
-                </Button>
-              </div>
+              <Button type="button" variant="outline" onClick={clearFilters}>
+                <X className="mr-2 h-4 w-4" />
+                Đặt lại
+              </Button>
             )}
           </div>
-        </Card>
 
-        {/* Cinemas Table */}
-        <div ref={tableRef}>
-          <Card className="bg-card rounded-xl shadow-md border border-border">
-            <div className="border-b border-border px-5 py-4 mb-0">
-              <h3 className="text-base font-semibold m-0">Danh sách rạp chiếu phim</h3>
-            </div>
-            <div className="p-5">
-              {loading ? (
-                <div className="p-8 text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-                </div>
-              ) : (
-                <>
-                  <DataTable
-                    fields={columns}
-                    data={getFilteredCinemas()}
-                    getRowId="id"
-                    pageControls={false}
-                  />
-                  <div className="mt-4 text-right">
-                    <Pagination
-                      page={pagination.current}
-                      itemsPerPage={pagination.pageSize}
-                      totalItems={pagination.total}
-                      onPageChange={(page, pageSize) => handleTableChange(page, pageSize)}
-                      showSizeChanger
-                      showTotal={(total) => `Tổng ${total} rạp`}
-                      pageSizeOptions={['5', '10', '20', '50']}
-                    />
-                  </div>
-                </>
+          {hasActiveFilters && (
+            <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
+              <span className="text-xs text-muted-foreground">Đang lọc:</span>
+              {statusFilter !== 'all' && (
+                <StatusBadge tone={statusFilter === 'active' ? 'success' : statusFilter === 'maintenance' ? 'warning' : 'destructive'}>
+                  {statusFilter === 'active' ? 'Hoạt động' : statusFilter === 'maintenance' ? 'Bảo trì' : 'Không hoạt động'}
+                  <button type="button" className="ml-1 opacity-70 hover:opacity-100" onClick={() => { setStatusFilter('all'); resetPage(); }} aria-label="Xóa lọc trạng thái">
+                    <X className="h-3 w-3" />
+                  </button>
+                </StatusBadge>
               )}
+              {selectedRegion && (
+                <StatusBadge tone="info">
+                  {selectedRegion.name}
+                  <button type="button" className="ml-1 opacity-70 hover:opacity-100" onClick={() => { setRegionFilter('all'); resetPage(); }} aria-label="Xóa lọc khu vực">
+                    <X className="h-3 w-3" />
+                  </button>
+                </StatusBadge>
+              )}
+              {searchText.trim() && <StatusBadge tone="neutral">“{searchText.trim()}”</StatusBadge>}
+              <span className="text-xs text-muted-foreground">{pagination.total.toLocaleString('vi-VN')} kết quả</span>
             </div>
-          </Card>
-        </div>
-      </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card ref={tableRef} className="shadow-sm">
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <span className="text-sm">Đang tải danh sách rạp...</span>
+            </div>
+          ) : cinemas.length ? (
+            <>
+              <DataTable fields={columns} rows={cinemas} getRowId="id" pageControls={false} />
+              <div className="border-t border-border p-4">
+                <Pagination
+                  page={pagination.current}
+                  itemsPerPage={pagination.pageSize}
+                  totalItems={pagination.total}
+                  showSizeChanger
+                  showQuickJumper
+                  pageSizeOptions={[5, 10, 20, 50]}
+                  showTotal={(total, range) => `${range[0]}-${range[1]} của ${total} rạp`}
+                  onPageChange={(page) => {
+                    setPagination((previous) => ({ ...previous, current: page }));
+                    tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  onPageSizeChange={(size) => setPagination((previous) => ({ ...previous, current: 1, pageSize: size }))}
+                />
+              </div>
+            </>
+          ) : (
+            <Empty description="Không có rạp phù hợp với bộ lọc hiện tại" className="min-h-64" />
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
-export default Cinemas;
+export default AdminCinemas;
