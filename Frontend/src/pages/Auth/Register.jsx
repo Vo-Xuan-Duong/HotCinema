@@ -1,15 +1,15 @@
-import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import RegisterForm from '@/components/Auth/RegisterForm';
-import sideBannerImage from '@/assets/banner.png';
 import { ChevronLeft } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import RegisterForm from '@/components/Auth/RegisterForm';
+import { Button } from '@/components/ui/button';
+import sideBannerImage from '@/assets/banner.png';
 
 const Register = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleSwitchToLogin = () => {
-    navigate('/login', { state: { from: location.state?.from } });
+    navigate('/auth/login', { state: { from: location.state?.from } });
   };
 
   const handleClose = () => {
@@ -18,32 +18,26 @@ const Register = () => {
   };
 
   const handleSwitchToOTP = (email) => {
-    navigate('/verify-otp', { state: { email } });
+    navigate('/auth/verify-otp', { state: { email } });
   };
 
   return (
-    <div className="flex min-h-screen bg-card">
-      {/* Left Form Section */}
-      <div className="w-full lg:w-1/2 flex flex-col relative overflow-y-auto">
-        {/* Back Button */}
-        <div className="absolute top-6 left-6 z-10">
-          <button 
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors font-medium text-sm bg-card/80 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm"
-          >
-            <ChevronLeft className="w-4 h-4" />
+    <div className="flex min-h-dvh bg-background text-foreground">
+      <section className="relative flex w-full flex-col overflow-y-auto lg:w-1/2">
+        <div className="absolute left-4 top-4 z-10 sm:left-6 sm:top-6">
+          <Button type="button" variant="ghost" size="sm" className="gap-2" onClick={() => navigate('/')}>
+            <ChevronLeft className="h-4 w-4" />
             Trở về trang chủ
-          </button>
+          </Button>
         </div>
 
-        <div className="flex-1 flex items-center justify-center p-8 sm:p-12 lg:p-16 w-full max-w-[600px] mx-auto min-h-screen">
-          <div className="w-full py-12">
-            <div className="mb-8">
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-3 tracking-tight">
-                Tạo tài khoản mới ✨
-              </h2>
-              <p className="text-muted-foreground text-base">
-                Gia nhập cộng đồng HotCinemas để không bỏ lỡ bất kỳ siêu phẩm điện ảnh nào.
+        <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-1 items-center justify-center px-6 py-20 sm:px-10 lg:px-14">
+          <div className="w-full">
+            <div className="mb-8 space-y-2">
+              <p className="text-sm font-medium text-primary">HotCinema</p>
+              <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Tạo tài khoản mới</h1>
+              <p className="text-sm leading-6 text-muted-foreground sm:text-base">
+                Tạo tài khoản để đặt vé nhanh hơn, lưu lịch sử giao dịch và nhận các ưu đãi thành viên.
               </p>
             </div>
 
@@ -54,26 +48,21 @@ const Register = () => {
             />
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Right Image Section */}
-      <div className="hidden lg:block lg:w-1/2 relative bg-gray-900 overflow-hidden sticky top-0 h-screen">
-        <img
-          src={sideBannerImage}
-          alt="HotCinemas banner"
-          className="absolute inset-0 w-full h-full object-cover opacity-60 hover:opacity-80 transition-opacity duration-700"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-        
-        <div className="absolute bottom-12 left-12 right-12 text-white">
-          <div className="bg-primary/20 backdrop-blur-md border border-white/20 p-8 rounded-3xl max-w-xl">
-            <h3 className="text-3xl font-bold mb-4">Trải nghiệm vượt chuẩn</h3>
-            <p className="text-gray-200 text-lg">
-              Chỉ với một tài khoản duy nhất, mở khóa toàn bộ đặc quyền hội viên, tích điểm đổi quà và tận hưởng hệ sinh thái giải trí đỉnh cao.
+      <aside className="relative hidden h-dvh overflow-hidden bg-muted lg:block lg:w-1/2">
+        <img src={sideBannerImage} alt="Không gian HotCinema" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-black/55" />
+        <div className="absolute inset-x-10 bottom-10 xl:inset-x-14 xl:bottom-14">
+          <div className="max-w-xl rounded-xl border border-white/20 bg-black/30 p-6 text-white backdrop-blur-md xl:p-8">
+            <p className="text-sm font-medium text-white/70">Bắt đầu với HotCinema</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight xl:text-3xl">Đặt vé đơn giản, trải nghiệm nhất quán</h2>
+            <p className="mt-3 text-sm leading-6 text-white/75 xl:text-base">
+              Tìm phim, chọn rạp, chọn ghế và quản lý vé của bạn trong cùng một tài khoản.
             </p>
           </div>
         </div>
-      </div>
+      </aside>
     </div>
   );
 };
