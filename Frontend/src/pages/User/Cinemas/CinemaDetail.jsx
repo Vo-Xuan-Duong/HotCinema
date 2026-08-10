@@ -1,14 +1,17 @@
-﻿import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { MapPin, CheckCircle2, Wifi, Coffee, Car, Flame, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { StatusBadge } from '@/components/ui/status-badge';
-import { Empty } from '@/components/ui/empty';
+import { useEffect, useState } from 'react';
+import { Armchair, Car, Coffee, Loader2, MapPin, Navigation, Wifi } from 'lucide-react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import ContentLoader from '@/components/Loading/ContentLoader';
-import useNotification from '@/hooks/useNotification';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Empty } from '@/components/ui/empty';
+import { StatusBadge } from '@/components/ui/status-badge';
 import cinemaService from '@/services/cinemaService';
 import showtimeService from '@/services/showtimeService';
+import useNotification from '@/hooks/useNotification';
+import { unwrapApiData } from '@/utils/apiResponse';
+
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
 const CinemaDetail = () => {
   const { id } = useParams();
@@ -21,128 +24,109 @@ const CinemaDetail = () => {
   const [dates, setDates] = useState([]);
   const [activeDate, setActiveDate] = useState(null);
   const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
   const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
     const upcomingDates = showtimeService.getUpcomingDates(7);
     setDates(upcomingDates);
-    setActiveDate(upcomingDates[0]?.value);
+    setActiveDate(upcomingDates[0]?.value || null);
   }, []);
 
   useEffect(() => {
-    if (id) {
-      fetchCinemaDetail();
-    }
-  }, [id]);
+    if (!id) return;
+    let cancelled = false;
 
-  useEffect(() => {
-    if (id && activeDate) {
-      setPage(0);
-      setMovies([]);
-      setShowtimesLoading(true);
-      fetchShowtimes(0).finally(() => setShowtimesLoading(false));
-    }
-  }, [id, activeDate]);
+    const loadCinema = async () => {
+      setLoading(true);
+      try {
+        const response = await cinemaService.getCinemaById(id);
+        if (!cancelled) setCinema(unwrapApiData(response));
+      } catch (error) {
+        console.error('Error fetching cinema detail:', error);
+        if (!cancelled) {
+          setCinema(null);
+          notification.error('Không thể tải thông tin rạp!');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
 
-  const fetchCinemaDetail = async () => {
-    setLoading(true);
-    try {
-      const response = await cinemaService.getCinemaById(id);
-      const data = response.data || response;
-      setCinema(data);
-    } catch (error) {
-      console.error('Error fetching cinema detail:', error);
-      notification.error('Không thể tải thông tin rạp!');
-    } finally {
-      setLoading(false);
-    }
-  };
+    loadCinema();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, notification]);
 
   const fetchShowtimes = async (pageNum = 0) => {
     try {
       const response = await showtimeService.getShowtimesByDateAndCinema(activeDate, id, {
         page: pageNum,
-        size: 5
+        size: 5,
       });
-      const showtimesData = response.data?.content || response.data || response;
-      const totalPagesFromApi = response.data?.totalPages || 1;
-      const currentPage = response.data?.number || 0;
+      const data = unwrapApiData(response);
+      const content = Array.isArray(data) ? data : Array.isArray(data?.content) ? data.content : [];
+      const currentPage = Array.isArray(data) ? pageNum : data?.number ?? pageNum;
+      const totalPages = Array.isArray(data) ? 1 : data?.totalPages ?? 1;
 
-      const moviesArray = [];
+      const movieItems = content.map((movieData) => {
+        const showtimes = (movieData.formats || [])
+          .flatMap((format) => (format.showtimes || []).map((showtime) => ({
+            id: showtime.showtimeId,
+            time: showtime.startTime,
+            roomName: showtime.roomName || 'Phòng',
+            screeningFormat: format.formatType,
+            status: showtime.status,
+            price: showtime.price,
+          })))
+          .sort((a, b) => String(a.time).localeCompare(String(b.time)));
 
-      if (Array.isArray(showtimesData)) {
-        showtimesData.forEach(movieData => {
-          const allShowtimes = [];
+        return {
+          id: movieData.movieId,
+          title: movieData.movieTitle,
+          ageRating: movieData.formats?.[0]?.formatType || '2D',
+          poster: movieData.posterPath || '/brand-placeholder.svg',
+          showtimes,
+        };
+      });
 
-          if (Array.isArray(movieData.formats)) {
-            movieData.formats.forEach(format => {
-              if (Array.isArray(format.showtimes)) {
-                format.showtimes.forEach(showtime => {
-                  allShowtimes.push({
-                    id: showtime.showtimeId,
-                    time: showtime.startTime,
-                    roomName: showtime.roomName || 'Phòng',
-                    screeningFormat: format.formatType,
-                    status: showtime.status,
-                    price: showtime.price
-                  });
-                });
-              }
-            });
-          }
-
-          allShowtimes.sort((a, b) => a.time.localeCompare(b.time));
-
-          moviesArray.push({
-            id: movieData.movieId,
-            title: movieData.movieTitle,
-            genre: 'Phim',
-            duration: 'N/A',
-            ageRating: movieData.formats?.[0]?.formatType || '2D',
-            poster: movieData.posterPath || '/brand-placeholder.svg',
-            showtimes: allShowtimes
-          });
-        });
-      }
-
-      if (pageNum === 0) {
-        setMovies(moviesArray);
-      } else {
-        setMovies(prev => [...prev, ...moviesArray]);
-      }
-
+      setMovies((previous) => pageNum === 0 ? movieItems : [...previous, ...movieItems]);
       setPage(currentPage);
-      setTotalPages(totalPagesFromApi);
-      setHasMore(currentPage < totalPagesFromApi - 1);
+      setHasMore(currentPage < totalPages - 1);
     } catch (error) {
       console.error('Error fetching showtimes:', error);
       notification.error('Không thể tải lịch chiếu!');
-      if (pageNum === 0) {
-        setMovies([]);
-      }
+      if (pageNum === 0) setMovies([]);
     }
   };
 
-  const handleLoadMore = () => {
-    if (!showtimesLoading && hasMore) {
-      setShowtimesLoading(true);
-      fetchShowtimes(page + 1).finally(() => setShowtimesLoading(false));
+  useEffect(() => {
+    if (!id || !activeDate) return;
+    let active = true;
+
+    setPage(0);
+    setMovies([]);
+    setShowtimesLoading(true);
+    fetchShowtimes(0).finally(() => {
+      if (active) setShowtimesLoading(false);
+    });
+
+    return () => {
+      active = false;
+    };
+    // fetchShowtimes is intentionally driven by cinema/date changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, activeDate]);
+
+  const handleLoadMore = async () => {
+    if (showtimesLoading || !hasMore) return;
+    setShowtimesLoading(true);
+    try {
+      await fetchShowtimes(page + 1);
+    } finally {
+      setShowtimesLoading(false);
     }
   };
-
-  const cinemaImages = [
-    cinema?.bannerUrl,
-    cinema?.imageUrl,
-    ...(Array.isArray(cinema?.images) ? cinema.images : [])
-  ].filter(Boolean);
-
-  const amenities = [
-    { icon: <Wifi className="h-5 w-5" />, label: 'Phòng VIP', color: '#722ed1' },
-    { icon: <Flame className="h-5 w-5" />, label: 'Quầy ăn uống', color: '#fa541c' },
-    { icon: <Coffee className="h-5 w-5" />, label: 'Chỗ đậu xe', color: '#13c2c2' },
-    { icon: <Car className="h-5 w-5" />, label: 'Wifi miễn phí', color: '#1890ff' }
-  ];
 
   if (loading) {
     return <ContentLoader message="Đang tải thông tin rạp..." />;
@@ -150,62 +134,81 @@ const CinemaDetail = () => {
 
   if (!cinema) {
     return (
-      <div className="min-h-screen bg-card pb-16">
-        <div className="max-w-[1200px] mx-auto px-4 md:px-6">
-          <Empty
-            description={
-              <span className="text-lg text-muted-foreground">
-                Không tìm thấy thông tin rạp chiếu
-              </span>
-            }
-          />
+      <div className="min-h-dvh bg-background px-4 pb-16 pt-24 text-foreground">
+        <div className="mx-auto max-w-5xl">
+          <Card>
+            <CardContent className="py-4">
+              <Empty description="Không tìm thấy thông tin rạp chiếu" />
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
   }
 
+  const cinemaImages = [
+    cinema.bannerUrl,
+    cinema.imageUrl,
+    ...(Array.isArray(cinema.images) ? cinema.images : []),
+  ].filter(Boolean);
+
+  const amenities = [
+    { icon: Armchair, label: 'Phòng chiếu tiện nghi' },
+    { icon: Coffee, label: 'Quầy ăn uống' },
+    { icon: Car, label: 'Chỗ đậu xe' },
+    { icon: Wifi, label: 'Wifi miễn phí' },
+  ];
+
+  const mapUrl = GOOGLE_MAPS_API_KEY && cinema.address
+    ? `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}&q=${encodeURIComponent(cinema.address)}`
+    : null;
+
   return (
-    <div className="min-h-screen bg-card pb-16 mt-14">
-      <div className="bg-card py-5 px-6 relative">
-        <div className="max-w-[1200px] mx-auto flex flex-col gap-2">
+    <div className="min-h-dvh bg-background pb-16 pt-20 text-foreground">
+      <div className="border-b border-border bg-card">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 sm:px-6 md:flex-row md:items-start md:justify-between lg:px-8">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-primary">HotCinema</p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{cinema.name}</h1>
+            <p className="mt-2 flex max-w-3xl items-start gap-2 text-sm leading-6 text-muted-foreground">
+              <MapPin className="mt-1 h-4 w-4 shrink-0 text-primary" />
+              {cinema.address || 'Chưa cập nhật địa chỉ'}
+            </p>
+          </div>
           <Button
+            type="button"
             variant="outline"
-            className="absolute top-5 right-6"
-            onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cinema.address || '')}`, '_blank')}
+            onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cinema.address || cinema.name || '')}`, '_blank', 'noopener,noreferrer')}
           >
-            <CheckCircle2 className="h-4 w-4 mr-2" />
+            <Navigation className="mr-2 h-4 w-4" />
             Chỉ đường
           </Button>
-          <h1 className="text-foreground text-2xl font-bold m-0 mb-2 tracking-tight leading-tight">
-            {cinema.name || 'CGV Vincom Center'}
-          </h1>
-          <p className="text-muted-foreground text-sm flex items-center gap-1.5 m-0 font-normal">
-            <MapPin className="text-primary text-sm" />
-            {cinema.address || 'Tầng 5, Vincom Center, 72 Lê Thánh Tôn, P. Bến Nghé, Quận 1, TPHCM'}
-          </p>
         </div>
       </div>
 
-      <div className="max-w-[1200px] mx-auto px-4 md:px-6">
-        {cinemaImages.length > 0 && <div className="grid grid-cols-2 md:grid-cols-4 gap-4 my-6">
-          {cinemaImages.map((img, index) => (
-            <div key={index} className="rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
-              <img src={img} alt={`Cinema ${index + 1}`} className="w-full h-full object-cover" />
-            </div>
-          ))}
-        </div>}
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {cinemaImages.length > 0 && (
+          <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
+            {cinemaImages.slice(0, 4).map((image, index) => (
+              <div key={`${image}-${index}`} className="aspect-[4/3] overflow-hidden rounded-lg border border-border bg-muted">
+                <img src={image} alt={`${cinema.name} ${index + 1}`} className="h-full w-full object-cover" />
+              </div>
+            ))}
+          </div>
+        )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-foreground mb-4">Phim đang chiếu</h2>
-              <div className="flex flex-wrap gap-2">
-                {dates.slice(0, 6).map((date) => (
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+          <section>
+            <div className="mb-5">
+              <h2 className="text-xl font-semibold">Lịch chiếu</h2>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {dates.slice(0, 7).map((date) => (
                   <Button
                     key={date.value}
-                    variant={activeDate === date.value ? "default" : "outline"}
+                    type="button"
+                    size="sm"
+                    variant={activeDate === date.value ? 'default' : 'outline'}
                     onClick={() => setActiveDate(date.value)}
-                    className={activeDate === date.value ? "bg-primary text-white" : ""}
                   >
                     {date.isToday ? 'Hôm nay' : date.label}
                   </Button>
@@ -215,98 +218,109 @@ const CinemaDetail = () => {
 
             <div className="space-y-4">
               {showtimesLoading && movies.length === 0 ? (
-                <div className="text-center py-10">
-                  <Loader2 className="w-8 h-8 text-primary mx-auto animate-spin" />
-                  <p className="mt-4 text-muted-foreground">Đang tải lịch chiếu...</p>
+                <div className="flex min-h-48 flex-col items-center justify-center gap-3 text-muted-foreground">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <span className="text-sm">Đang tải lịch chiếu...</span>
                 </div>
               ) : movies.length > 0 ? (
-                movies.map(movie => (
-                  <div key={movie.id} className="bg-card rounded-lg shadow-md p-4 flex gap-4 hover:shadow-lg transition-shadow duration-300">
-                    <div className="relative flex-shrink-0">
-                      <img src={movie.poster} alt={movie.title} className="w-24 h-32 object-cover rounded-lg" />
-                      <span className="absolute top-2 right-2 bg-primary text-white text-xs font-bold px-2 py-1 rounded">
-                        {movie.ageRating}
-                      </span>
-                    </div>
+                movies.map((movie) => (
+                  <Card key={movie.id} className="shadow-sm">
+                    <CardContent className="flex gap-4 p-4 sm:p-5">
+                      <Link to={`/movies/${movie.id}`} className="shrink-0">
+                        <img
+                          src={movie.poster}
+                          alt={movie.title}
+                          className="h-32 w-24 rounded-md border border-border object-cover"
+                          onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }}
+                        />
+                      </Link>
 
-                    <div className="flex-1 flex flex-col justify-between">
-                      <div>
-                        <h3
-                          className="text-lg font-bold text-foreground mb-2 cursor-pointer hover:text-primary transition-colors"
-                          onClick={() => navigate(`/movies/${movie.id}`)}
-                        >
-                          {movie.title}
-                        </h3>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                          <span>{movie.genre}</span>
-                          <span>•</span>
-                          <span>{movie.duration}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <Link to={`/movies/${movie.id}`} className="font-semibold hover:text-primary">
+                              {movie.title}
+                            </Link>
+                            <div className="mt-2">
+                              <StatusBadge tone="info">{movie.ageRating}</StatusBadge>
+                            </div>
+                          </div>
                         </div>
-                        <StatusBadge className="bg-gray-100 text-gray-700 text-xs font-medium px-2 py-1 rounded">
-                          {movie.ageRating}
-                        </StatusBadge>
-                      </div>
 
-                      <div className="flex flex-wrap gap-2 mt-4">
-                        {movie.showtimes.map((showtime) => (
-                          <Button
-                            key={showtime.id}
-                            variant="outline"
-                            className="border-2 border-primary text-primary rounded-lg font-semibold text-sm hover:bg-primary hover:text-white transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
-                            onClick={() => navigate(`/booking/${showtime.id}`)}
-                          >
-                            {showtime.time}
-                          </Button>
-                        ))}
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {movie.showtimes.map((showtime) => (
+                            <Button
+                              key={showtime.id}
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate(`/booking/${showtime.id}`)}
+                            >
+                              {showtime.time}
+                            </Button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
                 ))
               ) : (
-                <Empty description="Không có lịch chiếu cho ngày này" />
+                <Card>
+                  <CardContent className="py-4">
+                    <Empty description="Không có lịch chiếu cho ngày này" />
+                  </CardContent>
+                </Card>
               )}
 
-              {hasMore && !showtimesLoading && movies.length > 0 && (
-                <div className="text-center mt-6">
-                  <Button variant="outline" onClick={handleLoadMore}>
+              {hasMore && movies.length > 0 && (
+                <div className="flex justify-center pt-2">
+                  <Button type="button" variant="outline" onClick={handleLoadMore} disabled={showtimesLoading}>
+                    {showtimesLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Xem thêm
                   </Button>
                 </div>
               )}
-
-              {showtimesLoading && movies.length > 0 && (
-                <div className="text-center py-5">
-                  <Loader2 className="w-6 h-6 text-primary mx-auto animate-spin" />
-                </div>
-              )}
             </div>
-          </div>
+          </section>
 
-          <div className="lg:col-span-1 space-y-6">
-            <Card className="bg-card rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-foreground mb-4">Tiện ích rạp</h2>
-              <div className="grid grid-cols-2 gap-4">
-                {amenities.map((item, index) => (
-                  <div key={index} className="flex flex-col items-center gap-2" style={{ color: item.color }}>
-                    <div className="text-2xl">{item.icon}</div>
-                    <span className="text-sm font-medium text-gray-700">{item.label}</span>
+          <aside className="space-y-6">
+            <Card className="shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg">Tiện ích rạp</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-3">
+                {amenities.map(({ icon: Icon, label }) => (
+                  <div key={label} className="rounded-lg border border-border bg-muted/30 p-3 text-center">
+                    <Icon className="mx-auto h-5 w-5 text-primary" />
+                    <p className="mt-2 text-xs font-medium">{label}</p>
                   </div>
                 ))}
-              </div>
+              </CardContent>
             </Card>
 
-            <Card className="bg-card rounded-lg shadow-md overflow-hidden h-64">
-              <iframe
-                width="100%"
-                height="100%"
-                frameBorder="0"
-                className="border-0"
-                src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(cinema.address || 'Vincom Center, Ho Chi Minh City')}`}
-                allowFullScreen
-                title="Cinema Location"
-              />
+            <Card className="overflow-hidden shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg">Vị trí</CardTitle>
+              </CardHeader>
+              <div className="h-64 border-t border-border bg-muted">
+                {mapUrl ? (
+                  <iframe
+                    title={`Vị trí ${cinema.name}`}
+                    src={mapUrl}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    className="h-full w-full border-0"
+                    allowFullScreen
+                  />
+                ) : (
+                  <div className="flex h-full flex-col items-center justify-center gap-2 px-6 text-center text-muted-foreground">
+                    <MapPin className="h-6 w-6 text-primary" />
+                    <p className="text-sm">Bản đồ chưa được cấu hình.</p>
+                  </div>
+                )}
+              </div>
             </Card>
-          </div>
+          </aside>
         </div>
       </div>
     </div>
