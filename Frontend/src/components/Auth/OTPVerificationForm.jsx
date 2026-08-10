@@ -1,208 +1,187 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Mail } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, CheckCircle2, Mail, RotateCcw } from 'lucide-react';
 import { authService } from '@/services/authService';
 import { Button } from '@/components/ui/button';
+import { Countdown } from '@/components/ui/countdown';
+import { Form, FormControl, FormItem } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Form, FormItem, FormControl } from '@/components/ui/form';
+import { Separator } from '@/components/ui/separator';
 import useNotification from '@/hooks/useNotification';
 
+const OTP_LENGTH = 6;
+
 const OTPVerificationForm = ({ email, onSuccess, onBack }) => {
-    const [otp, setOtp] = useState(['', '', '', '', '', '']);
-    const [loading, setLoading] = useState(false);
-    const [resendLoading, setResendLoading] = useState(false);
-    const [countdown, setCountdown] = useState(60);
-    const [canResend, setCanResend] = useState(false);
-    const inputRefs = useRef([]);
-    const notification = useNotification();
+  const notification = useNotification();
+  const inputRefs = useRef([]);
+  const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(''));
+  const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [canResend, setCanResend] = useState(false);
+  const [countdownEnd, setCountdownEnd] = useState(Date.now() + 60 * 1000);
 
-    useEffect(() => {
-        if (countdown > 0) {
-            const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-            return () => clearTimeout(timer);
-        } else {
-            setCanResend(true);
-        }
-    }, [countdown]);
+  useEffect(() => {
+    inputRefs.current[0]?.focus();
+  }, []);
 
-    useEffect(() => {
-        if (inputRefs.current[0]) {
-            inputRefs.current[0].focus();
-        }
-    }, []);
+  const resetOtp = () => {
+    setOtp(Array(OTP_LENGTH).fill(''));
+    window.requestAnimationFrame(() => inputRefs.current[0]?.focus());
+  };
 
-    const handleOTPChange = (index, value) => {
-        if (value && !/^\d+$/.test(value)) {
-            return;
-        }
+  const handleOTPChange = (index, value) => {
+    if (!/^\d*$/.test(value)) return;
+    const digit = value.slice(-1);
 
-        const newOTP = [...otp];
-        newOTP[index] = value;
-        setOtp(newOTP);
+    setOtp((previous) => {
+      const next = [...previous];
+      next[index] = digit;
+      return next;
+    });
 
-        if (value && index < 5) {
-            inputRefs.current[index + 1]?.focus();
-        }
-    };
+    if (digit && index < OTP_LENGTH - 1) inputRefs.current[index + 1]?.focus();
+  };
 
-    const handleKeyDown = (index, e) => {
-        if (e.key === 'Backspace') {
-            const newOTP = [...otp];
-            if (!newOTP[index] && index > 0) {
-                inputRefs.current[index - 1]?.focus();
-            } else {
-                newOTP[index] = '';
-                setOtp(newOTP);
-            }
-        } else if (e.key === 'ArrowLeft' && index > 0) {
-            inputRefs.current[index - 1]?.focus();
-        } else if (e.key === 'ArrowRight' && index < 5) {
-            inputRefs.current[index + 1]?.focus();
-        }
-    };
+  const handleKeyDown = (index, event) => {
+    if (event.key === 'Backspace' && !otp[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    } else if (event.key === 'ArrowLeft' && index > 0) {
+      event.preventDefault();
+      inputRefs.current[index - 1]?.focus();
+    } else if (event.key === 'ArrowRight' && index < OTP_LENGTH - 1) {
+      event.preventDefault();
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
 
-    const handlePaste = (e) => {
-        e.preventDefault();
-        const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-        const otpArray = pastedData.split('').concat(Array(6).fill('')).slice(0, 6);
-        setOtp(otpArray);
+  const handlePaste = (event) => {
+    event.preventDefault();
+    const pasted = event.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH);
+    if (!pasted) return;
 
-        const lastIndex = Math.min(pastedData.length, 5);
-        inputRefs.current[lastIndex]?.focus();
-    };
+    const next = Array(OTP_LENGTH).fill('');
+    pasted.split('').forEach((digit, index) => {
+      next[index] = digit;
+    });
+    setOtp(next);
+    inputRefs.current[Math.min(pasted.length, OTP_LENGTH) - 1]?.focus();
+  };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        const otpCode = otp.join('');
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const otpCode = otp.join('');
 
-        if (otpCode.length !== 6) {
-            notification.error('Vui lòng nhập đủ 6 số OTP!');
-            return;
-        }
+    if (otpCode.length !== OTP_LENGTH) {
+      notification.error('Vui lòng nhập đủ 6 số OTP!');
+      return;
+    }
 
-        setLoading(true);
-        try {
-            const response = await authService.verifyOTP(email, otpCode);
+    setLoading(true);
+    try {
+      const result = await authService.verifyOTP(email, otpCode);
+      if (result === false) {
+        notification.error('Mã OTP không chính xác hoặc đã hết hạn!');
+        return;
+      }
 
-            if (response && response.status === 200) {
-                notification.success('Xác thực tài khoản thành công!');
-                onSuccess?.();
-            } else {
-                notification.error(response.message || 'Mã OTP không chính xác!');
-            }
-        } catch (error) {
-            console.error('OTP verification error:', error);
+      notification.success('Xác thực tài khoản thành công!');
+      onSuccess?.();
+    } catch (error) {
+      console.error('OTP verification error:', error);
+      notification.error(error.response?.data?.message || error.message || 'Mã OTP không chính xác hoặc đã hết hạn!');
+      resetOtp();
+    } finally {
+      setLoading(false);
+    }
+  };
 
-            if (error.response) {
-                const { data, status } = error.response;
-                if (status === 400 || status === 401) {
-                    notification.error(data.message || 'Mã OTP không chính xác hoặc đã hết hạn!');
-                } else {
-                    notification.error(data.message || 'Xác thực thất bại. Vui lòng thử lại!');
-                }
-            } else {
-                notification.error(error.message || 'Không thể kết nối đến server!');
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
+  const handleResendOTP = async () => {
+    setResendLoading(true);
+    try {
+      await authService.resendOTP(email);
+      notification.success('Đã gửi lại mã OTP đến email của bạn!');
+      setCanResend(false);
+      setCountdownEnd(Date.now() + 60 * 1000);
+      resetOtp();
+    } catch (error) {
+      console.error('Resend OTP error:', error);
+      notification.error(error.response?.data?.message || error.message || 'Không thể gửi lại mã OTP. Vui lòng thử lại!');
+    } finally {
+      setResendLoading(false);
+    }
+  };
 
-    const handleResendOTP = async () => {
-        setResendLoading(true);
-        try {
-            const response = await authService.resendOTP(email);
-            if (response) {
-                notification.success('Đã gửi lại mã OTP đến email của bạn!');
-                setCountdown(60);
-                setCanResend(false);
-                setOtp(['', '', '', '', '', '']);
-                inputRefs.current[0]?.focus();
-            }
-        } catch (error) {
-            console.error('Resend OTP error:', error);
-            if (error.response?.data?.message) {
-                notification.error(error.response.data.message);
-            } else {
-                notification.error('Không thể gửi lại mã OTP. Vui lòng thử lại!');
-            }
-        } finally {
-            setResendLoading(false);
-        }
-    };
-
-    return (
-        <div className="w-full">
-            <div className="text-center mb-7">
-                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-[#e50914] to-[#ff4757] rounded-full flex items-center justify-center text-white shadow-[0_4px_12px_rgba(229,9,20,0.3)] md:w-14 md:h-14">
-                    <Mail className="h-8 w-8 md:h-7 md:w-7" />
-                </div>
-                <h2 className="text-2xl font-bold m-0 mb-2 bg-gradient-to-r from-[#e50914] to-[#ff6b35] bg-clip-text text-transparent md:text-xl">
-                    Xác thực tài khoản
-                </h2>
-                <p className="text-muted-foreground text-[13px] m-1">Nhập mã OTP đã được gửi đến</p>
-                <p className="text-[#e50914] font-semibold text-sm mt-2">{email}</p>
-            </div>
-
-            <Form onSubmit={handleSubmit}>
-                <FormItem>
-                    <FormControl>
-                        <div className="flex gap-2 justify-center mb-6 md:gap-1.5">
-                            {[0, 1, 2, 3, 4, 5].map((index) => (
-                                <Input
-                                    key={index}
-                                    ref={(el) => (inputRefs.current[index] = el)}
-                                    maxLength={1}
-                                    value={otp[index]}
-                                    className="w-12 h-14 text-center text-2xl font-bold bg-card/10 border-2 border-white/20 rounded-lg text-foreground transition-all duration-300 hover:border-primary/60 hover:bg-card/15 focus:border-primary focus:shadow-[0_0_0_3px_rgba(229,9,20,0.2)] focus:bg-card/15 md:w-[42px] md:h-[50px] md:text-xl"
-                                    onChange={(e) => handleOTPChange(index, e.target.value)}
-                                    onKeyDown={(e) => handleKeyDown(index, e)}
-                                    onPaste={index === 0 ? handlePaste : undefined}
-                                />
-                            ))}
-                        </div>
-                    </FormControl>
-                </FormItem>
-
-                <FormItem>
-                    <Button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-gradient-to-r from-[#e50914] to-[#ff4757] border-0 rounded-lg h-[42px] font-semibold text-[15px] shadow-[0_4px_12px_rgba(229,9,20,0.3)] transition-all duration-300 hover:from-[#ff4757] hover:to-[#e50914] hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(229,9,20,0.4)] active:translate-y-0 md:h-10"
-                    >
-                        {loading ? 'Đang xác thực...' : 'Xác thực'}
-                    </Button>
-                </FormItem>
-            </Form>
-
-            <div className="text-center mt-5">
-                <div className="mb-3">
-                    {canResend ? (
-                        <Button
-                            type="button"
-                            variant="link"
-                            onClick={handleResendOTP}
-                            disabled={resendLoading}
-                            className="text-[#e50914] font-semibold p-0 h-auto text-sm hover:text-[#ff4757]"
-                        >
-                            {resendLoading ? 'Đang gửi...' : 'Gửi lại mã OTP'}
-                        </Button>
-                    ) : (
-                        <span className="text-muted-foreground text-[13px]">
-                            Gửi lại mã sau {countdown}s
-                        </span>
-                    )}
-                </div>
-                <Button
-                    type="button"
-                    variant="link"
-                    onClick={onBack}
-                    className="text-muted-foreground p-0 h-auto text-[13px] hover:text-gray-700"
-                >
-                    Quay lại đăng ký
-                </Button>
-            </div>
+  return (
+    <div className="w-full space-y-5">
+      <div className="text-center">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <Mail className="h-5 w-5" />
         </div>
-    );
+        <h2 className="text-xl font-semibold tracking-tight">Xác thực tài khoản</h2>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          Nhập mã OTP đã gửi đến <span className="font-medium text-foreground">{email}</span>.
+        </p>
+      </div>
+
+      <Form onSubmit={handleSubmit}>
+        <FormItem>
+          <FormControl>
+            <div className="flex justify-center gap-2" onPaste={handlePaste}>
+              {otp.map((digit, index) => (
+                <Input
+                  key={index}
+                  ref={(element) => { inputRefs.current[index] = element; }}
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete={index === 0 ? 'one-time-code' : 'off'}
+                  maxLength={1}
+                  value={digit}
+                  disabled={loading}
+                  onChange={(event) => handleOTPChange(index, event.target.value)}
+                  onKeyDown={(event) => handleKeyDown(index, event)}
+                  aria-label={`Chữ số OTP ${index + 1}`}
+                  className="h-12 w-11 px-0 text-center text-lg font-semibold tabular-nums sm:w-12"
+                />
+              ))}
+            </div>
+          </FormControl>
+        </FormItem>
+
+        <FormItem>
+          <Button type="submit" disabled={loading || otp.join('').length !== OTP_LENGTH} className="h-11 w-full">
+            <CheckCircle2 className="mr-2 h-4 w-4" />
+            {loading ? 'Đang xác thực...' : 'Xác thực'}
+          </Button>
+        </FormItem>
+      </Form>
+
+      <div className="text-center text-sm text-muted-foreground">
+        {!canResend ? (
+          <span>
+            Gửi lại mã sau{' '}
+            <Countdown
+              value={countdownEnd}
+              format="ss"
+              onFinish={() => setCanResend(true)}
+              className="font-semibold tabular-nums text-primary"
+            />{' '}
+            giây
+          </span>
+        ) : (
+          <Button type="button" variant="link" className="h-auto p-0 text-sm" onClick={handleResendOTP} disabled={resendLoading}>
+            <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+            {resendLoading ? 'Đang gửi...' : 'Gửi lại mã OTP'}
+          </Button>
+        )}
+      </div>
+
+      <Separator />
+
+      <Button type="button" variant="ghost" className="w-full" onClick={onBack}>
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Quay lại đăng ký
+      </Button>
+    </div>
+  );
 };
 
 export default OTPVerificationForm;
