@@ -1,26 +1,23 @@
-import * as React from "react"
-import { cva } from "class-variance-authority"
-import { AlertCircle, CheckCircle2, Info, X, XCircle } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import * as React from 'react';
+import { cva } from 'class-variance-authority';
+import { AlertCircle, CheckCircle2, Info, X, XCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
-const alertVariants = cva(
-  "relative w-full rounded-lg border p-4 text-sm",
-  {
-    variants: {
-      variant: {
-        default: "bg-background text-foreground",
-        success: "border-emerald-200 bg-emerald-50 text-emerald-950",
-        destructive: "border-destructive/30 bg-destructive text-destructive-foreground",
-        warning: "border-amber-200 bg-amber-50 text-amber-950",
-        info: "border-sky-200 bg-sky-50 text-sky-950",
-      },
+const alertVariants = cva('relative w-full rounded-lg border p-4 text-sm', {
+  variants: {
+    variant: {
+      default: 'border-border bg-background text-foreground',
+      success: 'status-success',
+      destructive: 'status-destructive',
+      warning: 'status-warning',
+      info: 'status-info',
     },
-    defaultVariants: {
-      variant: "default",
-    },
-  }
-)
+  },
+  defaultVariants: {
+    variant: 'default',
+  },
+});
 
 const iconMap = {
   success: CheckCircle2,
@@ -29,12 +26,12 @@ const iconMap = {
   warning: AlertCircle,
   info: Info,
   default: Info,
-}
+};
 
 const Alert = ({
   message,
   description,
-  type = "info",
+  type = 'info',
   variant,
   showIcon = false,
   closable = false,
@@ -43,8 +40,8 @@ const Alert = ({
   children,
   ...props
 }) => {
-  const actualVariant = variant || (type === "error" ? "destructive" : type)
-  const Icon = iconMap[type] || iconMap[actualVariant] || iconMap.default
+  const actualVariant = variant || (type === 'error' ? 'destructive' : type);
+  const Icon = iconMap[type] || iconMap[actualVariant] || iconMap.default;
 
   return (
     <div className={cn(alertVariants({ variant: actualVariant }), className)} {...props}>
@@ -62,13 +59,14 @@ const Alert = ({
             size="icon"
             onClick={onClose}
             className="h-6 w-6 shrink-0 opacity-70 hover:opacity-100"
+            aria-label="Đóng thông báo"
           >
             <X className="h-4 w-4" />
           </Button>
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export { Alert, alertVariants }
+export { Alert, alertVariants };
