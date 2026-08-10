@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 const Skeleton = ({ className, ...props }) => {
   return (
     <div
-      className={cn("animate-pulse rounded-md bg-gray-200", className)}
+      className={cn("animate-pulse rounded-md bg-muted", className)}
       {...props}
     />
   )
@@ -27,5 +27,3 @@ const SkeletonText = ({ lines = 3, className, ...props }) => {
 }
 
 export { Skeleton, SkeletonText }
-
-
