@@ -1,225 +1,197 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { XCircle, RotateCcw, Home } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import ContentLoader from '@/components/Loading/ContentLoader';
+import { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import paymentService from '@/services/paymentService';
+import { Home, RotateCcw, XCircle } from 'lucide-react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import ContentLoader from '@/components/Loading/ContentLoader';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import bookingService from '@/services/bookingService';
+import paymentService from '@/services/paymentService';
+
+const formatAmount = (value) => {
+  if (typeof value === 'number') return `${value.toLocaleString('vi-VN')}đ`;
+  if (!value) return '0đ';
+  return String(value).includes('đ') ? String(value) : `${value}đ`;
+};
 
 const BookingFailed = () => {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const [searchParams] = useSearchParams();
-    const [loading, setLoading] = useState(true);
-    const [errorData, setErrorData] = useState({});
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const [loading, setLoading] = useState(true);
+  const [errorData, setErrorData] = useState({});
 
-    const transactionId = searchParams.get('transactionId') || location.state?.errorData?.transactionId;
+  const transactionId = searchParams.get('transactionId') || location.state?.errorData?.transactionId;
 
-    useEffect(() => {
-        window.scrollTo(0, 0);
+  useEffect(() => {
+    window.scrollTo(0, 0);
 
-        const fetchBookingDetails = async () => {
-            try {
-                setLoading(true);
-
-                if (transactionId) {
-                    const paymentData = await paymentService.getPaymentByTransactionId(transactionId);
-                    const bookingDetails = await bookingService.getBookingById(paymentData.bookingId);
-
-                    const combinedData = {
-                        errorMessage: location.state?.errorData?.errorMessage || 'Thanh toán không thành công',
-                        reason: location.state?.errorData?.reason || 'Lỗi không xác định',
-                        movieTitle: bookingDetails.movieTitle || bookingDetails.movie?.title,
-                        cinemaName: bookingDetails.cinemaName || bookingDetails.cinema?.name,
-                        showTime: bookingDetails.showtimeTime || bookingDetails.showtime?.time,
-                        showDate: bookingDetails.showtimeDate || bookingDetails.showtime?.date,
-                        seatNumbers: bookingDetails.seatNames || bookingDetails.seats?.map(s => s.name).join(', '),
-                        totalAmount: bookingDetails.totalAmount ? `${bookingDetails.totalAmount?.toLocaleString('vi-VN')}đ` : '0đ',
-                        transactionId: paymentData.transactionId,
-                        bookingCode: bookingDetails.code,
-                        bookingId: bookingDetails.id,
-                        moviePoster: bookingDetails.moviePoster || bookingDetails.movie?.poster,
-                        cinemaAddress: bookingDetails.cinemaAddress || bookingDetails.cinema?.address,
-                        screen: bookingDetails.screenName || bookingDetails.screen?.name
-                    };
-
-                    setErrorData(combinedData);
-                } else {
-                    const fallbackData = location.state?.errorData || JSON.parse(localStorage.getItem('pendingPayment') || '{}');
-                    const errorMessage = searchParams.get('error');
-                    const reason = searchParams.get('reason');
-                    if (errorMessage) fallbackData.errorMessage = decodeURIComponent(errorMessage);
-                    if (reason) fallbackData.reason = decodeURIComponent(reason);
-
-                    if (fallbackData.totalAmount && !fallbackData.totalAmount.includes('đ')) {
-                        fallbackData.totalAmount = fallbackData.totalAmount + 'đ';
-                    }
-
-                    setErrorData(fallbackData);
-                }
-            } catch (error) {
-                console.error('Error fetching booking details:', error);
-                const fallbackData = location.state?.errorData || JSON.parse(localStorage.getItem('pendingPayment') || '{}');
-                setErrorData(fallbackData);
-            } finally {
-                setLoading(false);
-            }
+    const readFallbackData = () => {
+      try {
+        return {
+          ...(JSON.parse(localStorage.getItem('pendingPayment') || '{}')),
+          ...(location.state?.errorData || {}),
         };
-
-        fetchBookingDetails();
-    }, [transactionId, location.state]);
-
-    const handleTryAgain = () => {
-        const retryData = {
-            bookingId: errorData.bookingId,
-            bookingCode: errorData.bookingCode,
-            movieTitle: errorData.movieTitle,
-            moviePoster: errorData.moviePoster,
-            cinemaName: errorData.cinemaName,
-            cinemaAddress: errorData.cinemaAddress,
-            roomName: errorData.screen,
-            selectedSeats: errorData.seatNumbers ? errorData.seatNumbers.split(', ').map((seat, idx) => ({
-                name: seat,
-                seatLabel: seat,
-                price: 0
-            })) : [],
-            showDate: errorData.showDate,
-            showTime: errorData.showTime,
-            totalAmount: errorData.totalAmount
-        };
-
-        navigate('/booking/payment', { state: retryData });
+      } catch {
+        return { ...(location.state?.errorData || {}) };
+      }
     };
 
-    const handleBackToHome = () => {
-        navigate('/');
+    const fetchBookingDetails = async () => {
+      setLoading(true);
+
+      try {
+        if (transactionId) {
+          const paymentData = await paymentService.getPaymentByTransactionId(transactionId);
+          const bookingDetails = await bookingService.getBookingById(paymentData.bookingId);
+
+          setErrorData({
+            errorMessage: location.state?.errorData?.errorMessage || 'Thanh toán không thành công',
+            reason: location.state?.errorData?.reason || 'Lỗi không xác định',
+            movieTitle: bookingDetails.movieTitle || bookingDetails.movie?.title,
+            cinemaName: bookingDetails.cinemaName || bookingDetails.cinema?.name,
+            showTime: bookingDetails.showtimeTime || bookingDetails.showtime?.time,
+            showDate: bookingDetails.showtimeDate || bookingDetails.showtime?.date,
+            seatNumbers: bookingDetails.seatNames || bookingDetails.seats?.map((seat) => seat.name).join(', '),
+            totalAmount: formatAmount(bookingDetails.totalAmount),
+            transactionId: paymentData.transactionId,
+            bookingCode: bookingDetails.code,
+            bookingId: bookingDetails.id,
+            moviePoster: bookingDetails.moviePoster || bookingDetails.movie?.poster,
+            cinemaAddress: bookingDetails.cinemaAddress || bookingDetails.cinema?.address,
+            screen: bookingDetails.screenName || bookingDetails.screen?.name,
+          });
+        } else {
+          const fallbackData = readFallbackData();
+          const errorMessage = searchParams.get('error');
+          const reason = searchParams.get('reason');
+
+          setErrorData({
+            ...fallbackData,
+            errorMessage: errorMessage ? decodeURIComponent(errorMessage) : fallbackData.errorMessage,
+            reason: reason ? decodeURIComponent(reason) : fallbackData.reason,
+            totalAmount: formatAmount(fallbackData.totalAmount),
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching booking details:', error);
+        const fallbackData = readFallbackData();
+        setErrorData({ ...fallbackData, totalAmount: formatAmount(fallbackData.totalAmount) });
+      } finally {
+        setLoading(false);
+      }
     };
 
-    const handleContactSupport = () => {
-        navigate('/support');
-    };
+    fetchBookingDetails();
+  }, [transactionId, location.state, searchParams]);
 
-    if (loading) {
-        return <ContentLoader message="Đang tải thông tin..." />;
-    }
+  const handleTryAgain = () => {
+    navigate('/booking/payment', {
+      state: {
+        bookingId: errorData.bookingId,
+        bookingCode: errorData.bookingCode,
+        movieTitle: errorData.movieTitle,
+        moviePoster: errorData.moviePoster,
+        cinemaName: errorData.cinemaName,
+        cinemaAddress: errorData.cinemaAddress,
+        roomName: errorData.screen,
+        selectedSeats: errorData.seatNumbers
+          ? errorData.seatNumbers.split(', ').map((seat) => ({ name: seat, seatLabel: seat, price: 0 }))
+          : [],
+        showDate: errorData.showDate,
+        showTime: errorData.showTime,
+        totalAmount: errorData.totalAmount,
+      },
+    });
+  };
 
-    const {
-        errorMessage = 'Rất tiếc, giao dịch của bạn không thể hoàn tất do thông tin thẻ không hợp lệ. Vui lòng kiểm tra lại và thử lại.',
-        movieTitle = '',
-        cinemaName = '',
-        showTime = '',
-        showDate = '',
-        seatNumbers = '',
-        totalAmount = '0đ',
-        reason = 'Thanh toán không thành công.',
-        bookingCode = ''
-    } = errorData;
+  if (loading) {
+    return <ContentLoader message="Đang tải thông tin..." />;
+  }
 
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center py-10 px-5">
-            <div className="max-w-[800px] w-full mt-6">
-                {/* <div className="flex justify-center mb-8">
-                    <div className="w-28 h-28 rounded-full bg-red-100 flex items-center justify-center shadow-lg animate-pulse">
-                        <XCircle className="w-16 h-16 text-red-600" />
-                    </div>
-                </div> */}
+  const {
+    errorMessage = 'Giao dịch chưa được hoàn tất. Bạn có thể kiểm tra lại thông tin và thử thanh toán lần nữa.',
+    movieTitle = '',
+    cinemaName = '',
+    showTime = '',
+    showDate = '',
+    seatNumbers = '',
+    totalAmount = '0đ',
+    reason = '',
+    bookingCode = '',
+  } = errorData;
 
-                <h2 className="text-center text-foreground mb-4 text-3xl md:text-4xl font-bold">
-                    Thanh toán không thành công
-                </h2>
+  const details = [
+    movieTitle && ['Phim', movieTitle],
+    cinemaName && ['Rạp', cinemaName],
+    showTime && ['Suất chiếu', `${showTime}${showDate ? ` · ${dayjs(showDate).format('DD/MM/YYYY')}` : ''}`],
+    seatNumbers && ['Ghế', seatNumbers],
+    bookingCode && ['Mã đặt vé', bookingCode],
+  ].filter(Boolean);
 
-                {/* <p className="block text-center text-muted-foreground mb-2 text-base md:text-lg max-w-2xl mx-auto">
-                    {errorMessage}
-                </p> */}
-                
-                {reason && reason !== 'Thanh toán không thành công.' && (
-                    <p className="block text-center text-muted-foreground mb-8 text-sm">
-                        Lý do: {reason}
-                    </p>
-                )}
-
-                <Card className="bg-card rounded-xl shadow-xl border border-border mb-6 overflow-hidden">
-                    <div className="bg-gradient-to-r from-primary to-red-600 p-4">
-                        <p className="text-white text-lg font-bold">Tóm tắt đơn hàng</p>
-                    </div>
-
-                    <div className="p-6 space-y-4">
-                        {movieTitle && (
-                            <div className="flex justify-between items-start py-2">
-                                <p className="text-muted-foreground font-medium text-sm">Phim:</p>
-                                <p className="text-foreground font-semibold text-right flex-1 ml-4 text-sm">{movieTitle}</p>
-                            </div>
-                        )}
-
-                        {cinemaName && (
-                            <div className="flex justify-between items-start py-2">
-                                <p className="text-muted-foreground font-medium text-sm">Rạp:</p>
-                                <p className="text-foreground font-semibold text-right flex-1 ml-4 text-sm">{cinemaName}</p>
-                            </div>
-                        )}
-
-                        {showTime && (
-                            <div className="flex justify-between items-start py-2">
-                                <p className="text-muted-foreground font-medium text-sm">Suất chiếu:</p>
-                                <p className="text-foreground font-semibold text-right flex-1 ml-4 text-sm">
-                                    {showTime} - {showDate ? dayjs(showDate).format('DD/MM/YYYY') : ''}
-                                </p>
-                            </div>
-                        )}
-
-                        {seatNumbers && (
-                            <div className="flex justify-between items-start py-2">
-                                <p className="text-muted-foreground font-medium text-sm">Số vé:</p>
-                                <p className="text-foreground font-semibold text-right flex-1 ml-4 text-sm">{seatNumbers}</p>
-                            </div>
-                        )}
-
-                        {bookingCode && (
-                            <div className="flex justify-between items-start py-2">
-                                <p className="text-muted-foreground font-medium text-sm">Mã đặt vé:</p>
-                                <p className="text-foreground font-semibold text-right flex-1 ml-4 text-sm font-mono">{bookingCode}</p>
-                            </div>
-                        )}
-
-                        <div className="border-t border-border my-4"></div>
-
-                        <div className="flex justify-between items-center pt-2">
-                            <p className="text-foreground font-bold text-lg">Tổng cộng:</p>
-                            <p className="text-red-600 font-bold text-xl">{totalAmount}</p>
-                        </div>
-                    </div>
-
-                    <div className="mx-6 mb-6 flex items-center gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                        <XCircle className="text-yellow-600 text-xl flex-shrink-0" />
-                        <p className="text-yellow-800 text-sm">
-                            <strong>Lưu ý:</strong> Ghế của bạn sẽ được giữ trong thời gian nhất định. Vui lòng hoàn tất thanh toán để giữ chỗ.
-                        </p>
-                    </div>
-                </Card>
-
-                <div className="flex flex-col gap-3 mb-6">
-                    <Button
-                        onClick={handleTryAgain}
-                        className="h-12 rounded-lg font-semibold bg-primary hover:bg-red-700 text-white"
-                    >
-                        <RotateCcw className="h-4 w-4 mr-2" />
-                        Thử lại thanh toán
-                    </Button>
-                    <Button
-                        onClick={handleBackToHome}
-                        variant="outline"
-                        className="h-12 rounded-lg font-semibold border-2"
-                    >
-                        <Home className="h-4 w-4 mr-2" />
-                        Về trang chủ
-                    </Button>
-                </div>
-
-            </div>
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-background px-4 py-16 text-foreground">
+      <div className="w-full max-w-2xl space-y-6">
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+            <XCircle className="h-7 w-7" />
+          </div>
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Thanh toán không thành công</h1>
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+            Đơn đặt vé chưa được thanh toán. Thông tin bên dưới được giữ lại để bạn có thể kiểm tra và thử lại.
+          </p>
         </div>
-    );
+
+        <Alert type="error" showIcon message="Giao dịch chưa hoàn tất" description={errorMessage} />
+        {reason && reason !== 'Thanh toán không thành công.' && (
+          <Alert type="warning" showIcon message="Lý do" description={reason} />
+        )}
+
+        <Card className="shadow-sm">
+          <CardHeader className="border-b border-border">
+            <CardTitle className="text-lg">Tóm tắt đơn hàng</CardTitle>
+          </CardHeader>
+
+          <CardContent className="space-y-4 pt-6">
+            {details.map(([label, value]) => (
+              <div key={label} className="flex items-start justify-between gap-6 text-sm">
+                <span className="shrink-0 text-muted-foreground">{label}</span>
+                <span className={label === 'Mã đặt vé' ? 'text-right font-mono font-medium' : 'text-right font-medium'}>
+                  {value}
+                </span>
+              </div>
+            ))}
+
+            <Separator />
+
+            <div className="flex items-center justify-between gap-6">
+              <span className="font-semibold">Tổng cộng</span>
+              <span className="text-xl font-semibold text-primary">{totalAmount}</span>
+            </div>
+          </CardContent>
+
+          <CardFooter className="flex-col items-stretch gap-3 border-t border-border pt-6 sm:flex-row">
+            <Button type="button" className="flex-1" onClick={handleTryAgain}>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Thử lại thanh toán
+            </Button>
+            <Button type="button" variant="outline" className="flex-1" onClick={() => navigate('/')}>
+              <Home className="mr-2 h-4 w-4" />
+              Về trang chủ
+            </Button>
+          </CardFooter>
+        </Card>
+
+        <Alert
+          type="info"
+          showIcon
+          description="Ghế chỉ được giữ trong thời gian giới hạn. Nếu thời gian giữ chỗ hết hạn, bạn cần chọn lại ghế trước khi thanh toán."
+        />
+      </div>
+    </div>
+  );
 };
 
 export default BookingFailed;
