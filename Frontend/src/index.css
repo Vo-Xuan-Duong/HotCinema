@@ -1,3 +1,4 @@
+@import './styles/shadcn-system.css';
 /* Tailwind CSS directives */
 @tailwind base;
 @tailwind components;
