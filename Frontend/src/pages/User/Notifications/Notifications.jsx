@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Bell, Check, Eye, Gift, Loader2, Settings, Ticket, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Empty } from '@/components/ui/empty';
 import { StatusBadge } from '@/components/ui/status-badge';
 import notificationService from '@/services/notificationService';
@@ -97,69 +97,104 @@ const Notifications = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background px-4 py-8">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <Card>
-          <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-2xl"><Bell className="h-5 w-5" />Thông báo</CardTitle>
-              <p className="mt-2 text-sm text-muted-foreground">{unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : 'Tất cả thông báo đã được đọc'}</p>
+    <main className="min-h-screen bg-background px-4 pb-8 pt-20 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-6xl">
+        <header className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-primary" />
+              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Thông báo</h1>
             </div>
-            {unreadCount > 0 && (
-              <Button onClick={markAllAsRead} disabled={markingAll}>
-                {markingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                Đánh dấu tất cả đã đọc
-              </Button>
-            )}
-          </CardHeader>
-        </Card>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : 'Tất cả thông báo đã được đọc'}
+            </p>
+          </div>
 
-        {loading ? (
-          <div className="flex min-h-48 items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Đang tải thông báo...</div>
-        ) : items.length === 0 ? (
-          <Empty description="Không có thông báo nào" />
-        ) : (
-          <div className="space-y-3">
-            {items.map((item) => {
-              const meta = notificationMeta(item.type);
-              const Icon = meta.icon;
-              const isRead = item.isRead ?? item.read ?? false;
-              const busy = busyId === item.id;
-              return (
-                <Card key={item.id} className={isRead ? '' : 'border-primary/30 bg-primary/[0.03]'}>
-                  <CardContent className="flex gap-4 p-4 sm:p-5">
-                    <div className="rounded-md border bg-muted/40 p-2.5"><Icon className="h-5 w-5 text-muted-foreground" /></div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <h3 className="font-medium text-foreground">{item.title || 'Thông báo'}</h3>
-                          <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{item.content || item.message || 'Không có nội dung'}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
+          {unreadCount > 0 && (
+            <Button size="sm" onClick={markAllAsRead} disabled={markingAll}>
+              {markingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              Đánh dấu tất cả đã đọc
+            </Button>
+          )}
+        </header>
+
+        <Card>
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="flex min-h-40 items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Đang tải thông báo...
+              </div>
+            ) : items.length === 0 ? (
+              <Empty description="Không có thông báo nào" className="min-h-40" />
+            ) : (
+              <div className="divide-y divide-border">
+                {items.map((item) => {
+                  const meta = notificationMeta(item.type);
+                  const Icon = meta.icon;
+                  const isRead = item.isRead ?? item.read ?? false;
+                  const busy = busyId === item.id;
+
+                  return (
+                    <article
+                      key={item.id}
+                      className={`grid gap-3 p-3 transition-colors sm:grid-cols-[36px_minmax(0,1fr)_auto] sm:items-start ${isRead ? 'bg-card' : 'bg-primary/[0.035]'}`}
+                    >
+                      <div className="flex h-9 w-9 items-center justify-center rounded-md border bg-muted/40">
+                        <Icon className="h-4 w-4 text-muted-foreground" />
+                      </div>
+
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <h2 className="min-w-0 font-medium text-foreground">{item.title || 'Thông báo'}</h2>
                           <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>
                           {!isRead && <StatusBadge tone="info">Mới</StatusBadge>}
                         </div>
+                        <p className="mt-1 whitespace-pre-wrap text-sm leading-5 text-muted-foreground">
+                          {item.content || item.message || 'Không có nội dung'}
+                        </p>
+                        {item.createdAt && (
+                          <p className="mt-1.5 text-xs text-muted-foreground">
+                            {new Date(item.createdAt).toLocaleString('vi-VN')}
+                          </p>
+                        )}
                       </div>
-                      <p className="mt-3 text-xs text-muted-foreground">{item.createdAt ? new Date(item.createdAt).toLocaleString('vi-VN') : ''}</p>
-                      <div className="mt-3 flex flex-wrap gap-2">
+
+                      <div className="flex items-center gap-1 sm:justify-end">
                         {!isRead && (
-                          <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => markAsRead(item)}>
-                            <Eye className="h-4 w-4" />Đã đọc
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            disabled={busy}
+                            onClick={() => markAsRead(item)}
+                            aria-label="Đánh dấu đã đọc"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
                           </Button>
                         )}
-                        <Button type="button" variant="ghost" size="sm" disabled={busy} className="text-destructive hover:text-destructive" onClick={() => deleteNotification(item)}>
-                          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}Xóa
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          disabled={busy}
+                          onClick={() => deleteNotification(item)}
+                          aria-label="Xóa thông báo"
+                        >
+                          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                         </Button>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
-    </div>
+    </main>
   );
 };
 
