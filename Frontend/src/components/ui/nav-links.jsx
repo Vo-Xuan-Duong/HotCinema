@@ -12,6 +12,7 @@ const NavLinks = ({
   currentPath,
   onNavigate,
   orientation = 'horizontal',
+  compact = false,
   className,
 }) => (
   <nav
@@ -29,19 +30,20 @@ const NavLinks = ({
           key={link.href}
           type="button"
           aria-current={active ? 'page' : undefined}
-          title={link.label}
+          title={compact ? link.label : undefined}
           onClick={() => onNavigate?.(link.href, link)}
           className={cn(
             'flex min-h-10 items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium outline-none transition-colors',
             'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             orientation === 'vertical' && 'w-full',
+            compact && orientation === 'vertical' && 'justify-center px-2',
             'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
             active && 'bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary',
             link.className
           )}
         >
           {link.icon && <span className="shrink-0">{link.icon}</span>}
-          <span className="truncate">{link.label}</span>
+          <span className={cn('truncate', compact && 'sr-only')}>{link.label}</span>
         </button>
       );
     })}
