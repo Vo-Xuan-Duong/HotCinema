@@ -4,7 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import ContentLoader from '@/components/Loading/ContentLoader';
 import MovieCard from '@/components/MovieCard/MovieCard';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Empty } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -53,10 +53,10 @@ const SearchResults = () => {
 
         const [moviesResponse, cinemasResponse] = await Promise.all([
           shouldSearchMovies
-            ? movieService.searchPage({ keyword: query, page: 0, size: 24 })
+            ? movieService.searchPage({ keyword: query, page: 0, size: 28 })
             : Promise.resolve([]),
           shouldSearchCinemas
-            ? cinemaService.searchCinemas(query, { page: 0, size: 18 })
+            ? cinemaService.searchCinemas(query, { page: 0, size: 20 })
             : Promise.resolve([]),
         ]);
 
@@ -99,16 +99,18 @@ const SearchResults = () => {
   };
 
   return (
-    <div className="min-h-dvh bg-background px-4 pb-16 pt-20 text-foreground sm:px-6 lg:px-8">
+    <div className="min-h-dvh bg-background px-4 pb-8 pt-20 text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-7xl">
-        <header className="mb-8 space-y-2">
-          <p className="text-sm font-medium text-primary">HotCinema</p>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Tìm kiếm</h1>
-          <p className="text-sm text-muted-foreground sm:text-base">Tìm phim hoặc rạp chiếu phù hợp với nhu cầu của bạn.</p>
+        <header className="mb-4 flex flex-col gap-1 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
+          <div>
+            <p className="text-xs font-medium text-primary">HotCinema</p>
+            <h1 className="mt-0.5 text-2xl font-semibold tracking-tight sm:text-3xl">Tìm kiếm</h1>
+          </div>
+          <p className="max-w-2xl text-sm text-muted-foreground">Tìm phim hoặc rạp chiếu phù hợp với nhu cầu của bạn.</p>
         </header>
 
-        <Card className="mb-8 shadow-sm">
-          <CardContent className="grid gap-3 pt-6 md:grid-cols-[minmax(0,1fr)_200px_auto]">
+        <Card className="mb-5">
+          <CardContent className="grid gap-2 p-3 md:grid-cols-[minmax(0,1fr)_180px_auto]">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -116,12 +118,12 @@ const SearchResults = () => {
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 onKeyDown={(event) => event.key === 'Enter' && submitSearch()}
-                className="h-10 pl-9"
+                className="pl-9"
               />
             </div>
 
             <Select value={searchType} onValueChange={handleTypeChange}>
-              <SelectTrigger className="h-10">
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -131,8 +133,8 @@ const SearchResults = () => {
               </SelectContent>
             </Select>
 
-            <Button type="button" className="h-10" onClick={submitSearch} disabled={!searchQuery.trim()}>
-              <Search className="mr-2 h-4 w-4" />
+            <Button type="button" onClick={submitSearch} disabled={!searchQuery.trim()}>
+              <Search className="h-4 w-4" />
               Tìm kiếm
             </Button>
           </CardContent>
@@ -141,10 +143,10 @@ const SearchResults = () => {
         {loading ? (
           <ContentLoader message="Đang tìm kiếm..." />
         ) : searchParams.get('q') ? (
-          <div className="space-y-8">
-            <div>
-              <h2 className="text-xl font-semibold">Kết quả cho “{searchParams.get('q')}”</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Tìm thấy {results.total} kết quả.</p>
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <h2 className="text-lg font-semibold">Kết quả cho “{searchParams.get('q')}”</h2>
+              <p className="text-sm text-muted-foreground">{results.total} kết quả</p>
             </div>
 
             {results.total === 0 ? (
@@ -157,8 +159,8 @@ const SearchResults = () => {
               <>
                 {results.movies.length > 0 && (
                   <section>
-                    <h3 className="mb-4 text-lg font-semibold">Phim ({results.movies.length})</h3>
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                    <h3 className="mb-3 text-base font-semibold">Phim ({results.movies.length})</h3>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
                       {results.movies.map((movie) => (
                         <MovieCard key={movie.id} movie={movie} />
                       ))}
@@ -168,29 +170,29 @@ const SearchResults = () => {
 
                 {results.cinemas.length > 0 && (
                   <section>
-                    <h3 className="mb-4 text-lg font-semibold">Rạp chiếu ({results.cinemas.length})</h3>
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <h3 className="mb-3 text-base font-semibold">Rạp chiếu ({results.cinemas.length})</h3>
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                       {results.cinemas.map((cinema) => (
-                        <Card key={cinema.id} className="flex h-full flex-col shadow-sm transition-colors hover:border-primary/40">
-                          <CardHeader className="pb-3">
-                            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                              <Building2 className="h-5 w-5" />
+                        <Card key={cinema.id} className="flex h-full flex-col transition-colors hover:border-primary/40">
+                          <CardContent className="flex h-full flex-col gap-2.5 p-4">
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                                <Building2 className="h-4 w-4" />
+                              </div>
+                              <Link to={`/cinemas/${cinema.id}`} className="line-clamp-2 text-sm font-semibold hover:text-primary">{cinema.name}</Link>
                             </div>
-                            <CardTitle className="text-lg">
-                              <Link to={`/cinemas/${cinema.id}`} className="hover:text-primary">{cinema.name}</Link>
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent className="flex flex-1 flex-col gap-3">
                             <div className="flex items-start gap-2 text-sm text-muted-foreground">
                               <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                              <span className="line-clamp-3">{cinema.address || 'Chưa cập nhật địa chỉ'}</span>
+                              <span className="line-clamp-2">{cinema.address || 'Chưa cập nhật địa chỉ'}</span>
                             </div>
-                            {cinema.rooms?.length > 0 && (
-                              <p className="text-xs text-muted-foreground">{cinema.rooms.length} phòng chiếu</p>
-                            )}
-                            <Button asChild variant="outline" className="mt-auto w-full">
-                              <Link to={`/cinemas/${cinema.id}`}>Xem rạp</Link>
-                            </Button>
+                            <div className="mt-auto flex items-center justify-between gap-2 pt-1">
+                              <span className="text-xs text-muted-foreground">
+                                {cinema.rooms?.length > 0 ? `${cinema.rooms.length} phòng chiếu` : 'Thông tin rạp'}
+                              </span>
+                              <Button asChild variant="outline" size="sm">
+                                <Link to={`/cinemas/${cinema.id}`}>Xem rạp</Link>
+                              </Button>
+                            </div>
                           </CardContent>
                         </Card>
                       ))}
