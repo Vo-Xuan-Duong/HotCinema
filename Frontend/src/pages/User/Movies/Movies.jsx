@@ -2,11 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import MovieCard from '@/components/MovieCard/MovieCard';
-import GlobalBackTop from '@/components/GlobalBackTop/GlobalBackTop';
 import ContentLoader from '@/components/Loading/ContentLoader';
 import { BadgeRibbon } from '@/components/ui/badge-ribbon';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Empty } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
@@ -175,43 +174,55 @@ const Movies = () => {
     setCurrentPage(1);
   };
 
+  const hasActiveFilters = Boolean(
+    searchText.trim()
+    || selectedGenre !== 'all'
+    || selectedStatus !== 'all'
+    || selectedYear !== 'all'
+    || sort !== 'id:desc'
+  );
+
   if (loading && movies.length === 0) {
     return <ContentLoader message="Đang tải danh sách phim..." />;
   }
 
   return (
-    <div className="min-h-dvh bg-background pb-16 pt-20 text-foreground">
+    <div className="min-h-dvh bg-background pb-8 pt-20 text-foreground">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        <header className="mb-8 space-y-2">
-          <p className="text-sm font-medium text-primary">HotCinema</p>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Phim đang chiếu & sắp chiếu</h1>
-          <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-            Tìm phim theo thể loại, trạng thái và năm phát hành, sau đó chọn suất chiếu phù hợp với bạn.
-          </p>
+        <header className="mb-4 flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-primary">HotCinema</p>
+            <h1 className="mt-0.5 text-2xl font-semibold tracking-tight sm:text-3xl">Phim đang chiếu & sắp chiếu</h1>
+            <p className="mt-1 max-w-3xl text-sm leading-5 text-muted-foreground">
+              Lọc nhanh theo thể loại, trạng thái, năm phát hành và chọn suất chiếu phù hợp.
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
+            <span>{totalMovies > 0 ? `${totalMovies.toLocaleString('vi-VN')} phim` : 'Không có kết quả'}</span>
+            {loading && <span className="text-xs">· Đang cập nhật</span>}
+          </div>
         </header>
 
-        <Card className="mb-8 shadow-sm">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <SlidersHorizontal className="h-4 w-4 text-primary" />
-              Bộ lọc phim
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-              <div className="relative sm:col-span-2 lg:col-span-1">
+        <Card className="mb-4">
+          <CardContent className="p-3">
+            <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
+              Bộ lọc
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[minmax(260px,1.4fr)_180px_180px_150px_180px_auto]">
+              <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={searchText}
                   onChange={(event) => setSearchText(event.target.value)}
                   placeholder="Tìm kiếm phim..."
-                  className="h-9 pl-9"
+                  className="pl-9"
                   aria-label="Tìm kiếm phim"
                 />
               </div>
 
               <Select value={selectedGenre} onValueChange={setSelectedGenre}>
-                <SelectTrigger className="h-9">
+                <SelectTrigger>
                   <SelectValue placeholder="Tất cả thể loại" />
                 </SelectTrigger>
                 <SelectContent>
@@ -225,7 +236,7 @@ const Movies = () => {
               </Select>
 
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="h-9">
+                <SelectTrigger>
                   <SelectValue placeholder="Tất cả trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
@@ -237,7 +248,7 @@ const Movies = () => {
               </Select>
 
               <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="h-9">
+                <SelectTrigger>
                   <SelectValue placeholder="Tất cả năm" />
                 </SelectTrigger>
                 <SelectContent>
@@ -249,7 +260,7 @@ const Movies = () => {
               </Select>
 
               <Select value={sort} onValueChange={setSort}>
-                <SelectTrigger className="h-9">
+                <SelectTrigger>
                   <SelectValue placeholder="Sắp xếp" />
                 </SelectTrigger>
                 <SelectContent>
@@ -260,23 +271,16 @@ const Movies = () => {
                 </SelectContent>
               </Select>
 
-              <Button type="button" variant="outline" className="h-9" onClick={resetFilters}>
+              <Button type="button" variant="outline" disabled={!hasActiveFilters} onClick={resetFilters}>
                 Đặt lại
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        <div className="mb-5 flex items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
-            {totalMovies > 0 ? `${totalMovies.toLocaleString('vi-VN')} phim` : 'Không có kết quả'}
-          </p>
-          {loading && <span className="text-xs text-muted-foreground">Đang cập nhật...</span>}
-        </div>
-
         {movies.length > 0 ? (
           <>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
               {movies.map((movie) => {
                 const status = movieStatusPresentation[getMovieStatus(movie)];
                 return (
@@ -287,7 +291,7 @@ const Movies = () => {
               })}
             </div>
 
-            <div className="mt-8 flex justify-center">
+            <div className="mt-5 border-t border-border pt-3">
               <Pagination
                 page={currentPage}
                 itemsPerPage={pageSize}
@@ -306,12 +310,12 @@ const Movies = () => {
           </>
         ) : (
           <Card>
-            <CardContent className="py-4">
+            <CardContent className="py-3">
               <Empty
                 description={
-                  <div className="flex flex-col items-center gap-3">
+                  <div className="flex flex-col items-center gap-2">
                     <p>Không tìm thấy phim phù hợp với bộ lọc hiện tại.</p>
-                    <Button type="button" variant="outline" onClick={resetFilters}>Đặt lại bộ lọc</Button>
+                    <Button type="button" variant="outline" size="sm" onClick={resetFilters}>Đặt lại bộ lọc</Button>
                   </div>
                 }
               />
@@ -319,8 +323,6 @@ const Movies = () => {
           </Card>
         )}
       </div>
-
-      <GlobalBackTop />
     </div>
   );
 };
