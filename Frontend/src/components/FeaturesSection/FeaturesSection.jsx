@@ -1,21 +1,21 @@
 import { Armchair, Film, Smartphone, Volume2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 
 const features = [
   {
     icon: Film,
     title: 'Phim mới nhất',
-    description: 'Cập nhật những bộ phim mới và các suất chiếu đang có tại hệ thống HotCinema.',
+    description: 'Cập nhật phim mới và các suất chiếu hiện có tại HotCinema.',
   },
   {
     icon: Volume2,
     title: 'Âm thanh chất lượng',
-    description: 'Trải nghiệm không gian âm thanh và hình ảnh được tối ưu cho từng phòng chiếu.',
+    description: 'Không gian âm thanh và hình ảnh được tối ưu cho từng phòng chiếu.',
   },
   {
     icon: Armchair,
     title: 'Ghế ngồi thoải mái',
-    description: 'Theo dõi sơ đồ ghế trực quan và chọn vị trí phù hợp trước khi thanh toán.',
+    description: 'Sơ đồ ghế trực quan giúp chọn nhanh vị trí phù hợp trước khi thanh toán.',
   },
   {
     icon: Smartphone,
@@ -25,27 +25,29 @@ const features = [
 ];
 
 const FeaturesSection = () => (
-  <section className="border-y border-border bg-background py-10 sm:py-12">
+  <section className="border-y border-border bg-background py-6">
     <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto mb-6 max-w-2xl text-center">
-        <p className="text-sm font-medium text-primary">Trải nghiệm HotCinema</p>
-        <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Tại sao chọn HotCinema?</h2>
-        <p className="mt-3 text-sm leading-6 text-muted-foreground sm:text-base">
+      <div className="mb-4 flex flex-col gap-1 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
+        <div>
+          <p className="text-xs font-medium text-primary">Trải nghiệm HotCinema</p>
+          <h2 className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">Tại sao chọn HotCinema?</h2>
+        </div>
+        <p className="max-w-2xl text-sm leading-5 text-muted-foreground">
           Một hành trình đặt vé rõ ràng, nhất quán và dễ sử dụng trên mọi thiết bị.
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {features.map(({ icon: Icon, title, description }) => (
-          <Card key={title} className="h-full shadow-sm transition-colors hover:border-primary/40">
-            <CardHeader className="pb-3">
-              <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Icon className="h-5 w-5" />
+          <Card key={title} className="h-full transition-colors hover:border-primary/40">
+            <CardContent className="flex h-full items-start gap-3 p-4">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <Icon className="h-4 w-4" />
               </div>
-              <CardTitle className="text-base">{title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm leading-6 text-muted-foreground">{description}</p>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+                <p className="mt-1 text-sm leading-5 text-muted-foreground">{description}</p>
+              </div>
             </CardContent>
           </Card>
         ))}
