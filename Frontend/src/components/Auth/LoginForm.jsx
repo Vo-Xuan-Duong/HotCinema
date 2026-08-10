@@ -12,6 +12,12 @@ import useAuth from '@/hooks/useAuth';
 import useNotification from '@/hooks/useNotification';
 import { signInWithGoogle } from '@/utils/googleAuth';
 
+const resolveRedirectTarget = (from) => {
+  if (typeof from === 'string' && from.startsWith('/')) return from;
+  if (from?.pathname) return `${from.pathname}${from.search || ''}`;
+  return '/';
+};
+
 const LoginForm = ({ onSwitchToRegister, onClose }) => {
   const [formData, setFormData] = useState({ email: '', password: '', rememberMe: false });
   const [errors, setErrors] = useState({});
@@ -41,7 +47,7 @@ const LoginForm = ({ onSwitchToRegister, onClose }) => {
       onClose();
       return;
     }
-    navigate(location.state?.from?.pathname || '/');
+    navigate(resolveRedirectTarget(location.state?.from), { replace: true });
   };
 
   const handleSubmit = async (event) => {
@@ -56,12 +62,11 @@ const LoginForm = ({ onSwitchToRegister, onClose }) => {
       setErrors({});
       redirectAfterLogin();
     } catch (error) {
-      const status = error?.status;
-      const errorData = error?.data;
-      let message = error?.message || 'Đăng nhập thất bại. Vui lòng thử lại!';
+      const status = error?.status ?? error?.response?.status;
+      const errorData = error?.response?.data;
+      let message = errorData?.message || error?.message || 'Đăng nhập thất bại. Vui lòng thử lại!';
 
-      if (errorData?.message) message = errorData.message;
-      else if (typeof errorData?.error === 'string') message = errorData.error;
+      if (typeof errorData?.error === 'string') message = errorData.error;
 
       if (status === 401) {
         setErrors({ password: message || 'Email hoặc mật khẩu không đúng.' });
