@@ -77,7 +77,7 @@ const AdminLayout = () => {
         <AdminHeader user={user} onNavigate={handleNavigate} onLogout={handleLogout} />
 
         <div className="flex-1 bg-muted/30">
-          <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8">
+          <div className="mx-auto w-full max-w-[1600px] p-3 sm:p-4 lg:p-5">
             <ScrollToTop />
             <Outlet />
           </div>
