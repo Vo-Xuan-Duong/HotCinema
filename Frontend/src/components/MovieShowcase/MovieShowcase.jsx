@@ -100,7 +100,7 @@ const MovieShowcase = ({
 
   if (loading) {
     return (
-      <section className="py-8 sm:py-10">
+      <section className="py-6 sm:py-8">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
           <Skeleton className="mb-6 h-8 w-56" />
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5">
@@ -118,9 +118,9 @@ const MovieShowcase = ({
   }
 
   return (
-    <section className="py-8 sm:py-10">
+    <section className="py-6 sm:py-8">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
               <Star className="h-5 w-5" />

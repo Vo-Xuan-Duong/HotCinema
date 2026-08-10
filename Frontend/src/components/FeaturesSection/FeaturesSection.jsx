@@ -25,9 +25,9 @@ const features = [
 ];
 
 const FeaturesSection = () => (
-  <section className="border-y border-border bg-background py-14 sm:py-16">
+  <section className="border-y border-border bg-background py-10 sm:py-12">
     <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto mb-8 max-w-2xl text-center">
+      <div className="mx-auto mb-6 max-w-2xl text-center">
         <p className="text-sm font-medium text-primary">Trải nghiệm HotCinema</p>
         <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Tại sao chọn HotCinema?</h2>
         <p className="mt-3 text-sm leading-6 text-muted-foreground sm:text-base">

@@ -94,7 +94,7 @@ const HeroModern = ({ movies = [] }) => {
   const currentItem = displayMovies[currentIndex];
 
   return (
-    <section className="relative flex min-h-[68vh] items-center overflow-hidden bg-background text-foreground">
+    <section className="relative flex min-h-[60vh] items-center overflow-hidden bg-background text-foreground">
       {currentItem.image && (
         <div className="absolute inset-0">
           <div
@@ -106,7 +106,7 @@ const HeroModern = ({ movies = [] }) => {
         </div>
       )}
 
-      <div className="relative z-10 mx-auto grid w-full max-w-7xl gap-8 px-4 py-12 text-white sm:px-6 lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-12 lg:px-8">
+      <div className="relative z-10 mx-auto grid w-full max-w-7xl gap-8 px-4 py-8 sm:py-10 text-white sm:px-6 lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-12 lg:px-8">
         <div className="flex min-w-0 flex-col justify-center">
           <div>
             <StatusBadge tone={currentItem.badge === 'ĐANG CHIẾU' ? 'success' : 'warning'}>
