@@ -1,391 +1,307 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { CheckCircle2, Download, Mail, Calendar } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import ContentLoader from '@/components/Loading/ContentLoader';
-import useNotification from '@/hooks/useNotification';
-import paymentService from '@/services/paymentService';
-import bookingService from '@/services/bookingService';
-import ticketService from '@/services/ticketService';
-import emailService from '@/services/emailService';
-import QRCode from 'qrcode';
+import { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
+import QRCode from 'qrcode';
+import { CheckCircle2, Download, Home, Mail } from 'lucide-react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import ContentLoader from '@/components/Loading/ContentLoader';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import bookingService from '@/services/bookingService';
+import emailService from '@/services/emailService';
+import ticketService from '@/services/ticketService';
+import useNotification from '@/hooks/useNotification';
+
+const readStoredBooking = () => {
+  try {
+    return JSON.parse(localStorage.getItem('lastBooking') || '{}');
+  } catch {
+    return {};
+  }
+};
+
+const formatDate = (value) => {
+  if (!value) return '';
+  const date = dayjs(value);
+  return date.isValid() ? date.locale('vi').format('DD/MM/YYYY') : String(value);
+};
+
+const formatTime = (value) => {
+  if (!value) return '';
+  const text = String(value);
+  if (/^\d{2}:\d{2}/.test(text)) return text.slice(0, 5);
+  const time = dayjs(`2000-01-01 ${text}`);
+  return time.isValid() ? time.format('HH:mm') : text;
+};
+
+const formatAmount = (value) => {
+  const amount = typeof value === 'number' ? value : Number.parseFloat(value || 0);
+  return `${(Number.isFinite(amount) ? amount : 0).toLocaleString('vi-VN')}đ`;
+};
 
 const BookingSuccess = () => {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const [searchParams] = useSearchParams();
-    const notification = useNotification();
-    const [qrCodeUrl, setQrCodeUrl] = useState('');
-    const [loading, setLoading] = useState(true);
-    const [bookingData, setBookingData] = useState({});
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const notification = useNotification();
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [bookingData, setBookingData] = useState({});
 
-    const bookingCodeParam = searchParams.get('bookingCode') ||
-        location.state?.bookingData?.bookingCode ||
-        JSON.parse(localStorage.getItem('lastBooking') || '{}').bookingCode;
+  const bookingCodeParam = searchParams.get('bookingCode')
+    || location.state?.bookingData?.bookingCode
+    || readStoredBooking().bookingCode;
 
-    useEffect(() => {
-        const fetchBookingDetails = async () => {
-            try {
-                setLoading(true);
+  useEffect(() => {
+    let cancelled = false;
 
-                if (bookingCodeParam) {
-                    const bookingDetails = await bookingService.getBookingByCode(bookingCodeParam);
+    const createQrCode = async (bookingCode) => {
+      if (!bookingCode) return '';
+      return QRCode.toDataURL(`BOOKING:${bookingCode}`, {
+        width: 300,
+        margin: 2,
+        color: { dark: '#000000', light: '#FFFFFF' },
+      });
+    };
 
-                    // Extract seat information from SeatSnapshot list
-                    let seatInfo = 'Chưa có thông tin ghế';
-                    if (bookingDetails.seats && Array.isArray(bookingDetails.seats) && bookingDetails.seats.length > 0) {
-                        // SeatSnapshot may have seatName, name, or seatNumber property
-                        seatInfo = bookingDetails.seats
-                            .map(seat => seat.seatName || seat.name || seat.seatNumber || seat.id)
-                            .filter(Boolean)
-                            .join(', ');
-                    }
+    const fetchBookingDetails = async () => {
+      setLoading(true);
 
-                    // Format showtime date from LocalDate
-                    let formattedShowDate = '';
-                    if (bookingDetails.showtimeDateTime) {
-                        try {
-                            // Handle LocalDate format (YYYY-MM-DD) or ISO string
-                            const dateStr = bookingDetails.showtimeDateTime;
-                            const date = dayjs(dateStr);
-                            if (date.isValid()) {
-                                formattedShowDate = date.format('dddd, DD [Tháng] MM, YYYY');
-                                // Convert to Vietnamese day names
-                                formattedShowDate = formattedShowDate
-                                    .replace('Monday', 'Thứ Hai')
-                                    .replace('Tuesday', 'Thứ Ba')
-                                    .replace('Wednesday', 'Thứ Tư')
-                                    .replace('Thursday', 'Thứ Năm')
-                                    .replace('Friday', 'Thứ Sáu')
-                                    .replace('Saturday', 'Thứ Bảy')
-                                    .replace('Sunday', 'Chủ Nhật');
-                            }
-                        } catch (e) {
-                            console.warn('Error formatting showtime date:', e);
-                        }
-                    }
+      try {
+        if (bookingCodeParam) {
+          const bookingDetails = await bookingService.getBookingByCode(bookingCodeParam);
+          if (cancelled) return;
 
-                    // Format showtime start time from LocalTime
-                    let formattedStartTime = '';
-                    if (bookingDetails.showtimeStartTime) {
-                        try {
-                            // Handle LocalTime format (HH:mm:ss or HH:mm)
-                            const timeStr = bookingDetails.showtimeStartTime;
-                            if (/^\d{2}:\d{2}:\d{2}/.test(timeStr)) {
-                                formattedStartTime = timeStr.substring(0, 5); // Extract HH:mm
-                            } else if (/^\d{2}:\d{2}$/.test(timeStr)) {
-                                formattedStartTime = timeStr;
-                            } else {
-                                const time = dayjs(`2000-01-01 ${timeStr}`);
-                                if (time.isValid()) {
-                                    formattedStartTime = time.format('HH:mm');
-                                }
-                            }
-                        } catch (e) {
-                            console.warn('Error formatting showtime start time:', e);
-                            formattedStartTime = bookingDetails.showtimeStartTime;
-                        }
-                    }
+          const seats = Array.isArray(bookingDetails.seats) ? bookingDetails.seats : [];
+          const seatNumbers = seats.length
+            ? seats.map((seat) => seat.seatName || seat.name || seat.seatNumber || seat.id).filter(Boolean).join(', ')
+            : 'Chưa có thông tin ghế';
 
-                    // Format showtime end time from LocalTime
-                    let formattedEndTime = '';
-                    if (bookingDetails.showtimeEndTime) {
-                        try {
-                            const timeStr = bookingDetails.showtimeEndTime;
-                            if (/^\d{2}:\d{2}:\d{2}/.test(timeStr)) {
-                                formattedEndTime = timeStr.substring(0, 5);
-                            } else if (/^\d{2}:\d{2}$/.test(timeStr)) {
-                                formattedEndTime = timeStr;
-                            } else {
-                                const time = dayjs(`2000-01-01 ${timeStr}`);
-                                if (time.isValid()) {
-                                    formattedEndTime = time.format('HH:mm');
-                                }
-                            }
-                        } catch (e) {
-                            console.warn('Error formatting showtime end time:', e);
-                            formattedEndTime = bookingDetails.showtimeEndTime;
-                        }
-                    }
+          const startTime = formatTime(bookingDetails.showtimeStartTime);
+          const endTime = formatTime(bookingDetails.showtimeEndTime);
+          const finalAmount = bookingDetails.finalAmount ?? bookingDetails.totalAmount ?? 0;
+          const formatType = [bookingDetails.movieFormat, bookingDetails.movieAudioType].filter(Boolean).join(' ');
 
-                    // Format total amount - use finalAmount if available, otherwise totalAmount
-                    const finalAmount = bookingDetails.finalAmount || bookingDetails.totalAmount || 0;
-                    const totalAmountValue = typeof finalAmount === 'number' ? finalAmount : parseFloat(finalAmount) || 0;
-                    const formattedTotalAmount = `${totalAmountValue.toLocaleString('vi-VN')}đ`;
+          const combinedData = {
+            bookingId: bookingDetails.id,
+            bookingCode: bookingDetails.bookingCode,
+            status: bookingDetails.status,
+            movieTitle: bookingDetails.movieTitle,
+            cinemaName: bookingDetails.cinemaName,
+            cinemaAddress: bookingDetails.cinemaAddress,
+            roomName: bookingDetails.roomName,
+            seatNumbers,
+            seats,
+            showDate: formatDate(bookingDetails.showtimeDateTime || bookingDetails.showDate),
+            showTime: startTime,
+            showTimeEnd: endTime,
+            showTimeRange: endTime ? `${startTime} – ${endTime}` : startTime,
+            totalAmount: formatAmount(finalAmount),
+            totalAmountValue: Number(finalAmount) || 0,
+            discountAmount: Number(bookingDetails.discountAmount) || 0,
+            moviePoster: bookingDetails.moviePosterUrl || '/brand-placeholder.svg',
+            bookingDate: bookingDetails.bookingDate,
+            userName: bookingDetails.userName,
+            userEmail: bookingDetails.userEmail,
+            formatType,
+          };
 
-                    // Format discount amount
-                    const discountAmountValue = bookingDetails.discountAmount || 0;
-                    const discountValue = typeof discountAmountValue === 'number' ? discountAmountValue : parseFloat(discountAmountValue) || 0;
-
-                    // Build format string from movieFormat and movieAudioType
-                    let formatType = '';
-                    if (bookingDetails.movieFormat) {
-                        formatType = bookingDetails.movieFormat;
-                        if (bookingDetails.movieAudioType) {
-                            formatType += ` ${bookingDetails.movieAudioType}`;
-                        }
-                    }
-
-                    const combinedData = {
-                        bookingId: bookingDetails.id,
-                        bookingCode: bookingDetails.bookingCode,
-                        status: bookingDetails.status,
-                        movieTitle: bookingDetails.movieTitle,
-                        moviePosterUrl: bookingDetails.moviePosterUrl,
-                        movieFormat: bookingDetails.movieFormat,
-                        movieAudioType: bookingDetails.movieAudioType,
-                        formatType: formatType,
-                        cinemaName: bookingDetails.cinemaName,
-                        cinemaAddress: bookingDetails.cinemaAddress,
-                        roomName: bookingDetails.roomName,
-                        seatNumbers: seatInfo,
-                        seats: bookingDetails.seats || [],
-                        showDate: formattedShowDate,
-                        showTime: formattedStartTime,
-                        showTimeEnd: formattedEndTime,
-                        showTimeRange: formattedEndTime ? `${formattedStartTime} ~ ${formattedEndTime}` : formattedStartTime,
-                        totalAmount: formattedTotalAmount,
-                        totalAmountValue: totalAmountValue,
-                        discountAmount: discountValue,
-                        finalAmount: totalAmountValue,
-                        moviePoster: bookingDetails.moviePosterUrl || '/brand-placeholder.svg',
-                        bookingDate: bookingDetails.bookingDate,
-                        userName: bookingDetails.userName,
-                        userEmail: bookingDetails.userEmail
-                    };
-
-                    setBookingData(combinedData);
-
-                    const qrData = `BOOKING:${combinedData.bookingCode}`;
-                    const qrUrl = await QRCode.toDataURL(qrData, {
-                        width: 300,
-                        margin: 2,
-                        color: {
-                            dark: '#000000',
-                            light: '#FFFFFF'
-                        }
-                    });
-                    setQrCodeUrl(qrUrl);
-                } else {
-                    const fallbackData = location.state?.bookingData || JSON.parse(localStorage.getItem('lastBooking') || '{}');
-                    setBookingData(fallbackData);
-
-                    if (fallbackData.bookingCode) {
-                        const qrData = `BOOKING:${fallbackData.bookingCode}`;
-                        const qrUrl = await QRCode.toDataURL(qrData, {
-                            width: 300,
-                            margin: 2,
-                            color: {
-                                dark: '#000000',
-                                light: '#FFFFFF'
-                            }
-                        });
-                        setQrCodeUrl(qrUrl);
-                    }
-                }
-            } catch (error) {
-                console.error('Error fetching booking details:', error);
-                const fallbackData = location.state?.bookingData || JSON.parse(localStorage.getItem('lastBooking') || '{}');
-                setBookingData(fallbackData);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchBookingDetails();
-    }, [bookingCodeParam, location.state]);
-
-    const handleDownloadPDF = async () => {
-        try {
-            if (!bookingData.bookingId) {
-                notification.error('Không tìm thấy thông tin booking');
-                return;
-            }
-
-            notification.info('Đang tải vé...');
-
-            const pdfBlob = await ticketService.downloadBookingPDF(bookingData.bookingId);
-            const filename = `Ve_${bookingData.bookingId}.pdf`;
-            ticketService.triggerDownload(pdfBlob, filename);
-
-            notification.success('Tải vé thành công!');
-        } catch (error) {
-            console.error('Error downloading PDF:', error);
-            notification.error('Không thể tải vé. Vui lòng thử lại sau.');
+          setBookingData(combinedData);
+          setQrCodeUrl(await createQrCode(combinedData.bookingCode));
+        } else {
+          const fallbackData = location.state?.bookingData || readStoredBooking();
+          if (cancelled) return;
+          setBookingData(fallbackData);
+          setQrCodeUrl(await createQrCode(fallbackData.bookingCode));
         }
-    };
-
-    const handleSendEmail = async () => {
-        try {
-            if (!bookingData.bookingId) {
-                notification.error('Không tìm thấy thông tin booking');
-                return;
-            }
-
-            notification.info('Đang gửi email...');
-            await emailService.sendTicketEmail(bookingData.bookingId);
-            notification.success('Đã gửi vé qua email thành công!');
-        } catch (error) {
-            console.error('Error sending email:', error);
-            notification.error('Không thể gửi email. Vui lòng thử lại sau.');
+      } catch (error) {
+        console.error('Error fetching booking details:', error);
+        if (!cancelled) {
+          const fallbackData = location.state?.bookingData || readStoredBooking();
+          setBookingData(fallbackData);
+          if (fallbackData.bookingCode) setQrCodeUrl(await createQrCode(fallbackData.bookingCode));
         }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
 
-    const handleAddToCalendar = () => {
-        console.log('Add to calendar');
+    fetchBookingDetails();
+    return () => {
+      cancelled = true;
     };
+  }, [bookingCodeParam, location.state]);
 
-    const handleBackToHome = () => {
-        navigate('/');
-    };
-
-    if (loading) {
-        return <ContentLoader message="Đang tải thông tin đặt vé..." />;
+  const handleDownloadPDF = async () => {
+    if (!bookingData.bookingId) {
+      notification.error('Không tìm thấy thông tin booking');
+      return;
     }
 
-    const {
-        bookingCode = 'XYZ123ABC',
-        movieTitle = 'Dune: Part Two',
-        cinemaName = 'CGV Crescent Mall',
-        cinemaAddress = '101 Tôn Dật Tiên, P.Tân Phú, Quận 7, TP.HCM',
-        roomName = 'Rạp 05',
-        seatNumbers = 'Ghế F11, F12',
-        showDate = 'Thứ Sáu, 24 Tháng 6, 2024',
-        showTime = '15:30',
-        showTimeRange = '15:30',
-        totalAmount = '250.000đ',
-        moviePoster = 'https://image.tmdb.org/t/p/original/czembW0Rk1Ke7lCJGahbOhdCuhV.jpg',
-        formatType = ''
-    } = bookingData;
+    try {
+      notification.info('Đang tải vé...');
+      const pdfBlob = await ticketService.downloadBookingPDF(bookingData.bookingId);
+      ticketService.triggerDownload(pdfBlob, `Ve_${bookingData.bookingId}.pdf`);
+      notification.success('Tải vé thành công!');
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      notification.error('Không thể tải vé. Vui lòng thử lại sau.');
+    }
+  };
 
-    return (
-        <div className="min-h-screen bg-background flex items-center justify-center py-10 px-5">
-            <div className="max-w-[1200px] w-full mt-8">
-                <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-8 mb-10">
-                    <Card className="bg-card rounded-2xl p-8 shadow-lg border border-border">
-                        <div className="text-center mb-5">
-                            <p className="text-foreground text-base font-semibold block">
-                                Mã vé của bạn
-                            </p>
-                        </div>
+  const handleSendEmail = async () => {
+    if (!bookingData.bookingId) {
+      notification.error('Không tìm thấy thông tin booking');
+      return;
+    }
 
-                        <div className="flex flex-col items-center justify-center mb-6">
-                            {qrCodeUrl && (
-                                <div className="bg-card p-4 rounded-lg shadow-md">
-                                    <img src={qrCodeUrl} alt="QR Code" className="w-64 h-64" />
-                                </div>
-                            )}
-                        </div>
+    try {
+      notification.info('Đang gửi email...');
+      await emailService.sendTicketEmail(bookingData.bookingId);
+      notification.success('Đã gửi vé qua email thành công!');
+    } catch (error) {
+      console.error('Error sending email:', error);
+      notification.error('Không thể gửi email. Vui lòng thử lại sau.');
+    }
+  };
 
-                        <div className="text-center mb-6">
-                            <p className="text-muted-foreground text-sm block mb-2">Mã đặt vé:</p>
-                            <h3 className="text-foreground text-2xl font-bold mb-2">{bookingCode}</h3>
-                            <p className="text-muted-foreground text-xs block">
-                                Sử dụng mã này để xuất vé tại rạp
-                            </p>
-                        </div>
+  if (loading) {
+    return <ContentLoader message="Đang tải thông tin đặt vé..." />;
+  }
 
-                        <div className="mt-6">
-                            <p className="text-gray-700 text-sm font-medium block mb-4">Lưu lại vé của bạn</p>
-                            <div className="flex flex-col gap-3 w-full">
-                                <Button
-                                    onClick={handleDownloadPDF}
-                                    className="h-12 rounded-lg font-semibold"
-                                >
-                                    <Download className="h-4 w-4 mr-2" />
-                                    Tải vé (PDF)
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    onClick={handleSendEmail}
-                                    className="h-12 rounded-lg font-semibold"
-                                >
-                                    <Mail className="h-4 w-4 mr-2" />
-                                    Gửi vé qua Email
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    onClick={handleAddToCalendar}
-                                    className="h-12 rounded-lg font-semibold"
-                                >
-                                    <Calendar className="h-4 w-4 mr-2" />
-                                    Thêm vào Lịch
-                                </Button>
-                            </div>
-                        </div>
-                    </Card>
+  const {
+    bookingCode = '',
+    movieTitle = 'Không có thông tin phim',
+    cinemaName = 'N/A',
+    cinemaAddress = '',
+    roomName = 'N/A',
+    seatNumbers = 'N/A',
+    showDate = 'N/A',
+    showTime = '',
+    showTimeRange = '',
+    totalAmount = '0đ',
+    moviePoster = '/brand-placeholder.svg',
+    formatType = '',
+  } = bookingData;
 
-                    <Card className="bg-card rounded-2xl p-8 shadow-lg border border-border">
+  const ticketDetails = [
+    ['Rạp chiếu', cinemaName],
+    ['Phòng chiếu', roomName],
+    ['Ghế', seatNumbers],
+    ['Ngày chiếu', showDate],
+    ['Giờ chiếu', showTimeRange || showTime || 'N/A'],
+    formatType && ['Định dạng', formatType],
+  ].filter(Boolean);
 
-                        <div className="text-center mb-6">
-                            <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto animate-pulse" />
-                        </div>
+  return (
+    <div className="min-h-dvh bg-background px-4 py-16 text-foreground">
+      <div className="mx-auto w-full max-w-6xl space-y-8">
+        <header className="text-center">
+          <div className="status-success mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border">
+            <CheckCircle2 className="h-7 w-7" />
+          </div>
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Đặt vé thành công</h1>
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+            Vé của bạn đã được ghi nhận. Hãy lưu mã QR hoặc tải vé PDF để sử dụng khi đến rạp.
+          </p>
+        </header>
 
-                        <h2 className="text-foreground text-center mb-2.5 text-3xl font-bold">
-                            Chúc mừng! Bạn đã đặt vé thành công.
-                        </h2>
+        <Alert type="success" showIcon message="Thanh toán thành công" description="Bạn có thể kiểm tra lại thông tin vé trước khi rời trang này." />
 
-                        <h4 className="text-foreground text-xl font-bold mb-6">Chi tiết vé</h4>
+        <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <Card className="h-fit shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-lg">Mã vé của bạn</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex justify-center">
+                {qrCodeUrl ? (
+                  <div className="rounded-lg border border-border bg-white p-3">
+                    <img src={qrCodeUrl} alt={`QR booking ${bookingCode}`} className="h-56 w-56" />
+                  </div>
+                ) : (
+                  <div className="flex h-56 w-56 items-center justify-center rounded-lg border border-dashed border-border bg-muted text-sm text-muted-foreground">
+                    Không thể tạo QR
+                  </div>
+                )}
+              </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-6">
-                            <div className="flex flex-col">
-                                <img
-                                    src={moviePoster}
-                                    alt={movieTitle}
-                                    className="w-full h-64 object-cover rounded-lg mb-4"
-                                />
-                                <div className="flex flex-col">
-                                    <p className="text-muted-foreground text-xs font-medium mb-1">Phim</p>
-                                    <p className="text-foreground text-base font-semibold">{movieTitle}</p>
-                                </div>
-                            </div>
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">Mã đặt vé</p>
+                <p className="mt-1 font-mono text-xl font-semibold tracking-wider">{bookingCode || 'N/A'}</p>
+              </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="flex flex-col gap-6">
-                                    <div className="flex flex-col">
-                                        <p className="text-muted-foreground text-xs font-medium mb-1">Rạp chiếu</p>
-                                        <p className="text-foreground text-base font-semibold mb-1">{cinemaName}</p>
-                                        <p className="text-muted-foreground text-sm">{cinemaAddress}</p>
-                                    </div>
+              <Separator />
 
-                                    <div className="flex flex-col">
-                                        <p className="text-muted-foreground text-xs font-medium mb-1">Thông tin chỗ ngồi</p>
-                                        <p className="text-foreground text-base font-semibold mb-1">{roomName}</p>
-                                        <p className="text-muted-foreground text-sm">Ghế: {seatNumbers}</p>
-                                    </div>
-                                </div>
+              <div className="space-y-2">
+                <Button type="button" className="w-full" onClick={handleDownloadPDF} disabled={!bookingData.bookingId}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Tải vé PDF
+                </Button>
+                <Button type="button" variant="outline" className="w-full" onClick={handleSendEmail} disabled={!bookingData.bookingId}>
+                  <Mail className="mr-2 h-4 w-4" />
+                  Gửi vé qua email
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
-                                <div className="flex flex-col gap-6">
-                                    <div className="flex flex-col">
-                                        <p className="text-muted-foreground text-xs font-medium mb-1">Suất chiếu</p>
-                                        <p className="text-foreground text-base font-semibold mb-1">{showDate}</p>
-                                        <p className="text-muted-foreground text-sm">{showTimeRange || showTime}</p>
-                                        {formatType && (
-                                            <p className="text-muted-foreground text-xs mt-1">{formatType}</p>
-                                        )}
-                                    </div>
-
-                                    <div className="flex flex-col pt-4 border-t border-border">
-                                        <p className="text-muted-foreground text-xs font-medium mb-1">Thanh toán</p>
-                                        <p className="text-red-600 text-2xl font-bold">{totalAmount}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </Card>
+          <Card className="shadow-sm">
+            <CardHeader className="border-b border-border">
+              <CardTitle>Chi tiết vé</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="grid gap-6 md:grid-cols-[180px_minmax(0,1fr)]">
+                <div>
+                  <img
+                    src={moviePoster}
+                    alt={movieTitle}
+                    className="aspect-[2/3] w-full rounded-lg border border-border object-cover"
+                    onError={(event) => {
+                      event.currentTarget.src = '/brand-placeholder.svg';
+                    }}
+                  />
+                  <p className="mt-3 text-xs text-muted-foreground">Phim</p>
+                  <p className="mt-1 font-semibold">{movieTitle}</p>
                 </div>
 
-                <Button
-                    onClick={handleBackToHome}
-                    className="w-full max-w-md mx-auto block h-12 rounded-lg font-semibold"
-                >
-                    Quay về trang chủ
-                </Button>
-            </div>
+                <div className="space-y-4">
+                  {ticketDetails.map(([label, value]) => (
+                    <div key={label} className="flex items-start justify-between gap-6 text-sm">
+                      <span className="text-muted-foreground">{label}</span>
+                      <span className="max-w-[65%] text-right font-medium">{value}</span>
+                    </div>
+                  ))}
+
+                  {cinemaAddress && (
+                    <div className="flex items-start justify-between gap-6 text-sm">
+                      <span className="text-muted-foreground">Địa chỉ</span>
+                      <span className="max-w-[65%] text-right font-medium">{cinemaAddress}</span>
+                    </div>
+                  )}
+
+                  <Separator />
+
+                  <div className="flex items-center justify-between gap-6">
+                    <span className="font-semibold">Tổng thanh toán</span>
+                    <span className="text-2xl font-semibold text-primary">{totalAmount}</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-    );
+
+        <div className="flex justify-center">
+          <Button type="button" variant="outline" onClick={() => navigate('/')}>
+            <Home className="mr-2 h-4 w-4" />
+            Quay về trang chủ
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default BookingSuccess;
