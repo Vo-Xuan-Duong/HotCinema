@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import {
     Toast,
     ToastClose,
@@ -59,13 +59,13 @@ export const NotificationProvider = ({ children }) => {
         showNotification('info', message, duration, important);
     }, [showNotification]);
 
-    const value = {
+    const value = useMemo(() => ({
         showNotification,
         success,
         error,
         warning,
         info,
-    };
+    }), [showNotification, success, error, warning, info]);
 
     const titleMap = {
         success: 'Thành công',
