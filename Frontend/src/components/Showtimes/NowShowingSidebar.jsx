@@ -1,154 +1,160 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Clock3, Film, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
-// Migrated to Tailwind CSS
-import Loading from '@/components/Loading';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Empty } from '@/components/ui/empty';
+import { Skeleton } from '@/components/ui/skeleton';
+import movieService from '@/services/movieService';
 
-const icons = {
-  movie: <span className="icon">🎬</span>,
-  star: <span className="icon">⭐</span>,
-  clock: <span className="icon">⏱️</span>
+const normalizeRating = (rating) => {
+  const value = Number(rating) || 0;
+  return value > 5 ? Math.min(value / 2, 5) : Math.min(value, 5);
+};
+
+const formatDuration = (minutes) => {
+  const value = Number(minutes) || 0;
+  const hours = Math.floor(value / 60);
+  const mins = value % 60;
+  return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+};
+
+const Rating = ({ value }) => {
+  const normalized = normalizeRating(value);
+
+  return (
+    <div className="flex items-center gap-2" aria-label={`Đánh giá ${value || 0}`}>
+      <div className="flex items-center gap-0.5 text-primary">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`h-3 w-3 ${star <= Math.round(normalized) ? 'fill-current' : 'text-muted-foreground/40'}`}
+          />
+        ))}
+      </div>
+      <span className="text-xs font-medium text-muted-foreground">{value || 0}</span>
+    </div>
+  );
 };
 
 const NowShowingSidebar = ({ currentMovieId }) => {
   const [movies, setMovies] = useState([]);
-  const [hoveredMovie, setHoveredMovie] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load movies data
+    let cancelled = false;
+
     const loadMovies = async () => {
       setLoading(true);
       try {
-        const response = await fetch('/src/data/movies.json');
-        const data = await response.json();
-        setMovies(data.slice(0, 8)); // Show first 8 movies
+        const data = await movieService.getNowShowing({ page: 0, size: 8 });
+        if (!cancelled) setMovies(data.slice(0, 8));
       } catch (error) {
-        console.error('Error loading movies:', error);
-        // Fallback data
-        setMovies([
-          {
-            id: 1,
-            title: "Avengers: Endgame",
-            genre: "Hành động",
-            rating: 9.2,
-            duration: 181,
-            poster: "https://image-worker.momocdn.net/img/80099757410724750-doemon.png?size=M&referer=cinema.momocdn.net"
-          },
-          {
-            id: 2,
-            title: "Ma Không Đầu",
-            genre: "Kinh Dị, Hài",
-            rating: 8.4,
-            duration: 148,
-            poster: "https://image-worker.momocdn.net/img/80099757410724750-doemon.png?size=M&referer=cinema.momocdn.net"
-          },
-          {
-            id: 3,
-            title: "Bí Kíp Luyện Rồng",
-            genre: "Phiêu Lưu, Hành Động",
-            rating: 9.6,
-            duration: 176,
-            poster: "https://image-worker.momocdn.net/img/80099757410724750-doemon.png?size=M&referer=cinema.momocdn.net"
-          },
-          {
-            id: 4,
-            title: "DAN DA DAN: Tà Nhân",
-            genre: "Hoạt Hình, Phiêu Lưu",
-            rating: 9.1,
-            duration: 161,
-            poster: "https://image-worker.momocdn.net/img/80099757410724750-doemon.png?size=M&referer=cinema.momocdn.net"
-          }
-        ]);
+        console.error('Error loading now-showing movies:', error);
+        if (!cancelled) setMovies([]);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     loadMovies();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const renderStars = (rating) => {
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 >= 0.5;
-
-    return (
-      <div className="flex gap-0.5">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <span
-            key={star}
-            className={`text-[11px] transition-colors duration-200 ${star <= fullStars ? 'text-yellow-400' : star === fullStars + 1 && hasHalfStar ? 'text-yellow-400 relative after:content-["★"] after:absolute after:left-0 after:top-0 after:text-muted-foreground after:clip-path-[polygon(0_0,50%_0,50%_100%,0_100%)]' : 'text-muted-foreground'}`}
-          >
-            ★
-          </span>
-        ))}
-      </div>
-    );
-  };
-
-  const formatDuration = (minutes) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-  };
-
   return (
-    <aside className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] overflow-hidden mt-4 text-white h-[600px] sticky top-8 flex flex-col max-h-[600px] md:w-full md:static md:mt-4 md:h-[500px] md:max-h-[500px] sm:w-[500px] sm:h-[450px] sm:max-h-[450px]">
-      <div className="p-6 border-b border-white/10 bg-card/5 flex-shrink-0 md:p-4 sm:p-3">
-        <h3 className="text-xl font-bold m-0 mb-2 flex items-center gap-2 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent md:text-lg sm:text-base">
-          {icons.movie} Phim đang chiếu
-        </h3>
-        <p className="text-gray-400 text-sm m-0 leading-snug sm:text-xs">
-          Khám phá những bộ phim mới nhất
-        </p>
-      </div>
-
-      {loading ? (
-        <Loading text="Đang tải phim..." />
-      ) : (
-        <div className="p-2 flex flex-col gap-2 overflow-y-auto flex-1 scroll-smooth min-h-0 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.3)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-card/5 [&::-webkit-scrollbar-track]:rounded-sm [&::-webkit-scrollbar-track]:my-1 [&::-webkit-scrollbar-thumb]:bg-card/20 [&::-webkit-scrollbar-thumb]:rounded-sm [&::-webkit-scrollbar-thumb]:border [&::-webkit-scrollbar-thumb]:border-white/10 [&::-webkit-scrollbar-thumb]:transition-colors [&::-webkit-scrollbar-thumb]:duration-300 hover:[&::-webkit-scrollbar-thumb]:bg-card/40 [&::-webkit-scrollbar-corner]:bg-transparent md:p-4 sm:p-3 sm:gap-3">
-          {movies.map((movie) => (
-            <Link
-              key={movie.id}
-              to={`/movies/${movie.id}`}
-              className={`flex gap-2 p-2 bg-card/5 rounded-xl no-underline text-inherit transition-all duration-300 border border-white/10 relative overflow-hidden items-center min-h-[100px] hover:bg-card/8 hover:border-white/20 hover:translate-x-1 hover:shadow-[0_4px_15px_rgba(0,0,0,0.3)] sm:min-h-[70px] sm:p-1.5 ${currentMovieId === movie.id ? 'bg-gradient-to-br from-indigo-500/10 to-purple-600/10 border-indigo-500' : ''} ${hoveredMovie === movie.id ? 'bg-card/8 border-white/20 translate-x-1 shadow-[0_4px_15px_rgba(0,0,0,0.3)]' : ''}`}
-              onMouseEnter={() => setHoveredMovie(movie.id)}
-              onMouseLeave={() => setHoveredMovie(null)}
-            >
-              <div className="relative flex-[0_0_60px] h-20 rounded-sm overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.3)] sm:flex-[0_0_50px] sm:h-[70px]">
-                <img src={movie.poster} alt={movie.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                {currentMovieId === movie.id && (
-                  <div className="absolute inset-0 bg-indigo-500/80 flex items-center justify-center text-white text-[11px] font-semibold uppercase tracking-wide p-2.5">
-                    <span>Đang xem</span>
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-black/70 flex items-center justify-center opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                  <div className="text-center">
-                    <span className="text-white text-[11px] font-semibold uppercase tracking-wide">Xem chi tiết</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex-1 flex flex-col gap-2 min-w-0 max-w-full">
-                <h4 className="text-sm font-semibold m-0 text-white leading-snug line-clamp-3 break-words max-w-full sm:text-xs">{movie.title}</h4>
-
-                <div className="flex flex-wrap gap-2 text-xs text-gray-300 min-w-0 max-w-full py-3 px-2 sm:text-[11px] sm:py-2">
-                  <span className="bg-card/8 text-white rounded-md px-2.5 py-0.5 text-xs font-medium max-w-[110px] overflow-hidden text-ellipsis whitespace-nowrap inline-block sm:text-[11px] sm:px-1.5 sm:py-0.5">{movie.genre}</span>
-                  <span className="text-[11px] text-gray-400 flex items-center gap-1 sm:text-[10px]">
-                    {icons.clock} {formatDuration(movie.durationMinutes || movie.duration)}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 mt-auto">
-                  {renderStars(movie.averageRating || movie.rating)}
-                  <span className="text-xs font-semibold text-yellow-400 sm:text-[11px]">{movie.averageRating || movie.rating}</span>
-                </div>
-              </div>
-            </Link>
-          ))}
+    <Card className="sticky top-24 mt-4 flex max-h-[600px] min-h-[420px] flex-col overflow-hidden shadow-sm">
+      <CardHeader className="border-b p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary">
+            <Film className="h-4 w-4" />
+          </div>
+          <div className="min-w-0">
+            <CardTitle className="text-base">Phim đang chiếu</CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">Khám phá những bộ phim mới nhất</p>
+          </div>
         </div>
-      )}
-    </aside>
+      </CardHeader>
+
+      <CardContent className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-2">
+        {loading ? (
+          <div className="space-y-2 p-1" aria-label="Đang tải phim">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div key={index} className="flex gap-3 rounded-md p-2">
+                <Skeleton className="h-20 w-14 shrink-0 rounded-md" />
+                <div className="flex-1 space-y-2 pt-1">
+                  <Skeleton className="h-4 w-4/5" />
+                  <Skeleton className="h-3 w-3/5" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : movies.length === 0 ? (
+          <Empty description="Chưa có phim đang chiếu" className="py-12" />
+        ) : (
+          <div className="space-y-1">
+            {movies.map((movie) => {
+              const id = movie.id ?? movie.movieId;
+              const active = String(currentMovieId ?? '') === String(id ?? '');
+              const title = movie.title || movie.name || 'Phim chưa cập nhật';
+              const poster = movie.posterUrl || movie.poster || movie.imageUrl;
+              const duration = movie.durationMinutes || movie.duration;
+              const rating = movie.averageRating ?? movie.rating ?? 0;
+
+              return (
+                <Link
+                  key={id || title}
+                  to={`/movies/${id}`}
+                  aria-current={active ? 'page' : undefined}
+                  className={`group flex min-h-24 gap-3 rounded-md border p-2.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                    active
+                      ? 'border-primary/40 bg-primary/10'
+                      : 'border-transparent hover:border-border hover:bg-accent/60'
+                  }`}
+                >
+                  <div className="relative h-20 w-14 shrink-0 overflow-hidden rounded-md bg-muted">
+                    {poster ? (
+                      <img
+                        src={poster}
+                        alt={title}
+                        className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                        <Film className="h-5 w-5" />
+                      </div>
+                    )}
+                    {active && (
+                      <span className="absolute inset-x-1 bottom-1 rounded bg-primary px-1 py-0.5 text-center text-[9px] font-medium text-primary-foreground">
+                        Đang xem
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <h4 className="line-clamp-2 text-sm font-medium leading-5 text-foreground">{title}</h4>
+                    <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+                      {movie.genre || movie.genreName || movie.genres?.map((item) => item.name || item).join(', ') || 'Đang cập nhật thể loại'}
+                    </p>
+
+                    <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2">
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock3 className="h-3 w-3" />
+                        {formatDuration(duration)}
+                      </span>
+                      <Rating value={rating} />
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
-export default NowShowingSidebar; 
+export default NowShowingSidebar;
