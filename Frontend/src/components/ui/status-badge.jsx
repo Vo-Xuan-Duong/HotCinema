@@ -1,5 +1,5 @@
-import * as React from 'react';
 import { Badge } from '@/components/ui/badge';
+import { sanitizeLegacyColorClassName, sanitizeSemanticStyle } from '@/lib/stylePolicy';
 import { cn } from '@/lib/utils';
 
 const tones = {
@@ -21,27 +21,16 @@ const tones = {
   default: 'status-neutral',
 };
 
-const sanitizeStyle = (style) => {
-  if (!style) return undefined;
-
-  const {
-    color: _color,
-    background: _background,
-    backgroundColor: _backgroundColor,
-    border: _border,
-    borderColor: _borderColor,
-    ...layoutStyle
-  } = style;
-
-  return layoutStyle;
-};
-
 function StatusBadge({ tone = 'neutral', leading, children, className, style, ...props }) {
   return (
     <Badge
       variant="outline"
-      className={cn('inline-flex items-center gap-1 font-medium', tones[tone] || tones.neutral, className)}
-      style={sanitizeStyle(style)}
+      className={cn(
+        'inline-flex items-center gap-1 font-medium',
+        tones[tone] || tones.neutral,
+        sanitizeLegacyColorClassName(className)
+      )}
+      style={sanitizeSemanticStyle(style)}
       {...props}
     >
       {leading}
