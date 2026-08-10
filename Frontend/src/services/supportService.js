@@ -1,11 +1,9 @@
 import { apiClient } from '@/utils/apiClient';
-
-const unwrap = (response) => response?.data ?? response;
+import { unwrapApiData } from '@/utils/apiResponse';
 
 const supportService = {
   async sendMessage(message, conversationId) {
-    const response = await apiClient.post('/support/chat', { message, conversationId });
-    return unwrap(response);
+    return unwrapApiData(await apiClient.post('/support/chat', { message, conversationId }));
   },
 };
 
