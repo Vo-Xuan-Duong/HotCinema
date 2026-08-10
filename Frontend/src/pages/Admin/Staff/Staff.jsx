@@ -1,599 +1,290 @@
-﻿import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card } from '@/components/ui/card';
-import { DataTable } from '@/components/ui/data-table';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { CheckCircle2, Edit, Eye, Loader2, Plus, Trash2, UserRoundCog, Users } from 'lucide-react';
+import { AdminPageHeader } from '@/layouts/admin/AdminPageHeader';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
-import { Input } from '@/components/ui/input';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { StatusBadge } from '@/components/ui/status-badge';
-import { Tabs } from '@/components/ui/tabs';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataTable } from '@/components/ui/data-table';
+import { DetailItem, DetailList } from '@/components/ui/detail-list';
 import { Empty } from '@/components/ui/empty';
-import { DetailList, DetailItem } from '@/components/ui/detail-list';
-import { Breadcrumb } from '@/components/ui/breadcrumb';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { InputPassword } from '@/components/ui/input-password';
 import { Pagination } from '@/components/ui/pagination';
-import {
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
-  CheckCircle2,
-  AlertCircle,
-  Home,
-  Users as UsersIcon,
-  Loader2
-} from 'lucide-react';
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import userService from '@/services/userService';
 import useNotification from '@/hooks/useNotification';
 
+const DEFAULT_FORM = {
+  fullName: '',
+  email: '',
+  password: '',
+  phone: '',
+  address: '',
+  dateOfBirth: '',
+  role: 'staff',
+  isActive: true,
+};
+
+const normalizeRole = (role) => String(role || 'staff').replace(/^ROLE_/i, '').toLowerCase();
+
+const roleMeta = (role) => {
+  const normalized = normalizeRole(role);
+  if (normalized === 'admin') return { label: 'Quản trị viên', tone: 'destructive' };
+  if (normalized === 'manager') return { label: 'Quản lý', tone: 'warning' };
+  return { label: 'Nhân viên', tone: 'info' };
+};
+
+const formatDate = (value) => {
+  if (!value) return 'Chưa có';
+  if (typeof value === 'object' && value.year && value.month && value.day) {
+    return `${String(value.day).padStart(2, '0')}/${String(value.month).padStart(2, '0')}/${value.year}`;
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('vi-VN');
+};
+
+const formatDateForInput = (value) => {
+  if (!value) return '';
+  if (typeof value === 'object' && value.year && value.month && value.day) {
+    return `${value.year}-${String(value.month).padStart(2, '0')}-${String(value.day).padStart(2, '0')}`;
+  }
+  return String(value).split('T')[0];
+};
+
+const extractStaffPage = (response) => {
+  const payload = response?.data?.data ?? response?.data ?? response;
+  if (Array.isArray(payload)) {
+    return { content: payload, totalElements: payload.length };
+  }
+  const content = Array.isArray(payload?.content) ? payload.content : [];
+  return {
+    content,
+    totalElements: Number(payload?.totalElements ?? payload?.total ?? content.length),
+  };
+};
+
+const mapStaff = (user) => {
+  const fullName = user?.fullName || user?.name || 'N/A';
+  const initials = fullName
+    .split(' ')
+    .filter(Boolean)
+    .slice(-2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase() || 'ST';
+
+  return {
+    ...user,
+    name: fullName,
+    avatarUrl: user?.avatarUrl || user?.avatar || '',
+    initials,
+    role: normalizeRole(user?.role),
+    isActive: user?.isActive !== false,
+  };
+};
+
 const Staff = () => {
-  const navigate = useNavigate();
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [selectedStaff, setSelectedStaff] = useState(null);
-  const [staff, setStaff] = useState([]);
   const notification = useNotification();
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0
-  });
-  const [formValues, setFormValues] = useState({
-    fullName: '',
-    email: '',
-    password: '',
-    phone: '',
-    address: '',
-    dateOfBirth: '',
-    role: 'staff',
-    isActive: true
-  });
+  const [staff, setStaff] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState(null);
+  const [formValues, setFormValues] = useState(DEFAULT_FORM);
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
 
-  const [loading, setLoading] = useState(false);
-
-  // Helper function to format date
-  const formatDate = (dateValue) => {
-    if (!dateValue) return 'Chưa có';
-    if (typeof dateValue === 'string') {
-      const date = new Date(dateValue);
-      if (!isNaN(date.getTime())) {
-        return date.toLocaleString('vi-VN', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-      }
-      return dateValue;
-    }
-    if (dateValue.year && dateValue.month && dateValue.day) {
-      // LocalDate object
-      return `${String(dateValue.day).padStart(2, '0')}/${String(dateValue.month).padStart(2, '0')}/${dateValue.year}`;
-    }
-    return 'Chưa có';
-  };
-
-  // Helper function to format LocalDate for input
-  const formatDateForInput = (dateValue) => {
-    if (!dateValue) return '';
-    if (typeof dateValue === 'string') {
-      // Extract date part (YYYY-MM-DD) from ISO string
-      return dateValue.split('T')[0];
-    }
-    if (dateValue.year && dateValue.month && dateValue.day) {
-      return `${dateValue.year}-${String(dateValue.month).padStart(2, '0')}-${String(dateValue.day).padStart(2, '0')}`;
-    }
-    return '';
-  };
-
-  // Load staff từ API
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-
-        const usersRes = await userService.getAllStaff({ page: 0, size: 10 });
-        const usersData = usersRes?.content || usersRes?.data?.content || usersRes?.data || usersRes || [];
-
-        const mappedStaff = (Array.isArray(usersData) ? usersData : []).map((u) => {
-          const id = u.id;
-          const name = u.fullName || 'N/A';
-          const email = u.email || 'N/A';
-          const phone = u.phone || '';
-          const address = u.address || '';
-          const avatarUrl = u.avatarUrl || '';
-          const dateOfBirth = u.dateOfBirth;
-          const role = u.role || 'staff';
-          const loyaltyPoints = u.loyaltyPoints || 0;
-          const membershipTier = u.membershipTier;
-          const lastLogin = u.lastLogin;
-          const isActive = u.isActive !== undefined ? u.isActive : true;
-          const createdAt = u.createdAt;
-          const updatedAt = u.updatedAt;
-
-          // Generate avatar initials if no avatarUrl
-          const avatar =
-            avatarUrl ||
-            (name && name.split(' ').map((n) => n[0]).join('').toUpperCase()) ||
-            (email && email[0]?.toUpperCase()) ||
-            'ST';
-
-          return {
-            id,
-            name,
-            email,
-            phone,
-            address,
-            avatarUrl,
-            dateOfBirth,
-            role,
-            loyaltyPoints,
-            membershipTier,
-            lastLogin: formatDate(lastLogin),
-            lastLoginRaw: lastLogin,
-            status: isActive ? 'active' : 'inactive',
-            isActive,
-            createdAt: formatDate(createdAt),
-            updatedAt: formatDate(updatedAt),
-            avatar,
-            // Keep original data for API calls
-            originalData: u
-          };
-        });
-
-        setStaff(mappedStaff);
-        setPagination(prev => ({
-          ...prev,
-          total: mappedStaff.length
-        }));
-      } catch (error) {
-        console.error('Error loading staff:', error);
-        notification.error('Không thể tải dữ liệu nhân viên');
-        setPagination(prev => ({ ...prev, total: 0 }));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
-
-  // Thống kê đơn giản
-  const totalStaff = staff.length;
-  const activeStaff = staff.filter(s => s.status === 'active').length;
-
-  const handleStatusChange = async (checked, record) => {
+  const loadStaff = useCallback(async () => {
     try {
-      if (checked) {
-        await userService.activateUser(record.id);
-      } else {
-        await userService.deactivateUser(record.id);
-      }
-
-      // Reload data
-      const usersRes = await userService.getAllUsers({ page: 0, size: 50, sortBy: 'id', sortDir: 'asc' });
-      const usersData = usersRes?.content || usersRes?.data?.content || usersRes?.data || usersRes || [];
-
-      const mappedStaff = (Array.isArray(usersData) ? usersData : []).map((u) => {
-        const id = u.id;
-        const name = u.fullName || 'N/A';
-        const email = u.email || 'N/A';
-        const phone = u.phone || '';
-        const address = u.address || '';
-        const avatarUrl = u.avatarUrl || '';
-        const dateOfBirth = u.dateOfBirth;
-        const role = u.role || 'staff';
-        const loyaltyPoints = u.loyaltyPoints || 0;
-        const membershipTier = u.membershipTier;
-        const lastLogin = u.lastLogin;
-        const isActive = u.isActive !== undefined ? u.isActive : true;
-        const createdAt = u.createdAt;
-        const updatedAt = u.updatedAt;
-
-        const avatar =
-          avatarUrl ||
-          (name && name.split(' ').map((n) => n[0]).join('').toUpperCase()) ||
-          (email && email[0]?.toUpperCase()) ||
-          'ST';
-
-        return {
-          id,
-          name,
-          email,
-          phone,
-          address,
-          avatarUrl,
-          dateOfBirth,
-          role,
-          loyaltyPoints,
-          membershipTier,
-          lastLogin: formatDate(lastLogin),
-          lastLoginRaw: lastLogin,
-          status: isActive ? 'active' : 'inactive',
-          isActive,
-          createdAt: formatDate(createdAt),
-          updatedAt: formatDate(updatedAt),
-          avatar,
-          originalData: u
-        };
+      setLoading(true);
+      const response = await userService.getAllStaff({
+        page: pagination.current - 1,
+        size: pagination.pageSize,
       });
-
-      setStaff(mappedStaff);
-      notification.success(`Đã ${checked ? 'kích hoạt' : 'vô hiệu hóa'} nhân viên ${record.name}`);
+      const page = extractStaffPage(response);
+      setStaff(page.content.map(mapStaff));
+      setPagination((current) => ({ ...current, total: page.totalElements }));
     } catch (error) {
-      console.error('Error updating user status:', error);
-      notification.error(`Không thể ${checked ? 'kích hoạt' : 'vô hiệu hóa'} nhân viên`);
+      console.error('Error loading staff:', error);
+      setStaff([]);
+      setPagination((current) => ({ ...current, total: 0 }));
+      notification.error('Không thể tải danh sách nhân viên');
+    } finally {
+      setLoading(false);
     }
+  }, [notification, pagination.current, pagination.pageSize]);
+
+  useEffect(() => {
+    loadStaff();
+  }, [loadStaff]);
+
+  const activeOnPage = useMemo(() => staff.filter((item) => item.isActive).length, [staff]);
+
+  const openCreate = () => {
+    setSelectedStaff(null);
+    setFormValues(DEFAULT_FORM);
+    setFormOpen(true);
   };
 
-  const handleEditStaff = (record) => {
+  const openEdit = (record) => {
     setSelectedStaff(record);
-    setIsEditMode(true);
     setFormValues({
-      fullName: record.name,
-      email: record.email,
+      fullName: record.name || '',
+      email: record.email || '',
       password: '',
       phone: record.phone || '',
       address: record.address || '',
       dateOfBirth: formatDateForInput(record.dateOfBirth),
-      role: record.role,
-      isActive: record.isActive !== undefined ? record.isActive : true
+      role: normalizeRole(record.role),
+      isActive: record.isActive !== false,
     });
-    setIsModalVisible(true);
+    setFormOpen(true);
   };
 
-  const handleDeleteStaff = async (record) => {
-    try {
-      await userService.deleteUser(record.id);
-
-      // Reload data
-      const usersRes = await userService.getAllUsers({ page: 0, size: 50, sortBy: 'id', sortDir: 'asc' });
-      const usersData = usersRes?.content || usersRes?.data?.content || usersRes?.data || usersRes || [];
-
-      const mappedStaff = (Array.isArray(usersData) ? usersData : []).map((u) => {
-        const id = u.id;
-        const name = u.fullName || 'N/A';
-        const email = u.email || 'N/A';
-        const phone = u.phone || '';
-        const address = u.address || '';
-        const avatarUrl = u.avatarUrl || '';
-        const dateOfBirth = u.dateOfBirth;
-        const role = u.role || 'staff';
-        const loyaltyPoints = u.loyaltyPoints || 0;
-        const membershipTier = u.membershipTier;
-        const lastLogin = u.lastLogin;
-        const isActive = u.isActive !== undefined ? u.isActive : true;
-        const createdAt = u.createdAt;
-        const updatedAt = u.updatedAt;
-
-        const avatar =
-          avatarUrl ||
-          (name && name.split(' ').map((n) => n[0]).join('').toUpperCase()) ||
-          (email && email[0]?.toUpperCase()) ||
-          'ST';
-
-        return {
-          id,
-          name,
-          email,
-          phone,
-          address,
-          avatarUrl,
-          dateOfBirth,
-          role,
-          loyaltyPoints,
-          membershipTier,
-          lastLogin: formatDate(lastLogin),
-          lastLoginRaw: lastLogin,
-          status: isActive ? 'active' : 'inactive',
-          isActive,
-          createdAt: formatDate(createdAt),
-          updatedAt: formatDate(updatedAt),
-          avatar,
-          originalData: u
-        };
-      });
-
-      setStaff(mappedStaff);
-      notification.success(`Đã xóa nhân viên ${record.name}`);
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      notification.error('Không thể xóa nhân viên');
-    }
-  };
-
-  const handleCreateStaff = () => {
-    setIsEditMode(false);
-    setSelectedStaff(null);
-    setFormValues({
-      fullName: '',
-      email: '',
-      password: '',
-      phone: '',
-      address: '',
-      dateOfBirth: '',
-      role: 'staff',
-      isActive: true
-    });
-    setIsModalVisible(true);
-  };
-
-  const handleViewStaffDetail = (record) => {
+  const openDetail = (record) => {
     setSelectedStaff(record);
-    setIsDetailModalVisible(true);
+    setDetailOpen(true);
   };
 
-  const handleModalOk = async (e) => {
-    e?.preventDefault();
+  const closeForm = () => {
+    setFormOpen(false);
+    setSelectedStaff(null);
+    setFormValues(DEFAULT_FORM);
+  };
+
+  const validateForm = () => {
+    if (!formValues.fullName.trim()) return 'Vui lòng nhập họ tên';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formValues.email.trim())) return 'Email không hợp lệ';
+    if (!selectedStaff && formValues.password.length < 6) return 'Mật khẩu phải có ít nhất 6 ký tự';
+    return null;
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const validationError = validateForm();
+    if (validationError) {
+      notification.error(validationError);
+      return;
+    }
+
+    const payload = {
+      fullName: formValues.fullName.trim(),
+      email: formValues.email.trim(),
+      phone: formValues.phone.trim(),
+      address: formValues.address.trim(),
+      dateOfBirth: formValues.dateOfBirth || null,
+      role: formValues.role,
+      isActive: formValues.isActive,
+    };
+
     try {
-      // Form validation
-      if (!formValues.fullName?.trim()) {
-        notification.error('Vui lòng nhập họ tên!');
-        return;
-      }
-      if (!formValues.email?.trim()) {
-        notification.error('Vui lòng nhập email!');
-        return;
-      }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formValues.email)) {
-        notification.error('Email không hợp lệ!');
-        return;
-      }
-      if (!isEditMode && !formValues.password?.trim()) {
-        notification.error('Vui lòng nhập mật khẩu!');
-        return;
-      }
-      if (!isEditMode && formValues.password.length < 6) {
-        notification.error('Mật khẩu phải có ít nhất 6 ký tự!');
-        return;
-      }
-      if (!formValues.role) {
-        notification.error('Vui lòng chọn vai trò!');
-        return;
-      }
-
-      const values = { ...formValues };
-
-      if (isEditMode) {
-        // Cập nhật nhân viên
-        const updateData = {
-          fullName: values.fullName,
-          email: values.email,
-          phone: values.phone || '',
-          address: values.address || '',
-          dateOfBirth: values.dateOfBirth || null,
-          role: values.role,
-          isActive: values.isActive !== undefined ? values.isActive : true
-        };
-
-        await userService.updateUser(selectedStaff.id, updateData);
-        notification.success('Đã cập nhật thông tin nhân viên');
+      setSaving(true);
+      if (selectedStaff) {
+        await userService.updateUser(selectedStaff.id, payload);
+        notification.success('Đã cập nhật nhân viên');
       } else {
-        // Thêm nhân viên mới
-        const createData = {
-          fullName: values.fullName,
-          email: values.email,
-          password: values.password,
-          phone: values.phone || '',
-          address: values.address || '',
-          dateOfBirth: values.dateOfBirth || null,
-          role: values.role,
-          isActive: values.isActive !== undefined ? values.isActive : true
-        };
-
-        await userService.createUser(createData);
+        await userService.createUser({ ...payload, password: formValues.password });
         notification.success('Đã thêm nhân viên mới');
       }
-
-      // Reload data
-      const usersRes = await userService.getAllUsers({ page: 0, size: 50, sortBy: 'id', sortDir: 'asc' });
-      const usersData = usersRes?.content || usersRes?.data?.content || usersRes?.data || usersRes || [];
-
-      const mappedStaff = (Array.isArray(usersData) ? usersData : []).map((u) => {
-        const id = u.id;
-        const name = u.fullName || 'N/A';
-        const email = u.email || 'N/A';
-        const phone = u.phone || '';
-        const address = u.address || '';
-        const avatarUrl = u.avatarUrl || '';
-        const dateOfBirth = u.dateOfBirth;
-        const role = u.role || 'staff';
-        const loyaltyPoints = u.loyaltyPoints || 0;
-        const membershipTier = u.membershipTier;
-        const lastLogin = u.lastLogin;
-        const isActive = u.isActive !== undefined ? u.isActive : true;
-        const createdAt = u.createdAt;
-        const updatedAt = u.updatedAt;
-
-        const avatar =
-          avatarUrl ||
-          (name && name.split(' ').map((n) => n[0]).join('').toUpperCase()) ||
-          (email && email[0]?.toUpperCase()) ||
-          'ST';
-
-        return {
-          id,
-          name,
-          email,
-          phone,
-          address,
-          avatarUrl,
-          dateOfBirth,
-          role,
-          loyaltyPoints,
-          membershipTier,
-          lastLogin: formatDate(lastLogin),
-          lastLoginRaw: lastLogin,
-          status: isActive ? 'active' : 'inactive',
-          isActive,
-          createdAt: formatDate(createdAt),
-          updatedAt: formatDate(updatedAt),
-          avatar,
-          originalData: u
-        };
-      });
-
-      setStaff(mappedStaff);
-      setIsModalVisible(false);
-      setFormValues({
-        fullName: '',
-        email: '',
-        password: '',
-        phone: '',
-        address: '',
-        dateOfBirth: '',
-        role: 'staff',
-        isActive: true
-      });
+      closeForm();
+      await loadStaff();
     } catch (error) {
-      console.error('Error saving user:', error);
-      notification.error(error?.response?.data?.message || (isEditMode ? 'Không thể cập nhật nhân viên' : 'Không thể thêm nhân viên mới'));
+      console.error('Error saving staff:', error);
+      notification.error(error?.response?.data?.message || 'Không thể lưu thông tin nhân viên');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleModalCancel = () => {
-    setIsModalVisible(false);
-    setIsEditMode(false);
-    setSelectedStaff(null);
-    setFormValues({
-      fullName: '',
-      email: '',
-      password: '',
-      phone: '',
-      address: '',
-      dateOfBirth: '',
-      role: 'staff',
-      isActive: true
-    });
+  const handleStatusChange = async (record) => {
+    try {
+      if (record.isActive) {
+        await userService.deactivateUser(record.id);
+        notification.success(`Đã vô hiệu hóa ${record.name}`);
+      } else {
+        await userService.activateUser(record.id);
+        notification.success(`Đã kích hoạt ${record.name}`);
+      }
+      await loadStaff();
+    } catch (error) {
+      console.error('Error updating staff status:', error);
+      notification.error('Không thể thay đổi trạng thái nhân viên');
+    }
   };
 
-  // Handle table change (pagination)
-  const handleTableChange = (page, pageSize) => {
-    const newPageSize = pageSize || pagination.pageSize;
-    setPagination(prev => ({
-      current: page,
-      pageSize: newPageSize,
-      total: prev.total
-    }));
-  };
-
-  // Handle page size change
-  const handlePageSizeChange = (current, newPageSize) => {
-    setPagination(prev => ({
-      current: 1,
-      pageSize: newPageSize,
-      total: prev.total
-    }));
-  };
-
-  // Get paginated staff
-  const getPaginatedStaff = () => {
-    const start = (pagination.current - 1) * pagination.pageSize;
-    const end = start + pagination.pageSize;
-    return staff.slice(start, end);
+  const handleDelete = async (record) => {
+    if (!window.confirm(`Xóa nhân viên ${record.name}? Hành động này không thể hoàn tác.`)) return;
+    try {
+      await userService.deleteUser(record.id);
+      notification.success(`Đã xóa ${record.name}`);
+      const lastItemOnPage = staff.length === 1 && pagination.current > 1;
+      if (lastItemOnPage) {
+        setPagination((current) => ({ ...current, current: current.current - 1 }));
+      } else {
+        await loadStaff();
+      }
+    } catch (error) {
+      console.error('Error deleting staff:', error);
+      notification.error(error?.response?.data?.message || 'Không thể xóa nhân viên');
+    }
   };
 
   const columns = [
     {
       title: 'Nhân viên',
-      dataIndex: 'name',
-      key: 'name',
-      render: (text, record) => (
-        <div className="flex items-center gap-3">
-          <Avatar className="h-10 w-10 bg-indigo-600 font-semibold text-white">
-            {record.avatarUrl ? (
-              <AvatarImage src={record.avatarUrl} />
-            ) : null}
-            <AvatarFallback className="bg-indigo-600 text-white">
-              {record.avatar}
-            </AvatarFallback>
+      key: 'staff',
+      render: (_, record) => (
+        <div className="flex min-w-[220px] items-center gap-3">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={record.avatarUrl} alt={record.name} />
+            <AvatarFallback>{record.initials}</AvatarFallback>
           </Avatar>
-          <div>
-            <div className="font-semibold text-foreground">{text}</div>
-            <div className="text-xs text-muted-foreground">{record.email}</div>
-            <div className="text-xs text-muted-foreground">
-              {record.role === 'admin'
-                ? 'Quản lý hệ thống'
-                : record.role === 'manager'
-                  ? 'Quản lý rạp'
-                  : record.role === 'staff'
-                    ? 'Nhân viên bán vé'
-                    : 'Nhân viên'}
-            </div>
+          <div className="min-w-0">
+            <button type="button" onClick={() => openDetail(record)} className="block max-w-full truncate text-left font-medium text-foreground hover:text-primary">
+              {record.name}
+            </button>
+            <p className="truncate text-xs text-muted-foreground">{record.email}</p>
           </div>
         </div>
-      )
+      ),
     },
     {
       title: 'Vai trò',
       dataIndex: 'role',
       key: 'role',
       render: (role) => {
-        const roleConfig = {
-          admin: { color: 'red', text: 'Quản trị viên' },
-          manager: { color: 'orange', text: 'Quản lý' },
-          staff: { color: 'blue', text: 'Nhân viên' }
-        };
-        const config = roleConfig[role] || { color: 'default', text: role };
-        return <StatusBadge tone={config.color}>{config.text}</StatusBadge>;
-      }
+        const meta = roleMeta(role);
+        return <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>;
+      },
     },
     {
       title: 'Trạng thái',
-      dataIndex: 'status',
       key: 'status',
-      render: (status, record) => (
-        <div className="flex items-center gap-2">
-          {status === 'active' ? (
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
-          ) : (
-            <AlertCircle className="h-4 w-4 text-red-500" />
-          )}
-          <span className={status === 'active' ? 'text-green-500' : 'text-red-500'}>
-            {status === 'active' ? 'Hoạt động' : 'Không hoạt động'}
-          </span>
-          <label className="relative inline-flex items-center cursor-pointer ml-2">
-            <input
-              type="checkbox"
-              checked={status === 'active'}
-              onChange={(e) => handleStatusChange(e.target.checked, record)}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-card after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-          </label>
-        </div>
-      )
+      render: (_, record) => (
+        <StatusBadge tone={record.isActive ? 'success' : 'neutral'}>
+          {record.isActive ? 'Hoạt động' : 'Không hoạt động'}
+        </StatusBadge>
+      ),
     },
     {
       title: 'Đăng nhập cuối',
       dataIndex: 'lastLogin',
       key: 'lastLogin',
-      render: (date) => (
-        <div className="text-xs text-muted-foreground">
-          {date}
-        </div>
-      )
+      render: (value) => <span className="text-sm text-muted-foreground">{formatDate(value)}</span>,
     },
     {
       title: 'Thao tác',
       key: 'actions',
       render: (_, record) => (
         <TooltipProvider>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={() => handleViewStaffDetail(record)}
-                >
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(record)} aria-label="Xem chi tiết nhân viên">
                   <Eye className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -601,12 +292,7 @@ const Staff = () => {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={() => handleEditStaff(record)}
-                >
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(record)} aria-label="Chỉnh sửa nhân viên">
                   <Edit className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -614,16 +300,15 @@ const Staff = () => {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={() => {
-                    if (window.confirm('Bạn có chắc muốn xóa nhân viên này?\nHành động này không thể hoàn tác.')) {
-                      handleDeleteStaff(record);
-                    }
-                  }}
-                >
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleStatusChange(record)} aria-label={record.isActive ? 'Vô hiệu hóa nhân viên' : 'Kích hoạt nhân viên'}>
+                  <CheckCircle2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{record.isActive ? 'Vô hiệu hóa' : 'Kích hoạt'}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(record)} aria-label="Xóa nhân viên">
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -631,239 +316,151 @@ const Staff = () => {
             </Tooltip>
           </div>
         </TooltipProvider>
-      )
-    }
+      ),
+    },
   ];
 
-
-
   return (
-    <div className="min-h-screen">
-      {/* Breadcrumb */}
-      <Breadcrumb
-        className="mb-6"
-        items={[
-          {
-            title: 'Dashboard',
-            icon: <Home className="h-4 w-4" />,
-            href: '/admin/dashboard'
-          },
-          {
-            title: 'Quản lý nhân viên',
-            icon: <UsersIcon className="h-4 w-4" />
-          }
+    <div className="space-y-6">
+      <AdminPageHeader
+        title="Quản lý nhân viên"
+        description="Quản lý tài khoản nhân viên, vai trò và trạng thái truy cập hệ thống."
+        breadcrumbs={[
+          { title: 'Dashboard', href: '/admin/dashboard' },
+          { title: 'Nhân viên' },
         ]}
+        actions={(
+          <Button onClick={openCreate}>
+            <Plus className="h-4 w-4" />
+            Thêm nhân viên
+          </Button>
+        )}
       />
 
-      {/* Header */}
-      <Card className="mb-6 shadow-lg border-0 bg-card">
-        <div className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 bg-indigo-100 rounded-lg">
-              <UsersIcon className="h-6 w-6 text-indigo-600" />
-            </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card>
+          <CardContent className="flex items-center justify-between p-5">
             <div>
-              <h2 className="text-2xl font-bold text-foreground m-0">
-                Quản lý nhân viên
-              </h2>
-              <p className="text-muted-foreground text-sm m-0 mt-1">
-                Quản lý nhân viên, vai trò và quyền hạn trong hệ thống
-              </p>
+              <p className="text-sm text-muted-foreground">Tổng nhân viên</p>
+              <p className="mt-1 text-2xl font-semibold">{pagination.total}</p>
             </div>
-          </div>
-        </div>
-      </Card>
+            <Users className="h-5 w-5 text-muted-foreground" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center justify-between p-5">
+            <div>
+              <p className="text-sm text-muted-foreground">Đang hoạt động trên trang</p>
+              <p className="mt-1 text-2xl font-semibold">{activeOnPage}</p>
+            </div>
+            <UserRoundCog className="h-5 w-5 text-muted-foreground" />
+          </CardContent>
+        </Card>
+      </div>
 
-      <Card className="shadow-lg border-0 bg-card">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-semibold text-foreground m-0">Danh sách nhân viên</h3>
-            <Button
-              onClick={handleCreateStaff}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Thêm Nhân viên
-            </Button>
-          </div>
-
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Danh sách nhân viên</CardTitle>
+        </CardHeader>
+        <CardContent>
           {loading ? (
-            <div className="p-12 text-center">
-              <Loader2 className="h-10 w-10 text-indigo-600 animate-spin mx-auto mb-4" />
-              <p className="text-muted-foreground">Đang tải dữ liệu...</p>
+            <div className="flex min-h-48 items-center justify-center gap-3 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Đang tải nhân viên...
             </div>
           ) : staff.length === 0 ? (
-            <div className="p-12 text-center">
-              <Empty description="Chưa có nhân viên nào" />
-            </div>
+            <Empty description="Chưa có nhân viên nào" />
           ) : (
-            <>
-              <DataTable
-                fields={columns}
-                data={getPaginatedStaff()}
-                getRowId="id"
-                pageControls={false}
-                className="mt-4"
-              />
-              {pagination.total > 0 && (
-                <div className="mt-4 flex items-center justify-between flex-wrap gap-4 pt-4 border-t border-border">
-                  <div className="text-sm text-muted-foreground">
-                    Hiển thị {(pagination.current - 1) * pagination.pageSize + 1} - {Math.min(pagination.current * pagination.pageSize, pagination.total)} trong tổng số {pagination.total} nhân viên
-                  </div>
-                  <Pagination
-                    page={pagination.current}
-                    itemsPerPage={pagination.pageSize}
-                    totalItems={pagination.total}
-                    allowPageSizeChange={true}
-                    allowPageJump={true}
-                    onPageChange={handleTableChange}
-                    onPageSizeChange={handlePageSizeChange}
-                  />
-                </div>
-              )}
-            </>
+            <DataTable fields={columns} rows={staff} getRowId="id" pageControls={false} />
           )}
-        </div>
+
+          {pagination.total > 0 && (
+            <Pagination
+              className="mt-5 border-t pt-5"
+              page={pagination.current}
+              itemsPerPage={pagination.pageSize}
+              totalItems={pagination.total}
+              allowPageSizeChange
+              allowPageJump
+              onPageChange={(page) => setPagination((current) => ({ ...current, current: page }))}
+              onPageSizeChange={(size) => setPagination((current) => ({ ...current, current: 1, pageSize: size }))}
+              showTotal={(total, range) => `Hiển thị ${range[0]}-${range[1]} / ${total} nhân viên`}
+            />
+          )}
+        </CardContent>
       </Card>
 
       <ResponsiveDialog
-        heading={isEditMode ? "Chỉnh sửa nhân viên" : "Thêm nhân viên mới"}
-        open={isModalVisible}
-        onClose={handleModalCancel}
-        maxWidth={600}
-        actions={null}
+        heading={selectedStaff ? 'Chỉnh sửa nhân viên' : 'Thêm nhân viên mới'}
+        description="Thông tin này được sử dụng cho tài khoản nhân viên trong hệ thống."
+        open={formOpen}
+        onClose={closeForm}
+        maxWidth={680}
       >
-        <form onSubmit={handleModalOk} className="mt-4 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">
-                Họ và tên <span className="text-red-500">*</span>
-              </label>
-              <Input
-                placeholder="Nhập họ và tên"
-                value={formValues.fullName}
-                onChange={(e) => setFormValues({ ...formValues, fullName: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">
-                Email <span className="text-red-500">*</span>
-              </label>
-              <Input
-                type="email"
-                placeholder="Nhập email"
-                value={formValues.email}
-                onChange={(e) => setFormValues({ ...formValues, email: e.target.value })}
-                required
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-2 text-sm font-medium">
+              <span>Họ và tên <span className="text-destructive">*</span></span>
+              <Input value={formValues.fullName} onChange={(event) => setFormValues((current) => ({ ...current, fullName: event.target.value }))} placeholder="Nguyễn Văn A" required />
+            </label>
+            <label className="space-y-2 text-sm font-medium">
+              <span>Email <span className="text-destructive">*</span></span>
+              <Input type="email" value={formValues.email} onChange={(event) => setFormValues((current) => ({ ...current, email: event.target.value }))} placeholder="staff@hotcinema.vn" required />
+            </label>
           </div>
 
-          {!isEditMode && (
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">
-                Mật khẩu <span className="text-red-500">*</span>
-              </label>
-              <Input
-                type="password"
-                placeholder="Nhập mật khẩu (tối thiểu 6 ký tự)"
-                value={formValues.password}
-                onChange={(e) => setFormValues({ ...formValues, password: e.target.value })}
-                required
-                minLength={6}
-              />
-            </div>
+          {!selectedStaff && (
+            <label className="block space-y-2 text-sm font-medium">
+              <span>Mật khẩu <span className="text-destructive">*</span></span>
+              <InputPassword value={formValues.password} onChange={(event) => setFormValues((current) => ({ ...current, password: event.target.value }))} placeholder="Tối thiểu 6 ký tự" required minLength={6} />
+            </label>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">
-                Số điện thoại
-              </label>
-              <Input
-                placeholder="Nhập số điện thoại"
-                value={formValues.phone}
-                onChange={(e) => setFormValues({ ...formValues, phone: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">
-                Ngày sinh
-              </label>
-              <Input
-                type="date"
-                value={formValues.dateOfBirth}
-                onChange={(e) => setFormValues({ ...formValues, dateOfBirth: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">
-              Địa chỉ
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-2 text-sm font-medium">
+              <span>Số điện thoại</span>
+              <Input value={formValues.phone} onChange={(event) => setFormValues((current) => ({ ...current, phone: event.target.value }))} placeholder="0901234567" />
             </label>
-            <Textarea
-              rows={2}
-              placeholder="Nhập địa chỉ"
-              value={formValues.address}
-              onChange={(e) => setFormValues({ ...formValues, address: e.target.value })}
-            />
+            <label className="space-y-2 text-sm font-medium">
+              <span>Ngày sinh</span>
+              <Input type="date" value={formValues.dateOfBirth} onChange={(event) => setFormValues((current) => ({ ...current, dateOfBirth: event.target.value }))} />
+            </label>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">
-                Vai trò <span className="text-red-500">*</span>
-              </label>
-              <Select
-                value={formValues.role}
-                onValueChange={(value) => setFormValues({ ...formValues, role: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn vai trò" />
-                </SelectTrigger>
+          <label className="block space-y-2 text-sm font-medium">
+            <span>Địa chỉ</span>
+            <Textarea value={formValues.address} onChange={(event) => setFormValues((current) => ({ ...current, address: event.target.value }))} placeholder="Nhập địa chỉ" rows={3} />
+          </label>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-2 text-sm font-medium">
+              <span>Vai trò</span>
+              <Select value={formValues.role} onValueChange={(value) => setFormValues((current) => ({ ...current, role: value }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Quản trị viên</SelectItem>
                   <SelectItem value="manager">Quản lý</SelectItem>
                   <SelectItem value="staff">Nhân viên</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">
-                Trạng thái
-              </label>
-              <div className="flex items-center gap-3 pt-2">
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formValues.isActive}
-                    onChange={(e) => setFormValues({ ...formValues, isActive: e.target.checked })}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-card after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                </label>
-                <span className="text-sm text-muted-foreground">
-                  {formValues.isActive ? 'Hoạt động' : 'Không hoạt động'}
-                </span>
-              </div>
-            </div>
+            </label>
+            <label className="space-y-2 text-sm font-medium">
+              <span>Trạng thái</span>
+              <Select value={formValues.isActive ? 'active' : 'inactive'} onValueChange={(value) => setFormValues((current) => ({ ...current, isActive: value === 'active' }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Hoạt động</SelectItem>
+                  <SelectItem value="inactive">Không hoạt động</SelectItem>
+                </SelectContent>
+              </Select>
+            </label>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-border">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleModalCancel}
-            >
-              Hủy
-            </Button>
-            <Button
-              type="submit"
-              className="bg-indigo-600 hover:bg-indigo-700 text-white"
-            >
-              {isEditMode ? "Cập nhật" : "Thêm"}
+          <div className="flex justify-end gap-2 border-t pt-4">
+            <Button type="button" variant="outline" onClick={closeForm}>Hủy</Button>
+            <Button type="submit" disabled={saving}>
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+              {selectedStaff ? 'Lưu thay đổi' : 'Thêm nhân viên'}
             </Button>
           </div>
         </form>
@@ -871,98 +468,38 @@ const Staff = () => {
 
       <ResponsiveDialog
         heading="Chi tiết nhân viên"
-        open={isDetailModalVisible}
-        onClose={() => setIsDetailModalVisible(false)}
-        actions={[
-          <Button key="close" variant="outline" onClick={() => setIsDetailModalVisible(false)}>
-            Đóng
-          </Button>,
-          <Button
-            key="edit"
-            className="bg-indigo-600 hover:bg-indigo-700 text-white"
-            onClick={() => {
-              setIsDetailModalVisible(false);
-              handleEditStaff(selectedStaff);
-            }}
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            Chỉnh sửa
-          </Button>
-        ]}
-        maxWidth={600}
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        maxWidth={620}
+        actions={selectedStaff ? [
+          <Button key="close" variant="outline" onClick={() => setDetailOpen(false)}>Đóng</Button>,
+          <Button key="edit" onClick={() => { setDetailOpen(false); openEdit(selectedStaff); }}><Edit className="h-4 w-4" />Chỉnh sửa</Button>,
+        ] : null}
       >
         {selectedStaff && (
-          <div className="mt-4">
-            <div className="text-center mb-6">
-              <Avatar className="h-20 w-20 bg-indigo-600 font-semibold text-white mx-auto mb-4">
-                {selectedStaff.avatarUrl ? (
-                  <AvatarImage src={selectedStaff.avatarUrl} />
-                ) : null}
-                <AvatarFallback className="bg-indigo-600 text-white">
-                  {selectedStaff.avatar}
-                </AvatarFallback>
+          <div className="space-y-5">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-14 w-14">
+                <AvatarImage src={selectedStaff.avatarUrl} alt={selectedStaff.name} />
+                <AvatarFallback>{selectedStaff.initials}</AvatarFallback>
               </Avatar>
-              <h3 className="text-xl font-semibold text-foreground mt-4 mb-1">{selectedStaff.name}</h3>
-              <p className="text-muted-foreground text-sm">{selectedStaff.email}</p>
+              <div>
+                <h3 className="font-semibold text-foreground">{selectedStaff.name}</h3>
+                <p className="text-sm text-muted-foreground">{selectedStaff.email}</p>
+              </div>
             </div>
-
-            <DetailList columns={1} className="border border-border rounded-lg p-4">
-              <DetailItem label="Email">
-                {selectedStaff.email}
-              </DetailItem>
-              {selectedStaff.phone && (
-                <DetailItem label="Số điện thoại">
-                  {selectedStaff.phone}
-                </DetailItem>
-              )}
-              {selectedStaff.address && (
-                <DetailItem label="Địa chỉ">
-                  {selectedStaff.address}
-                </DetailItem>
-              )}
-              {selectedStaff.dateOfBirth && (
-                <DetailItem label="Ngày sinh">
-                  {formatDate(selectedStaff.dateOfBirth)}
-                </DetailItem>
-              )}
-              <DetailItem label="Vai trò">
-                <StatusBadge tone={selectedStaff.role === 'admin' ? 'red' : selectedStaff.role === 'manager' ? 'orange' : 'blue'}>
-                  {selectedStaff.role === 'admin'
-                    ? 'Quản trị viên'
-                    : selectedStaff.role === 'manager'
-                      ? 'Quản lý'
-                      : 'Nhân viên'}
-                </StatusBadge>
-              </DetailItem>
-              <DetailItem label="Trạng thái">
-                <StatusBadge tone={selectedStaff.status === 'active' ? 'green' : 'red'}>
-                  {selectedStaff.status === 'active' ? 'Hoạt động' : 'Không hoạt động'}
-                </StatusBadge>
-              </DetailItem>
-              {selectedStaff.loyaltyPoints !== undefined && (
-                <DetailItem label="Điểm tích lÅ©y">
-                  {selectedStaff.loyaltyPoints}
-                </DetailItem>
-              )}
-              {selectedStaff.membershipTier && (
-                <DetailItem label="Hạng thành viên">
-                  {selectedStaff.membershipTier}
-                </DetailItem>
-              )}
-              <DetailItem label="Đăng nhập cuối">
-                {selectedStaff.lastLogin || 'Chưa đăng nhập'}
-              </DetailItem>
-              <DetailItem label="Ngày tạo">
-                {selectedStaff.createdAt || 'N/A'}
-              </DetailItem>
-              <DetailItem label="Cập nhật lần cuối">
-                {selectedStaff.updatedAt || 'N/A'}
-              </DetailItem>
+            <DetailList columns={2}>
+              <DetailItem label="Vai trò"><StatusBadge tone={roleMeta(selectedStaff.role).tone}>{roleMeta(selectedStaff.role).label}</StatusBadge></DetailItem>
+              <DetailItem label="Trạng thái"><StatusBadge tone={selectedStaff.isActive ? 'success' : 'neutral'}>{selectedStaff.isActive ? 'Hoạt động' : 'Không hoạt động'}</StatusBadge></DetailItem>
+              <DetailItem label="Số điện thoại">{selectedStaff.phone || 'Chưa có'}</DetailItem>
+              <DetailItem label="Ngày sinh">{formatDate(selectedStaff.dateOfBirth)}</DetailItem>
+              <DetailItem label="Đăng nhập cuối">{formatDate(selectedStaff.lastLogin)}</DetailItem>
+              <DetailItem label="Ngày tạo">{formatDate(selectedStaff.createdAt)}</DetailItem>
+              <DetailItem label="Địa chỉ" wide>{selectedStaff.address || 'Chưa có'}</DetailItem>
             </DetailList>
           </div>
         )}
       </ResponsiveDialog>
-
     </div>
   );
 };
