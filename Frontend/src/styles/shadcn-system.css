@@ -43,10 +43,6 @@
     color: hsl(var(--foreground));
   }
 
-  a {
-    color: inherit;
-  }
-
   button,
   input,
   textarea,
@@ -60,7 +56,7 @@
 }
 
 @layer components {
-  /* Compatibility layer while legacy screens are migrated to UI primitives. */
+  /* Temporary compatibility layer while legacy screens move to Shadcn primitives. */
   .custom-input {
     @apply border-input bg-background text-foreground shadow-sm;
   }
@@ -146,4 +142,18 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.55);
   }
+}
+
+/* index.css still contains older unlayered globals. Keep the final cascade semantic. */
+a {
+  color: inherit;
+}
+
+a:hover {
+  color: hsl(var(--primary));
+}
+
+body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
 }
