@@ -1,0 +1,149 @@
+@layer base {
+  :root {
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 0 84.2% 60.2%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 0 84.2% 60.2%;
+
+    --success: 142.1 76.2% 36.3%;
+    --success-foreground: 355.7 100% 97.3%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 48 96% 89%;
+    --info: 221.2 83.2% 53.3%;
+    --info-foreground: 210 40% 98%;
+  }
+
+  .dark {
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 0 84.2% 60.2%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 0 84.2% 60.2%;
+
+    --success: 142.1 70.6% 45.3%;
+    --warning: 47.9 95.8% 53.1%;
+    --warning-foreground: 26 83.3% 14.1%;
+    --info: 217.2 91.2% 59.8%;
+  }
+
+  html {
+    background: hsl(var(--background));
+  }
+
+  body {
+    min-width: 320px;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+
+  a {
+    color: inherit;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.2);
+  }
+}
+
+@layer components {
+  /* Compatibility layer while legacy screens are migrated to UI primitives. */
+  .custom-input {
+    @apply border-input bg-background text-foreground shadow-sm;
+  }
+
+  .custom-input:hover {
+    @apply border-primary/50 bg-background;
+  }
+
+  .custom-input:focus,
+  .custom-input:focus-within {
+    @apply border-ring ring-2 ring-ring/20;
+    box-shadow: none;
+  }
+
+  .custom-input input {
+    @apply bg-transparent text-foreground;
+  }
+
+  .custom-input input::placeholder {
+    @apply text-muted-foreground;
+  }
+
+  .custom-input svg,
+  .form-header p,
+  .form-footer span,
+  .custom-checkbox,
+  .custom-divider {
+    @apply text-muted-foreground;
+  }
+
+  .form-header h2 {
+    @apply bg-none text-foreground;
+  }
+
+  .login-button,
+  .register-button {
+    @apply bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:translate-y-0;
+    background-image: none;
+    box-shadow: none;
+  }
+
+  .login-button:hover,
+  .register-button:hover {
+    box-shadow: none;
+  }
+
+  .cancel-button,
+  .social-button {
+    @apply border-input bg-background text-foreground shadow-sm hover:bg-accent hover:text-accent-foreground;
+  }
+
+  .app-error-message,
+  .error-message {
+    @apply border-destructive/30 bg-destructive/10 text-destructive shadow-none;
+    background-image: none;
+    box-shadow: none;
+  }
+
+  .app-success-message,
+  .success-message {
+    color: hsl(var(--success));
+    background: hsl(var(--success) / 0.1);
+    border-color: hsl(var(--success) / 0.3);
+    box-shadow: none;
+  }
+
+  .app-warning-message,
+  .warning-message {
+    color: hsl(var(--warning));
+    background: hsl(var(--warning) / 0.1);
+    border-color: hsl(var(--warning) / 0.3);
+    box-shadow: none;
+  }
+
+  .custom-scrollbar {
+    scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.35);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.55);
+  }
+}
