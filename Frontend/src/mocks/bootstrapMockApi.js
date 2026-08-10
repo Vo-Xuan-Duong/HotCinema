@@ -14,6 +14,37 @@ const parseBody = (config) => {
   }
 };
 
+const getParams = (config) => {
+  const params = { ...(config.params || {}) };
+  const raw = String(config.url || '');
+  const query = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : '';
+  new URLSearchParams(query).forEach((value, key) => {
+    if (params[key] == null) params[key] = value;
+  });
+  return params;
+};
+
+const pageOf = (items, params = {}) => {
+  const page = Math.max(0, Number(params.page ?? 0) || 0);
+  const size = Math.max(1, Number(params.size ?? 10) || 10);
+  const start = page * size;
+  const content = items.slice(start, start + size);
+  const totalElements = items.length;
+  const totalPages = totalElements === 0 ? 0 : Math.ceil(totalElements / size);
+  return {
+    content,
+    number: page,
+    page,
+    size,
+    numberOfElements: content.length,
+    totalElements,
+    totalPages,
+    first: page === 0,
+    last: totalPages === 0 || page >= totalPages - 1,
+    empty: content.length === 0,
+  };
+};
+
 const mockJwt = (user) => {
   const payload = {
     sub: String(user.id),
@@ -55,6 +86,56 @@ const currentStoredUser = (db) => {
   return db.users.find((item) => item.email === 'customer@hotcinema.vn') || db.users[0];
 };
 
+const genreList = (db) => [...new Set(db.movies.flatMap((movie) => movie.genres || []))]
+  .sort((left, right) => String(left).localeCompare(String(right), 'vi'))
+  .map((name, index) => ({ id: index + 1, name }));
+
+const cinemaDateSchedule = (db, cinemaId, date, params) => {
+  const groups = new Map();
+  db.showtimes
+    .filter((showtime) => showtime.cinemaId === Number(cinemaId) && showtime.showDate === date)
+    .forEach((showtime) => {
+      const movie = db.movies.find((item) => item.id === showtime.movieId);
+      if (!movie) return;
+
+      if (!groups.has(movie.id)) {
+        groups.set(movie.id, {
+          movieId: movie.id,
+          movieTitle: movie.title,
+          posterUrl: movie.posterUrl,
+          posterPath: movie.posterUrl,
+          moviePoster: movie.posterUrl,
+          duration: movie.durationMinutes,
+          movieDuration: movie.durationMinutes,
+          genre: Array.isArray(movie.genres) ? movie.genres.join(', ') : '',
+          movieGenre: Array.isArray(movie.genres) ? movie.genres.join(', ') : '',
+          formats: [],
+        });
+      }
+
+      const group = groups.get(movie.id);
+      let format = group.formats.find((item) => item.formatType === showtime.format);
+      if (!format) {
+        format = { formatType: showtime.format, showtimes: [] };
+        group.formats.push(format);
+      }
+      format.showtimes.push({
+        id: showtime.id,
+        showtimeId: showtime.id,
+        startTime: showtime.startTime,
+        endTime: showtime.endTime,
+        roomId: showtime.roomId,
+        roomName: showtime.roomName,
+        price: showtime.price ?? showtime.basePrice,
+        basePrice: showtime.basePrice,
+        status: showtime.status,
+        format: showtime.format,
+      });
+    });
+
+  return pageOf([...groups.values()], params);
+};
+
 const authAwareMockAdapter = async (config) => {
   const method = String(config.method || 'get').toLowerCase();
   const path = String(config.url || '').split('?')[0].replace(/\/$/, '');
@@ -82,6 +163,32 @@ const authAwareMockAdapter = async (config) => {
       refreshToken: 'mock-refresh-token',
       userAuth: user,
     });
+  }
+
+  // MovieForm needs the genre catalog even when no dedicated Genres admin page is active.
+  if (method === 'get' && (path === '/genres' || path === '/genres/all')) {
+    return mockResponse(config, genreList(getMockDatabase()));
+  }
+  const genreIdMatch = path.match(/^\/genres\/(\d+)$/);
+  if (method === 'get' && genreIdMatch) {
+    const genre = genreList(getMockDatabase()).find((item) => item.id === Number(genreIdMatch[1]));
+    return mockResponse(config, genre || null);
+  }
+  const genreNameMatch = path.match(/^\/genres\/name\/(.+)$/);
+  if (method === 'get' && genreNameMatch) {
+    const name = decodeURIComponent(genreNameMatch[1]);
+    const genre = genreList(getMockDatabase()).find((item) => item.name.toLowerCase() === name.toLowerCase());
+    return mockResponse(config, genre || null);
+  }
+
+  // Customer CinemaDetail and Schedule consume a movie-grouped response for this endpoint.
+  const cinemaDateMatch = path.match(/^\/showtime\/cinema\/(\d+)\/date\/([^/]+)$/);
+  if (method === 'get' && cinemaDateMatch) {
+    const params = getParams(config);
+    return mockResponse(
+      config,
+      cinemaDateSchedule(getMockDatabase(), Number(cinemaDateMatch[1]), decodeURIComponent(cinemaDateMatch[2]), params),
+    );
   }
 
   // notificationService uses POST for read state changes. Keep those mutations
