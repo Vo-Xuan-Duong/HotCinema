@@ -190,13 +190,13 @@ const AdminMovies = () => {
     {
       title: 'Phim',
       key: 'movie',
-      width: 360,
+      width: 340,
       render: (_, record) => (
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
           <img
             src={record.posterUrl || record.poster || record.posterPath || '/brand-placeholder.svg'}
             alt={record.title || 'Poster phim'}
-            className="h-20 w-14 shrink-0 rounded-md border border-border object-cover bg-muted"
+            className="h-16 w-11 shrink-0 rounded-md border border-border bg-muted object-cover"
             onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }}
           />
           <div className="min-w-0">
@@ -209,9 +209,9 @@ const AdminMovies = () => {
               <span className="truncate">{record.title || 'Chưa có tên'}</span>
             </Button>
             {record.originalTitle && record.originalTitle !== record.title && (
-              <p className="mt-1 truncate text-xs text-muted-foreground">{record.originalTitle}</p>
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">{record.originalTitle}</p>
             )}
-            <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+            <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
               <Clock className="h-3 w-3" />
               {formatDuration(record)}
             </p>
@@ -226,10 +226,10 @@ const AdminMovies = () => {
         const genreNames = getGenreNames(record);
         return genreNames.length ? (
           <div className="flex max-w-64 flex-wrap gap-1">
-            {genreNames.slice(0, 3).map((genre) => (
+            {genreNames.slice(0, 2).map((genre) => (
               <StatusBadge key={genre} tone="info">{genre}</StatusBadge>
             ))}
-            {genreNames.length > 3 && <span className="text-xs text-muted-foreground">+{genreNames.length - 3}</span>}
+            {genreNames.length > 2 && <span className="text-xs text-muted-foreground">+{genreNames.length - 2}</span>}
           </div>
         ) : <span className="text-sm text-muted-foreground">Chưa phân loại</span>;
       },
@@ -246,11 +246,9 @@ const AdminMovies = () => {
       render: (_, record) => {
         const rating = Number(record.averageRating ?? record.voteAverage ?? record.rating ?? 0);
         return rating > 0 ? (
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <StarRating readOnly value={Math.min(5, rating > 5 ? rating / 2 : rating)} className="gap-0.5" />
-              <span className="text-xs font-medium tabular-nums">{rating.toFixed(1)}{rating > 5 ? '/10' : '/5'}</span>
-            </div>
+          <div className="flex items-center gap-1.5">
+            <StarRating readOnly value={Math.min(5, rating > 5 ? rating / 2 : rating)} className="gap-0.5" />
+            <span className="text-xs font-medium tabular-nums">{rating.toFixed(1)}{rating > 5 ? '/10' : '/5'}</span>
           </div>
         ) : <span className="text-xs text-muted-foreground">Chưa có</span>;
       },
@@ -268,7 +266,7 @@ const AdminMovies = () => {
       title: 'Thao tác',
       key: 'actions',
       render: (_, record) => (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           <Button type="button" variant="ghost" size="icon" onClick={() => navigate(`/admin/movies/${record.id}`)} aria-label={`Xem ${record.title}`}>
             <Eye className="h-4 w-4" />
           </Button>
@@ -291,7 +289,7 @@ const AdminMovies = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <AdminPageHeader
         title="Quản lý phim"
         description="Quản lý nội dung phim, trạng thái phát hành, thể loại và thông tin hiển thị trên HotCinema."
@@ -301,110 +299,122 @@ const AdminMovies = () => {
         ]}
         actions={(
           <Button type="button" onClick={() => navigate('/admin/movies/create')}>
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="h-4 w-4" />
             Thêm phim
           </Button>
         )}
       />
 
-      <Card className="shadow-sm">
-        <CardContent className="space-y-4 pt-6">
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(240px,1fr)_180px_200px_160px_auto]">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={searchText}
-                onChange={(event) => {
-                  setSearchText(event.target.value);
-                  setPagination((previous) => ({ ...previous, current: 1 }));
-                }}
-                placeholder="Tìm theo tên phim..."
-                className="pl-9"
-              />
+      <Card ref={tableRef}>
+        <CardContent className="p-0">
+          <div className="border-b border-border p-3">
+            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(260px,1fr)_170px_190px_140px_auto]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={searchText}
+                  onChange={(event) => {
+                    setSearchText(event.target.value);
+                    setPagination((previous) => ({ ...previous, current: 1 }));
+                  }}
+                  placeholder="Tìm theo tên phim..."
+                  className="pl-9"
+                />
+              </div>
+
+              <Select value={filters.status} onValueChange={(value) => updateFilter('status', value)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="NOW_SHOWING">Đang chiếu</SelectItem>
+                  <SelectItem value="COMING_SOON">Sắp chiếu</SelectItem>
+                  <SelectItem value="ARCHIVED">Đã lưu trữ</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={filters.genreId} onValueChange={(value) => updateFilter('genreId', value)}>
+                <SelectTrigger><SelectValue placeholder="Tất cả thể loại" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả thể loại</SelectItem>
+                  {genres.map((genre) => (
+                    <SelectItem key={genre.id ?? genre.name} value={String(genre.id)}>{genre.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filters.releaseYear} onValueChange={(value) => updateFilter('releaseYear', value)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả năm</SelectItem>
+                  {years.map((year) => <SelectItem key={year} value={year}>{year}</SelectItem>)}
+                </SelectContent>
+              </Select>
+
+              <div className="flex items-center justify-end gap-2">
+                <span className="hidden whitespace-nowrap text-xs text-muted-foreground 2xl:inline">
+                  {pagination.total.toLocaleString('vi-VN')} phim
+                </span>
+                {hasActiveFilters && (
+                  <Button type="button" variant="outline" onClick={clearFilters}>
+                    <X className="h-4 w-4" />
+                    Đặt lại
+                  </Button>
+                )}
+              </div>
             </div>
 
-            <Select value={filters.status} onValueChange={(value) => updateFilter('status', value)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                <SelectItem value="NOW_SHOWING">Đang chiếu</SelectItem>
-                <SelectItem value="COMING_SOON">Sắp chiếu</SelectItem>
-                <SelectItem value="ARCHIVED">Đã lưu trữ</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={filters.genreId} onValueChange={(value) => updateFilter('genreId', value)}>
-              <SelectTrigger><SelectValue placeholder="Tất cả thể loại" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả thể loại</SelectItem>
-                {genres.map((genre) => (
-                  <SelectItem key={genre.id ?? genre.name} value={String(genre.id)}>{genre.name}</SelectItem>
+            {activeFilters.length > 0 && (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <span className="text-xs text-muted-foreground">Đang lọc:</span>
+                {activeFilters.map((filter) => (
+                  <StatusBadge key={filter.key} tone={filter.tone}>
+                    {filter.label}
+                    <button type="button" onClick={filter.clear} className="ml-1 rounded-sm opacity-70 hover:opacity-100" aria-label={`Xóa bộ lọc ${filter.label}`}>
+                      <X className="h-3 w-3" />
+                    </button>
+                  </StatusBadge>
                 ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={filters.releaseYear} onValueChange={(value) => updateFilter('releaseYear', value)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả năm</SelectItem>
-                {years.map((year) => <SelectItem key={year} value={year}>{year}</SelectItem>)}
-              </SelectContent>
-            </Select>
-
-            {hasActiveFilters && (
-              <Button type="button" variant="outline" onClick={clearFilters}>
-                <X className="mr-2 h-4 w-4" />
-                Đặt lại
-              </Button>
+                {searchText.trim() && (
+                  <StatusBadge tone="neutral">
+                    “{searchText.trim()}”
+                    <button type="button" onClick={() => { setSearchText(''); setPagination((previous) => ({ ...previous, current: 1 })); }} className="ml-1 opacity-70 hover:opacity-100" aria-label="Xóa từ khóa tìm kiếm">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </StatusBadge>
+                )}
+                <span className="text-xs text-muted-foreground">{pagination.total.toLocaleString('vi-VN')} kết quả</span>
+              </div>
             )}
           </div>
 
-          {activeFilters.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
-              <span className="text-xs text-muted-foreground">Đang lọc:</span>
-              {activeFilters.map((filter) => (
-                <StatusBadge key={filter.key} tone={filter.tone}>
-                  {filter.label}
-                  <button type="button" onClick={filter.clear} className="ml-1 rounded-sm opacity-70 hover:opacity-100" aria-label={`Xóa bộ lọc ${filter.label}`}>
-                    <X className="h-3 w-3" />
-                  </button>
-                </StatusBadge>
-              ))}
-              <span className="text-xs text-muted-foreground">{pagination.total.toLocaleString('vi-VN')} kết quả</span>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card ref={tableRef} className="shadow-sm">
-        <CardContent className="p-0">
           {loading ? (
-            <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-muted-foreground">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <div className="flex min-h-48 flex-col items-center justify-center gap-2 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
               <span className="text-sm">Đang tải danh sách phim...</span>
             </div>
           ) : movies.length ? (
-            <>
-              <DataTable fields={columns} rows={movies} getRowId="id" pageControls={false} />
-              <div className="border-t border-border p-4">
-                <Pagination
-                  page={pagination.current}
-                  itemsPerPage={pagination.pageSize}
-                  totalItems={pagination.total}
-                  showSizeChanger
-                  showQuickJumper
-                  pageSizeOptions={[10, 20, 50]}
-                  showTotal={(total, range) => `${range[0]}-${range[1]} của ${total} phim`}
-                  onPageChange={(page) => {
-                    setPagination((previous) => ({ ...previous, current: page }));
-                    tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }}
-                  onPageSizeChange={(size) => setPagination((previous) => ({ ...previous, current: 1, pageSize: size }))}
-                />
-              </div>
-            </>
+            <DataTable fields={columns} rows={movies} getRowId="id" framed={false} />
           ) : (
-            <Empty description="Không có phim phù hợp với bộ lọc hiện tại" className="min-h-64" />
+            <Empty description="Không có phim phù hợp với bộ lọc hiện tại" className="min-h-40" />
+          )}
+
+          {!loading && movies.length > 0 && (
+            <div className="border-t border-border p-3">
+              <Pagination
+                page={pagination.current}
+                itemsPerPage={pagination.pageSize}
+                totalItems={pagination.total}
+                showSizeChanger
+                showQuickJumper
+                pageSizeOptions={[10, 20, 50]}
+                showTotal={(total, range) => `${range[0]}-${range[1]} của ${total} phim`}
+                onPageChange={(page) => {
+                  setPagination((previous) => ({ ...previous, current: page }));
+                  tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                onPageSizeChange={(size) => setPagination((previous) => ({ ...previous, current: 1, pageSize: size }))}
+              />
+            </div>
           )}
         </CardContent>
       </Card>
