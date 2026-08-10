@@ -151,40 +151,46 @@ const BookingPayment = () => {
   }
 
   return (
-    <main className="min-h-screen bg-background px-4 pb-12 pt-24">
-      <div className="mx-auto max-w-6xl space-y-8">
-        <div className="text-center"><h1 className="text-3xl font-bold tracking-tight">Thanh toán an toàn</h1><p className="mt-2 text-sm text-muted-foreground">Hoàn tất thanh toán cho booking #{bookingData.bookingCode || bookingData.bookingId}.</p></div>
+    <main className="min-h-screen bg-background px-4 pb-8 pt-20">
+      <div className="mx-auto max-w-7xl space-y-5">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Thanh toán an toàn</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Hoàn tất thanh toán cho booking #{bookingData.bookingCode || bookingData.bookingId}.</p>
+          </div>
+          <span className="text-sm text-muted-foreground">{selectedSeats.length} ghế đã chọn</span>
+        </div>
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_380px]">
           <Card>
-            <CardHeader><CardTitle className="text-xl">Chọn phương thức thanh toán</CardTitle></CardHeader>
+            <CardHeader className="pb-3"><CardTitle className="text-lg">Chọn phương thức thanh toán</CardTitle></CardHeader>
             <CardContent>
-              <RadioGroup value={paymentMethod} onChange={setPaymentMethod} className="w-full">
-                {enabledMethods.includes('MOMO') && <RadioGroup.Button value="momo" className="h-auto w-full px-4 py-4"><div className="flex items-center gap-4"><img src="https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" alt="MoMo" className="h-12 w-12 object-contain" /><div className="text-left"><p className="font-semibold">MoMo</p><p className="text-sm text-muted-foreground">Ví điện tử MoMo</p></div></div></RadioGroup.Button>}
-                {enabledMethods.includes('VNPAY') && <RadioGroup.Button value="vnpay" className="h-auto w-full px-4 py-4"><div className="flex items-center gap-4"><img src="https://vnpay.vn/s1/statics.vnpay.vn/2023/9/06ncktiwd6dc1694418196384.png" alt="VNPay" className="h-12 w-12 object-contain" /><div className="text-left"><p className="font-semibold">VNPay</p><p className="text-sm text-muted-foreground">Thanh toán qua VNPay</p></div></div></RadioGroup.Button>}
-                {enabledMethods.includes('ZALOPAY') && <RadioGroup.Button value="zalopay" className="h-auto w-full px-4 py-4"><div className="flex items-center gap-4"><img src="https://cdn.haitrieu.com/wp-content/uploads/2022/10/Logo-ZaloPay-Square.png" alt="ZaloPay" className="h-12 w-12 object-contain" /><div className="text-left"><p className="font-semibold">ZaloPay</p><p className="text-sm text-muted-foreground">Ví điện tử ZaloPay</p></div></div></RadioGroup.Button>}
+              <RadioGroup value={paymentMethod} onChange={setPaymentMethod} className="grid w-full gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {enabledMethods.includes('MOMO') && <RadioGroup.Button value="momo" className="h-auto w-full px-3 py-3"><div className="flex items-center gap-3"><img src="https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" alt="MoMo" className="h-10 w-10 object-contain" /><div className="min-w-0 text-left"><p className="font-semibold">MoMo</p><p className="truncate text-xs text-muted-foreground">Ví điện tử MoMo</p></div></div></RadioGroup.Button>}
+                {enabledMethods.includes('VNPAY') && <RadioGroup.Button value="vnpay" className="h-auto w-full px-3 py-3"><div className="flex items-center gap-3"><img src="https://vnpay.vn/s1/statics.vnpay.vn/2023/9/06ncktiwd6dc1694418196384.png" alt="VNPay" className="h-10 w-10 object-contain" /><div className="min-w-0 text-left"><p className="font-semibold">VNPay</p><p className="truncate text-xs text-muted-foreground">Thanh toán qua VNPay</p></div></div></RadioGroup.Button>}
+                {enabledMethods.includes('ZALOPAY') && <RadioGroup.Button value="zalopay" className="h-auto w-full px-3 py-3"><div className="flex items-center gap-3"><img src="https://cdn.haitrieu.com/wp-content/uploads/2022/10/Logo-ZaloPay-Square.png" alt="ZaloPay" className="h-10 w-10 object-contain" /><div className="min-w-0 text-left"><p className="font-semibold">ZaloPay</p><p className="truncate text-xs text-muted-foreground">Ví điện tử ZaloPay</p></div></div></RadioGroup.Button>}
               </RadioGroup>
             </CardContent>
           </Card>
 
-          <Card className="h-fit lg:sticky lg:top-24">
-            <CardHeader><CardTitle className="text-xl">Tóm tắt đơn hàng</CardTitle></CardHeader>
-            <CardContent className="space-y-5">
-              <div className="space-y-3 text-sm">
+          <Card className="h-fit lg:sticky lg:top-20">
+            <CardHeader className="pb-3"><CardTitle className="text-lg">Tóm tắt đơn hàng</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2 text-sm">
                 <div className="flex justify-between gap-4"><span className="text-muted-foreground">Phim</span><span className="text-right font-medium">{bookingData.movieTitle || 'N/A'}</span></div>
                 <div className="flex justify-between gap-4"><span className="text-muted-foreground">Rạp</span><span className="text-right font-medium">{bookingData.cinemaName || 'N/A'}</span></div>
                 <div className="flex justify-between gap-4"><span className="text-muted-foreground">Suất chiếu</span><span className="text-right font-medium">{bookingData.showTime || '—'}{bookingData.showDate ? ` · ${dayjs(bookingData.showDate).format('DD/MM/YYYY')}` : ''}</span></div>
                 <div className="flex justify-between gap-4"><span className="text-muted-foreground">Ghế</span><span className="text-right font-medium">{selectedSeats.map((seat) => seat.seatLabel || seat.name).filter(Boolean).join(', ') || 'N/A'}</span></div>
               </div>
 
-              <div className="space-y-2 border-t pt-4 text-sm">
+              <div className="space-y-1.5 border-t pt-3 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Giá ghế ({selectedSeats.length})</span><span>{seatSubtotal.toLocaleString('vi-VN')} ₫</span></div>
                 {discountAmount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Giảm giá</span><span className="text-destructive">-{discountAmount.toLocaleString('vi-VN')} ₫</span></div>}
               </div>
 
-              <div className="flex items-center justify-between border-t pt-4"><span className="text-lg font-semibold">Tổng cộng</span><span className="text-2xl font-bold text-primary">{bookingTotal.toLocaleString('vi-VN')} ₫</span></div>
+              <div className="flex items-center justify-between border-t pt-3"><span className="font-semibold">Tổng cộng</span><span className="text-xl font-bold text-primary">{bookingTotal.toLocaleString('vi-VN')} ₫</span></div>
 
-              <div className="flex flex-col gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Button variant="outline" onClick={handleCancelBooking} disabled={isProcessing || isCancelling}>{isCancelling && <Loader2 className="h-4 w-4 animate-spin" />}{isCancelling ? 'Đang hủy...' : 'Hủy booking'}</Button>
                 <Button onClick={handlePayment} disabled={isCancelling || isProcessing}>{isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}{isProcessing ? 'Đang xử lý...' : 'Thanh toán'}</Button>
               </div>
