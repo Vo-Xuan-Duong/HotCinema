@@ -1,1 +1,101 @@
-/* placeholder */
+/*
+ * HotCinema flat visual policy
+ * - 4px radius for normal UI surfaces
+ * - no decorative shadows
+ * - no visible borders/dividers
+ * - focus remains accessible through outline instead of box-shadow rings
+ */
+
+:root {
+  --radius: 4px;
+}
+
+/* Normalize every regular rounded utility, including responsive/arbitrary variants.
+ * Keep rounded-full for avatars, dots and circular icon controls.
+ */
+:where(
+  [class~="rounded"],
+  [class*="rounded-"]:not(.rounded-full)
+) {
+  border-radius: 4px !important;
+}
+
+/* Remove every box/text shadow, including legacy CSS. Tailwind focus rings use
+ * box-shadow, so an explicit accessible outline is restored below.
+ */
+body *,
+body *::before,
+body *::after {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+:where([class*="drop-shadow"]) {
+  filter: none !important;
+}
+
+/* Borderless surfaces. Preserve border width internally so existing layout does
+ * not jump; make the border visually transparent instead.
+ */
+:where(
+  .border,
+  .border-x,
+  .border-y,
+  .border-t,
+  .border-r,
+  .border-b,
+  .border-l,
+  [class*="border-border"],
+  [class*="border-input"]
+) {
+  border-color: transparent !important;
+}
+
+:where([class*="divide-"]) > :not([hidden]) ~ :not([hidden]) {
+  border-color: transparent !important;
+}
+
+/* Flat controls need tonal separation after their borders are removed. */
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+button[role="combobox"] {
+  border-color: transparent !important;
+  background-color: hsl(var(--muted) / 0.55) !important;
+}
+
+[role="checkbox"][data-state="unchecked"],
+[role="radio"][data-state="unchecked"] {
+  border-color: transparent !important;
+  background-color: hsl(var(--muted)) !important;
+}
+
+/* Outline-style actions become flat tonal actions instead of invisible buttons. */
+button[class*="border-input"],
+a[class*="border-input"] {
+  border-color: transparent !important;
+  background-color: hsl(var(--muted) / 0.7) !important;
+}
+
+/* Preserve keyboard accessibility without reintroducing a shadow. */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring)) !important;
+  outline-offset: 2px !important;
+  box-shadow: none !important;
+}
+
+/* Legacy auth/message surfaces. */
+.custom-input,
+.login-button,
+.register-button,
+.cancel-button,
+.social-button,
+.app-error-message,
+.error-message,
+.app-success-message,
+.success-message,
+.app-warning-message,
+.warning-message {
+  border-color: transparent !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+}
