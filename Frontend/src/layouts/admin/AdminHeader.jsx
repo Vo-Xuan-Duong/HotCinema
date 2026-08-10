@@ -1,0 +1,79 @@
+import { Bell, LogOut, Moon, Settings, Sun, User } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge-count';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { SidebarTrigger } from '@/components/ui/sidebar';
+import { useTheme } from '@/context/ThemeContext';
+
+const AdminHeader = ({ user, onNavigate, onLogout }) => {
+  const { theme, toggleTheme } = useTheme();
+
+  return (
+    <header className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:px-6">
+      <SidebarTrigger />
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-foreground">Khu vực quản trị</p>
+        <p className="hidden truncate text-xs text-muted-foreground sm:block">Quản lý hoạt động HotCinema</p>
+      </div>
+
+      <div className="flex items-center gap-1 sm:gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label={theme === 'dark' ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}
+          onClick={toggleTheme}
+        >
+          {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </Button>
+
+        <Badge count={5} showZero={false}>
+          <Button type="button" variant="ghost" size="icon" aria-label="Thông báo">
+            <Bell className="h-4 w-4" />
+          </Button>
+        </Badge>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" variant="ghost" className="h-10 gap-2 px-2 sm:px-3">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-muted text-muted-foreground">
+                  <User className="h-4 w-4" />
+                </AvatarFallback>
+              </Avatar>
+              <span className="hidden max-w-48 truncate text-sm font-medium md:inline">
+                {user?.fullName || user?.name || user?.email || 'Quản trị viên'}
+              </span>
+            </Button>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem onClick={() => onNavigate('/profile')}>
+              <User className="mr-2 h-4 w-4" />
+              Hồ sơ cá nhân
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onNavigate('/admin/settings')}>
+              <Settings className="mr-2 h-4 w-4" />
+              Cài đặt
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onLogout} className="text-destructive focus:text-destructive">
+              <LogOut className="mr-2 h-4 w-4" />
+              Đăng xuất
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </header>
+  );
+};
+
+export default AdminHeader;

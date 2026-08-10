@@ -1,24 +1,24 @@
-import { apiClient } from "@/utils/apiClient"
+import { apiClient } from '@/utils/apiClient';
+import { unwrapApiArray, unwrapApiData } from '@/utils/apiResponse';
 
-const unwrap = (response) => response?.data ?? response
-const unwrapList = (response) => {
-  const data = unwrap(response)
-  return Array.isArray(data?.content) ? data.content : Array.isArray(data) ? data : []
-}
+const base = '/concessions';
 
 const concessionService = {
   async list(params) {
-    return unwrapList(await apiClient.get("/concessions", { params }))
+    return unwrapApiArray(await apiClient.get(base, { params }));
   },
-  async create(payload) {
-    return unwrap(await apiClient.post("/concessions", payload))
-  },
-  async update(id, payload) {
-    return unwrap(await apiClient.put(`/concessions/${id}`, payload))
-  },
-  async delete(id) {
-    return unwrap(await apiClient.delete(`/concessions/${id}`))
-  },
-}
 
-export default concessionService
+  async create(payload) {
+    return unwrapApiData(await apiClient.post(base, payload));
+  },
+
+  async update(id, payload) {
+    return unwrapApiData(await apiClient.put(`${base}/${id}`, payload));
+  },
+
+  async delete(id) {
+    return unwrapApiData(await apiClient.delete(`${base}/${id}`));
+  },
+};
+
+export default concessionService;

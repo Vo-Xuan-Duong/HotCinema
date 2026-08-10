@@ -1,9 +1,9 @@
-import * as React from "react"
-import { Upload as UploadIcon, X } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import * as React from 'react';
+import { Upload as UploadIcon, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
-const Upload = ({ 
+const Upload = ({
   beforeUpload,
   onChange,
   fileList = [],
@@ -11,107 +11,82 @@ const Upload = ({
   accept,
   children,
   className,
-  ...props 
+  ...props
 }) => {
-  const [files, setFiles] = React.useState(fileList)
+  const [files, setFiles] = React.useState(fileList);
 
   React.useEffect(() => {
-    setFiles(fileList)
-  }, [fileList])
+    setFiles(fileList);
+  }, [fileList]);
 
-  const handleFileChange = (e) => {
-    const selectedFiles = Array.from(e.target.files || [])
-    
-    if (maxCount === 1 && selectedFiles.length > 0) {
-      const file = selectedFiles[0]
-      
-      if (beforeUpload) {
-        const result = beforeUpload(file, [])
-        if (result === false) return
-      }
+  const handleFileChange = (event) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    if (selectedFiles.length === 0) return;
 
-      const fileObj = {
-        uid: Date.now().toString(),
-        name: file.name,
-        status: 'uploading',
-        url: URL.createObjectURL(file)
-      }
+    const nextFiles = maxCount === 1 ? selectedFiles.slice(0, 1) : selectedFiles.slice(0, maxCount);
+    const mapped = nextFiles.map((file) => ({
+      uid: `${Date.now()}-${file.name}`,
+      name: file.name,
+      status: 'done',
+      url: URL.createObjectURL(file),
+      originFileObj: file,
+    }));
 
-      setFiles([fileObj])
-      onChange?.({ file: fileObj, fileList: [fileObj] })
+    const accepted = mapped.filter((fileObj) => beforeUpload?.(fileObj.originFileObj, nextFiles) !== false);
+    if (accepted.length === 0) return;
 
-      setTimeout(() => {
-        const doneFile = { ...fileObj, status: 'done' }
-        setFiles([doneFile])
-        onChange?.({ file: doneFile, fileList: [doneFile] })
-      }, 1000)
-    }
-  }
+    setFiles(accepted);
+    onChange?.({ file: accepted[0] || null, fileList: accepted });
+  };
 
   const handleRemove = (uid) => {
-    const newFiles = files.filter(f => f.uid !== uid)
-    setFiles(newFiles)
-    onChange?.({ file: null, fileList: newFiles })
-  }
+    const nextFiles = files.filter((file) => file.uid !== uid);
+    setFiles(nextFiles);
+    onChange?.({ file: null, fileList: nextFiles });
+  };
 
   return (
-    <div className={cn("space-y-2", className)} {...props}>
-      <label className="cursor-pointer">
-        <input
-          type="file"
-          className="hidden"
-          onChange={handleFileChange}
-          accept={accept}
-          multiple={maxCount > 1}
-        />
+    <div className={cn('space-y-3', className)} {...props}>
+      <label className="inline-flex cursor-pointer">
+        <input type="file" className="sr-only" onChange={handleFileChange} accept={accept} multiple={maxCount > 1} />
         {children || (
           <Button variant="outline" type="button" asChild>
             <span>
-              <UploadIcon className="h-4 w-4 mr-2" />
+              <UploadIcon className="mr-2 h-4 w-4" />
               Tải lên
             </span>
           </Button>
         )}
       </label>
+
       {files.length > 0 && (
         <div className="space-y-2">
           {files.map((file) => (
-            <div key={file.uid} className="flex items-center gap-2 p-2 border rounded">
-              <span className="flex-1 text-sm truncate">{file.name}</span>
-              {file.status === 'uploading' && (
-                <span className="text-xs text-muted-foreground">Đang tải...</span>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleRemove(file.uid)}
-                className="h-6 w-6 p-0"
-              >
-                <X className="h-3 w-3" />
+            <div key={file.uid} className="flex items-center gap-2 rounded-md border bg-card p-2 text-card-foreground shadow-sm">
+              <span className="min-w-0 flex-1 truncate text-sm">{file.name}</span>
+              <Button type="button" variant="ghost" size="icon" onClick={() => handleRemove(file.uid)} className="h-7 w-7">
+                <X className="h-3.5 w-3.5" />
+                <span className="sr-only">Xóa tệp</span>
               </Button>
             </div>
           ))}
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-Upload.Dragger = ({ children, ...props }) => {
-  return (
-    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary transition-colors">
-      <Upload {...props}>
-        {children || (
-          <>
-            <UploadIcon className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            <p className="text-muted-foreground">Kéo thả file vào đây hoặc click để chọn</p>
-          </>
-        )}
-      </Upload>
-    </div>
-  )
-}
+Upload.Dragger = ({ children, className, ...props }) => (
+  <div className={cn('rounded-lg border border-dashed bg-muted/30 p-8 text-center transition-colors hover:border-primary/60 hover:bg-muted/50', className)}>
+    <Upload {...props}>
+      {children || (
+        <div className="space-y-2 text-muted-foreground">
+          <UploadIcon className="mx-auto h-10 w-10" />
+          <p className="text-sm">Kéo thả file vào đây hoặc click để chọn</p>
+        </div>
+      )}
+    </Upload>
+  </div>
+);
 
-export { Upload }
-
-
+export { Upload };

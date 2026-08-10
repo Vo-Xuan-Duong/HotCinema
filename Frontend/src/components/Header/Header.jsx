@@ -1,507 +1,365 @@
-import React, { useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import {
-    Home,
-    Video,
-    Calendar,
-    Store,
-    User,
-    LogOut,
-    Menu as MenuIcon,
-    Bell,
-    LayoutDashboard,
-    Check,
-    Trash2,
-    Clock,
-    Search,
-    Sun,
-    Moon
+  Bell,
+  Calendar,
+  Check,
+  Clapperboard,
+  Clock,
+  LayoutDashboard,
+  LogOut,
+  Menu as MenuIcon,
+  Moon,
+  Search,
+  Store,
+  Sun,
+  Trash2,
+  User,
+  Video,
+  Home,
 } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge-count';
+import { Button } from '@/components/ui/button';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { NavLinks } from '@/components/ui/nav-links';
+import { useTheme } from '@/context/ThemeContext';
 import useAuth from '@/hooks/useAuth';
 import useNotification from '@/hooks/useNotification';
-import { useTheme } from '@/context/ThemeContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge-count';
-import { NavLinks } from '@/components/ui/nav-links';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ContentList, ContentListItem } from '@/components/ui/content-list';
-import { Empty } from '@/components/ui/empty';
+import { userHasAdminAccess } from '@/utils/adminRole';
+
+const initialNotifications = [
+  {
+    id: 1,
+    title: 'Đặt vé thành công',
+    content: 'Bạn đã đặt vé xem phim thành công.',
+    time: '5 phút trước',
+    read: false,
+  },
+  {
+    id: 2,
+    title: 'Ưu đãi mới',
+    content: 'Ưu đãi mới đang chờ bạn khám phá.',
+    time: '1 giờ trước',
+    read: false,
+  },
+  {
+    id: 3,
+    title: 'Phim mới sắp ra mắt',
+    content: 'Danh sách phim sắp chiếu vừa được cập nhật.',
+    time: '3 giờ trước',
+    read: true,
+  },
+];
+
+const menuItems = [
+  { href: '/', icon: <Home className="h-4 w-4" />, label: 'Trang chủ' },
+  { href: '/movies', icon: <Video className="h-4 w-4" />, label: 'Phim' },
+  { href: '/schedule', icon: <Calendar className="h-4 w-4" />, label: 'Lịch chiếu' },
+  { href: '/cinemas', icon: <Store className="h-4 w-4" />, label: 'Rạp chiếu' },
+];
 
 const Header = () => {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const { user, logout, isAuthenticated } = useAuth();
-    const notification = useNotification();
-    const { theme, toggleTheme } = useTheme();
-    const [current, setCurrent] = useState('/');
-    const [mobileMenuVisible, setMobileMenuVisible] = useState(false);
-    const [searchValue, setSearchValue] = useState('');
-    const [notificationCount, setNotificationCount] = useState(3);
-    const [notifications, setNotifications] = useState([
-        {
-            id: 1,
-            title: 'Đặt vé thành công',
-            content: 'Bạn đã đặt vé xem phim "Gió Vẫn Thổi" thành công',
-            time: '5 phút trước',
-            read: false,
-            type: 'success'
-        },
-        {
-            id: 2,
-            title: 'Ưu đãi mới',
-            content: 'Giảm 20% cho các suất chiếu buổi sáng từ thứ 2 - thứ 6',
-            time: '1 giờ trước',
-            read: false,
-            type: 'promotion'
-        },
-        {
-            id: 3,
-            title: 'Phim mới sắp ra mắt',
-            content: 'Deadpool & Wolverine sẽ công chiếu vào ngày 26/07',
-            time: '3 giờ trước',
-            read: true,
-            type: 'info'
-        }
-    ]);
-    const [notificationOpen, setNotificationOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, logout, isAuthenticated } = useAuth();
+  const notification = useNotification();
+  const { theme, toggleTheme } = useTheme();
+  const [mobileMenuVisible, setMobileMenuVisible] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
+  const [notifications, setNotifications] = useState(initialNotifications);
 
-    const getUserDisplayName = () => {
-        if (user?.fullName) return user.fullName;
-        if (user?.name) return user.name;
+  const notificationCount = useMemo(
+    () => (isAuthenticated ? notifications.filter((item) => !item.read).length : 0),
+    [isAuthenticated, notifications]
+  );
 
-        try {
-            const storedUser = localStorage.getItem('user_info');
-            if (storedUser) {
-                const parsedUser = JSON.parse(storedUser);
-                return parsedUser?.fullName || parsedUser?.name || 'User';
-            }
-        } catch (e) {
-            console.error('Error parsing user info:', e);
-        }
+  const displayName = user?.fullName || user?.name || user?.email || 'Tài khoản';
 
-        return 'User';
-    };
+  const handleNavigate = (path) => {
+    navigate(path);
+    setMobileMenuVisible(false);
+  };
 
-    const isAdmin = () => {
-        if (user?.role === 'ADMIN' || user?.role === 'Admin') return true;
-        if (user?.roles?.includes('ADMIN') || user?.roles?.includes('Admin')) return true;
+  const handleSearch = () => {
+    const query = searchValue.trim();
+    if (!query) return;
+    navigate(`/search?q=${encodeURIComponent(query)}&type=all`);
+    setMobileMenuVisible(false);
+  };
 
-        try {
-            const storedUser = localStorage.getItem('user_info');
-            if (storedUser) {
-                const parsedUser = JSON.parse(storedUser);
-                if (parsedUser?.role === 'ADMIN' || parsedUser?.role === 'Admin') return true;
-                if (parsedUser?.roles?.includes('ADMIN') || parsedUser?.roles?.includes('Admin')) return true;
-            }
-        } catch (e) {
-            console.error('Error parsing user info:', e);
-        }
+  const handleLogout = async () => {
+    try {
+      await logout();
+      notification.success('Đăng xuất thành công!');
+      navigate('/');
+    } catch {
+      notification.error('Đăng xuất thất bại. Vui lòng thử lại!');
+    }
+  };
 
-        return false;
-    };
+  const markAsRead = (id) => {
+    setNotifications((items) => items.map((item) => (item.id === id ? { ...item, read: true } : item)));
+  };
 
-    useEffect(() => {
-        const path = location.pathname;
-        let newCurrent = '';
-        if (path === '/') {
-            newCurrent = '/';
-        } else if (path.startsWith('/movies')) {
-            newCurrent = '/movies';
-        } else if (path.startsWith('/schedule')) {
-            newCurrent = '/schedule';
-        } else if (path.startsWith('/cinemas')) {
-            newCurrent = '/cinemas';
-        }
+  const markAllAsRead = () => {
+    setNotifications((items) => items.map((item) => ({ ...item, read: true })));
+  };
 
-        // Chỉ update state nếu giá trị thay đổi
-        setCurrent(prevCurrent => {
-            if (prevCurrent !== newCurrent) {
-                return newCurrent;
-            }
-            return prevCurrent;
-        });
-    }, [location.pathname]); // Chỉ phụ thuộc vào pathname, không phải toàn bộ location object
+  const deleteNotification = (id) => {
+    setNotifications((items) => items.filter((item) => item.id !== id));
+  };
 
-    useEffect(() => {
-        if (isAuthenticated) {
-            const unreadCount = notifications.filter(n => !n.read).length;
-            setNotificationCount(unreadCount);
-        } else {
-            setNotificationCount(0);
-        }
-    }, [notifications, isAuthenticated]);
+  return (
+    <header className="fixed inset-x-0 top-0 z-50 h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
+        <Button
+          type="button"
+          variant="ghost"
+          className="h-10 shrink-0 gap-2 px-2 font-semibold"
+          onClick={() => handleNavigate('/')}
+        >
+          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <Clapperboard className="h-4 w-4" />
+          </span>
+          <span className="hidden sm:inline">HotCinema</span>
+        </Button>
 
-    const handleLogout = async () => {
-        try {
-            await logout();
-            notification.success('Đăng xuất thành công!');
-            navigate('/');
-        } catch (error) {
-            notification.error('Đăng xuất thất bại. Vui lòng thử lại!');
-        }
-    };
+        <NavLinks
+          links={menuItems}
+          currentPath={location.pathname}
+          onNavigate={handleNavigate}
+          orientation="horizontal"
+          className="hidden min-w-0 flex-1 justify-center md:flex"
+        />
 
-    const markAsRead = (id) => {
-        setNotifications(prevNotifications => {
-            const updated = prevNotifications.map(notif =>
-                notif.id === id ? { ...notif, read: true } : notif
-            );
-            const unreadCount = updated.filter(n => !n.read).length;
-            setNotificationCount(unreadCount);
-            return updated;
-        });
-    };
-
-    const deleteNotification = (id) => {
-        setNotifications(prevNotifications => {
-            const updated = prevNotifications.filter(notif => notif.id !== id);
-            const unreadCount = updated.filter(n => !n.read).length;
-            setNotificationCount(unreadCount);
-            return updated;
-        });
-    };
-
-    const markAllAsRead = () => {
-        setNotifications(prevNotifications =>
-            prevNotifications.map(notif => ({ ...notif, read: true }))
-        );
-        setNotificationCount(0);
-    };
-
-    const handleMenuClick = (key, item) => {
-        // Handle both string and object formats
-        const menuKey = typeof key === 'string' ? key : (key?.key || key);
-        setCurrent(menuKey);
-        navigate(menuKey);
-        setMobileMenuVisible(false);
-    };
-
-    const handleSearch = (value) => {
-        if (value.trim()) {
-            navigate(`/search?q=${encodeURIComponent(value)}&type=all`);
-            setMobileMenuVisible(false);
-        }
-    };
-
-    const menuItems = [
-        { href: '/', icon: <Home className="h-4 w-4" />, label: 'Trang chủ' },
-        { href: '/movies', icon: <Video className="h-4 w-4" />, label: 'Phim' },
-        { href: '/schedule', icon: <Calendar className="h-4 w-4" />, label: 'Lịch chiếu' },
-        { href: '/cinemas', icon: <Store className="h-4 w-4" />, label: 'Rạp chiếu' }
-    ];
-
-    const userMenuItems = [
-        {
-            key: 'profile',
-            icon: <User className="h-4 w-4" />,
-            label: 'Hồ sơ cá nhân',
-            onClick: () => navigate('/profile'),
-        },
-        ...(isAdmin() ? [
-            { type: 'separator' },
-            {
-                key: 'admin',
-                icon: <LayoutDashboard className="h-4 w-4" />,
-                label: 'Quản trị',
-                onClick: () => navigate('/admin'),
-            },
-        ] : []),
-        { type: 'separator' },
-        {
-            key: 'logout',
-            icon: <LogOut className="h-4 w-4" />,
-            label: 'Đăng xuất',
-            onClick: handleLogout,
-        },
-    ];
-
-    const notificationDropdown = (
-        <div className="w-full max-h-[480px] overflow-auto bg-card rounded-lg">
-            <div className="p-4 border-b border-border flex justify-between items-center bg-background/50">
-                <span className="font-semibold text-base text-foreground">Thông báo</span>
-                {notifications.some(n => !n.read) && (
-                    <Button variant="link" size="sm" onClick={markAllAsRead} className="h-auto p-0 text-xs text-primary hover:text-red-600">
-                        Đánh dấu đã đọc tất cả
-                    </Button>
-                )}
-            </div>
-            {notifications.length > 0 ? (
-                <ContentList
-                    entries={notifications}
-                    renderEntry={(item) => (
-                        <ContentListItem
-                            className={`cursor-pointer ${item.read ? 'bg-card' : 'bg-blue-50'}`}
-                            onClick={() => markAsRead(item.id)}
-                            actions={[
-                                !item.read && (
-                                    <Tooltip key="read">
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    markAsRead(item.id);
-                                                }}
-                                            >
-                                                <Check className="h-4 w-4" />
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>Đánh dấu đã đọc</TooltipContent>
-                                    </Tooltip>
-                                ),
-                                <Tooltip key="delete">
-                                    <TooltipTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 text-red-500 hover:text-red-600"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                deleteNotification(item.id);
-                                            }}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Xóa</TooltipContent>
-                                </Tooltip>
-                            ]}
-                        >
-                            <ContentListItem.Meta
-                                leading={
-                                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
-                                        style={{
-                                            background: item.type === 'success' ? '#52c41a20' : item.type === 'promotion' ? '#ff4d4f20' : '#1890ff20'
-                                        }}
-                                    >
-                                        {item.type === 'success' ? '🎫' : item.type === 'promotion' ? '🎁' : '🎬'}
-                                    </div>
-                                }
-                                title={<span className={item.read ? 'font-normal' : 'font-semibold'}>{item.title}</span>}
-                                description={
-                                    <>
-                                        <div className="mb-1 text-muted-foreground">{item.content}</div>
-                                        <div className="text-xs text-gray-400 flex items-center gap-1">
-                                            <Clock className="h-3 w-3" />
-                                            {item.time}
-                                        </div>
-                                    </>
-                                }
-                            />
-                        </ContentListItem>
-                    )}
-                />
-            ) : (
-                <Empty description="Không có thông báo" />
+        <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-2">
+          <div className="relative hidden w-48 lg:block xl:w-64">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={searchValue}
+              onChange={(event) => setSearchValue(event.target.value)}
+              onKeyDown={(event) => event.key === 'Enter' && handleSearch()}
+              placeholder="Tìm phim, rạp..."
+              className="h-9 pl-9 pr-9"
+            />
+            {searchValue && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 h-9 w-9"
+                onClick={handleSearch}
+                aria-label="Tìm kiếm"
+              >
+                <Search className="h-4 w-4" />
+              </Button>
             )}
-        </div>
-    );
+          </div>
 
-    return (
-        <header className="fixed top-0 left-0 right-0 z-[1000] h-16 w-full bg-card/95 border-b border-black/10 shadow-[0_2px_12px_rgba(0,0,0,0.08)] backdrop-blur-[10px] px-4">
-            <div className="flex items-center justify-between max-w-[1200px] mx-auto h-16">
-                {/* Logo */}
-                <div className="flex-shrink-0 w-[180px]">
-                    <div
-                        className="flex items-center gap-2 font-bold text-lg text-primary cursor-pointer p-2 rounded transition-all duration-300 hover:scale-105 hover:bg-primary/5"
-                        onClick={() => navigate('/')}
-                    >
-                        <span className="text-xl">🎬</span>
-                        <span className="font-extrabold tracking-tight">HotCinemas</span>
-                    </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="hidden md:inline-flex"
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}
+          >
+            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
+
+          {isAuthenticated && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="ghost" size="icon" aria-label="Thông báo">
+                  <Badge count={notificationCount}>
+                    <Bell className="h-4 w-4" />
+                  </Badge>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[min(22rem,calc(100vw-2rem))] p-0">
+                <div className="flex items-center justify-between border-b p-3">
+                  <div>
+                    <p className="text-sm font-semibold">Thông báo</p>
+                    <p className="text-xs text-muted-foreground">{notificationCount} chưa đọc</p>
+                  </div>
+                  {notificationCount > 0 && (
+                    <Button type="button" variant="ghost" size="sm" onClick={markAllAsRead}>
+                      Đọc tất cả
+                    </Button>
+                  )}
                 </div>
 
-                {/* Desktop Menu */}
-                <div className="flex-1 flex justify-center items-center min-w-0">
-                    <NavLinks
-                        links={menuItems}
-                        currentPath={current}
-                        onNavigate={handleMenuClick}
-                        orientation="horizontal"
-                        className="hidden md:flex"
-                    />
-                </div>
-
-                {/* Right Section */}
-                <div className="flex-shrink-0 flex items-center gap-3">
-                    {/* Search Box */}
-                    <div className="hidden md:flex items-center w-[200px] lg:w-[240px] xl:w-[280px]">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                            <Input
-                                placeholder="Tìm kiếm phim, rạp..."
-                                value={searchValue}
-                                onChange={(e) => setSearchValue(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        handleSearch(searchValue);
-                                    }
-                                }}
-                                className="pl-10 pr-10 h-9 text-sm"
-                            />
-                            {searchValue && (
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute right-0 top-0 h-full w-10"
-                                    onClick={() => handleSearch(searchValue)}
-                                >
-                                    <Search className="h-4 w-4" />
-                                </Button>
+                <div className="max-h-80 overflow-y-auto p-1">
+                  {notifications.length === 0 ? (
+                    <p className="p-6 text-center text-sm text-muted-foreground">Không có thông báo</p>
+                  ) : (
+                    notifications.map((item) => (
+                      <div
+                        key={item.id}
+                        className={`group rounded-md p-3 ${item.read ? 'bg-background' : 'bg-muted/60'}`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                            <Bell className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-foreground">{item.title}</p>
+                            <p className="mt-1 text-xs leading-5 text-muted-foreground">{item.content}</p>
+                            <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              {item.time}
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 gap-1">
+                            {!item.read && (
+                              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => markAsRead(item.id)}>
+                                <Check className="h-3.5 w-3.5" />
+                                <span className="sr-only">Đánh dấu đã đọc</span>
+                              </Button>
                             )}
-                        </div>
-                    </div>
-
-                    {/* Mobile Menu Button */}
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        className="flex md:hidden w-10 h-10"
-                        onClick={() => setMobileMenuVisible(true)}
-                    >
-                        <MenuIcon className="h-5 w-5" />
-                    </Button>
-
-                    {/* Theme Toggle */}
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="hidden md:flex w-10 h-10 rounded-full"
-                        onClick={toggleTheme}
-                    >
-                        {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                    </Button>
-
-                    {/* Notifications */}
-                    {isAuthenticated && (
-                        <DropdownMenu open={notificationOpen} onOpenChange={setNotificationOpen}>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="w-10 h-10 rounded-full">
-                                            <Badge count={notificationCount} showZero={false}>
-                                                <Bell className="h-5 w-5" />
-                                            </Badge>
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                </TooltipTrigger>
-                                <TooltipContent>Thông báo</TooltipContent>
-                            </Tooltip>
-                            <DropdownMenuContent align="end" className="p-0 w-[360px] bg-card border border-border shadow-xl rounded-lg">
-                                {notificationDropdown}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    )}
-
-                    {/* User Menu or Login Buttons */}
-                    {isAuthenticated ? (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <button className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
-                                    <Avatar className="bg-gradient-to-br from-primary to-orange-500">
-                                        <AvatarImage src={user?.avatarUrl} />
-                                        <AvatarFallback>
-                                            <User className="h-4 w-4" />
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <span className="text-foreground font-semibold text-sm hidden lg:inline">
-                                        {getUserDisplayName()}
-                                    </span>
-                                </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="bg-card border border-border shadow-xl rounded-lg min-w-[200px]">
-                                {userMenuItems.map((item, index) => {
-                                    if (item.type === 'separator') {
-                                        return <DropdownMenuSeparator key={`sep-${index}`} className="bg-gray-200" />;
-                                    }
-                                    return (
-                                        <DropdownMenuItem
-                                            key={item.key}
-                                            onClick={item.onClick}
-                                            className="flex items-center gap-2 cursor-pointer hover:bg-primary/10 hover:text-primary transition-colors"
-                                        >
-                                            {item.icon}
-                                            <span>{item.label}</span>
-                                        </DropdownMenuItem>
-                                    );
-                                })}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    ) : (
-                        <div className="flex items-center gap-2">
                             <Button
-                                variant="outline"
-                                onClick={() => navigate('/register')}
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                              onClick={() => deleteNotification(item.id)}
                             >
-                                Đăng ký
+                              <Trash2 className="h-3.5 w-3.5" />
+                              <span className="sr-only">Xóa thông báo</span>
                             </Button>
-                            <Button
-                                onClick={() => navigate('/login')}
-                            >
-                                Đăng nhập
-                            </Button>
+                          </div>
                         </div>
-                    )}
+                      </div>
+                    ))
+                  )}
                 </div>
-            </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
-            {/* Mobile Drawer */}
-            <Drawer open={mobileMenuVisible} onOpenChange={setMobileMenuVisible} placement="left" className="md:hidden">
-                <DrawerHeader>
-                    <div className="flex items-center justify-between">
-                        <DrawerTitle className="flex items-center gap-2.5 font-bold text-xl text-foreground">
-                            <span className="text-[28px]">🎬</span>
-                            <span className="text-primary font-extrabold tracking-tight">HotCinemas</span>
-                        </DrawerTitle>
-                        <DrawerClose onClick={() => setMobileMenuVisible(false)} />
-                    </div>
-                </DrawerHeader>
-                <DrawerContent>
-                    <div className="flex flex-col h-full">
-                        <NavLinks
-                            links={menuItems}
-                            currentPath={current}
-                            onNavigate={handleMenuClick}
-                            orientation="vertical"
-                            className="flex-1"
-                        />
-                        <div className="p-5 border-t border-border bg-background mt-auto">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                <Input
-                                    placeholder="Tìm kiếm phim, rạp..."
-                                    value={searchValue}
-                                    onChange={(e) => setSearchValue(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            handleSearch(searchValue);
-                                        }
-                                    }}
-                                    className="pl-10 pr-10"
-                                />
-                                {searchValue && (
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="absolute right-0 top-0 h-full w-10"
-                                        onClick={() => handleSearch(searchValue)}
-                                    >
-                                        <Search className="h-4 w-4" />
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </DrawerContent>
-            </Drawer>
-        </header>
-    );
+          {isAuthenticated ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="ghost" className="h-10 gap-2 px-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user?.avatarUrl} alt={displayName} />
+                    <AvatarFallback className="bg-muted text-muted-foreground">
+                      <User className="h-4 w-4" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="hidden max-w-32 truncate text-sm font-medium xl:inline">{displayName}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem onClick={() => handleNavigate('/profile')}>
+                  <User className="mr-2 h-4 w-4" />
+                  Hồ sơ cá nhân
+                </DropdownMenuItem>
+                {userHasAdminAccess(user) && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => handleNavigate('/admin/dashboard')}>
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      Quản trị
+                    </DropdownMenuItem>
+                  </>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Đăng xuất
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className="hidden items-center gap-2 sm:flex">
+              <Button type="button" variant="outline" size="sm" onClick={() => handleNavigate('/auth/register')}>
+                Đăng ký
+              </Button>
+              <Button type="button" size="sm" onClick={() => handleNavigate('/auth/login')}>
+                Đăng nhập
+              </Button>
+            </div>
+          )}
+
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setMobileMenuVisible(true)}
+            aria-label="Mở menu"
+          >
+            <MenuIcon className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      <Drawer open={mobileMenuVisible} onOpenChange={setMobileMenuVisible} placement="left" className="md:hidden">
+        <DrawerHeader className="border-b">
+          <div className="flex items-center justify-between">
+            <DrawerTitle className="flex items-center gap-2 text-base font-semibold">
+              <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                <Clapperboard className="h-4 w-4" />
+              </span>
+              HotCinema
+            </DrawerTitle>
+            <DrawerClose onClick={() => setMobileMenuVisible(false)} />
+          </div>
+        </DrawerHeader>
+        <DrawerContent>
+          <div className="flex h-full flex-col p-4">
+            <NavLinks
+              links={menuItems}
+              currentPath={location.pathname}
+              onNavigate={handleNavigate}
+              orientation="vertical"
+            />
+
+            <div className="mt-4 border-t pt-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={searchValue}
+                  onChange={(event) => setSearchValue(event.target.value)}
+                  onKeyDown={(event) => event.key === 'Enter' && handleSearch()}
+                  placeholder="Tìm phim, rạp..."
+                  className="pl-9"
+                />
+              </div>
+
+              <Button type="button" variant="outline" className="mt-3 w-full justify-start" onClick={toggleTheme}>
+                {theme === 'dark' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                {theme === 'dark' ? 'Giao diện sáng' : 'Giao diện tối'}
+              </Button>
+
+              {!isAuthenticated && (
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <Button type="button" variant="outline" onClick={() => handleNavigate('/auth/register')}>Đăng ký</Button>
+                  <Button type="button" onClick={() => handleNavigate('/auth/login')}>Đăng nhập</Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </DrawerContent>
+      </Drawer>
+    </header>
+  );
 };
 
 export default Header;

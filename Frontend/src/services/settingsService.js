@@ -1,14 +1,14 @@
-import { apiClient } from "@/utils/apiClient"
-
-const unwrap = (response) => response?.data ?? response
+import { apiClient } from '@/utils/apiClient';
+import { unwrapApiData } from '@/utils/apiResponse';
 
 const settingsService = {
   async get() {
-    return unwrap(await apiClient.get("/settings"))
+    return unwrapApiData(await apiClient.get('/settings'));
   },
-  async update(settings) {
-    return unwrap(await apiClient.put("/settings", settings))
-  },
-}
 
-export default settingsService
+  async update(settings) {
+    return unwrapApiData(await apiClient.put('/settings', settings));
+  },
+};
+
+export default settingsService;

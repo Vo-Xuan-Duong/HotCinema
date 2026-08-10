@@ -1,125 +1,123 @@
-import React from 'react';
-import { Facebook, Instagram, Twitter, Youtube, Phone, Mail, MapPin, CreditCard, Banknote, Smartphone, QrCode } from 'lucide-react';
+import {
+  Clapperboard,
+  Facebook,
+  Instagram,
+  Mail,
+  MapPin,
+  Phone,
+  Twitter,
+  Youtube,
+} from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
+const informationLinks = [
+  ['Về chúng tôi', '/about'],
+  ['Tuyển dụng', '/careers'],
+  ['Tin tức', '/news'],
+  ['Liên hệ', '/contact'],
+];
+
+const supportLinks = [
+  ['Trợ giúp', '/help'],
+  ['FAQ', '/faq'],
+  ['Hướng dẫn đặt vé', '/booking-guide'],
+  ['Điều khoản', '/terms'],
+];
+
+const socialLinks = [
+  { icon: Facebook, href: '#', label: 'Facebook' },
+  { icon: Instagram, href: '#', label: 'Instagram' },
+  { icon: Twitter, href: '#', label: 'Twitter' },
+  { icon: Youtube, href: '#', label: 'Youtube' },
+];
+
+const FooterLinkList = ({ title, links }) => (
+  <div>
+    <h3 className="mb-3 text-sm font-semibold text-foreground">{title}</h3>
+    <ul className="space-y-2">
+      {links.map(([label, href]) => (
+        <li key={href}>
+          <a href={href} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+            {label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+);
+
 const Footer = () => {
-    const currentYear = new Date().getFullYear();
+  const currentYear = new Date().getFullYear();
 
-    const socialLinks = [
-        { icon: <Facebook className="h-4 w-4" />, href: '#', label: 'Facebook' },
-        { icon: <Instagram className="h-4 w-4" />, href: '#', label: 'Instagram' },
-        { icon: <Twitter className="h-4 w-4" />, href: '#', label: 'Twitter' },
-        { icon: <Youtube className="h-4 w-4" />, href: '#', label: 'Youtube' },
-    ];
-
-    const paymentMethods = [
-        { icon: <CreditCard className="h-4 w-4" />, label: 'Thẻ tín dụng' },
-        { icon: <Banknote className="h-4 w-4" />, label: 'Chuyển khoản' },
-        { icon: <Smartphone className="h-4 w-4" />, label: 'Ví điện tử' },
-        { icon: <QrCode className="h-4 w-4" />, label: 'QR Pay' },
-    ];
-
-    return (
-        <footer className="bg-card text-card-foreground border-t border-border mt-auto transition-all duration-300">
-            <div className="max-w-[1200px] mx-auto px-5 pt-4">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-                    <div className="md:col-span-5">
-                        <div className="h-full">
-                            <h3 className="text-primary mb-1.5 font-bold text-[0.95rem] bg-gradient-to-r from-primary to-[#ff8c00] bg-clip-text text-transparent">
-                                🎬 HotCinemas
-                            </h3>
-                            <p className="text-muted-foreground leading-snug mb-2 block text-xs">
-                                Hệ thống rạp chiếu phim hàng đầu Việt Nam, mang đến trải nghiệm
-                                giải trí đỉnh cao với công nghệ hiện đại nhất.
-                            </p>
-                            <div className="mt-2 flex gap-4">
-                                {socialLinks.map((social, index) => (
-                                    <a
-                                        key={index}
-                                        href={social.href}
-                                        className="inline-flex items-center justify-center w-7 h-7 bg-[var(--hover-bg)] text-[var(--text-secondary)] rounded-full no-underline transition-all duration-300 text-[13px] border border-border hover:bg-primary hover:text-white hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(255,107,53,0.3)] hover:border-primary"
-                                        aria-label={social.label}
-                                    >
-                                        {social.icon}
-                                    </a>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="md:col-span-2">
-                        <div className="h-full">
-                            <h4 className="text-foreground mb-1.5 text-xs font-semibold">
-                                Thông tin
-                            </h4>
-                            <ul className="list-none p-0 m-0 [&_li]:mb-0.5">
-                                <li><a href="/about" className="text-muted-foreground transition-all duration-300 text-xs no-underline hover:text-primary">Về chúng tôi</a></li>
-                                <li><a href="/careers" className="text-muted-foreground transition-all duration-300 text-xs no-underline hover:text-primary">Tuyển dụng</a></li>
-                                <li><a href="/news" className="text-muted-foreground transition-all duration-300 text-xs no-underline hover:text-primary">Tin tức</a></li>
-                                <li><a href="/contact" className="text-muted-foreground transition-all duration-300 text-xs no-underline hover:text-primary">Liên hệ</a></li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div className="md:col-span-2">
-                        <div className="h-full">
-                            <h4 className="text-foreground mb-1.5 text-xs font-semibold">
-                                Hỗ trợ
-                            </h4>
-                            <ul className="list-none p-0 m-0 [&_li]:mb-0.5">
-                                <li><a href="/help" className="text-muted-foreground transition-all duration-300 text-xs no-underline hover:text-primary">Trợ giúp</a></li>
-                                <li><a href="/faq" className="text-muted-foreground transition-all duration-300 text-xs no-underline hover:text-primary">FAQ</a></li>
-                                <li><a href="/booking-guide" className="text-muted-foreground transition-all duration-300 text-xs no-underline hover:text-primary">Đặt vé</a></li>
-                                <li><a href="/terms" className="text-muted-foreground transition-all duration-300 text-xs no-underline hover:text-primary">Điều khoản</a></li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div className="md:col-span-3">
-                        <div className="h-full">
-                            <h4 className="text-foreground mb-1.5 text-xs font-semibold">
-                                Liên hệ
-                            </h4>
-                            <div className="mt-2 flex flex-col gap-2">
-                                <div className="flex items-start gap-1">
-                                    <Phone className="text-primary mt-0.5 h-3 w-3" />
-                                    <span className="text-muted-foreground text-xs">1900-xxxx</span>
-                                </div>
-                                <div className="flex items-start gap-1">
-                                    <Mail className="text-primary mt-0.5 h-3 w-3" />
-                                    <span className="text-muted-foreground text-xs">info@hotcinemas.vn</span>
-                                </div>
-                                <div className="flex items-start gap-1">
-                                    <MapPin className="text-primary mt-0.5 h-3 w-3" />
-                                    <span className="text-muted-foreground text-xs">Quận 1, TP.HCM</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <Separator className="border-border my-3" />
-
-                <div className="py-1.5 pb-1">
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-3">
-                        <div>
-                            <p className="text-muted-foreground text-[11px]">
-                                © {currentYear} HotCinemas. Tất cả quyền được bảo lưu.
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Separator orientation="vertical" className="h-4 border-border hidden md:block" />
-                            <a href="/terms" className="text-muted-foreground text-[11px] no-underline transition-colors duration-300 hover:text-primary">Điều khoản</a>
-                            <Separator orientation="vertical" className="h-4 border-border" />
-                            <a href="/privacy" className="text-muted-foreground text-[11px] no-underline transition-colors duration-300 hover:text-primary">Bảo mật</a>
-                            <Separator orientation="vertical" className="h-4 border-border" />
-                            <a href="/cookies" className="text-muted-foreground text-[11px] no-underline transition-colors duration-300 hover:text-primary">Cookies</a>
-                        </div>
-                    </div>
-                </div>
+  return (
+    <footer className="mt-auto border-t bg-card text-card-foreground">
+      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="grid gap-8 md:grid-cols-12">
+          <div className="md:col-span-5">
+            <div className="flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                <Clapperboard className="h-4 w-4" />
+              </span>
+              <span className="font-semibold tracking-tight text-foreground">HotCinema</span>
             </div>
-        </footer>
-    );
+            <p className="mt-4 max-w-md text-sm leading-6 text-muted-foreground">
+              Không gian điện ảnh trực tuyến giúp bạn tìm phim, chọn rạp, đặt ghế và quản lý vé trong một trải nghiệm thống nhất.
+            </p>
+
+            <div className="mt-5 flex gap-2">
+              {socialLinks.map(({ icon: Icon, href, label }) => (
+                <a
+                  key={label}
+                  href={href}
+                  aria-label={label}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-md border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                >
+                  <Icon className="h-4 w-4" />
+                </a>
+              ))}
+            </div>
+          </div>
+
+          <div className="md:col-span-2">
+            <FooterLinkList title="Thông tin" links={informationLinks} />
+          </div>
+
+          <div className="md:col-span-2">
+            <FooterLinkList title="Hỗ trợ" links={supportLinks} />
+          </div>
+
+          <div className="md:col-span-3">
+            <h3 className="mb-3 text-sm font-semibold text-foreground">Liên hệ</h3>
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <div className="flex items-start gap-2">
+                <Phone className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <span>1900-xxxx</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <span>info@hotcinemas.vn</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <span>Quận 1, TP.HCM</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <Separator className="my-6" />
+
+        <div className="flex flex-col gap-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <p>© {currentYear} HotCinema. Tất cả quyền được bảo lưu.</p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <a href="/terms" className="transition-colors hover:text-foreground">Điều khoản</a>
+            <a href="/privacy" className="transition-colors hover:text-foreground">Bảo mật</a>
+            <a href="/cookies" className="transition-colors hover:text-foreground">Cookies</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
 };
 
 export default Footer;

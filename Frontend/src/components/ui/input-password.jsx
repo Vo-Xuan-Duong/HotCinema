@@ -1,10 +1,10 @@
-import * as React from "react"
-import { Eye, EyeOff } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { cn } from "@/lib/utils"
+import * as React from 'react';
+import { Eye, EyeOff } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 const InputPassword = React.forwardRef(({ className, prefix, ...props }, ref) => {
-  const [showPassword, setShowPassword] = React.useState(false)
+  const [showPassword, setShowPassword] = React.useState(false);
 
   return (
     <div className="relative w-full">
@@ -14,30 +14,25 @@ const InputPassword = React.forwardRef(({ className, prefix, ...props }, ref) =>
         </span>
       )}
       <Input
-        type={showPassword ? "text" : "password"}
         ref={ref}
-        className={cn(prefix ? "pl-10 pr-11" : "pr-11", className)}
+        type={showPassword ? 'text' : 'password'}
+        className={cn(prefix ? 'pl-10 pr-11' : 'pr-11', className)}
         {...props}
       />
       <button
         type="button"
-        className="absolute right-0 top-0 h-full px-3 py-2 flex items-center justify-center hover:bg-transparent focus:outline-none focus:ring-0 transition-colors z-10"
-        onClick={(e) => {
-          e.preventDefault();
-          setShowPassword(!showPassword);
+        className="absolute right-0 top-0 z-10 flex h-full items-center justify-center rounded-r-md px-3 text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        onClick={(event) => {
+          event.preventDefault();
+          setShowPassword((value) => !value);
         }}
-        tabIndex={-1}
-        aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+        aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
       >
-        {showPassword ? (
-          <EyeOff className="h-5 w-5 text-gray-400 hover:text-muted-foreground transition-colors" />
-        ) : (
-          <Eye className="h-5 w-5 text-gray-400 hover:text-muted-foreground transition-colors" />
-        )}
+        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
       </button>
     </div>
-  )
-})
-InputPassword.displayName = "InputPassword"
+  );
+});
+InputPassword.displayName = 'InputPassword';
 
-export { InputPassword }
+export { InputPassword };
