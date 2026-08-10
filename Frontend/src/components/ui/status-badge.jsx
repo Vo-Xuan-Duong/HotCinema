@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { sanitizeLegacyColorClassName, sanitizeSemanticStyle } from '@/lib/stylePolicy';
 import { cn } from '@/lib/utils';
@@ -9,6 +10,8 @@ const tones = {
   orange: 'status-warning',
   gold: 'status-warning',
   error: 'status-destructive',
+  destructive: 'status-destructive',
+  danger: 'status-destructive',
   red: 'status-destructive',
   info: 'status-info',
   blue: 'status-info',
