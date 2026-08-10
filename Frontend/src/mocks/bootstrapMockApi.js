@@ -33,6 +33,18 @@ const mockResponse = (config, data) => ({
   request: { mock: true },
 });
 
+const mockHttpError = (config, status, message) => {
+  const error = new Error(message);
+  error.config = config;
+  error.response = {
+    status,
+    data: { message },
+    headers: { 'x-hotcinema-mock': 'true' },
+    config,
+  };
+  return error;
+};
+
 const currentStoredUser = (db) => {
   try {
     const stored = JSON.parse(window.localStorage.getItem('user_info') || 'null');
@@ -56,19 +68,13 @@ const authAwareMockAdapter = async (config) => {
       'staff@hotcinema.vn': 'staff123',
     };
     const db = getMockDatabase();
-    const user = db.users.find((item) => String(item.email || '').toLowerCase() === email)
-      || db.users.find((item) => item.email === 'customer@hotcinema.vn');
+    const user = db.users.find((item) => String(item.email || '').toLowerCase() === email);
 
-    if (passwords[email] && body.password && body.password !== passwords[email]) {
-      const error = new Error('Mật khẩu mock không đúng.');
-      error.config = config;
-      error.response = {
-        status: 401,
-        data: { message: 'Mật khẩu mock không đúng.' },
-        headers: { 'x-hotcinema-mock': 'true' },
-        config,
-      };
-      throw error;
+    if (!user || !passwords[email]) {
+      throw mockHttpError(config, 401, 'Tài khoản mock không tồn tại. Hãy dùng tài khoản hiển thị ở Frontend test mode.');
+    }
+    if (body.password !== passwords[email]) {
+      throw mockHttpError(config, 401, 'Mật khẩu mock không đúng.');
     }
 
     return mockResponse(config, {
