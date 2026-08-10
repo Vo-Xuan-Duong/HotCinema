@@ -7,6 +7,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { usePreventModalScrollLock } from '@/hooks/usePreventModalScrollLock';
 import AppRouter from '@/router';
 import FloatingSupport from '@/components/FloatingSupport/FloatingSupport';
+import MockModeToolbar from '@/mocks/MockModeToolbar';
 
 const AppContent = () => {
   // Prevent modal scroll lock flickering
@@ -19,6 +20,7 @@ const AppContent = () => {
           <div className="min-h-screen flex flex-col">
             <AppRouter />
             <FloatingSupport />
+            <MockModeToolbar />
           </div>
         </TrailerModalProvider>
       </NotificationProvider>
