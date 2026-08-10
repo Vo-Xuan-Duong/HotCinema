@@ -36,7 +36,6 @@ function Pagination({
     const nextSize = Number(value);
     if (!Number.isFinite(nextSize) || nextSize <= 0) return;
 
-    // Older screens use (page, size); newer screens use (size).
     if (onPageSizeChange?.length >= 2) {
       onPageSizeChange(1, nextSize);
     } else {
@@ -55,70 +54,76 @@ function Pagination({
     : `Trang ${safePage}/${totalPages} · ${totalItems} mục`;
 
   return (
-    <nav aria-label="Phân trang" className={cn('flex flex-wrap items-center justify-center gap-2', className)} {...props}>
-      <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => goTo(1)} disabled={safePage === 1} aria-label="Trang đầu">
-        <ChevronsLeft className="h-4 w-4" />
-      </Button>
-      <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => goTo(safePage - 1)} disabled={safePage === 1} aria-label="Trang trước">
-        <ChevronLeft className="h-4 w-4" />
-      </Button>
+    <nav
+      aria-label="Phân trang"
+      className={cn('flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between', className)}
+      {...props}
+    >
+      <span className="text-xs text-muted-foreground sm:text-sm">{totalLabel}</span>
 
-      {pages.map((pageNumber, index) => (
-        <React.Fragment key={pageNumber}>
-          {index > 0 && pageNumber - pages[index - 1] > 1 && <span className="px-1 text-muted-foreground">…</span>}
-          <Button
-            type="button"
-            variant={safePage === pageNumber ? 'default' : 'outline'}
-            size="sm"
-            className="min-w-9"
-            onClick={() => goTo(pageNumber)}
-            aria-current={safePage === pageNumber ? 'page' : undefined}
-          >
-            {pageNumber}
-          </Button>
-        </React.Fragment>
-      ))}
+      <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
+        <Button type="button" variant="outline" size="icon" className="hidden h-8 w-8 sm:inline-flex" onClick={() => goTo(1)} disabled={safePage === 1} aria-label="Trang đầu">
+          <ChevronsLeft className="h-3.5 w-3.5" />
+        </Button>
+        <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => goTo(safePage - 1)} disabled={safePage === 1} aria-label="Trang trước">
+          <ChevronLeft className="h-3.5 w-3.5" />
+        </Button>
 
-      <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => goTo(safePage + 1)} disabled={safePage === totalPages} aria-label="Trang sau">
-        <ChevronRight className="h-4 w-4" />
-      </Button>
-      <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => goTo(totalPages)} disabled={safePage === totalPages} aria-label="Trang cuối">
-        <ChevronsRight className="h-4 w-4" />
-      </Button>
+        {pages.map((pageNumber, index) => (
+          <React.Fragment key={pageNumber}>
+            {index > 0 && pageNumber - pages[index - 1] > 1 && <span className="px-0.5 text-muted-foreground">…</span>}
+            <Button
+              type="button"
+              variant={safePage === pageNumber ? 'default' : 'outline'}
+              size="sm"
+              className="h-8 min-w-8 px-2"
+              onClick={() => goTo(pageNumber)}
+              aria-current={safePage === pageNumber ? 'page' : undefined}
+            >
+              {pageNumber}
+            </Button>
+          </React.Fragment>
+        ))}
 
-      {canChangeSize && sizes.length > 0 && (
-        <Select value={String(itemsPerPage)} onValueChange={handlePageSizeChange}>
-          <SelectTrigger className="h-9 w-28" aria-label="Số mục mỗi trang">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {sizes.map((size) => (
-              <SelectItem key={size} value={String(size)}>{size} / trang</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
+        <Button type="button" variant="outline" size="icon" className="h-8 w-8" onClick={() => goTo(safePage + 1)} disabled={safePage === totalPages} aria-label="Trang sau">
+          <ChevronRight className="h-3.5 w-3.5" />
+        </Button>
+        <Button type="button" variant="outline" size="icon" className="hidden h-8 w-8 sm:inline-flex" onClick={() => goTo(totalPages)} disabled={safePage === totalPages} aria-label="Trang cuối">
+          <ChevronsRight className="h-3.5 w-3.5" />
+        </Button>
 
-      {canJump && (
-        <Input
-          aria-label="Đi đến trang"
-          type="number"
-          min={1}
-          max={totalPages}
-          value={jumpValue}
-          placeholder="Trang"
-          className="h-9 w-20"
-          onChange={(event) => setJumpValue(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              goTo(jumpValue);
-              setJumpValue('');
-            }
-          }}
-        />
-      )}
+        {canChangeSize && sizes.length > 0 && (
+          <Select value={String(itemsPerPage)} onValueChange={handlePageSizeChange}>
+            <SelectTrigger className="h-8 w-24" aria-label="Số mục mỗi trang">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {sizes.map((size) => (
+                <SelectItem key={size} value={String(size)}>{size} / trang</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
-      <span className="text-sm text-muted-foreground">{totalLabel}</span>
+        {canJump && (
+          <Input
+            aria-label="Đi đến trang"
+            type="number"
+            min={1}
+            max={totalPages}
+            value={jumpValue}
+            placeholder="Trang"
+            className="h-8 w-16"
+            onChange={(event) => setJumpValue(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                goTo(jumpValue);
+                setJumpValue('');
+              }
+            }}
+          />
+        )}
+      </div>
     </nav>
   );
 }
