@@ -163,6 +163,19 @@ const createMockSeat = (db, body = {}) => {
   };
 };
 
+const paymentRows = (db) => db.payments.map((payment) => {
+  const booking = db.bookings.find((item) => item.id === payment.bookingId);
+  const user = db.users.find((item) => item.id === booking?.userId);
+  return {
+    ...payment,
+    bookingCode: payment.bookingCode || booking?.bookingCode,
+    paymentStatus: payment.paymentStatus || payment.status,
+    paymentDate: payment.paymentDate || payment.paidAt || payment.createdAt,
+    fullName: payment.fullName || user?.fullName,
+    email: payment.email || user?.email,
+  };
+});
+
 const authAwareMockAdapter = async (config) => {
   const method = String(config.method || 'get').toLowerCase();
   const path = String(config.url || '').split('?')[0].replace(/\/$/, '');
@@ -263,6 +276,14 @@ const authAwareMockAdapter = async (config) => {
     db.seats = db.seats.filter((seat) => seat.roomId !== roomId);
     persistMockDatabase();
     return mockResponse(config, removed);
+  }
+
+  // Admin payment table expects paymentStatus and customer display fields.
+  if (method === 'get' && path === '/payments') {
+    return mockResponse(config, pageOf(paymentRows(getMockDatabase()), getParams(config)));
+  }
+  if (method === 'get' && path === '/payments/all-no-page') {
+    return mockResponse(config, paymentRows(getMockDatabase()));
   }
 
   // notificationService uses POST for read state changes. Keep those mutations
