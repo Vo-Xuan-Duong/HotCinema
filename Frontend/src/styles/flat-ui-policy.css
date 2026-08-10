@@ -3,12 +3,29 @@
  * - 4px radius for normal UI surfaces
  * - no decorative shadows
  * - subtle 1px semantic borders
+ * - wider desktop content to avoid dead space
  * - reduced non-essential whitespace across shared layouts
  * - focus remains accessible through outline instead of box-shadow rings
  */
 
 :root {
   --radius: 4px;
+  --app-content-max: 90rem;
+  --app-content-medium: 82rem;
+}
+
+/* Use more of wide desktop screens while keeping readable mobile padding. */
+:where([class~="max-w-7xl"]) {
+  max-width: var(--app-content-max) !important;
+}
+
+:where([class~="max-w-6xl"]) {
+  max-width: var(--app-content-medium) !important;
+}
+
+.app-container,
+.container {
+  max-width: var(--app-content-max) !important;
 }
 
 /* Normalize every regular rounded utility, including responsive/arbitrary variants.
@@ -35,14 +52,7 @@ body *::after {
   filter: none !important;
 }
 
-/* Keep Tailwind/Shadcn border widths and semantic colors. The global base layer
- * already maps neutral borders to the `border` token, so cards, dialogs, tables,
- * dropdowns and dividers render as a thin 1px line without any shadow.
- */
-
-/* Form controls use a slightly stronger input border so they remain clear on
- * both light and dark themes while still looking lightweight.
- */
+/* Keep Tailwind/Shadcn border widths and semantic colors. */
 input:not([type="checkbox"]):not([type="radio"]),
 textarea,
 button[role="combobox"] {
@@ -56,7 +66,6 @@ button[role="combobox"] {
   background-color: hsl(var(--background)) !important;
 }
 
-/* Outline actions keep a visible light border instead of relying on shadow. */
 button[class*="border-input"],
 a[class*="border-input"] {
   border-color: hsl(var(--input) / 0.85) !important;
@@ -66,28 +75,38 @@ a[class*="border-input"] {
 /* Compact common page spacing without collapsing content hierarchy. */
 :where([class~="pt-24"]) { padding-top: 5rem !important; }
 :where([class~="pt-20"]) { padding-top: 4.5rem !important; }
-:where([class~="pb-16"]) { padding-bottom: 2.5rem !important; }
+:where([class~="pb-16"]) { padding-bottom: 2.25rem !important; }
+:where([class~="pb-12"]) { padding-bottom: 1.75rem !important; }
 :where([class~="py-12"]) {
-  padding-top: 2rem !important;
-  padding-bottom: 2rem !important;
+  padding-top: 1.75rem !important;
+  padding-bottom: 1.75rem !important;
+}
+:where([class~="py-10"]) {
+  padding-top: 1.5rem !important;
+  padding-bottom: 1.5rem !important;
 }
 :where([class~="py-8"]) {
   padding-top: 1.25rem !important;
   padding-bottom: 1.25rem !important;
 }
+:where([class~="p-6"]) { padding: 1rem !important; }
+:where([class~="p-5"]) { padding: 1rem !important; }
+:where([class~="pt-6"]) { padding-top: 1rem !important; }
 
-:where([class~="space-y-8"]) > :not([hidden]) ~ :not([hidden]) { margin-top: 1.25rem !important; }
-:where([class~="space-y-6"]) > :not([hidden]) ~ :not([hidden]) { margin-top: 1rem !important; }
-:where([class~="space-y-5"]) > :not([hidden]) ~ :not([hidden]) { margin-top: 0.875rem !important; }
+:where([class~="space-y-8"]) > :not([hidden]) ~ :not([hidden]) { margin-top: 1.125rem !important; }
+:where([class~="space-y-6"]) > :not([hidden]) ~ :not([hidden]) { margin-top: 0.875rem !important; }
+:where([class~="space-y-5"]) > :not([hidden]) ~ :not([hidden]) { margin-top: 0.75rem !important; }
 
-:where([class~="gap-8"]) { gap: 1.25rem !important; }
-:where([class~="gap-6"]) { gap: 1rem !important; }
-:where([class~="gap-5"]) { gap: 0.875rem !important; }
+:where([class~="gap-8"]) { gap: 1.125rem !important; }
+:where([class~="gap-6"]) { gap: 0.875rem !important; }
+:where([class~="gap-5"]) { gap: 0.75rem !important; }
 
-:where([class~="mb-8"]) { margin-bottom: 1.25rem !important; }
-:where([class~="mt-8"]) { margin-top: 1.25rem !important; }
-:where([class~="mb-6"]) { margin-bottom: 1rem !important; }
-:where([class~="mt-6"]) { margin-top: 1rem !important; }
+:where([class~="mb-12"]) { margin-bottom: 1.5rem !important; }
+:where([class~="mt-10"]) { margin-top: 1.5rem !important; }
+:where([class~="mb-8"]) { margin-bottom: 1.125rem !important; }
+:where([class~="mt-8"]) { margin-top: 1.125rem !important; }
+:where([class~="mb-6"]) { margin-bottom: 0.875rem !important; }
+:where([class~="mt-6"]) { margin-top: 0.875rem !important; }
 
 /* Preserve keyboard accessibility without reintroducing a shadow. */
 :focus-visible {
@@ -125,10 +144,10 @@ a[class*="border-input"] {
 }
 
 .form-header {
-  margin-bottom: 1rem !important;
+  margin-bottom: 0.875rem !important;
 }
 
 .custom-divider {
-  margin-top: 0.75rem !important;
-  margin-bottom: 0.75rem !important;
+  margin-top: 0.625rem !important;
+  margin-bottom: 0.625rem !important;
 }
