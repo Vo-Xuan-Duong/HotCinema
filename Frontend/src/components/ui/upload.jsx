@@ -46,7 +46,7 @@ const Upload = ({
   };
 
   return (
-    <div className={cn('space-y-3', className)} {...props}>
+    <div className={cn('space-y-2', className)} {...props}>
       <label className="inline-flex cursor-pointer">
         <input type="file" className="sr-only" onChange={handleFileChange} accept={accept} multiple={maxCount > 1} />
         {children || (
@@ -60,9 +60,9 @@ const Upload = ({
       </label>
 
       {files.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {files.map((file) => (
-            <div key={file.uid} className="flex items-center gap-2 rounded-md border bg-card p-2 text-card-foreground shadow-sm">
+            <div key={file.uid} className="flex items-center gap-2 rounded-md border bg-card px-2.5 py-1.5 text-card-foreground">
               <span className="min-w-0 flex-1 truncate text-sm">{file.name}</span>
               <Button type="button" variant="ghost" size="icon" onClick={() => handleRemove(file.uid)} className="h-7 w-7">
                 <X className="h-3.5 w-3.5" />
@@ -77,11 +77,11 @@ const Upload = ({
 };
 
 Upload.Dragger = ({ children, className, ...props }) => (
-  <div className={cn('rounded-lg border border-dashed bg-muted/30 p-8 text-center transition-colors hover:border-primary/60 hover:bg-muted/50', className)}>
+  <div className={cn('rounded-md border border-dashed bg-muted/30 px-4 py-5 text-center transition-colors hover:border-primary/60 hover:bg-muted/50', className)}>
     <Upload {...props}>
       {children || (
-        <div className="space-y-2 text-muted-foreground">
-          <UploadIcon className="mx-auto h-10 w-10" />
+        <div className="space-y-1.5 text-muted-foreground">
+          <UploadIcon className="mx-auto h-7 w-7" />
           <p className="text-sm">Kéo thả file vào đây hoặc click để chọn</p>
         </div>
       )}
