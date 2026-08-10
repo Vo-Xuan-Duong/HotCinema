@@ -8,6 +8,14 @@ describe('stylePolicy', () => {
     ).toBe('px-3 text-foreground bg-card');
   });
 
+  it('removes legacy colors behind Tailwind variants and arbitrary colors', () => {
+    expect(
+      sanitizeLegacyColorClassName(
+        'hover:bg-red-500 dark:text-gray-300 focus:ring-blue-500 md:border-[#ff0000] hover:bg-accent text-foreground'
+      )
+    ).toBe('hover:bg-accent text-foreground');
+  });
+
   it('removes gradient palette stops but preserves semantic classes', () => {
     expect(
       sanitizeLegacyColorClassName('from-red-500 via-orange-500 to-yellow-500 rounded-md bg-primary')
