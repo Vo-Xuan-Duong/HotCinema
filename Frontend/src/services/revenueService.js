@@ -1,22 +1,25 @@
 import { apiClient } from '@/utils/apiClient';
-
-const unwrap = (response) => response?.data ?? response;
+import { unwrapApiData } from '@/utils/apiResponse';
 
 const revenueService = {
   async getSummary(params) {
-    return unwrap(await apiClient.get('/revenue/summary', { params }));
+    return unwrapApiData(await apiClient.get('/revenue/summary', { params }));
   },
+
   async getByDate(params) {
-    return unwrap(await apiClient.get('/revenue/by-date', { params }));
+    return unwrapApiData(await apiClient.get('/revenue/by-date', { params }));
   },
+
   async getTopMovies(params) {
-    return unwrap(await apiClient.get('/revenue/top-movies', { params }));
+    return unwrapApiData(await apiClient.get('/revenue/top-movies', { params }));
   },
+
   async getTopCinemas(params) {
-    return unwrap(await apiClient.get('/revenue/top-cinemas', { params }));
+    return unwrapApiData(await apiClient.get('/revenue/top-cinemas', { params }));
   },
+
   async getByPaymentMethod(params) {
-    return unwrap(await apiClient.get('/revenue/by-payment-method', { params }));
+    return unwrapApiData(await apiClient.get('/revenue/by-payment-method', { params }));
   },
 };
 
