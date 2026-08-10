@@ -1,673 +1,416 @@
-﻿import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
-import { Card } from '@/components/ui/card';
-import { DataTable } from '@/components/ui/data-table';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Coffee, Edit, Eye, Loader2, Package, Plus, Sparkles, Trash2, TriangleAlert } from 'lucide-react';
+import { AdminPageHeader } from '@/layouts/admin/AdminPageHeader';
 import { Button } from '@/components/ui/button';
-import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { NumberStepper } from '@/components/ui/number-stepper';
-import { StarRating } from '@/components/ui/star-rating';
-import { StatusBadge } from '@/components/ui/status-badge';
-import { SegmentedTabs } from '@/components/ui/segmented-tabs';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge-count';
-import { Progress } from '@/components/ui/progress';
-import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { Empty } from '@/components/ui/empty';
-import { DetailList, DetailItem } from '@/components/ui/detail-list';
-import { Breadcrumb } from '@/components/ui/breadcrumb';
-import {
-  Coffee,
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
-  Star,
-  Flame,
-  DollarSign,
-  ShoppingCart,
-  Home
-} from 'lucide-react';
-import { SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import useNotification from '@/hooks/useNotification';
+import { DataTable } from '@/components/ui/data-table';
+import { DetailItem, DetailList } from '@/components/ui/detail-list';
+import { Empty } from '@/components/ui/empty';
+import { Input } from '@/components/ui/input';
+import { NumberStepper } from '@/components/ui/number-stepper';
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
+import { SegmentedTabs } from '@/components/ui/segmented-tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import concessionService from '@/services/concessionService';
+import useNotification from '@/hooks/useNotification';
+
+const DEFAULT_FORM = {
+  name: '',
+  category: '',
+  price: '',
+  originalPrice: '',
+  stock: '',
+  description: '',
+  image: '',
+  isPopular: false,
+};
+
+const categoryMeta = (category) => {
+  const normalized = String(category || '').toLowerCase();
+  if (normalized === 'food') return { key: 'food', label: 'Đồ ăn', tone: 'warning' };
+  if (normalized === 'drink') return { key: 'drink', label: 'Đồ uống', tone: 'info' };
+  if (normalized === 'combo') return { key: 'combo', label: 'Combo', tone: 'success' };
+  return { key: normalized || 'other', label: category || 'Khác', tone: 'neutral' };
+};
+
+const stockMeta = (stock) => {
+  const value = Number(stock || 0);
+  if (value <= 0) return { label: 'Hết hàng', tone: 'destructive' };
+  if (value < 10) return { label: 'Sắp hết', tone: 'warning' };
+  return { label: 'Còn hàng', tone: 'success' };
+};
+
+const formatMoney = (value) => `${Number(value || 0).toLocaleString('vi-VN')} ₫`;
 
 const FoodBeverage = () => {
-  const navigate = useNavigate();
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
   const notification = useNotification();
-  const [loading, setLoading] = useState(true);
-  const [formValues, setFormValues] = useState({
-    name: '',
-    category: '',
-    price: '',
-    originalPrice: '',
-    stock: '',
-    description: '',
-    image: '',
-    isPopular: false
-  });
   const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [formValues, setFormValues] = useState(DEFAULT_FORM);
 
-  useEffect(() => {
-    concessionService.list({ page: 0, size: 100 })
-      .then(setProducts)
-      .catch((error) => notification.error(error.message || 'Không thể tải danh sách sản phẩm.'))
-      .finally(() => setLoading(false));
+  const loadProducts = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await concessionService.list({ page: 0, size: 500 });
+      setProducts(Array.isArray(response) ? response : []);
+    } catch (error) {
+      console.error('Error loading concessions:', error);
+      setProducts([]);
+      notification.error(error?.message || 'Không thể tải danh sách sản phẩm');
+    } finally {
+      setLoading(false);
+    }
   }, [notification]);
 
-  const stats = [
-    { title: 'Tổng sản phẩm', value: products.length, icon: <Coffee className="h-6 w-6" /> },
-    { title: 'Doanh thu tháng', value: '15.2M', icon: <DollarSign className="h-6 w-6" /> },
-    { title: 'Đơn hàng', value: products.reduce((a, b) => a + b.sales, 0), icon: <ShoppingCart className="h-6 w-6" /> },
-    {
-      title: 'Tỷ lệ bán',
-      value:
-        products.length > 0
-          ? Math.round((products.filter(p => p.sales > 0).length / products.length) * 100) + '%'
-          : '0%',
-      icon: <Flame className="h-6 w-6" />
-    }
-  ];
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
 
-  const handleCreateProduct = () => {
-    setIsEditMode(false);
+  const stats = useMemo(() => ({
+    total: products.length,
+    popular: products.filter((item) => item.isPopular).length,
+    lowStock: products.filter((item) => Number(item.stock || 0) > 0 && Number(item.stock || 0) < 10).length,
+    outOfStock: products.filter((item) => Number(item.stock || 0) <= 0).length,
+  }), [products]);
+
+  const openCreate = () => {
     setSelectedProduct(null);
-    setFormValues({
-      name: '',
-      category: '',
-      price: '',
-      originalPrice: '',
-      stock: '',
-      description: '',
-      image: '',
-      isPopular: false
-    });
-    setIsModalVisible(true);
+    setFormValues(DEFAULT_FORM);
+    setFormOpen(true);
   };
 
-  const handleEditProduct = (record) => {
-    setIsEditMode(true);
+  const openEdit = (record) => {
     setSelectedProduct(record);
     setFormValues({
       name: record.name || '',
-      category: record.category || '',
-      price: record.price || '',
-      originalPrice: record.originalPrice || '',
-      stock: record.stock || '',
+      category: categoryMeta(record.category).key,
+      price: record.price ?? '',
+      originalPrice: record.originalPrice ?? '',
+      stock: record.stock ?? '',
       description: record.description || '',
-      image: record.image || '',
-      isPopular: record.isPopular || false
+      image: record.image || record.imageUrl || '',
+      isPopular: Boolean(record.isPopular),
     });
-    setIsModalVisible(true);
+    setFormOpen(true);
   };
 
-  const handleViewProduct = (record) => {
+  const closeForm = () => {
+    setFormOpen(false);
+    setSelectedProduct(null);
+    setFormValues(DEFAULT_FORM);
+  };
+
+  const openDetail = (record) => {
     setSelectedProduct(record);
-    setIsDetailModalVisible(true);
+    setDetailOpen(true);
   };
 
-  const handleDeleteProduct = async (id) => {
-    try {
-      await concessionService.delete(id);
-      setProducts(products.filter(item => item.id !== id));
-      notification.success('Đã xóa sản phẩm!');
-    } catch (error) {
-      notification.error(error.message || 'Không thể xóa sản phẩm.');
-    }
-  };
-
-  const handleModalOk = async (e) => {
-    e?.preventDefault();
-    // Validation
-    if (!formValues.name?.trim()) {
-      notification.error('Vui lòng nhập tên sản phẩm!');
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (!formValues.name.trim()) {
+      notification.error('Vui lòng nhập tên sản phẩm');
       return;
     }
     if (!formValues.category) {
-      notification.error('Vui lòng chọn danh mục!');
+      notification.error('Vui lòng chọn danh mục');
       return;
     }
-    if (!formValues.price || formValues.price <= 0) {
-      notification.error('Vui lòng nhập giá bán hợp lệ!');
+    if (Number(formValues.price) <= 0) {
+      notification.error('Giá bán phải lớn hơn 0');
       return;
     }
-    if (!formValues.stock || formValues.stock < 0) {
-      notification.error('Vui lòng nhập số lượng tồn kho hợp lệ!');
+    if (formValues.stock === '' || Number(formValues.stock) < 0) {
+      notification.error('Tồn kho phải lớn hơn hoặc bằng 0');
       return;
     }
 
-    let imageUrl = formValues.image;
-    if (Array.isArray(imageUrl) && imageUrl.length > 0 && imageUrl[0].url) {
-      imageUrl = imageUrl[0].url;
-    } else if (Array.isArray(imageUrl) && imageUrl.length > 0 && imageUrl[0].thumbUrl) {
-      imageUrl = imageUrl[0].thumbUrl;
-    } else if (typeof imageUrl !== 'string' || !imageUrl) {
-      imageUrl = '/brand-placeholder.svg';
-    }
-    const newProduct = {
+    const payload = {
       name: formValues.name.trim(),
       category: formValues.category,
       price: Number(formValues.price),
       originalPrice: Number(formValues.originalPrice) || Number(formValues.price),
       stock: Number(formValues.stock),
-      description: formValues.description?.trim() || '',
-      image: imageUrl,
-      isPopular: formValues.isPopular || false,
-      id: isEditMode && selectedProduct ? selectedProduct.id : Date.now(),
-      rating: isEditMode && selectedProduct ? selectedProduct.rating : 4.0,
-      sales: isEditMode && selectedProduct ? selectedProduct.sales : 0
+      description: formValues.description.trim(),
+      image: formValues.image.trim() || '/brand-placeholder.svg',
+      isPopular: Boolean(formValues.isPopular),
     };
+
     try {
-      if (isEditMode && selectedProduct) {
-        const saved = await concessionService.update(selectedProduct.id, newProduct);
-        setProducts(products.map(item => item.id === selectedProduct.id ? saved : item));
-        notification.success('Cập nhật sản phẩm thành công!');
+      setSaving(true);
+      if (selectedProduct) {
+        await concessionService.update(selectedProduct.id, payload);
+        notification.success('Cập nhật sản phẩm thành công');
       } else {
-        const saved = await concessionService.create(newProduct);
-        setProducts([saved, ...products]);
-        notification.success('Thêm sản phẩm thành công!');
+        await concessionService.create(payload);
+        notification.success('Thêm sản phẩm thành công');
       }
+      closeForm();
+      await loadProducts();
     } catch (error) {
-      notification.error(error.message || 'Không thể lưu sản phẩm.');
-      return;
+      console.error('Error saving concession:', error);
+      notification.error(error?.message || 'Không thể lưu sản phẩm');
+    } finally {
+      setSaving(false);
     }
-    setIsModalVisible(false);
-    setSelectedProduct(null);
-    setIsEditMode(false);
-    setFormValues({
-      name: '',
-      category: '',
-      price: '',
-      originalPrice: '',
-      stock: '',
-      description: '',
-      image: '',
-      isPopular: false
-    });
   };
 
-  const handleModalCancel = () => {
-    setIsModalVisible(false);
-    setSelectedProduct(null);
-    setIsEditMode(false);
-    setFormValues({
-      name: '',
-      category: '',
-      price: '',
-      originalPrice: '',
-      stock: '',
-      description: '',
-      image: '',
-      isPopular: false
-    });
-  };
-
-  const handleDetailModalCancel = () => {
-    setIsDetailModalVisible(false);
-    setSelectedProduct(null);
+  const handleDelete = async (record) => {
+    if (!window.confirm(`Xóa sản phẩm ${record.name}?`)) return;
+    try {
+      await concessionService.delete(record.id);
+      notification.success('Đã xóa sản phẩm');
+      await loadProducts();
+    } catch (error) {
+      console.error('Error deleting concession:', error);
+      notification.error(error?.message || 'Không thể xóa sản phẩm');
+    }
   };
 
   const columns = [
     {
       title: 'Sản phẩm',
-      dataIndex: 'name',
-      key: 'name',
-      render: (text, record) => (
-        <div className="flex items-center gap-3">
+      key: 'product',
+      render: (_, record) => (
+        <div className="flex min-w-[240px] items-center gap-3">
           <img
-            src={record.image || '/brand-placeholder.svg'}
-            alt={text}
-            className="w-16 h-16 rounded-lg object-cover"
-            onError={(e) => {
-              e.target.src = '/brand-placeholder.svg';
-            }}
+            src={record.image || record.imageUrl || '/brand-placeholder.svg'}
+            alt={record.name}
+            className="h-14 w-14 rounded-md border object-cover"
+            onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }}
           />
-          <div>
-            <div className="font-semibold text-foreground">{text}</div>
-            <div className="text-xs text-muted-foreground">{record.description}</div>
-            {record.isPopular && (
-              <Badge className="bg-yellow-500 text-white text-xs mt-1">
-                Phổ biến
-              </Badge>
-            )}
+          <div className="min-w-0">
+            <button type="button" className="block max-w-full truncate text-left font-medium hover:text-primary" onClick={() => openDetail(record)}>
+              {record.name}
+            </button>
+            <p className="line-clamp-1 text-xs text-muted-foreground">{record.description || 'Chưa có mô tả'}</p>
+            {record.isPopular && <StatusBadge tone="warning" className="mt-1">Phổ biến</StatusBadge>}
           </div>
         </div>
-      )
+      ),
     },
     {
       title: 'Danh mục',
       dataIndex: 'category',
       key: 'category',
       render: (category) => {
-        const categoryConfig = {
-          food: { color: 'orange', text: 'Đồ ăn', icon: <Coffee className="h-3 w-3" /> },
-          drink: { color: 'blue', text: 'Đồ uống', icon: <Coffee className="h-3 w-3" /> },
-          combo: { color: 'green', text: 'Combo', icon: <Flame className="h-3 w-3" /> }
-        };
-        const config = categoryConfig[category] || { color: 'default', text: category };
-        return (
-          <StatusBadge tone={config.color} leading={config.icon}>
-            {config.text}
-          </StatusBadge>
-        );
-      }
+        const meta = categoryMeta(category);
+        return <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>;
+      },
     },
     {
-      title: 'Giá',
+      title: 'Giá bán',
       key: 'price',
       render: (_, record) => (
-        <div className="space-y-1">
-          <div className="font-semibold text-red-600">
-            {record.price.toLocaleString('vi-VN')}đ
-          </div>
-          {record.originalPrice > record.price && (
-            <div className="line-through text-xs text-muted-foreground">
-              {record.originalPrice.toLocaleString('vi-VN')}đ
-            </div>
+        <div>
+          <p className="font-medium text-foreground">{formatMoney(record.price)}</p>
+          {Number(record.originalPrice || 0) > Number(record.price || 0) && (
+            <p className="text-xs text-muted-foreground line-through">{formatMoney(record.originalPrice)}</p>
           )}
         </div>
-      )
+      ),
     },
     {
       title: 'Tồn kho',
       dataIndex: 'stock',
       key: 'stock',
-      render: (stock) => (
-        <div>
-          <div className="font-semibold text-foreground">{stock}</div>
-          <Progress
-            value={Math.min((stock / 100) * 100, 100)}
-            className="mt-1 h-2"
-          />
-        </div>
-      )
-    },
-    {
-      title: 'Đánh giá',
-      key: 'rating',
-      render: (_, record) => (
-        <div>
-          <StarRating
-            readOnly
-            value={record.rating}
-            precision={0.5}
-            className="text-yellow-400"
-          />
-          <div className="text-xs text-muted-foreground">
-            {record.rating}/5 ({record.sales} đã bán)
+      render: (stock) => {
+        const meta = stockMeta(stock);
+        return (
+          <div className="space-y-1">
+            <p className="font-medium">{Number(stock || 0)}</p>
+            <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>
           </div>
-        </div>
-      )
+        );
+      },
     },
     {
       title: 'Thao tác',
       key: 'actions',
       render: (_, record) => (
         <TooltipProvider>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" onClick={() => handleViewProduct(record)}>
-                  <Eye className="h-4 w-4" />
-                </Button>
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(record)} aria-label="Xem sản phẩm"><Eye className="h-4 w-4" /></Button>
               </TooltipTrigger>
               <TooltipContent>Xem chi tiết</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" onClick={() => handleEditProduct(record)}>
-                  <Edit className="h-4 w-4" />
-                </Button>
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(record)} aria-label="Chỉnh sửa sản phẩm"><Edit className="h-4 w-4" /></Button>
               </TooltipTrigger>
               <TooltipContent>Chỉnh sửa</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-red-600"
-                  onClick={() => {
-                    if (window.confirm('Bạn có chắc muốn xóa sản phẩm này?')) {
-                      handleDeleteProduct(record.id);
-                    }
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(record)} aria-label="Xóa sản phẩm"><Trash2 className="h-4 w-4" /></Button>
               </TooltipTrigger>
               <TooltipContent>Xóa</TooltipContent>
             </Tooltip>
           </div>
         </TooltipProvider>
-      )
-    }
+      ),
+    },
   ];
 
+  const tableFor = (category) => {
+    const rows = category === 'all'
+      ? products
+      : products.filter((product) => categoryMeta(product.category).key === category);
+
+    if (loading) {
+      return (
+        <div className="flex min-h-48 items-center justify-center gap-3 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          Đang tải sản phẩm...
+        </div>
+      );
+    }
+    if (rows.length === 0) return <Empty description="Không có sản phẩm trong danh mục này" />;
+    return <DataTable fields={columns} rows={rows} getRowId="id" pageControls={false} />;
+  };
+
   return (
-    <div className="min-h-screen">
-      {/* Breadcrumb */}
-      <Breadcrumb
-        className="mb-6"
-        items={[
-          {
-            title: 'Dashboard',
-            icon: <Home className="h-4 w-4" />,
-            href: '/admin/dashboard'
-          },
-          {
-            title: 'Quản lý đồ ăn & đồ uống',
-            icon: <Coffee className="h-4 w-4" />
-          }
+    <div className="space-y-6">
+      <AdminPageHeader
+        title="Đồ ăn & đồ uống"
+        description="Quản lý menu concession, giá bán và tồn kho tại HotCinema."
+        breadcrumbs={[
+          { title: 'Dashboard', href: '/admin/dashboard' },
+          { title: 'Đồ ăn & đồ uống' },
         ]}
+        actions={<Button onClick={openCreate}><Plus className="h-4 w-4" />Thêm sản phẩm</Button>}
       />
 
-      <div className="mb-6">
-        <h2 className="m-0 text-2xl font-bold">
-          Quản lý đồ ăn & đồ uống
-        </h2>
-        <p className="text-muted-foreground mt-1">
-          Quản lý menu, inventory và doanh thu F&B
-        </p>
-      </div>
-
-      {/* Quick stats */}
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 mb-6">
-        {stats.map((stat, index) => (
-          <Card key={index} className="rounded-xl shadow-md border border-border p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-muted-foreground">{stat.title}</div>
-                <div className="mt-1 text-xl font-semibold text-foreground">{stat.value}</div>
-              </div>
-              <div className="text-2xl text-red-600">
-                {stat.icon}
-              </div>
-            </div>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          { label: 'Tổng sản phẩm', value: stats.total, icon: Coffee },
+          { label: 'Sản phẩm phổ biến', value: stats.popular, icon: Sparkles },
+          { label: 'Sắp hết hàng', value: stats.lowStock, icon: TriangleAlert },
+          { label: 'Hết hàng', value: stats.outOfStock, icon: Package },
+        ].map(({ label, value, icon: Icon }) => (
+          <Card key={label}>
+            <CardContent className="flex items-center justify-between p-5">
+              <div><p className="text-sm text-muted-foreground">{label}</p><p className="mt-1 text-2xl font-semibold">{value}</p></div>
+              <Icon className="h-5 w-5 text-muted-foreground" />
+            </CardContent>
           </Card>
         ))}
       </div>
 
-      <Card className="rounded-xl shadow-md border border-border p-4">
-        <div className="flex justify-between items-center mb-4">
-          <h4 className="m-0 text-lg font-semibold">Danh sách sản phẩm</h4>
-          <Button
-            onClick={handleCreateProduct}
-            className="rounded-lg"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Thêm sản phẩm
-          </Button>
-        </div>
-
-        <SegmentedTabs
-          defaultSelectedId="all"
-          className="mt-4"
-          sections={[
-            {
-              key: 'all',
-              label: 'Tất cả',
-              children: (
-                <DataTable
-                  fields={columns}
-                  loading={loading}
-                  rows={products}
-                  getRowId="id"
-                />
-              )
-            },
-            {
-              key: 'food',
-              label: 'Đồ ăn',
-              children: (
-                <DataTable
-                  fields={columns}
-                  loading={loading}
-                  rows={products.filter(p => p.category === 'food')}
-                  getRowId="id"
-                />
-              )
-            },
-            {
-              key: 'drink',
-              label: 'Đồ uống',
-              children: (
-                <DataTable
-                  fields={columns}
-                  loading={loading}
-                  rows={products.filter(p => p.category === 'drink')}
-                  getRowId="id"
-                />
-              )
-            },
-            {
-              key: 'combo',
-              label: 'Combo',
-              children: (
-                <DataTable
-                  fields={columns}
-                  loading={loading}
-                  rows={products.filter(p => p.category === 'combo')}
-                  getRowId="id"
-                />
-              )
-            }
-          ]}
-        />
+      <Card>
+        <CardHeader><CardTitle className="text-lg">Danh sách sản phẩm</CardTitle></CardHeader>
+        <CardContent>
+          <SegmentedTabs
+            defaultSelectedId="all"
+            sections={[
+              { key: 'all', label: 'Tất cả', children: tableFor('all') },
+              { key: 'food', label: 'Đồ ăn', children: tableFor('food') },
+              { key: 'drink', label: 'Đồ uống', children: tableFor('drink') },
+              { key: 'combo', label: 'Combo', children: tableFor('combo') },
+            ]}
+          />
+        </CardContent>
       </Card>
 
       <ResponsiveDialog
-        heading={isEditMode ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'}
-        open={isModalVisible}
-        onClose={handleModalCancel}
-        maxWidth={600}
-        actions={null}
+        heading={selectedProduct ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'}
+        description="Cập nhật thông tin bán hàng và tồn kho của sản phẩm."
+        open={formOpen}
+        onClose={closeForm}
+        maxWidth={680}
       >
-        <form onSubmit={handleModalOk} className="space-y-4 p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tên sản phẩm <span className="text-red-500">*</span>
-              </label>
-              <Input
-                placeholder="Nhập tên sản phẩm"
-                value={formValues.name}
-                onChange={(e) => setFormValues(prev => ({ ...prev, name: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Danh mục <span className="text-red-500">*</span>
-              </label>
-              <Select
-                value={formValues.category}
-                onValueChange={(value) => setFormValues(prev => ({ ...prev, category: value }))}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Chọn danh mục" />
-                </SelectTrigger>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-2 text-sm font-medium">
+              <span>Tên sản phẩm <span className="text-destructive">*</span></span>
+              <Input value={formValues.name} onChange={(event) => setFormValues((current) => ({ ...current, name: event.target.value }))} placeholder="Bắp rang bơ" required />
+            </label>
+            <label className="space-y-2 text-sm font-medium">
+              <span>Danh mục <span className="text-destructive">*</span></span>
+              <Select value={formValues.category} onValueChange={(value) => setFormValues((current) => ({ ...current, category: value }))}>
+                <SelectTrigger><SelectValue placeholder="Chọn danh mục" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="food">Đồ ăn</SelectItem>
                   <SelectItem value="drink">Đồ uống</SelectItem>
                   <SelectItem value="combo">Combo</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Giá bán <span className="text-red-500">*</span>
-              </label>
-              <NumberStepper
-                placeholder="Nhập giá"
-                value={formValues.price}
-                onValueChange={(value) => setFormValues(prev => ({ ...prev, price: value || '' }))}
-                className="w-full"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Giá gốc
-              </label>
-              <NumberStepper
-                placeholder="Nhập giá gốc"
-                value={formValues.originalPrice}
-                onValueChange={(value) => setFormValues(prev => ({ ...prev, originalPrice: value || '' }))}
-                className="w-full"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tồn kho <span className="text-red-500">*</span>
-              </label>
-              <NumberStepper
-                placeholder="Nhập số lượng"
-                value={formValues.stock}
-                onValueChange={(value) => setFormValues(prev => ({ ...prev, stock: value || '' }))}
-                className="w-full"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sản phẩm phổ biến
-              </label>
-              <div className="flex items-center space-x-2 pt-2">
-                <Checkbox
-                  checked={formValues.isPopular}
-                  onCheckedChange={(checked) => setFormValues(prev => ({ ...prev, isPopular: checked }))}
-                />
-                <span className="text-sm text-gray-700">Kích hoạt</span>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Mô tả
             </label>
-            <Textarea
-              rows={3}
-              placeholder="Nhập mô tả sản phẩm"
-              value={formValues.description}
-              onChange={(e) => setFormValues(prev => ({ ...prev, description: e.target.value }))}
-            />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Hình ảnh
+          <div className="grid gap-4 sm:grid-cols-3">
+            <label className="space-y-2 text-sm font-medium">
+              <span>Giá bán <span className="text-destructive">*</span></span>
+              <NumberStepper min={0} value={formValues.price} onValueChange={(value) => setFormValues((current) => ({ ...current, price: value ?? '' }))} />
             </label>
-            <div className="flex items-center gap-4">
-              <Input
-                placeholder="Nhập URL hình ảnh"
-                value={formValues.image}
-                onChange={(e) => setFormValues(prev => ({ ...prev, image: e.target.value }))}
-              />
-              {formValues.image && (
-                <img
-                  src={formValues.image}
-                  alt="Preview"
-                  className="w-20 h-20 rounded-lg object-cover border border-border"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                  }}
-                />
-              )}
-            </div>
+            <label className="space-y-2 text-sm font-medium">
+              <span>Giá gốc</span>
+              <NumberStepper min={0} value={formValues.originalPrice} onValueChange={(value) => setFormValues((current) => ({ ...current, originalPrice: value ?? '' }))} />
+            </label>
+            <label className="space-y-2 text-sm font-medium">
+              <span>Tồn kho <span className="text-destructive">*</span></span>
+              <NumberStepper min={0} value={formValues.stock} onValueChange={(value) => setFormValues((current) => ({ ...current, stock: value ?? '' }))} />
+            </label>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleModalCancel}
-            >
-              Hủy
-            </Button>
-            <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
-              {isEditMode ? 'Cập nhật' : 'Thêm'}
-            </Button>
+          <label className="block space-y-2 text-sm font-medium">
+            <span>Mô tả</span>
+            <Textarea rows={3} value={formValues.description} onChange={(event) => setFormValues((current) => ({ ...current, description: event.target.value }))} placeholder="Mô tả sản phẩm" />
+          </label>
+
+          <label className="block space-y-2 text-sm font-medium">
+            <span>URL hình ảnh</span>
+            <Input value={formValues.image} onChange={(event) => setFormValues((current) => ({ ...current, image: event.target.value }))} placeholder="https://..." />
+          </label>
+
+          {formValues.image && (
+            <img src={formValues.image} alt="Xem trước sản phẩm" className="h-28 w-28 rounded-md border object-cover" onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }} />
+          )}
+
+          <label className="flex items-center gap-3 rounded-md border p-3 text-sm">
+            <Checkbox checked={formValues.isPopular} onCheckedChange={(checked) => setFormValues((current) => ({ ...current, isPopular: checked === true }))} />
+            <span><span className="font-medium">Sản phẩm phổ biến</span><span className="block text-xs text-muted-foreground">Đánh dấu để ưu tiên hiển thị trong menu.</span></span>
+          </label>
+
+          <div className="flex justify-end gap-2 border-t pt-4">
+            <Button type="button" variant="outline" onClick={closeForm}>Hủy</Button>
+            <Button type="submit" disabled={saving}>{saving && <Loader2 className="h-4 w-4 animate-spin" />}{selectedProduct ? 'Lưu thay đổi' : 'Thêm sản phẩm'}</Button>
           </div>
         </form>
       </ResponsiveDialog>
 
       <ResponsiveDialog
         heading="Chi tiết sản phẩm"
-        open={isDetailModalVisible}
-        onClose={handleDetailModalCancel}
-        maxWidth={500}
-        actions={null}
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        maxWidth={560}
+        actions={selectedProduct ? [
+          <Button key="close" variant="outline" onClick={() => setDetailOpen(false)}>Đóng</Button>,
+          <Button key="edit" onClick={() => { setDetailOpen(false); openEdit(selectedProduct); }}><Edit className="h-4 w-4" />Chỉnh sửa</Button>,
+        ] : null}
       >
         {selectedProduct && (
-          <div className="text-center p-4">
-            <img
-              src={selectedProduct.image || '/brand-placeholder.svg'}
-              alt={selectedProduct.name}
-              className="w-24 h-24 rounded-lg object-cover mx-auto mb-4 border border-border"
-              onError={(e) => {
-                e.target.src = '/brand-placeholder.svg';
-              }}
-            />
-            <h4 className="text-xl font-bold text-foreground mb-2">{selectedProduct.name}</h4>
-            <p className="text-muted-foreground mb-4">{selectedProduct.description}</p>
-            <Separator className="my-4" />
-            <DetailList
-              columns={1}
-              items={[
-                {
-                  label: 'Danh mục',
-                  children: selectedProduct.category === 'food' ? 'Đồ ăn' : selectedProduct.category === 'drink' ? 'Đồ uống' : 'Combo'
-                },
-                {
-                  label: 'Giá bán',
-                  children: `${selectedProduct.price.toLocaleString('vi-VN')}đ`
-                },
-                {
-                  label: 'Giá gốc',
-                  children: `${selectedProduct.originalPrice.toLocaleString('vi-VN')}đ`
-                },
-                {
-                  label: 'Tồn kho',
-                  children: selectedProduct.stock
-                },
-                {
-                  label: 'Phổ biến',
-                  children: selectedProduct.isPopular ? 'Có' : 'Không'
-                },
-                {
-                  label: 'Đánh giá',
-                  children: `${selectedProduct.rating}/5 (${selectedProduct.sales} đã bán)`
-                }
-              ]}
-            />
-            <div className="flex justify-end gap-2 mt-6">
-              <Button variant="outline" onClick={handleDetailModalCancel}>
-                Đóng
-              </Button>
-              <Button
-                className="bg-indigo-600 hover:bg-indigo-700"
-                onClick={() => {
-                  setIsDetailModalVisible(false);
-                  handleEditProduct(selectedProduct);
-                }}
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Chỉnh sửa
-              </Button>
+          <div className="space-y-5">
+            <div className="flex items-center gap-4">
+              <img src={selectedProduct.image || selectedProduct.imageUrl || '/brand-placeholder.svg'} alt={selectedProduct.name} className="h-20 w-20 rounded-md border object-cover" onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }} />
+              <div><h3 className="font-semibold">{selectedProduct.name}</h3><p className="text-sm text-muted-foreground">{selectedProduct.description || 'Chưa có mô tả'}</p></div>
             </div>
+            <DetailList columns={2}>
+              <DetailItem label="Danh mục"><StatusBadge tone={categoryMeta(selectedProduct.category).tone}>{categoryMeta(selectedProduct.category).label}</StatusBadge></DetailItem>
+              <DetailItem label="Tồn kho"><StatusBadge tone={stockMeta(selectedProduct.stock).tone}>{Number(selectedProduct.stock || 0)} · {stockMeta(selectedProduct.stock).label}</StatusBadge></DetailItem>
+              <DetailItem label="Giá bán">{formatMoney(selectedProduct.price)}</DetailItem>
+              <DetailItem label="Giá gốc">{formatMoney(selectedProduct.originalPrice || selectedProduct.price)}</DetailItem>
+              <DetailItem label="Phổ biến">{selectedProduct.isPopular ? 'Có' : 'Không'}</DetailItem>
+            </DetailList>
           </div>
         )}
       </ResponsiveDialog>
