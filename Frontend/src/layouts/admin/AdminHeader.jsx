@@ -16,7 +16,7 @@ const AdminHeader = ({ user, onNavigate, onLogout }) => {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:px-6">
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b bg-background/95 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:px-4">
       <SidebarTrigger />
 
       <div className="min-w-0 flex-1">
@@ -24,7 +24,7 @@ const AdminHeader = ({ user, onNavigate, onLogout }) => {
         <p className="hidden truncate text-xs text-muted-foreground sm:block">Quản lý hoạt động HotCinema</p>
       </div>
 
-      <div className="flex items-center gap-1 sm:gap-2">
+      <div className="flex items-center gap-1">
         <Button
           type="button"
           variant="ghost"
@@ -43,8 +43,8 @@ const AdminHeader = ({ user, onNavigate, onLogout }) => {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button type="button" variant="ghost" className="h-10 gap-2 px-2 sm:px-3">
-              <Avatar className="h-8 w-8">
+            <Button type="button" variant="ghost" className="h-9 gap-2 px-2">
+              <Avatar className="h-7 w-7">
                 <AvatarFallback className="bg-muted text-muted-foreground">
                   <User className="h-4 w-4" />
                 </AvatarFallback>
