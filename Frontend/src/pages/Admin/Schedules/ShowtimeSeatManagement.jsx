@@ -76,8 +76,8 @@ const ShowtimeSeatManagement = () => {
         title="Sơ đồ ghế theo suất chiếu"
         description="Theo dõi trạng thái ghế của một suất chiếu cụ thể."
         breadcrumbs={[
-          { label: 'Lịch chiếu', href: '/admin/schedules', icon: Calendar },
-          { label: showtime.movieTitle || `Suất #${showtime.id}`, icon: Grid3x3 },
+          { title: 'Lịch chiếu', href: '/admin/schedules', icon: <Calendar className="h-4 w-4" /> },
+          { title: showtime.movieTitle || `Suất #${showtime.id}`, icon: <Grid3x3 className="h-4 w-4" /> },
         ]}
         actions={(
           <Button variant="outline" onClick={() => navigate('/admin/schedules')}>
