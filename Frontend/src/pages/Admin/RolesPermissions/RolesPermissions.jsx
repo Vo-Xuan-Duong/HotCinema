@@ -1,1089 +1,421 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { DataTable } from '@/components/ui/data-table';
-import { Button } from '@/components/ui/button';
-import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
-import { Input } from '@/components/ui/input';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { StatusBadge } from '@/components/ui/status-badge';
-import { Card } from '@/components/ui/card';
-import { Metric } from '@/components/ui/metric';
-import { Breadcrumb } from '@/components/ui/breadcrumb';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Separator } from '@/components/ui/separator';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Ban, CheckCircle2, Edit, Eye, Key, Loader2, Plus, Settings, Shield, Trash2 } from 'lucide-react';
+import { AdminPageHeader } from '@/layouts/admin/AdminPageHeader';
 import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { DataTable } from '@/components/ui/data-table';
+import { DetailItem, DetailList } from '@/components/ui/detail-list';
 import { Empty } from '@/components/ui/empty';
+import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
-import { Loader2 } from 'lucide-react';
-import {
-    Shield,
-    Edit,
-    Trash2,
-    Plus,
-    Eye,
-    Key,
-    CheckCircle2,
-    Ban,
-    Home,
-    Search,
-    Settings
-} from 'lucide-react';
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import roleService from '@/services/roleService';
 import permissionService from '@/services/permissionService';
-import { useNotification } from '@/hooks/useNotification';
+import useNotification from '@/hooks/useNotification';
+
+const DEFAULT_ROLE = { name: '', code: '', description: '', isActive: true };
+
+const unwrapData = (response) => response?.data?.data ?? response?.data ?? response;
+
+const unwrapList = (response) => {
+  const payload = unwrapData(response);
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.content)) return payload.content;
+  return [];
+};
+
+const unwrapPage = (response) => {
+  const payload = unwrapData(response);
+  if (Array.isArray(payload)) return { content: payload, totalElements: payload.length };
+  const content = Array.isArray(payload?.content) ? payload.content : [];
+  return { content, totalElements: Number(payload?.totalElements ?? payload?.total ?? content.length) };
+};
+
+const isRoleActive = (role) => role?.isActive ?? role?.active ?? false;
+const permissionKey = (id) => String(id);
 
 const RolesPermissions = () => {
-    const navigate = useNavigate();
-    const { showNotification } = useNotification();
-    const tableRef = useRef(null);
-    const [roles, setRoles] = useState([]);
-    const [permissions, setPermissions] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [loadingPermissions, setLoadingPermissions] = useState(false);
-    const [isAddModalVisible, setIsAddModalVisible] = useState(false);
-    const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-    const [isPermissionModalVisible, setIsPermissionModalVisible] = useState(false);
-    const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
-    const [selectedRole, setSelectedRole] = useState(null);
-    const [searchText, setSearchText] = useState('');
-    const [statusFilter, setStatusFilter] = useState('all');
-    const [pagination, setPagination] = useState({
-        current: 1,
-        pageSize: 10,
-        total: 0
+  const notification = useNotification();
+  const [roles, setRoles] = useState([]);
+  const [permissions, setPermissions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [permissionsLoading, setPermissionsLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [busyRoleId, setBusyRoleId] = useState(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [permissionOpen, setPermissionOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedRole, setSelectedRole] = useState(null);
+  const [formValues, setFormValues] = useState(DEFAULT_ROLE);
+  const [selectedPermissionIds, setSelectedPermissionIds] = useState([]);
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
+
+  const loadRoles = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await roleService.getAllRoles({
+        page: pagination.current - 1,
+        size: pagination.pageSize,
+        sort: 'id,desc',
+      });
+      const page = unwrapPage(response);
+      setRoles(page.content);
+      setPagination((current) => ({ ...current, total: page.totalElements }));
+    } catch (error) {
+      console.error('Error loading roles:', error);
+      setRoles([]);
+      setPagination((current) => ({ ...current, total: 0 }));
+      notification.error('Không thể tải danh sách vai trò');
+    } finally {
+      setLoading(false);
+    }
+  }, [notification, pagination.current, pagination.pageSize]);
+
+  const loadPermissions = useCallback(async () => {
+    try {
+      setPermissionsLoading(true);
+      const response = await permissionService.getAllPermissionsList();
+      setPermissions(unwrapList(response));
+    } catch (error) {
+      console.error('Error loading permissions:', error);
+      setPermissions([]);
+      notification.error('Không thể tải danh sách quyền');
+    } finally {
+      setPermissionsLoading(false);
+    }
+  }, [notification]);
+
+  useEffect(() => {
+    loadRoles();
+  }, [loadRoles]);
+
+  useEffect(() => {
+    loadPermissions();
+  }, [loadPermissions]);
+
+  const activeOnPage = useMemo(() => roles.filter(isRoleActive).length, [roles]);
+
+  const closeRoleForm = () => {
+    setFormOpen(false);
+    setSelectedRole(null);
+    setFormValues(DEFAULT_ROLE);
+  };
+
+  const openCreate = () => {
+    setSelectedRole(null);
+    setFormValues(DEFAULT_ROLE);
+    setFormOpen(true);
+  };
+
+  const openEdit = (role) => {
+    setSelectedRole(role);
+    setFormValues({
+      name: role.name || '',
+      code: role.code || '',
+      description: role.description || '',
+      isActive: isRoleActive(role),
     });
-    const [formValues, setFormValues] = useState({
-        name: '',
-        code: '',
-        description: '',
-        isActive: true
-    });
-    const [permissionFormValues, setPermissionFormValues] = useState({
-        permissions: []
-    });
+    setFormOpen(true);
+  };
 
-    // Load permissions on mount
-    useEffect(() => {
-        loadPermissions();
-    }, []);
+  const validateRole = () => {
+    if (!formValues.name.trim()) return 'Vui lòng nhập tên vai trò';
+    if (!formValues.code.trim()) return 'Vui lòng nhập mã vai trò';
+    if (!/^[A-Z_]+$/.test(formValues.code.trim())) return 'Mã vai trò chỉ chứa chữ in hoa và dấu gạch dưới';
+    return null;
+  };
 
-    // Load roles from API
-    useEffect(() => {
-        loadRoles();
-    }, [pagination.current, pagination.pageSize, statusFilter, searchText]);
+  const saveRole = async (event) => {
+    event.preventDefault();
+    const validationError = validateRole();
+    if (validationError) {
+      notification.error(validationError);
+      return;
+    }
 
-    const loadPermissions = async () => {
-        try {
-            setLoadingPermissions(true);
-            const response = await permissionService.getAllPermissionsList();
-            const permissionsData = response?.data?.data || response?.data || [];
-            setPermissions(permissionsData);
-        } catch (error) {
-            console.error('Error loading permissions:', error);
-            showNotification('error', 'Lỗi', 'Không thể tải danh sách quyền');
-            setPermissions([]);
-        } finally {
-            setLoadingPermissions(false);
-        }
+    const payload = {
+      name: formValues.name.trim(),
+      code: formValues.code.trim(),
+      description: formValues.description.trim(),
+      isActive: formValues.isActive,
     };
 
-    const loadRoles = async () => {
-        try {
-            setLoading(true);
-            const params = {
-                page: pagination.current - 1, // Backend uses 0-based indexing
-                size: pagination.pageSize,
-                sort: 'id,desc'
-            };
+    try {
+      setSaving(true);
+      if (selectedRole) {
+        await roleService.updateRole(selectedRole.id, payload);
+        notification.success('Cập nhật vai trò thành công');
+      } else {
+        await roleService.createRole(payload);
+        notification.success('Thêm vai trò thành công');
+      }
+      closeRoleForm();
+      await loadRoles();
+    } catch (error) {
+      console.error('Error saving role:', error);
+      notification.error(error?.response?.data?.message || 'Không thể lưu vai trò');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-            const response = await roleService.getAllRoles(params);
-            const rolesData = response?.data?.content || response?.data?.data || response?.data || [];
-            const total = response?.data?.totalElements || response?.data?.total || rolesData.length;
+  const changeStatus = async (role) => {
+    const active = isRoleActive(role);
+    try {
+      setBusyRoleId(role.id);
+      if (active) {
+        await roleService.deactivateRole(role.id);
+        notification.success('Đã vô hiệu hóa vai trò');
+      } else {
+        await roleService.activateRole(role.id);
+        notification.success('Đã kích hoạt vai trò');
+      }
+      await loadRoles();
+    } catch (error) {
+      console.error('Error changing role status:', error);
+      notification.error(error?.response?.data?.message || 'Không thể thay đổi trạng thái vai trò');
+    } finally {
+      setBusyRoleId(null);
+    }
+  };
 
-            // Apply client-side filtering
-            let filteredData = rolesData;
+  const deleteRole = async (role) => {
+    if (!window.confirm(`Xóa vai trò ${role.name}? Hành động này không thể hoàn tác.`)) return;
+    try {
+      setBusyRoleId(role.id);
+      await roleService.deleteRole(role.id);
+      notification.success('Đã xóa vai trò');
+      if (roles.length === 1 && pagination.current > 1) {
+        setPagination((current) => ({ ...current, current: current.current - 1 }));
+      } else {
+        await loadRoles();
+      }
+    } catch (error) {
+      console.error('Error deleting role:', error);
+      notification.error(error?.response?.data?.message || 'Không thể xóa vai trò');
+    } finally {
+      setBusyRoleId(null);
+    }
+  };
 
-            // Filter by search text
-            if (searchText) {
-                filteredData = filteredData.filter(role =>
-                    role.name?.toLowerCase().includes(searchText.toLowerCase()) ||
-                    role.code?.toLowerCase().includes(searchText.toLowerCase()) ||
-                    role.description?.toLowerCase().includes(searchText.toLowerCase())
-                );
-            }
+  const openPermissionEditor = async (role) => {
+    try {
+      setBusyRoleId(role.id);
+      const response = await roleService.getRoleById(role.id);
+      const fullRole = unwrapData(response);
+      if (!fullRole || !fullRole.id || !Array.isArray(fullRole.permissions)) {
+        throw new Error('Backend không trả về đầy đủ danh sách quyền của vai trò');
+      }
+      setSelectedRole(fullRole);
+      setSelectedPermissionIds(fullRole.permissions.map((permission) => permissionKey(permission.id)));
+      setPermissionOpen(true);
+    } catch (error) {
+      console.error('Error loading full role before permission edit:', error);
+      notification.error('Không thể tải đầy đủ quyền hiện tại. Không mở trình chỉnh sửa để tránh làm mất quyền.');
+    } finally {
+      setBusyRoleId(null);
+    }
+  };
 
-            // Filter by status
-            if (statusFilter !== 'all') {
-                filteredData = filteredData.filter(role => {
-                    const isActive = role.isActive !== undefined ? role.isActive : role.active;
-                    return statusFilter === 'active' ? isActive : !isActive;
-                });
-            }
+  const closePermissionEditor = () => {
+    setPermissionOpen(false);
+    setSelectedRole(null);
+    setSelectedPermissionIds([]);
+  };
 
-            setRoles(filteredData);
-            setPagination(prev => ({
-                ...prev,
-                total: filteredData.length < rolesData.length ? filteredData.length : total
-            }));
-        } catch (error) {
-            console.error('Error loading roles:', error);
-            showNotification('error', 'Lỗi', 'Không thể tải danh sách vai trò');
-            setRoles([]);
-            setPagination(prev => ({ ...prev, total: 0 }));
-        } finally {
-            setLoading(false);
-        }
-    };
+  const togglePermission = (permissionId, checked) => {
+    const key = permissionKey(permissionId);
+    setSelectedPermissionIds((current) => checked
+      ? [...new Set([...current, key])]
+      : current.filter((id) => id !== key));
+  };
 
-    // Calculate statistics
-    const roleStats = {
-        total: pagination.total,
-        active: roles.filter(role => {
-            const isActive = role.isActive !== undefined ? role.isActive : role.active;
-            return isActive;
-        }).length,
-        inactive: roles.filter(role => {
-            const isActive = role.isActive !== undefined ? role.isActive : role.active;
-            return !isActive;
-        }).length
-    };
+  const savePermissions = async () => {
+    if (!selectedRole || !Array.isArray(selectedRole.permissions)) return;
 
-    // Handle table change (pagination)
-    const handleTableChange = (page, pageSize) => {
-        const newPageSize = pageSize || pagination.pageSize;
-        setPagination(prev => ({
-            current: page,
-            pageSize: newPageSize,
-            total: prev.total
-        }));
-        if (tableRef.current) {
-            tableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    };
+    const currentIds = selectedRole.permissions.map((permission) => permissionKey(permission.id));
+    const toAddKeys = selectedPermissionIds.filter((id) => !currentIds.includes(id));
+    const toRemoveKeys = currentIds.filter((id) => !selectedPermissionIds.includes(id));
+    const idByKey = new Map(permissions.map((permission) => [permissionKey(permission.id), permission.id]));
+    selectedRole.permissions.forEach((permission) => idByKey.set(permissionKey(permission.id), permission.id));
+    const toAdd = toAddKeys.map((key) => idByKey.get(key)).filter((id) => id !== undefined);
+    const toRemove = toRemoveKeys.map((key) => idByKey.get(key)).filter((id) => id !== undefined);
 
-    // Handle page size change
-    const handlePageSizeChange = (current, newPageSize) => {
-        setPagination(prev => ({
-            current: 1,
-            pageSize: newPageSize,
-            total: prev.total
-        }));
-    };
+    try {
+      setSaving(true);
+      if (toAdd.length > 0) await roleService.addPermissionsToRole(selectedRole.id, toAdd);
+      if (toRemove.length > 0) await roleService.removePermissionsFromRole(selectedRole.id, toRemove);
+      notification.success(toAdd.length || toRemove.length ? 'Cập nhật quyền thành công' : 'Không có thay đổi quyền');
+      closePermissionEditor();
+      await loadRoles();
+    } catch (error) {
+      console.error('Error saving permissions:', error);
+      notification.error(error?.response?.data?.message || 'Không thể cập nhật quyền');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-    // Handle search
-    const handleSearch = (value) => {
-        setSearchText(value);
-        setPagination(prev => ({ ...prev, current: 1 }));
-    };
-
-    // Handle status filter
-    const handleStatusFilterChange = (value) => {
-        setStatusFilter(value);
-        setPagination(prev => ({ ...prev, current: 1 }));
-    };
-
-    // Handle add role
-    const handleAddRole = async (e) => {
-        e?.preventDefault();
-        try {
-            // Validation
-            if (!formValues.name?.trim()) {
-                showNotification('error', 'Lỗi', 'Vui lòng nhập tên vai trò!');
-                return;
-            }
-            if (!formValues.code?.trim()) {
-                showNotification('error', 'Lỗi', 'Vui lòng nhập mã vai trò!');
-                return;
-            }
-            if (!/^[A-Z_]+$/.test(formValues.code)) {
-                showNotification('error', 'Lỗi', 'Mã vai trò chỉ chứa chữ in hoa và dấu gạch dưới!');
-                return;
-            }
-
-            const createData = {
-                name: formValues.name.trim(),
-                code: formValues.code.trim(),
-                description: formValues.description?.trim() || '',
-                isActive: formValues.isActive !== undefined ? formValues.isActive : true
-            };
-            await roleService.createRole(createData);
-            showNotification('success', 'Thành công', 'Thêm vai trò thành công!');
-            setIsAddModalVisible(false);
-            setFormValues({
-                name: '',
-                code: '',
-                description: '',
-                isActive: true
-            });
-            loadRoles();
-        } catch (error) {
-            console.error('Error creating role:', error);
-            showNotification('error', 'Lỗi', error.response?.data?.message || 'Không thể thêm vai trò');
-        }
-    };
-
-    // Handle edit role
-    const handleEditRole = async (e) => {
-        e?.preventDefault();
-        try {
-            // Validation
-            if (!formValues.name?.trim()) {
-                showNotification('error', 'Lỗi', 'Vui lòng nhập tên vai trò!');
-                return;
-            }
-            if (!formValues.code?.trim()) {
-                showNotification('error', 'Lỗi', 'Vui lòng nhập mã vai trò!');
-                return;
-            }
-            if (!/^[A-Z_]+$/.test(formValues.code)) {
-                showNotification('error', 'Lỗi', 'Mã vai trò chỉ chứa chữ in hoa và dấu gạch dưới!');
-                return;
-            }
-
-            const updateData = {
-                name: formValues.name.trim(),
-                code: formValues.code.trim(),
-                description: formValues.description?.trim() || '',
-                isActive: formValues.isActive !== undefined ? formValues.isActive : selectedRole.isActive
-            };
-            await roleService.updateRole(selectedRole.id, updateData);
-            showNotification('success', 'Thành công', 'Cập nhật vai trò thành công!');
-            setIsEditModalVisible(false);
-            setSelectedRole(null);
-            setFormValues({
-                name: '',
-                code: '',
-                description: '',
-                isActive: true
-            });
-            loadRoles();
-        } catch (error) {
-            console.error('Error updating role:', error);
-            showNotification('error', 'Lỗi', error.response?.data?.message || 'Không thể cập nhật vai trò');
-        }
-    };
-
-    // Handle delete role
-    const handleDeleteRole = async (id) => {
-        try {
-            await roleService.deleteRole(id);
-            showNotification('success', 'Thành công', 'Xóa vai trò thành công!');
-            loadRoles();
-        } catch (error) {
-            console.error('Error deleting role:', error);
-            showNotification('error', 'Lỗi', error.response?.data?.message || 'Không thể xóa vai trò');
-        }
-    };
-
-    // Handle status change
-    const handleStatusChange = async (id, isActive) => {
-        try {
-            if (isActive) {
-                await roleService.activateRole(id);
-                showNotification('success', 'Thành công', 'Đã kích hoạt vai trò!');
-            } else {
-                await roleService.deactivateRole(id);
-                showNotification('success', 'Thành công', 'Đã vô hiệu hóa vai trò!');
-            }
-            loadRoles();
-        } catch (error) {
-            console.error('Error changing role status:', error);
-            showNotification('error', 'Lỗi', error.response?.data?.message || 'Không thể thay đổi trạng thái vai trò');
-        }
-    };
-
-    // Handle save permissions
-    const handleSavePermissions = async (values) => {
-        try {
-            const selectedPermissionIds = values.permissions || [];
-            const currentPermissionIds = selectedRole.permissions?.map(p => p.id) || [];
-
-            // Find permissions to add
-            const toAdd = selectedPermissionIds.filter(id => !currentPermissionIds.includes(id));
-            // Find permissions to remove
-            const toRemove = currentPermissionIds.filter(id => !selectedPermissionIds.includes(id));
-
-            // Add new permissions
-            if (toAdd.length > 0) {
-                await roleService.addPermissionsToRole(selectedRole.id, toAdd);
-            }
-
-            // Remove permissions
-            if (toRemove.length > 0) {
-                await roleService.removePermissionsFromRole(selectedRole.id, toRemove);
-            }
-
-            showNotification('success', 'Thành công', 'Cập nhật quyền thành công!');
-            setIsPermissionModalVisible(false);
-            setSelectedRole(null);
-            setPermissionFormValues({ permissions: [] });
-            loadRoles();
-        } catch (error) {
-            console.error('Error saving permissions:', error);
-            showNotification('error', 'Lỗi', error.response?.data?.message || 'Không thể cập nhật quyền');
-        }
-    };
-
-    // Show modals
-    const showAddModal = () => {
-        setIsAddModalVisible(true);
-        setFormValues({
-            name: '',
-            code: '',
-            description: '',
-            isActive: true
-        });
-    };
-
-    const showEditModal = (role) => {
-        setSelectedRole(role);
-        setIsEditModalVisible(true);
-        const isActive = role.isActive !== undefined ? role.isActive : role.active;
-        setFormValues({
-            name: role.name || '',
-            code: role.code || '',
-            description: role.description || '',
-            isActive: isActive
-        });
-    };
-
-    const showPermissionModal = async (role) => {
-        // Load full role details with permissions
-        try {
-            const response = await roleService.getRoleById(role.id);
-            const fullRole = response?.data?.data || response?.data || role;
-            setSelectedRole(fullRole);
-            setIsPermissionModalVisible(true);
-
-            // Set form values with current permissions
-            const currentPermissionIds = fullRole.permissions?.map(p => p.id) || [];
-            setPermissionFormValues({
-                permissions: currentPermissionIds
-            });
-        } catch (error) {
-            console.error('Error loading role details:', error);
-            showNotification('error', 'Lỗi', 'Không thể tải chi tiết vai trò');
-            setSelectedRole(role);
-            setIsPermissionModalVisible(true);
-            const currentPermissionIds = role.permissions?.map(p => p.id) || [];
-            setPermissionFormValues({
-                permissions: currentPermissionIds
-            });
-        }
-    };
-
-    const showDetailModal = (role) => {
-        setSelectedRole(role);
-        setIsDetailModalVisible(true);
-    };
-
-    // Render status
-    const renderStatus = (role) => {
-        const isActive = role.isActive !== undefined ? role.isActive : role.active;
-        return (
-            <StatusBadge tone={isActive ? 'green' : 'red'}>
-                {isActive ? <CheckCircle2 className="h-3 w-3 mr-1 inline" /> : <Ban className="h-3 w-3 mr-1 inline" />}
-                {isActive ? 'Hoạt động' : 'Không hoạt động'}
-            </StatusBadge>
-        );
-    };
-
-    // Table columns
-    const columns = [
-        {
-            title: 'ID',
-            dataIndex: 'id',
-            key: 'id',
-            width: 70,
-            align: 'center',
-            sorter: (a, b) => a.id - b.id,
-            render: (id) => (
-                <span className="text-muted-foreground font-medium">#{id}</span>
-            ),
-        },
-        {
-            title: 'Vai trò',
-            key: 'role',
-            width: 280,
-            render: (_, record) => (
-                <div className="flex items-center gap-3">
-                    <div className="flex-shrink-0">
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-md">
-                            <Shield className="h-5 w-5 text-white" />
-                        </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <div
-                            className="font-semibold text-foreground mb-1 text-base cursor-pointer hover:text-primary transition-colors"
-                            onClick={() => showDetailModal(record)}
-                        >
-                            {record.name || 'N/A'}
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <StatusBadge tone="blue" className="m-0">
-                                {record.code || 'N/A'}
-                            </StatusBadge>
-                            {record.permissions?.length > 0 && (
-                                <StatusBadge tone="purple" className="m-0">
-                                    <Key className="h-3 w-3 mr-1" />
-                                    {record.permissions.length} quyền
-                                </StatusBadge>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            ),
-        },
-        {
-            title: 'Mô tả',
-            dataIndex: 'description',
-            key: 'description',
-            ellipsis: {
-                showTitle: true,
-            },
-            render: (text) => (
-                <span className={text ? "text-muted-foreground" : "text-gray-400"}>
-                    {text || '-'}
-                </span>
-            ),
-        },
-        {
-            title: 'Số quyền',
-            key: 'permissionCount',
-            width: 120,
-            align: 'center',
-            render: (_, record) => {
-                const count = record.permissions?.length || 0;
-                return (
-                    <div className="flex items-center justify-center">
-                        <StatusBadge
-                            tone={count > 0 ? 'purple' : 'default'}
-                            className="px-3 py-1 rounded-full"
-                        >
-                            <Key className="h-3 w-3 mr-1" />
-                            {count}
-                        </StatusBadge>
-                    </div>
-                );
-            },
-        },
-        {
-            title: 'Trạng thái',
-            key: 'status',
-            width: 140,
-            align: 'center',
-            filters: [
-                { text: 'Hoạt động', value: 'active' },
-                { text: 'Không hoạt động', value: 'inactive' },
-            ],
-            onFilter: (value, record) => {
-                const isActive = record.isActive !== undefined ? record.isActive : record.active;
-                return value === 'active' ? isActive : !isActive;
-            },
-            render: (_, record) => (
-                <div className="flex justify-center">
-                    {renderStatus(record)}
-                </div>
-            ),
-        },
-        {
-            title: 'Thao tác',
-            key: 'actions',
-            width: 200,
-            fixed: 'right',
-            align: 'center',
-            render: (_, record) => {
-                const isActive = record.isActive !== undefined ? record.isActive : record.active;
-                return (
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => showDetailModal(record)}
-                            className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600"
-                            title="Xem chi tiết"
-                        >
-                            <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => showEditModal(record)}
-                            className="h-8 w-8 p-0 hover:bg-orange-50 hover:text-orange-600"
-                            title="Chỉnh sửa"
-                        >
-                            <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => showPermissionModal(record)}
-                            className="h-8 w-8 p-0 hover:bg-purple-50 hover:text-purple-600"
-                            title="Quản lý quyền"
-                        >
-                            <Settings className="h-4 w-4" />
-                        </Button>
-                        {isActive ? (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                    if (window.confirm('Vô hiệu hóa vai trò này?\nVai trò sẽ không thể sử dụng sau khi bị vô hiệu hóa.')) {
-                                        handleStatusChange(record.id, false);
-                                    }
-                                }}
-                                className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
-                                title="Vô hiệu hóa"
-                            >
-                                <Ban className="h-4 w-4" />
-                            </Button>
-                        ) : (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                    if (window.confirm('Kích hoạt vai trò này?')) {
-                                        handleStatusChange(record.id, true);
-                                    }
-                                }}
-                                className="h-8 w-8 p-0 hover:bg-green-50 hover:text-green-600"
-                                title="Kích hoạt"
-                            >
-                                <CheckCircle2 className="h-4 w-4" />
-                            </Button>
-                        )}
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                                if (window.confirm('Xóa vai trò này?\nHành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa?')) {
-                                    handleDeleteRole(record.id);
-                                }
-                            }}
-                            className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
-                            title="Xóa"
-                        >
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
-                    </div>
-                );
-            },
-        },
-    ];
-
-    return (
-        <div className="min-h-screen">
-            {/* Breadcrumb */}
-            <Breadcrumb
-                className="mb-6"
-                items={[
-                    {
-                        title: 'Dashboard',
-                        icon: <Home className="h-4 w-4" />,
-                        href: '/admin/dashboard'
-                    },
-                    {
-                        title: 'Quản lý vai trò và quyền',
-                        icon: <Shield className="h-4 w-4" />
-                    }
-                ]}
-            />
-
-            {/* Header */}
-            <div className="mb-6">
-                <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
-                    <div>
-                        <h2 className="text-2xl font-bold text-foreground m-0 mb-2">
-                            Quản lý vai trò và quyền
-                        </h2>
-                        <p className="text-muted-foreground text-sm m-0">
-                            Quản lý vai trò và phân quyền cho người dùng trong hệ thống
-                        </p>
-                    </div>
-                    <Button
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-md hover:shadow-lg transition-shadow"
-                        onClick={showAddModal}
-                    >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Thêm vai trò
-                    </Button>
-                </div>
+  const columns = [
+    {
+      title: 'Vai trò',
+      key: 'role',
+      render: (_, role) => (
+        <div className="flex min-w-[220px] items-center gap-3">
+          <div className="rounded-md border bg-muted/40 p-2"><Shield className="h-4 w-4 text-muted-foreground" /></div>
+          <div className="min-w-0">
+            <button type="button" onClick={() => { setSelectedRole(role); setDetailOpen(true); }} className="block max-w-full truncate text-left font-medium hover:text-primary">{role.name || 'N/A'}</button>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              <StatusBadge tone="info">{role.code || 'N/A'}</StatusBadge>
+              {Array.isArray(role.permissions) && <StatusBadge tone="neutral">{role.permissions.length} quyền</StatusBadge>}
             </div>
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                <Card className="p-4 bg-card rounded-xl shadow-md border border-border">
-                    <Metric
-                        label="Tổng vai trò"
-                        value={roleStats.total}
-                        leading={<Shield className="h-4 w-4" />}
-                        valueStyle={{ color: '#1890ff' }}
-                    />
-                </Card>
-                <Card className="p-4 bg-card rounded-xl shadow-md border border-border">
-                    <Metric
-                        label="Vai trò hoạt động"
-                        value={roleStats.active}
-                        leading={<CheckCircle2 className="h-4 w-4" />}
-                        valueStyle={{ color: '#52c41a' }}
-                    />
-                </Card>
-                <Card className="p-4 bg-card rounded-xl shadow-md border border-border">
-                    <Metric
-                        label="Vai trò không hoạt động"
-                        value={roleStats.inactive}
-                        leading={<Ban className="h-4 w-4" />}
-                        valueStyle={{ color: '#ff4d4f' }}
-                    />
-                </Card>
-            </div>
-
-            {/* Filter Card */}
-            <Card
-                className="p-4 bg-card rounded-xl shadow-md border border-border mb-6"
-                bodyStyle={{ padding: '16px' }}
-            >
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-center">
-                    <div>
-                        <div className="relative">
-                            <Input
-                                placeholder="Tìm kiếm theo tên, mã hoặc mô tả..."
-                                value={searchText}
-                                onChange={(e) => {
-                                    setSearchText(e.target.value);
-                                    if (!e.target.value) {
-                                        handleSearch('');
-                                    }
-                                }}
-                                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                                className="pr-10 h-10"
-                            />
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
-                                onClick={() => handleSearch()}
-                            >
-                                <Search className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    </div>
-                    <div>
-                        <Select
-                            value={statusFilter || "all"}
-                            onValueChange={handleStatusFilterChange}
-                        >
-                            <SelectTrigger className="h-10 w-full">
-                                <SelectValue placeholder="Lọc theo trạng thái" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Tất cả</SelectItem>
-                                <SelectItem value="active">Hoạt động</SelectItem>
-                                <SelectItem value="inactive">Không hoạt động</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </div>
-            </Card>
-
-            {/* Table Card */}
-            <Card
-                className="bg-card rounded-xl shadow-md border border-border p-6"
-                ref={tableRef}
-            >
-                {loading ? (
-                    <div className="p-12 text-center">
-                        <Loader2 className="h-10 w-10 text-indigo-600 animate-spin mx-auto mb-4" />
-                        <p className="text-muted-foreground">Đang tải dữ liệu...</p>
-                    </div>
-                ) : roles.length === 0 ? (
-                    <div className="p-12 text-center">
-                        <Empty description="Chưa có vai trò nào" />
-                    </div>
-                ) : (
-                    <>
-                        <DataTable
-                            fields={columns}
-                            data={roles}
-                            getRowId="id"
-                            pageControls={false}
-                            className="overflow-x-auto border border-border rounded-lg"
-                        />
-                        {pagination.total > 0 && (
-                            <div className="mt-4 flex items-center justify-between flex-wrap gap-4 pt-4 border-t border-border">
-                                <div className="text-sm text-muted-foreground">
-                                    Hiển thị {(pagination.current - 1) * pagination.pageSize + 1} - {Math.min(pagination.current * pagination.pageSize, pagination.total)} trong tổng số {pagination.total} vai trò
-                                </div>
-                                <Pagination
-                                    page={pagination.current}
-                                    itemsPerPage={pagination.pageSize}
-                                    totalItems={pagination.total}
-                                    allowPageSizeChange={true}
-                                    allowPageJump={true}
-                                    onPageChange={handleTableChange}
-                                    onPageSizeChange={handlePageSizeChange}
-                                />
-                            </div>
-                        )}
-                    </>
-                )}
-            </Card>
-
-            {/* Modal thêm vai trò */}
-            <ResponsiveDialog
-                heading="Thêm vai trò mới"
-                open={isAddModalVisible}
-                onClose={() => {
-                    setIsAddModalVisible(false);
-                    setFormValues({
-                        name: '',
-                        code: '',
-                        description: '',
-                        isActive: true
-                    });
-                }}
-                actions={null}
-                maxWidth={600}
-                destroyOnClose
-            >
-                <form onSubmit={handleAddRole} className="space-y-4 p-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Tên vai trò <span className="text-red-500">*</span>
-                        </label>
-                        <Input
-                            placeholder="Nhập tên vai trò"
-                            value={formValues.name}
-                            onChange={(e) => setFormValues(prev => ({ ...prev, name: e.target.value }))}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Mã vai trò <span className="text-red-500">*</span>
-                        </label>
-                        <Input
-                            placeholder="VD: ADMIN, USER, MANAGER"
-                            value={formValues.code}
-                            onChange={(e) => setFormValues(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">Chỉ chứa chữ in hoa và dấu gạch dưới</p>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Mô tả
-                        </label>
-                        <Textarea
-                            rows={4}
-                            placeholder="Nhập mô tả vai trò"
-                            value={formValues.description}
-                            onChange={(e) => setFormValues(prev => ({ ...prev, description: e.target.value }))}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Trạng thái
-                        </label>
-                        <div className="flex items-center space-x-2">
-                            <Checkbox
-                                checked={formValues.isActive}
-                                onCheckedChange={(checked) => setFormValues(prev => ({ ...prev, isActive: checked }))}
-                            />
-                            <span className="text-sm text-gray-700">Kích hoạt ngay sau khi tạo</span>
-                        </div>
-                    </div>
-
-                    <div className="flex justify-end gap-2 pt-4">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => {
-                                setIsAddModalVisible(false);
-                                setFormValues({
-                                    name: '',
-                                    code: '',
-                                    description: '',
-                                    isActive: true
-                                });
-                            }}
-                        >
-                            Hủy
-                        </Button>
-                        <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
-                            Thêm vai trò
-                        </Button>
-                    </div>
-                </form>
-            </ResponsiveDialog>
-
-            {/* Modal chỉnh sửa vai trò */}
-            <ResponsiveDialog
-                heading="Chỉnh sửa vai trò"
-                open={isEditModalVisible}
-                onClose={() => {
-                    setIsEditModalVisible(false);
-                    setSelectedRole(null);
-                    setFormValues({
-                        name: '',
-                        code: '',
-                        description: '',
-                        isActive: true
-                    });
-                }}
-                actions={null}
-                maxWidth={600}
-                destroyOnClose
-            >
-                <form onSubmit={handleEditRole} className="space-y-4 p-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Tên vai trò <span className="text-red-500">*</span>
-                        </label>
-                        <Input
-                            placeholder="Nhập tên vai trò"
-                            value={formValues.name}
-                            onChange={(e) => setFormValues(prev => ({ ...prev, name: e.target.value }))}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Mã vai trò <span className="text-red-500">*</span>
-                        </label>
-                        <Input
-                            placeholder="VD: ADMIN, USER, MANAGER"
-                            value={formValues.code}
-                            onChange={(e) => setFormValues(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">Chỉ chứa chữ in hoa và dấu gạch dưới</p>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Mô tả
-                        </label>
-                        <Textarea
-                            rows={4}
-                            placeholder="Nhập mô tả vai trò"
-                            value={formValues.description}
-                            onChange={(e) => setFormValues(prev => ({ ...prev, description: e.target.value }))}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Trạng thái
-                        </label>
-                        <div className="flex items-center space-x-2">
-                            <Checkbox
-                                checked={formValues.isActive}
-                                onCheckedChange={(checked) => setFormValues(prev => ({ ...prev, isActive: checked }))}
-                            />
-                            <span className="text-sm text-gray-700">Kích hoạt</span>
-                        </div>
-                    </div>
-
-                    <div className="flex justify-end gap-2 pt-4">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => {
-                                setIsEditModalVisible(false);
-                                setSelectedRole(null);
-                                setFormValues({
-                                    name: '',
-                                    code: '',
-                                    description: '',
-                                    isActive: true
-                                });
-                            }}
-                        >
-                            Hủy
-                        </Button>
-                        <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
-                            Cập nhật
-                        </Button>
-                    </div>
-                </form>
-            </ResponsiveDialog>
-
-            {/* Modal quản lý quyền */}
-            <ResponsiveDialog
-                heading={`Quản lý quyền - ${selectedRole?.name || ''}`}
-                open={isPermissionModalVisible}
-                onClose={() => {
-                    setIsPermissionModalVisible(false);
-                    setSelectedRole(null);
-                    setPermissionFormValues({ permissions: [] });
-                }}
-                actions={null}
-                maxWidth={700}
-                destroyOnClose
-            >
-                {selectedRole && (
-                    <>
-                        <Alert
-                            message="Chọn các quyền cho vai trò này"
-                            description="Bạn có thể chọn nhiều quyền. Các quyền đã chọn sẽ được áp dụng cho vai trò."
-                            type="info"
-                            showIcon
-                            className="mb-4"
-                        />
-                        <form onSubmit={handleSavePermissions} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-3">
-                                    Danh sách quyền
-                                </label>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {permissions.length > 0 ? (
-                                        permissions.map(permission => (
-                                            <div key={permission.id} className="flex items-start space-x-2 p-3 border border-border rounded-lg hover:bg-background">
-                                                <Checkbox
-                                                    checked={permissionFormValues.permissions.includes(permission.id)}
-                                                    onCheckedChange={(checked) => {
-                                                        if (checked) {
-                                                            setPermissionFormValues(prev => ({
-                                                                permissions: [...prev.permissions, permission.id]
-                                                            }));
-                                                        } else {
-                                                            setPermissionFormValues(prev => ({
-                                                                permissions: prev.permissions.filter(id => id !== permission.id)
-                                                            }));
-                                                        }
-                                                    }}
-                                                />
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <Key className="h-4 w-4 text-muted-foreground" />
-                                                        <span className="font-semibold text-foreground">{permission.name}</span>
-                                                        {permission.code && (
-                                                            <StatusBadge className="bg-blue-100 text-blue-800">{permission.code}</StatusBadge>
-                                                        )}
-                                                    </div>
-                                                    {permission.description && (
-                                                        <div className="text-xs text-muted-foreground mt-1 ml-6">
-                                                            {permission.description}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="col-span-2">
-                                            <Empty description="Không có quyền nào" />
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {selectedRole.permissions && selectedRole.permissions.length > 0 && (
-                                <>
-                                    <Separator />
-                                    <div>
-                                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Quyền hiện tại</h4>
-                                        <div className="flex flex-wrap gap-2">
-                                            {selectedRole.permissions.map(permission => (
-                                                <StatusBadge key={permission.id} className="bg-green-100 text-green-800">
-                                                    {permission.name}
-                                                </StatusBadge>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-
-                            <div className="flex justify-end gap-2 pt-4">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => {
-                                        setIsPermissionModalVisible(false);
-                                        setSelectedRole(null);
-                                        setPermissionFormValues({ permissions: [] });
-                                    }}
-                                >
-                                    Hủy
-                                </Button>
-                                <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
-                                    Lưu quyền
-                                </Button>
-                            </div>
-                        </form>
-                    </>
-                )}
-            </ResponsiveDialog>
-
-            {/* Modal chi tiết vai trò */}
-            <ResponsiveDialog
-                heading="Chi tiết vai trò"
-                open={isDetailModalVisible}
-                onClose={() => {
-                    setIsDetailModalVisible(false);
-                    setSelectedRole(null);
-                }}
-                actions={[
-                    <Button key="close" onClick={() => {
-                        setIsDetailModalVisible(false);
-                        setSelectedRole(null);
-                    }}>
-                        Đóng
-                    </Button>
-                ]}
-                maxWidth={700}
-            >
-                {selectedRole && (
-                    <div>
-                        <div className="space-y-4">
-                            <div>
-                                <span className="font-semibold text-gray-700">ID: </span>
-                                <span className="text-foreground">{selectedRole.id || 'N/A'}</span>
-                            </div>
-                            <div>
-                                <span className="font-semibold text-gray-700">Tên vai trò: </span>
-                                <span className="text-foreground">{selectedRole.name || 'N/A'}</span>
-                            </div>
-                            <div>
-                                <span className="font-semibold text-gray-700">Mã vai trò: </span>
-                                <StatusBadge tone="blue">{selectedRole.code || 'N/A'}</StatusBadge>
-                            </div>
-                            <div>
-                                <span className="font-semibold text-gray-700">Mô tả: </span>
-                                <span className="text-foreground">{selectedRole.description || 'N/A'}</span>
-                            </div>
-                            <div>
-                                <span className="font-semibold text-gray-700">Trạng thái: </span>
-                                {renderStatus(selectedRole)}
-                            </div>
-                            <div>
-                                <span className="font-semibold text-gray-700">Số quyền: </span>
-                                <StatusBadge tone="purple">
-                                    {selectedRole.permissions?.length || 0} quyền
-                                </StatusBadge>
-                            </div>
-                            {selectedRole.permissions && selectedRole.permissions.length > 0 && (
-                                <div>
-                                    <Separator className="my-4">
-                                        <span className="text-sm font-medium text-muted-foreground">Danh sách quyền</span>
-                                    </Separator>
-                                    <div>
-                                        {selectedRole.permissions.map(permission => (
-                                            <StatusBadge key={permission.id} tone="green" className="mb-2 mr-2">
-                                                {permission.name}
-                                                {permission.code && ` (${permission.code})`}
-                                            </StatusBadge>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-            </ResponsiveDialog>
+          </div>
         </div>
-    );
+      ),
+    },
+    { title: 'Mô tả', dataIndex: 'description', key: 'description', ellipsis: true, render: (value) => <span className="text-sm text-muted-foreground">{value || '—'}</span> },
+    {
+      title: 'Trạng thái',
+      key: 'status',
+      render: (_, role) => <StatusBadge tone={isRoleActive(role) ? 'success' : 'neutral'}>{isRoleActive(role) ? 'Hoạt động' : 'Không hoạt động'}</StatusBadge>,
+    },
+    {
+      title: 'Thao tác',
+      key: 'actions',
+      render: (_, role) => {
+        const busy = busyRoleId === role.id;
+        return (
+          <TooltipProvider>
+            <div className="flex items-center gap-1">
+              <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedRole(role); setDetailOpen(true); }} aria-label="Xem vai trò"><Eye className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>Xem chi tiết</TooltipContent></Tooltip>
+              <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(role)} aria-label="Sửa vai trò"><Edit className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>Chỉnh sửa</TooltipContent></Tooltip>
+              <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8" disabled={busy || permissionsLoading} onClick={() => openPermissionEditor(role)} aria-label="Quản lý quyền">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Settings className="h-4 w-4" />}</Button></TooltipTrigger><TooltipContent>Quản lý quyền</TooltipContent></Tooltip>
+              <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8" disabled={busy} onClick={() => changeStatus(role)} aria-label={isRoleActive(role) ? 'Vô hiệu hóa vai trò' : 'Kích hoạt vai trò'}>{isRoleActive(role) ? <Ban className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}</Button></TooltipTrigger><TooltipContent>{isRoleActive(role) ? 'Vô hiệu hóa' : 'Kích hoạt'}</TooltipContent></Tooltip>
+              <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" disabled={busy} onClick={() => deleteRole(role)} aria-label="Xóa vai trò"><Trash2 className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>Xóa</TooltipContent></Tooltip>
+            </div>
+          </TooltipProvider>
+        );
+      },
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <AdminPageHeader
+        title="Vai trò & quyền"
+        description="Quản lý vai trò và quyền truy cập. Trình chỉnh sửa quyền chỉ mở khi tải được role đầy đủ từ backend."
+        breadcrumbs={[
+          { title: 'Dashboard', href: '/admin/dashboard' },
+          { title: 'Vai trò & quyền' },
+        ]}
+        actions={<Button onClick={openCreate}><Plus className="h-4 w-4" />Thêm vai trò</Button>}
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card><CardContent className="flex items-center justify-between p-5"><div><p className="text-sm text-muted-foreground">Tổng vai trò</p><p className="mt-1 text-2xl font-semibold">{pagination.total}</p></div><Shield className="h-5 w-5 text-muted-foreground" /></CardContent></Card>
+        <Card><CardContent className="flex items-center justify-between p-5"><div><p className="text-sm text-muted-foreground">Hoạt động trên trang</p><p className="mt-1 text-2xl font-semibold">{activeOnPage}</p></div><CheckCircle2 className="h-5 w-5 text-muted-foreground" /></CardContent></Card>
+      </div>
+
+      <Card>
+        <CardHeader><CardTitle className="text-lg">Danh sách vai trò</CardTitle></CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex min-h-48 items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Đang tải vai trò...</div>
+          ) : roles.length === 0 ? (
+            <Empty description="Chưa có vai trò nào" />
+          ) : (
+            <DataTable fields={columns} rows={roles} getRowId="id" pageControls={false} />
+          )}
+          {pagination.total > 0 && (
+            <Pagination
+              className="mt-5 border-t pt-5"
+              page={pagination.current}
+              itemsPerPage={pagination.pageSize}
+              totalItems={pagination.total}
+              allowPageSizeChange
+              allowPageJump
+              onPageChange={(page) => setPagination((current) => ({ ...current, current: page }))}
+              onPageSizeChange={(size) => setPagination((current) => ({ ...current, current: 1, pageSize: size }))}
+              showTotal={(total, range) => `Hiển thị ${range[0]}-${range[1]} / ${total} vai trò`}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      <ResponsiveDialog
+        heading={selectedRole ? 'Chỉnh sửa vai trò' : 'Thêm vai trò mới'}
+        open={formOpen}
+        onClose={closeRoleForm}
+        maxWidth={620}
+      >
+        <form onSubmit={saveRole} className="space-y-4">
+          <label className="block space-y-2 text-sm font-medium"><span>Tên vai trò <span className="text-destructive">*</span></span><Input value={formValues.name} onChange={(event) => setFormValues((current) => ({ ...current, name: event.target.value }))} placeholder="Quản lý rạp" /></label>
+          <label className="block space-y-2 text-sm font-medium"><span>Mã vai trò <span className="text-destructive">*</span></span><Input value={formValues.code} onChange={(event) => setFormValues((current) => ({ ...current, code: event.target.value.toUpperCase() }))} placeholder="CINEMA_MANAGER" /><span className="block text-xs font-normal text-muted-foreground">Chỉ chữ in hoa và dấu gạch dưới.</span></label>
+          <label className="block space-y-2 text-sm font-medium"><span>Mô tả</span><Textarea rows={4} value={formValues.description} onChange={(event) => setFormValues((current) => ({ ...current, description: event.target.value }))} /></label>
+          <label className="block space-y-2 text-sm font-medium"><span>Trạng thái</span><Select value={formValues.isActive ? 'active' : 'inactive'} onValueChange={(value) => setFormValues((current) => ({ ...current, isActive: value === 'active' }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="active">Hoạt động</SelectItem><SelectItem value="inactive">Không hoạt động</SelectItem></SelectContent></Select></label>
+          <div className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" onClick={closeRoleForm}>Hủy</Button><Button type="submit" disabled={saving}>{saving && <Loader2 className="h-4 w-4 animate-spin" />}{selectedRole ? 'Lưu thay đổi' : 'Thêm vai trò'}</Button></div>
+        </form>
+      </ResponsiveDialog>
+
+      <ResponsiveDialog
+        heading={`Quản lý quyền${selectedRole?.name ? ` · ${selectedRole.name}` : ''}`}
+        open={permissionOpen}
+        onClose={closePermissionEditor}
+        maxWidth={760}
+        actions={[
+          <Button key="cancel" variant="outline" onClick={closePermissionEditor}>Hủy</Button>,
+          <Button key="save" disabled={saving || permissionsLoading} onClick={savePermissions}>{saving && <Loader2 className="h-4 w-4 animate-spin" />}Lưu quyền</Button>,
+        ]}
+      >
+        <div className="space-y-4">
+          <Alert type="info" showIcon message="Danh sách quyền đã được đối chiếu với role đầy đủ" description="Chỉ các thay đổi giữa danh sách hiện tại từ backend và lựa chọn mới mới được gửi qua API add/remove permissions." />
+          {permissionsLoading ? (
+            <div className="flex min-h-32 items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Đang tải quyền...</div>
+          ) : permissions.length === 0 ? (
+            <Empty description="Không có quyền nào để gán" />
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {permissions.map((permission) => (
+                <label key={permission.id} className="flex items-start gap-3 rounded-md border p-3">
+                  <Checkbox checked={selectedPermissionIds.includes(permissionKey(permission.id))} onCheckedChange={(checked) => togglePermission(permission.id, checked === true)} className="mt-0.5" />
+                  <span className="min-w-0"><span className="flex flex-wrap items-center gap-2"><span className="font-medium">{permission.name}</span>{permission.code && <StatusBadge tone="info">{permission.code}</StatusBadge>}</span>{permission.description && <span className="mt-1 block text-xs text-muted-foreground">{permission.description}</span>}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      </ResponsiveDialog>
+
+      <ResponsiveDialog
+        heading="Chi tiết vai trò"
+        open={detailOpen}
+        onClose={() => { setDetailOpen(false); setSelectedRole(null); }}
+        maxWidth={680}
+        actions={<Button variant="outline" onClick={() => { setDetailOpen(false); setSelectedRole(null); }}>Đóng</Button>}
+      >
+        {selectedRole && (
+          <div className="space-y-4">
+            <DetailList columns={2}>
+              <DetailItem label="ID">{selectedRole.id}</DetailItem>
+              <DetailItem label="Trạng thái"><StatusBadge tone={isRoleActive(selectedRole) ? 'success' : 'neutral'}>{isRoleActive(selectedRole) ? 'Hoạt động' : 'Không hoạt động'}</StatusBadge></DetailItem>
+              <DetailItem label="Tên vai trò">{selectedRole.name || '—'}</DetailItem>
+              <DetailItem label="Mã vai trò"><StatusBadge tone="info">{selectedRole.code || '—'}</StatusBadge></DetailItem>
+              <DetailItem label="Mô tả" wide>{selectedRole.description || '—'}</DetailItem>
+            </DetailList>
+            {Array.isArray(selectedRole.permissions) && selectedRole.permissions.length > 0 && (
+              <div><h3 className="mb-2 text-sm font-semibold">Quyền được trả về cùng role</h3><div className="flex flex-wrap gap-2">{selectedRole.permissions.map((permission) => <StatusBadge key={permission.id} tone="neutral" leading={<Key className="h-3 w-3" />}>{permission.name || permission.code}</StatusBadge>)}</div></div>
+            )}
+          </div>
+        )}
+      </ResponsiveDialog>
+    </div>
+  );
 };
 
 export default RolesPermissions;
