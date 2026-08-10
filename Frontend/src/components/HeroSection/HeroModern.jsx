@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status-badge';
 
 const getImageUrl = (path, size = 'original') => {
-  if (!path) return null;
+  if (!path || typeof path !== 'string') return null;
   if (/^(https?:|data:|blob:)/.test(path) || path.startsWith('/brand-')) return path;
-  if (path.starts('/')) return `https://image.tmdb.org/t/p/${size}${path}`;
+  if (path.startsWith('/')) return `https://image.tmdb.org/t/p/${size}${path}`;
   return path;
 };
 
