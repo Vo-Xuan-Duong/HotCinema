@@ -8,7 +8,6 @@ import {
     saveAuthData
 } from '@/utils/authStorage.js';
 
-// Simple external store for auth state (no React Context)
 const subscribers = new Set();
 
 const notify = () => {
@@ -17,9 +16,7 @@ const notify = () => {
     });
 };
 
-const getStoredUser = () => {
-    return getUserInfo();
-};
+const getStoredUser = () => getUserInfo();
 
 const getInitialState = () => {
     const token = getAccessToken();
@@ -51,7 +48,6 @@ const store = {
     },
 };
 
-// Actions
 const login = async (...args) => {
     setState({ isLoading: true, error: null });
     try {
@@ -66,25 +62,18 @@ const login = async (...args) => {
         }
 
         const res = await authService.login(payload);
-
-        // Extract token and user from response
         const token = res?.token;
         const user = res?.user || state.user;
 
-        // authService.login already calls api.setAuthToken which saves to localStorage
-        // So we DON'T need to save again here, just handle rememberEmail
-
-        // Handle remember email separately (not part of auth data)
         if (payload?.rememberMe && payload?.email) {
             saveAuthData({ rememberEmail: payload.email });
         } else {
             saveAuthData({ rememberEmail: false });
         }
 
-        // Update state immediately after persisting
         setState({
-            user: user,
-            token: token,
+            user,
+            token,
             isAuthenticated: true,
             isLoading: false,
             error: null,
@@ -101,7 +90,6 @@ const login = async (...args) => {
 
         setState({ user: null, token: null, isAuthenticated: false, isLoading: false, error: message });
 
-        // Throw error with complete info
         const loginError = new Error(message);
         loginError.status = status;
         loginError.response = err?.response;
@@ -113,8 +101,6 @@ const register = async (userData) => {
     setState({ isLoading: true, error: null });
     try {
         const res = await authService.register(userData);
-
-        // Registration requires OTP verification before authentication.
         setState({
             user: null,
             token: null,
@@ -122,7 +108,6 @@ const register = async (userData) => {
             isLoading: false,
             error: null
         });
-
         return res;
     } catch (err) {
         setState({ isLoading: false, error: err?.message || 'Đăng ký thất bại.' });
@@ -132,11 +117,6 @@ const register = async (userData) => {
 
 const logout = async () => {
     try { await authService.logout(); } catch (_) { /* ignore */ }
-
-    // authService.logout -> api.removeAuthToken() -> clearAuthData()
-    // So localStorage is already cleared, just update state
-
-    // Update state immediately
     setState({
         user: null,
         token: null,
@@ -146,20 +126,32 @@ const logout = async () => {
     });
 };
 
+const syncUser = (user) => {
+    if (!user) return;
+
+    if (state.token) {
+        api.setAuthToken(state.token, getRefreshToken(), user);
+    } else {
+        saveAuthData({ user });
+    }
+
+    setState({
+        user,
+        isAuthenticated: Boolean(state.token),
+        error: null,
+    });
+};
+
 const updateProfile = async (userData) => {
     setState({ isLoading: true, error: null });
     try {
         const res = await authService.updateProfile(userData);
         const user = res?.user;
 
-        // Update user info via apiClient (which will save to localStorage)
-        if (user && state.token) {
-            api.setAuthToken(state.token, getRefreshToken(), user);
-        }
+        if (user) syncUser(user);
 
-        // Update state immediately
         setState({
-            user: user,
+            user: user || state.user,
             isAuthenticated: !!state.token,
             isLoading: false,
             error: null
@@ -176,14 +168,12 @@ const loginWithGoogle = async (googleToken) => {
     setState({ isLoading: true, error: null });
     try {
         const res = await authService.loginWithGoogle(googleToken);
-
         const token = res?.token;
         const user = res?.user;
 
-        // Update state immediately after persisting
         setState({
-            user: user,
-            token: token,
+            user,
+            token,
             isAuthenticated: true,
             isLoading: false,
             error: null,
@@ -206,11 +196,9 @@ const loginWithGoogle = async (googleToken) => {
 
 const clearError = () => setState({ error: null });
 
-// Hook
 export const useAuth = () => {
     const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
 
-    // One-time init/verification on first consumer mount
     useEffect(() => {
         if (initialized) return;
         initialized = true;
@@ -219,23 +207,18 @@ export const useAuth = () => {
         const user = getStoredUser();
 
         if (token && user) {
-            // Set token in API client immediately
             api.setAuthToken(token, getRefreshToken(), user);
-
-            // Update state with user info immediately (optimistic)
             setState({
                 user,
                 token,
                 isAuthenticated: true,
-                isLoading: true, // Still verifying in background
+                isLoading: true,
                 error: null
             });
 
-            // Verify token with backend in background
             authService
                 .verify()
                 .then(() => {
-                    // Token is valid, just mark as not loading
                     setState({
                         user,
                         token,
@@ -245,7 +228,6 @@ export const useAuth = () => {
                     });
                 })
                 .catch(() => {
-                    // Invalid token -> clear everything via api.removeAuthToken
                     api.removeAuthToken();
                     setState({
                         user: null,
@@ -268,6 +250,7 @@ export const useAuth = () => {
             loginWithGoogle,
             updateProfile,
             updateUser: updateProfile,
+            syncUser,
             clearError,
         }),
         []
