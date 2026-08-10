@@ -18,7 +18,7 @@ const NavLinks = ({
   <nav
     aria-label="Điều hướng chính"
     className={cn(
-      orientation === 'horizontal' ? 'flex items-center gap-1 overflow-x-auto' : 'flex flex-col gap-1',
+      orientation === 'horizontal' ? 'flex items-center gap-0.5 overflow-x-auto' : 'flex flex-col gap-0.5',
       className
     )}
   >
@@ -33,7 +33,7 @@ const NavLinks = ({
           title={compact ? link.label : undefined}
           onClick={() => onNavigate?.(link.href, link)}
           className={cn(
-            'flex min-h-10 items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium outline-none transition-colors',
+            'flex min-h-9 items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm font-medium outline-none transition-colors',
             'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             orientation === 'vertical' && 'w-full',
             compact && orientation === 'vertical' && 'justify-center px-2',
