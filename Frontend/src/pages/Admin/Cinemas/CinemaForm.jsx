@@ -1,406 +1,204 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { ArrowLeft, Building2, Image as ImageIcon, Loader2, Save } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Card } from '@/components/ui/card';
+import { AdminPageHeader } from '@/layouts/admin/AdminPageHeader';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Separator } from '@/components/ui/separator';
-import { Breadcrumb } from '@/components/ui/breadcrumb';
-import {
-    ArrowLeft,
-    Save,
-    Image as ImageIcon,
-    Home,
-    Loader2,
-    Building2
-} from 'lucide-react';
 import cinemaService from '@/services/cinemaService';
 import regionService from '@/services/regionService';
-import { useNotification } from '@/hooks/useNotification';
+import useNotification from '@/hooks/useNotification';
+
+const DEFAULT_FORM = {
+  name: '',
+  status: 'active',
+  cityId: '',
+  address: '',
+  description: '',
+  image: '',
+};
+
+const unwrapData = (response) => response?.data?.data ?? response?.data ?? response;
+const unwrapList = (response) => {
+  const payload = unwrapData(response);
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.content)) return payload.content;
+  return [];
+};
+
+const Field = ({ label, required = false, hint, children }) => (
+  <label className="block space-y-2 text-sm font-medium">
+    <span>{label}{required && <span className="ml-1 text-destructive">*</span>}</span>
+    {children}
+    {hint && <span className="block text-xs font-normal text-muted-foreground">{hint}</span>}
+  </label>
+);
 
 const CinemaForm = () => {
-    const navigate = useNavigate();
-    const { id } = useParams();
-    const { showNotification } = useNotification();
-    const [loading, setLoading] = useState(false);
-    const [loadingCinema, setLoadingCinema] = useState(false);
-    const [regions, setRegions] = useState([]);
-    const [previewImage, setPreviewImage] = useState(null);
-    const [cinemaData, setCinemaData] = useState(null);
-    const [formValues, setFormValues] = useState({
-        name: '',
-        status: 'active',
-        cityId: '',
-        address: '',
-        description: '',
-        image: ''
-    });
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const notification = useNotification();
+  const isEditMode = Boolean(id);
+  const [form, setForm] = useState(DEFAULT_FORM);
+  const [regions, setRegions] = useState([]);
+  const [regionsLoading, setRegionsLoading] = useState(true);
+  const [cinemaLoading, setCinemaLoading] = useState(isEditMode);
+  const [saving, setSaving] = useState(false);
 
-    const isEditMode = !!id;
+  useEffect(() => {
+    let active = true;
+    regionService.getRegionsAllNoPage()
+      .then((response) => {
+        if (active) setRegions(unwrapList(response));
+      })
+      .catch((error) => {
+        console.error('Error loading regions:', error);
+        if (active) notification.error('Không thể tải danh sách khu vực');
+      })
+      .finally(() => active && setRegionsLoading(false));
+    return () => { active = false; };
+  }, [notification]);
 
-    useEffect(() => {
-        const loadRegions = async () => {
-            try {
-                const response = await regionService.getRegionsAllNoPage();
-                const regionsData = Array.isArray(response?.data)
-                    ? response.data
-                    : (response?.data?.data || []);
-                setRegions(regionsData);
-            } catch (error) {
-                console.error('Error loading regions:', error);
-            }
-        };
-        loadRegions();
-    }, []);
-
-    // Load cinema data if in edit mode
-    useEffect(() => {
-        if (isEditMode && id) {
-            const loadCinema = async () => {
-                try {
-                    setLoadingCinema(true);
-                    const response = await cinemaService.getCinemaById(id);
-                    const cinema = response?.data?.data || response?.data || response;
-
-                    // Set preview image
-                    if (cinema.image) {
-                        setPreviewImage(cinema.image);
-                    }
-
-                    // Set form values
-                    setCinemaData(cinema);
-                    setFormValues({
-                        name: cinema.name || '',
-                        status: cinema.status || 'active',
-                        cityId: cinema.cityId || cinema.city?.id || '',
-                        address: cinema.address || '',
-                        description: cinema.description || '',
-                        image: cinema.image || ''
-                    });
-                } catch (error) {
-                    console.error('Error loading cinema:', error);
-                    showNotification('error', 'Lỗi', 'Không thể tải thông tin rạp');
-                    navigate('/admin/cinemas');
-                } finally {
-                    setLoadingCinema(false);
-                }
-            };
-            loadCinema();
+  useEffect(() => {
+    if (!isEditMode) return undefined;
+    let active = true;
+    setCinemaLoading(true);
+    cinemaService.getCinemaById(id)
+      .then((response) => {
+        if (!active) return;
+        const cinema = unwrapData(response) || {};
+        setForm({
+          name: cinema.name || '',
+          status: cinema.status || 'active',
+          cityId: String(cinema.cityId ?? cinema.city?.id ?? cinema.regionId ?? cinema.region?.id ?? ''),
+          address: cinema.address || '',
+          description: cinema.description || '',
+          image: cinema.image || cinema.imageUrl || '',
+        });
+      })
+      .catch((error) => {
+        console.error('Error loading cinema:', error);
+        if (active) {
+          notification.error('Không thể tải thông tin rạp');
+          navigate('/admin/cinemas');
         }
-    }, [id, isEditMode, navigate, showNotification]);
+      })
+      .finally(() => active && setCinemaLoading(false));
+    return () => { active = false; };
+  }, [id, isEditMode, navigate, notification]);
 
-    const handleImageUrlChange = (e) => {
-        const url = e.target.value;
-        setFormValues(prev => ({ ...prev, image: url }));
-        if (url && (url.startsWith('http') || url.startsWith('https'))) {
-            setPreviewImage(url);
-        } else {
-            setPreviewImage(null);
-        }
-    };
+  const setField = (key, value) => setForm((current) => ({ ...current, [key]: value }));
 
-    const handleSubmit = async (values) => {
-        try {
-            setLoading(true);
+  const validate = () => {
+    if (!form.name.trim()) return 'Vui lòng nhập tên rạp';
+    if (!form.cityId) return 'Vui lòng chọn khu vực';
+    if (!form.address.trim()) return 'Vui lòng nhập địa chỉ';
+    if (!Number.isFinite(Number(form.cityId))) return 'Khu vực không hợp lệ';
+    return null;
+  };
 
-            // Prepare data for API
-            const submitData = {
-                name: values.name.trim(),
-                status: values.status,
-                cityId: parseInt(values.cityId),
-                address: values.address.trim(),
-                description: values.description?.trim() || '',
-                image: values.image?.trim() || ''
-            };
-
-            if (isEditMode) {
-                await cinemaService.updateCinema(id, submitData);
-                showNotification('success', 'Thành công', 'Cập nhật rạp chiếu phim thành công!');
-            } else {
-                await cinemaService.createCinema(submitData);
-                showNotification('success', 'Thành công', 'Thêm rạp chiếu phim thành công!');
-            }
-
-            navigate('/admin/cinemas');
-        } catch (error) {
-            console.error('Error saving cinema:', error);
-            showNotification(
-                'error',
-                'Lỗi',
-                error.response?.data?.message || `Lỗi khi ${isEditMode ? 'cập nhật' : 'thêm'} rạp`
-            );
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    if (loadingCinema) {
-        return (
-            <div className="text-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
-            </div>
-        );
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const validationError = validate();
+    if (validationError) {
+      notification.error(validationError);
+      return;
     }
 
-    return (
-        <div className="" style={{ position: 'relative', zIndex: 1 }}>
-            {/* Breadcrumb */}
-            <Breadcrumb
-                className="mb-6"
-                items={[
-                    {
-                        title: 'Dashboard',
-                        icon: <Home className="h-4 w-4" />,
-                        href: '/admin/dashboard'
-                    },
-                    {
-                        title: 'Quản lý rạp',
-                        icon: <Building2 className="h-4 w-4" />,
-                        href: '/admin/cinemas'
-                    },
-                    {
-                        title: isEditMode ? 'Chỉnh sửa rạp' : 'Thêm rạp mới'
-                    }
-                ]}
-            />
+    const payload = {
+      name: form.name.trim(),
+      status: form.status,
+      cityId: Number(form.cityId),
+      address: form.address.trim(),
+      description: form.description.trim(),
+      image: form.image.trim(),
+    };
 
-            {/* Header */}
-            <div className="mb-2">
-                <div className="flex items-center gap-4 mb-4">
-                    <div>
-                        <h2 className="m-0 mb-2 text-foreground text-2xl font-bold">
-                            {isEditMode ? 'Chỉnh Sửa Rạp' : 'Thêm Rạp Mới'}
-                        </h2>
-                    </div>
-                </div>
-            </div>
+    try {
+      setSaving(true);
+      if (isEditMode) {
+        await cinemaService.updateCinema(id, payload);
+        notification.success('Cập nhật rạp thành công');
+      } else {
+        await cinemaService.createCinema(payload);
+        notification.success('Thêm rạp mới thành công');
+      }
+      navigate('/admin/cinemas');
+    } catch (error) {
+      console.error('Error saving cinema:', error);
+      notification.error(error?.response?.data?.message || `Không thể ${isEditMode ? 'cập nhật' : 'thêm'} rạp`);
+    } finally {
+      setSaving(false);
+    }
+  };
 
-            {/* Form */}
-            <Card className="rounded-xl shadow-md border border-border">
-                <div className="p-6">
-                    {loadingCinema ? (
-                        <div className="text-center py-12">
-                            <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400 mb-4" />
-                            <p className="text-muted-foreground">Đang tải thông tin rạp...</p>
-                        </div>
-                    ) : (
-                        <form onSubmit={(e) => {
-                            e.preventDefault();
-                            // Validate required fields
-                            if (!formValues.name?.trim()) {
-                                showNotification('error', 'Lỗi', 'Vui lòng nhập tên rạp');
-                                return;
-                            }
-                            if (!formValues.cityId) {
-                                showNotification('error', 'Lỗi', 'Vui lòng chọn khu vực');
-                                return;
-                            }
-                            if (!formValues.address?.trim()) {
-                                showNotification('error', 'Lỗi', 'Vui lòng nhập địa chỉ');
-                                return;
-                            }
-                            handleSubmit(formValues);
-                        }}>
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                {/* Left Column - Main Info */}
-                                <div className="lg:col-span-2 space-y-6">
-                                    <div>
-                                        <h4 className="text-lg font-semibold text-foreground mb-6 pb-2 border-b border-border">
-                                            Thông tin cơ bản
-                                        </h4>
-                                    </div>
+  return (
+    <div className="space-y-6">
+      <AdminPageHeader
+        title={isEditMode ? 'Chỉnh sửa rạp' : 'Thêm rạp mới'}
+        description={isEditMode ? 'Cập nhật thông tin và trạng thái hoạt động của rạp.' : 'Thêm một rạp chiếu phim mới vào HotCinema.'}
+        breadcrumbs={[
+          { title: 'Dashboard', href: '/admin/dashboard' },
+          { title: 'Rạp chiếu', href: '/admin/cinemas' },
+          { title: isEditMode ? 'Chỉnh sửa' : 'Thêm mới' },
+        ]}
+        actions={<Button variant="outline" onClick={() => navigate('/admin/cinemas')}><ArrowLeft className="h-4 w-4" />Quay lại</Button>}
+      />
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="block text-sm font-semibold text-gray-700">
-                                                Tên rạp <span className="text-red-500">*</span>
-                                            </label>
-                                            <Input
-                                                placeholder="Nhập tên rạp"
-                                                value={formValues.name}
-                                                onChange={(e) => setFormValues(prev => ({ ...prev, name: e.target.value }))}
-                                                required
-                                                className="w-full"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="block text-sm font-semibold text-gray-700">
-                                                Trạng thái <span className="text-red-500">*</span>
-                                            </label>
-                                            <Select
-                                                value={formValues.status}
-                                                onValueChange={(value) => setFormValues(prev => ({ ...prev, status: value }))}
-                                            >
-                                                <SelectTrigger className="w-full">
-                                                    <SelectValue placeholder="Chọn trạng thái" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="active">Hoạt động</SelectItem>
-                                                    <SelectItem value="inactive">Không hoạt động</SelectItem>
-                                                    <SelectItem value="maintenance">Bảo trì</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    </div>
+      {cinemaLoading ? (
+        <div className="flex min-h-64 items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Đang tải thông tin rạp...</div>
+      ) : (
+        <form onSubmit={handleSubmit} className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+          <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Building2 className="h-4 w-4 text-muted-foreground" />Thông tin rạp</CardTitle></CardHeader>
+            <CardContent className="space-y-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Tên rạp" required><Input value={form.name} onChange={(event) => setField('name', event.target.value)} placeholder="HotCinema Nguyễn Du" /></Field>
+                <Field label="Trạng thái" required>
+                  <Select value={form.status} onValueChange={(value) => setField('status', value)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Hoạt động</SelectItem>
+                      <SelectItem value="inactive">Không hoạt động</SelectItem>
+                      <SelectItem value="maintenance">Bảo trì</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
 
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-semibold text-gray-700">
-                                            Khu vực <span className="text-red-500">*</span>
-                                        </label>
-                                        <Select
-                                            value={formValues.cityId ? formValues.cityId.toString() : undefined}
-                                            onValueChange={(value) => setFormValues(prev => ({ ...prev, cityId: value }))}
-                                            disabled={regions.length === 0}
-                                        >
-                                            <SelectTrigger className="w-full">
-                                                <SelectValue placeholder={regions.length === 0 ? "Đang tải..." : "Chọn khu vực"} />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {regions.length === 0 ? (
-                                                    <div className="px-2 py-1.5 text-sm text-muted-foreground text-center">
-                                                        Đang tải...
-                                                    </div>
-                                                ) : (
-                                                    regions.map(region => (
-                                                        <SelectItem key={region.id} value={region.id.toString()}>
-                                                            {region.name}
-                                                        </SelectItem>
-                                                    ))
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+              <Field label="Khu vực" required>
+                <Select value={form.cityId || undefined} onValueChange={(value) => setField('cityId', value)} disabled={regionsLoading || regions.length === 0}>
+                  <SelectTrigger><SelectValue placeholder={regionsLoading ? 'Đang tải khu vực...' : 'Chọn khu vực'} /></SelectTrigger>
+                  <SelectContent>{regions.map((region) => <SelectItem key={region.id} value={String(region.id)}>{region.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </Field>
 
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-semibold text-gray-700">
-                                            Địa chỉ <span className="text-red-500">*</span>
-                                        </label>
-                                        <Textarea
-                                            rows={3}
-                                            placeholder="Nhập địa chỉ chi tiết"
-                                            value={formValues.address}
-                                            onChange={(e) => setFormValues(prev => ({ ...prev, address: e.target.value }))}
-                                            required
-                                            className="w-full resize-none"
-                                        />
-                                    </div>
+              <Field label="Địa chỉ" required><Textarea rows={3} value={form.address} onChange={(event) => setField('address', event.target.value)} placeholder="Địa chỉ chi tiết của rạp" /></Field>
+              <Field label="Mô tả" hint="Tiện ích, vị trí hoặc thông tin bổ sung về rạp"><Textarea rows={5} value={form.description} onChange={(event) => setField('description', event.target.value)} /></Field>
+              <Field label="URL hình ảnh" hint="Sử dụng URL ảnh công khai"><div className="relative"><ImageIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={form.image} onChange={(event) => setField('image', event.target.value)} className="pl-9" placeholder="https://..." /></div></Field>
 
-                                    <div className="space-y-2">
-                                        <label className="block text-sm font-semibold text-gray-700">
-                                            Mô tả
-                                        </label>
-                                        <Textarea
-                                            rows={4}
-                                            placeholder="Nhập mô tả về rạp (tùy chọn)"
-                                            value={formValues.description}
-                                            onChange={(e) => setFormValues(prev => ({ ...prev, description: e.target.value }))}
-                                            className="w-full resize-none"
-                                        />
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                            Mô tả về rạp chiếu phim, tiện ích, và các thông tin khác
-                                        </p>
-                                    </div>
-                                </div>
+              <div className="flex justify-end gap-2 border-t pt-5">
+                <Button type="button" variant="outline" onClick={() => navigate('/admin/cinemas')}>Hủy</Button>
+                <Button type="submit" disabled={saving || cinemaLoading}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}{saving ? 'Đang lưu...' : isEditMode ? 'Lưu thay đổi' : 'Thêm rạp'}</Button>
+              </div>
+            </CardContent>
+          </Card>
 
-                                {/* Right Column - Image */}
-                                <div className="lg:col-span-1">
-                                    <div className="space-y-6">
-                                        <div>
-                                            <h4 className="text-lg font-semibold text-foreground mb-6 pb-2 border-b border-border">
-                                                Hình ảnh
-                                            </h4>
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <label className="block text-sm font-semibold text-gray-700">
-                                                Hình ảnh URL
-                                            </label>
-                                            <div className="relative">
-                                                <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                                <Input
-                                                    placeholder="https://example.com/image.jpg"
-                                                    value={formValues.image}
-                                                    onChange={handleImageUrlChange}
-                                                    className="pl-10"
-                                                />
-                                            </div>
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                                Nhập URL hình ảnh từ internet
-                                            </p>
-                                        </div>
-
-                                        {/* Image Preview */}
-                                        {previewImage ? (
-                                            <div className="space-y-2">
-                                                <label className="block text-sm font-semibold text-gray-700">
-                                                    Xem trước
-                                                </label>
-                                                <div className="relative rounded-lg overflow-hidden border border-border bg-background">
-                                                    <img
-                                                        src={previewImage}
-                                                        alt="Preview"
-                                                        className="w-full h-auto object-cover"
-                                                        onError={(e) => {
-                                                            e.target.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
-                                                        }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-background">
-                                                <ImageIcon className="h-12 w-12 mx-auto text-gray-400 mb-2" />
-                                                <p className="text-sm text-muted-foreground">
-                                                    Chưa có hình ảnh
-                                                </p>
-                                                <p className="text-xs text-gray-400 mt-1">
-                                                    Nhập URL để xem trước
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <Separator className="my-8" />
-
-                            <div className="flex flex-col sm:flex-row gap-4 justify-end">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="lg"
-                                    onClick={() => navigate('/admin/cinemas')}
-                                    className="w-full sm:w-auto"
-                                >
-                                    <ArrowLeft className="h-4 w-4 mr-2" />
-                                    Hủy
-                                </Button>
-                                <Button
-                                    type="submit"
-                                    size="lg"
-                                    disabled={loading}
-                                    className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
-                                >
-                                    {loading ? (
-                                        <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                            Đang xử lý...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Save className="h-4 w-4 mr-2" />
-                                            {isEditMode ? 'Cập nhật rạp' : 'Thêm rạp mới'}
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
-                        </form>
-                    )}
-                </div>
+          <aside className="xl:sticky xl:top-4 xl:self-start">
+            <Card>
+              <CardHeader><CardTitle className="text-base">Xem trước hình ảnh</CardTitle></CardHeader>
+              <CardContent>
+                <img src={form.image || '/brand-placeholder.svg'} alt="Cinema preview" className="aspect-video w-full rounded-md border object-cover" onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }} />
+                {!form.image && <p className="mt-3 text-center text-xs text-muted-foreground">Nhập URL hình ảnh để xem trước.</p>}
+              </CardContent>
             </Card>
-        </div>
-    );
+          </aside>
+        </form>
+      )}
+    </div>
+  );
 };
 
 export default CinemaForm;
-
