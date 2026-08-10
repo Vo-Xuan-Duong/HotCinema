@@ -2,22 +2,22 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Inbox } from "lucide-react"
 
-const Empty = ({ 
-  description = "Không có dữ liệu", 
+const Empty = ({
+  description = "Không có dữ liệu",
   image,
   className,
-  ...props 
+  ...props
 }) => {
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center py-12 px-4",
+        "flex flex-col items-center justify-center px-4 py-6 text-center",
         className
       )}
       {...props}
     >
       {image || (
-        <Inbox className="mb-4 h-16 w-16 text-muted-foreground/35" />
+        <Inbox className="mb-2 h-10 w-10 text-muted-foreground/35" />
       )}
       {React.isValidElement(description) ? (
         <div className="text-sm text-muted-foreground">{description}</div>
@@ -29,5 +29,3 @@ const Empty = ({
 }
 
 export { Empty }
-
-
