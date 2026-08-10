@@ -1,8 +1,9 @@
 /*
- * HotCinema flat visual policy
+ * HotCinema flat visual + compact density policy
  * - 4px radius for normal UI surfaces
  * - no decorative shadows
  * - no visible borders/dividers
+ * - reduced non-essential whitespace across shared layouts
  * - focus remains accessible through outline instead of box-shadow rings
  */
 
@@ -76,6 +77,32 @@ a[class*="border-input"] {
   background-color: hsl(var(--muted) / 0.7) !important;
 }
 
+/* Compact common page spacing without collapsing content hierarchy. */
+:where([class~="pt-24"]) { padding-top: 5rem !important; }
+:where([class~="pt-20"]) { padding-top: 4.5rem !important; }
+:where([class~="pb-16"]) { padding-bottom: 2.5rem !important; }
+:where([class~="py-12"]) {
+  padding-top: 2rem !important;
+  padding-bottom: 2rem !important;
+}
+:where([class~="py-8"]) {
+  padding-top: 1.25rem !important;
+  padding-bottom: 1.25rem !important;
+}
+
+:where([class~="space-y-8"]) > :not([hidden]) ~ :not([hidden]) { margin-top: 1.25rem !important; }
+:where([class~="space-y-6"]) > :not([hidden]) ~ :not([hidden]) { margin-top: 1rem !important; }
+:where([class~="space-y-5"]) > :not([hidden]) ~ :not([hidden]) { margin-top: 0.875rem !important; }
+
+:where([class~="gap-8"]) { gap: 1.25rem !important; }
+:where([class~="gap-6"]) { gap: 1rem !important; }
+:where([class~="gap-5"]) { gap: 0.875rem !important; }
+
+:where([class~="mb-8"]) { margin-bottom: 1.25rem !important; }
+:where([class~="mt-8"]) { margin-top: 1.25rem !important; }
+:where([class~="mb-6"]) { margin-bottom: 1rem !important; }
+:where([class~="mt-6"]) { margin-top: 1rem !important; }
+
 /* Preserve keyboard accessibility without reintroducing a shadow. */
 :focus-visible {
   outline: 2px solid hsl(var(--ring)) !important;
@@ -98,4 +125,22 @@ a[class*="border-input"] {
   border-color: transparent !important;
   border-radius: 4px !important;
   box-shadow: none !important;
+}
+
+.custom-input,
+.login-button,
+.register-button,
+.cancel-button,
+.social-button {
+  min-height: 40px !important;
+  height: 40px !important;
+}
+
+.form-header {
+  margin-bottom: 1rem !important;
+}
+
+.custom-divider {
+  margin-top: 0.75rem !important;
+  margin-bottom: 0.75rem !important;
 }
