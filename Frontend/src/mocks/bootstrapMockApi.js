@@ -1,7 +1,7 @@
 import { apiClient } from '@/utils/apiClient';
 import { clearAuthData, getAccessToken } from '@/utils/authStorage';
 import mockApiAdapter from '@/mocks/mockApiAdapter';
-import { getMockDatabase } from '@/mocks/mockDatabase';
+import { getMockDatabase, persistMockDatabase } from '@/mocks/mockDatabase';
 import { MOCK_API_ENABLED } from '@/mocks/mockConfig';
 
 const parseBody = (config) => {
@@ -24,9 +24,30 @@ const mockJwt = (user) => {
   return `mock.${window.btoa(JSON.stringify(payload))}.signature`;
 };
 
+const mockResponse = (config, data) => ({
+  data,
+  status: 200,
+  statusText: 'OK (Mock)',
+  headers: { 'x-hotcinema-mock': 'true' },
+  config,
+  request: { mock: true },
+});
+
+const currentStoredUser = (db) => {
+  try {
+    const stored = JSON.parse(window.localStorage.getItem('user_info') || 'null');
+    if (stored?.id) return db.users.find((item) => String(item.id) === String(stored.id)) || stored;
+  } catch {
+    // Ignore malformed local development data.
+  }
+  return db.users.find((item) => item.email === 'customer@hotcinema.vn') || db.users[0];
+};
+
 const authAwareMockAdapter = async (config) => {
+  const method = String(config.method || 'get').toLowerCase();
   const path = String(config.url || '').split('?')[0].replace(/\/$/, '');
-  if (String(config.method || 'get').toLowerCase() === 'post' && path === '/auth/login') {
+
+  if (method === 'post' && path === '/auth/login') {
     const body = parseBody(config);
     const email = String(body.email || '').trim().toLowerCase();
     const passwords = {
@@ -39,28 +60,50 @@ const authAwareMockAdapter = async (config) => {
       || db.users.find((item) => item.email === 'customer@hotcinema.vn');
 
     if (passwords[email] && body.password && body.password !== passwords[email]) {
-      return {
-        data: { message: 'Mật khẩu mock không đúng.' },
+      const error = new Error('Mật khẩu mock không đúng.');
+      error.config = config;
+      error.response = {
         status: 401,
-        statusText: 'Unauthorized (Mock)',
+        data: { message: 'Mật khẩu mock không đúng.' },
         headers: { 'x-hotcinema-mock': 'true' },
         config,
-        request: { mock: true },
       };
+      throw error;
     }
 
-    return {
-      data: {
-        accessToken: mockJwt(user),
-        refreshToken: 'mock-refresh-token',
-        userAuth: user,
-      },
-      status: 200,
-      statusText: 'OK (Mock)',
-      headers: { 'x-hotcinema-mock': 'true' },
-      config,
-      request: { mock: true },
-    };
+    return mockResponse(config, {
+      accessToken: mockJwt(user),
+      refreshToken: 'mock-refresh-token',
+      userAuth: user,
+    });
+  }
+
+  // notificationService uses POST for read state changes. Keep those mutations
+  // persistent so Header and Notifications page remain in sync after reload.
+  if (method === 'post' && (path === '/notifications/read-all' || /^\/notifications\/\d+\/read$/.test(path))) {
+    const db = getMockDatabase();
+    const user = currentStoredUser(db);
+    const canSeeAll = String(user?.role || '').toUpperCase() === 'ADMIN';
+
+    if (path === '/notifications/read-all') {
+      db.notifications
+        .filter((item) => canSeeAll || String(item.userId) === String(user?.id))
+        .forEach((item) => {
+          item.read = true;
+          item.isRead = true;
+        });
+      persistMockDatabase();
+      return mockResponse(config, { success: true });
+    }
+
+    const id = Number(path.split('/')[2]);
+    const notification = db.notifications.find((item) => item.id === id);
+    if (notification) {
+      notification.read = true;
+      notification.isRead = true;
+      persistMockDatabase();
+    }
+    return mockResponse(config, notification || { success: true });
   }
 
   return mockApiAdapter(config);
