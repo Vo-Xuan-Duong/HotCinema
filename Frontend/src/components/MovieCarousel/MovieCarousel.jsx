@@ -186,7 +186,7 @@ const MovieCarousel = ({ movies = [], title = 'Movies', onMovieClick, loading = 
                     </div>
                 </div>
                 <div className="text-center py-12 text-gray-400">
-                    <p>KhÃ´ng cÃ³ phim nÃ o Ä‘á»ƒ hiá»ƒn thá»‹</p>
+                    <p>Không có phim nào để hiển thị</p>
                 </div>
             </div>
         );
@@ -201,7 +201,7 @@ const MovieCarousel = ({ movies = [], title = 'Movies', onMovieClick, loading = 
                         <span className="text-gray-400 text-lg font-normal ml-2">({validMovies.length})</span>
                     </h2>
                     {scrollProgress > 0 && (
-                        <div className="w-full max-w-[200px] h-1 bg-white/10 rounded-sm overflow-hidden mt-2.5" role="progressbar" aria-label="Tiáº¿n Ä‘á»™ cuá»™n">
+                        <div className="w-full max-w-[200px] h-1 bg-card/10 rounded-sm overflow-hidden mt-2.5" role="progressbar" aria-label="Tiến độ cuộn">
                             <div
                                 className="h-full bg-gradient-to-r from-primary to-[#ff6b35] rounded-sm transition-all duration-300"
                                 style={{ width: `${Math.max(10, scrollProgress)}%` }}
@@ -213,10 +213,10 @@ const MovieCarousel = ({ movies = [], title = 'Movies', onMovieClick, loading = 
                     <Button
                         variant="link"
                         className="text-white hover:text-primary"
-                        aria-label="Xem táº¥t cáº£ phim"
+                        aria-label="Xem tất cả phim"
                     >
                         <Eye className="h-4 w-4 mr-2" />
-                        Xem táº¥t cáº£
+                        Xem tất cả
                     </Button>
                 </div>
             </div>
@@ -229,7 +229,7 @@ const MovieCarousel = ({ movies = [], title = 'Movies', onMovieClick, loading = 
                     className={`absolute left-0 z-10 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/70 border border-white/15 text-white flex items-center justify-center transition-all duration-300 backdrop-blur-[15px] shadow-[0_4px_15px_rgba(0,0,0,0.3)] visible opacity-100 hover:bg-black/80 hover:scale-110 ${!canScrollLeft || isScrolling ? 'opacity-50 cursor-not-allowed' : ''} md:w-10 md:h-10 sm:w-9 sm:h-9`}
                     onClick={() => scroll('left')}
                     disabled={!canScrollLeft || isScrolling}
-                    aria-label="Xem phim trÆ°á»›c"
+                    aria-label="Xem phim trước"
                 >
                     <ChevronLeft className="h-5 w-5" />
                 </Button>
@@ -244,7 +244,7 @@ const MovieCarousel = ({ movies = [], title = 'Movies', onMovieClick, loading = 
                     onTouchEnd={handleTouchEnd}
                     tabIndex={0}
                     role="list"
-                    aria-label={`Danh sÃ¡ch ${title.toLowerCase()}`}
+                    aria-label={`Danh sách ${title.toLowerCase()}`}
                 >
                     <div className="flex gap-6">
                         {validMovies.map((movie, index) => (
@@ -267,7 +267,7 @@ const MovieCarousel = ({ movies = [], title = 'Movies', onMovieClick, loading = 
                                             className="w-full h-[420px] object-cover transition-transform duration-300 group-hover:scale-105"
                                             loading={index < 4 ? 'eager' : 'lazy'}
                                             onError={(e) => {
-                                                e.target.src = 'https://via.placeholder.com/280x420/1a1a1a/666?text=KhÃ´ng+cÃ³+poster';
+                                                e.target.src = '/brand-placeholder.svg';
                                             }}
                                         />
                                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -278,7 +278,7 @@ const MovieCarousel = ({ movies = [], title = 'Movies', onMovieClick, loading = 
                                                     e.stopPropagation();
                                                     onMovieClick?.(movie);
                                                 }}
-                                                aria-label={`PhÃ¡t trailer phim ${movie.title}`}
+                                                aria-label={`Phát trailer phim ${movie.title}`}
                                             >
                                                 <Play className="h-8 w-8" />
                                             </Button>
@@ -327,7 +327,7 @@ const MovieCarousel = ({ movies = [], title = 'Movies', onMovieClick, loading = 
                     className={`absolute right-0 z-10 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/70 border border-white/15 text-white flex items-center justify-center transition-all duration-300 backdrop-blur-[15px] shadow-[0_4px_15px_rgba(0,0,0,0.3)] visible opacity-100 hover:bg-black/80 hover:scale-110 ${!canScrollRight || isScrolling ? 'opacity-50 cursor-not-allowed' : ''} md:w-10 md:h-10 sm:w-9 sm:h-9`}
                     onClick={() => scroll('right')}
                     disabled={!canScrollRight || isScrolling}
-                    aria-label="Xem phim tiáº¿p theo"
+                    aria-label="Xem phim tiếp theo"
                 >
                     <ChevronRight className="h-5 w-5" />
                 </Button>

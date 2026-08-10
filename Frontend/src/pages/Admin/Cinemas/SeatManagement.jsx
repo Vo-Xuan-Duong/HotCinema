@@ -45,7 +45,7 @@ const SeatManagement = () => {
                 : null;
 
             if (!roomData) {
-                showNotification('error', 'Lá»—i', 'KhÃ´ng tÃ¬m tháº¥y phÃ²ng chiáº¿u');
+                showNotification('error', 'Lỗi', 'Không tìm thấy phòng chiếu');
                 navigate(`/admin/cinemas/${cinemaId}`);
                 return;
             }
@@ -53,7 +53,7 @@ const SeatManagement = () => {
             setRoom(roomData);
         } catch (error) {
             console.error('Error loading data:', error);
-            showNotification('error', 'Lá»—i', 'KhÃ´ng thá»ƒ táº£i thÃ´ng tin');
+            showNotification('error', 'Lỗi', 'Không thể tải thông tin');
             navigate(`/admin/cinemas/${cinemaId}`);
         } finally {
             setLoading(false);
@@ -70,12 +70,12 @@ const SeatManagement = () => {
 
         try {
             await cinemaService.updateRoom(cinemaId, room.id, updatedRoom);
-            showNotification('success', 'ThÃ nh cÃ´ng', 'LÆ°u sÆ¡ Ä‘á»“ gháº¿ thÃ nh cÃ´ng');
-            // CÃ³ thá»ƒ navigate vá» trang chi tiáº¿t hoáº·c reload
+            showNotification('success', 'Thành công', 'Lưu sơ đồ ghế thành công');
+            // Có thể navigate về trang chi tiết hoặc reload
             await loadData();
         } catch (error) {
             console.error('Error saving seat layout:', error);
-            showNotification('error', 'Lá»—i', error.response?.data?.message || 'LÆ°u sÆ¡ Ä‘á»“ gháº¿ tháº¥t báº¡i');
+            showNotification('error', 'Lỗi', error.response?.data?.message || 'Lưu sơ đồ ghế thất bại');
         }
     };
 
@@ -103,15 +103,15 @@ const SeatManagement = () => {
                             href: '/admin/dashboard'
                         },
                         {
-                            title: 'Quáº£n lÃ½ ráº¡p',
+                            title: 'Quản lý rạp',
                             icon: <Building2 className="h-4 w-4" />,
                             href: '/admin/cinemas'
                         },
                     ]}
                 />
                 <Alert
-                    message="KhÃ´ng tÃ¬m tháº¥y thÃ´ng tin"
-                    description="PhÃ²ng chiáº¿u hoáº·c ráº¡p khÃ´ng tá»“n táº¡i."
+                    message="Không tìm thấy thông tin"
+                    description="Phòng chiếu hoặc rạp không tồn tại."
                     type="error"
                     showIcon
                 />
@@ -119,10 +119,10 @@ const SeatManagement = () => {
                     <Button
                         onClick={() => navigate(`/admin/cinemas/${cinemaId || '/admin/cinemas'}`)}
                         variant="outline"
-                        className="border-gray-300 hover:bg-gray-50"
+                        className="border-gray-300 hover:bg-background"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Quay láº¡i
+                        Quay lại
                     </Button>
                 </div>
             </div>
@@ -141,29 +141,29 @@ const SeatManagement = () => {
                         href: '/admin/dashboard'
                     },
                     {
-                        title: 'Quáº£n lÃ½ ráº¡p',
+                        title: 'Quản lý rạp',
                         icon: <Building2 className="h-4 w-4" />,
                         href: '/admin/cinemas'
                     },
                     {
-                        title: cinema?.name || 'Chi tiáº¿t ráº¡p',
+                        title: cinema?.name || 'Chi tiết rạp',
                         href: `/admin/cinemas/${cinemaId}`
                     },
                     {
-                        title: `Quáº£n lÃ½ sÆ¡ Ä‘á»“ gháº¿ - ${room?.name || ''}`,
+                        title: `Quản lý sơ đồ ghế - ${room?.name || ''}`,
                     },
                 ]}
             />
 
             {/* Header */}
-            <Card className="mb-6 rounded-xl shadow-md border border-gray-200 p-6">
+            <Card className="mb-6 rounded-xl shadow-md border border-border p-6">
                 <div className="flex justify-between items-center flex-wrap gap-4">
                     <div>
-                        <h2 className="text-2xl font-bold m-0 mb-2 text-gray-800">
-                            Quáº£n lÃ½ sÆ¡ Ä‘á»“ gháº¿
+                        <h2 className="text-2xl font-bold m-0 mb-2 text-foreground">
+                            Quản lý sơ đồ ghế
                         </h2>
                         <div className="flex items-center gap-3 flex-wrap">
-                            <span className="text-sm text-gray-600">
+                            <span className="text-sm text-muted-foreground">
                                 {cinema.name} - {room.name}
                             </span>
                             <StatusBadge tone="blue">
@@ -182,16 +182,16 @@ const SeatManagement = () => {
                         onClick={handleClose}
                         size="lg"
                         variant="outline"
-                        className="border-gray-300 hover:bg-gray-50"
+                        className="border-gray-300 hover:bg-background"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Quay láº¡i
+                        Quay lại
                     </Button>
                 </div>
             </Card>
 
             {/* Seat Manager */}
-            <Card className="rounded-xl shadow-md border border-gray-200 p-6">
+            <Card className="rounded-xl shadow-md border border-border p-6">
                 <SeatManager
                     selectedScreen={room}
                     onSave={handleSave}

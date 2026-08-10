@@ -79,28 +79,6 @@ const promotionService = {
         }
     },
 
-    // Backward compatibility aliases (deprecated - use new method names instead)
-    getAllVouchers: async (page = 0, size = 10, sort = '') => {
-        return promotionService.getAllPromotions(page, size, sort);
-    },
-    getVoucherById: async (id) => {
-        return promotionService.getPromotionById(id);
-    },
-    createVoucher: async (voucherData) => {
-        return promotionService.createPromotion(voucherData);
-    },
-    updateVoucher: async (id, voucherData) => {
-        return promotionService.updatePromotion(id, voucherData);
-    },
-    deleteVoucher: async (id) => {
-        return promotionService.deletePromotion(id);
-    },
-    activateVoucher: async (id) => {
-        return promotionService.activatePromotion(id);
-    },
-    deactivateVoucher: async (id) => {
-        return promotionService.deactivatePromotion(id);
-    },
     getVoucherByCode: async (code) => {
         return promotionService.getPromotionByCode(code);
     },

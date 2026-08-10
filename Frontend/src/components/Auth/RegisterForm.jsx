@@ -204,7 +204,7 @@ const RegisterForm = ({ onSwitchToLogin, onSwitchToOTP, onClose }) => {
                                 placeholder="Email"
                                 value={formData.email}
                                 onChange={(e) => handleChange('email', e.target.value)}
-                                className="pl-10 h-10 rounded-lg border-gray-200 hover:border-primary/60 focus:border-primary transition-all"
+                                className="pl-10 h-10 rounded-lg border-border hover:border-primary/60 focus:border-primary transition-all"
                             />
                         </div>
                     </FormControl>
@@ -220,7 +220,7 @@ const RegisterForm = ({ onSwitchToLogin, onSwitchToOTP, onClose }) => {
                                 placeholder="Họ và tên"
                                 value={formData.fullName}
                                 onChange={(e) => handleChange('fullName', e.target.value)}
-                                className="pl-10 h-10 rounded-lg border-gray-200 hover:border-primary/60 focus:border-primary transition-all"
+                                className="pl-10 h-10 rounded-lg border-border hover:border-primary/60 focus:border-primary transition-all"
                             />
                         </div>
                     </FormControl>
@@ -236,7 +236,7 @@ const RegisterForm = ({ onSwitchToLogin, onSwitchToOTP, onClose }) => {
                                 placeholder="Số điện thoại"
                                 value={formData.phoneNumber}
                                 onChange={(e) => handleChange('phoneNumber', e.target.value)}
-                                className="pl-10 h-10 rounded-lg border-gray-200 hover:border-primary/60 focus:border-primary transition-all"
+                                className="pl-10 h-10 rounded-lg border-border hover:border-primary/60 focus:border-primary transition-all"
                             />
                         </div>
                     </FormControl>
@@ -252,7 +252,7 @@ const RegisterForm = ({ onSwitchToLogin, onSwitchToOTP, onClose }) => {
                                 placeholder="Mật khẩu"
                                 value={formData.password}
                                 onChange={(e) => handleChange('password', e.target.value)}
-                                className="h-12 rounded-xl border-gray-200 bg-gray-50 hover:bg-white hover:border-primary/50 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-base"
+                                className="h-12 rounded-xl border-border bg-background hover:bg-card hover:border-primary/50 focus:bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-base"
                             />
                         </FormControl>
                         {errors.password && <FormMessage>{errors.password}</FormMessage>}
@@ -266,7 +266,7 @@ const RegisterForm = ({ onSwitchToLogin, onSwitchToOTP, onClose }) => {
                                 placeholder="Xác nhận mật khẩu"
                                 value={formData.confirmPassword}
                                 onChange={(e) => handleChange('confirmPassword', e.target.value)}
-                                className="h-12 rounded-xl border-gray-200 bg-gray-50 hover:bg-white hover:border-primary/50 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-base"
+                                className="h-12 rounded-xl border-border bg-background hover:bg-card hover:border-primary/50 focus:bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-base"
                             />
                         </FormControl>
                         {errors.confirmPassword && <FormMessage>{errors.confirmPassword}</FormMessage>}
@@ -281,7 +281,7 @@ const RegisterForm = ({ onSwitchToLogin, onSwitchToOTP, onClose }) => {
                             onCheckedChange={(checked) => handleChange('agreement', checked)}
                             className="mt-1"
                         />
-                        <Label htmlFor="agreement" className="text-xs text-gray-600 cursor-pointer leading-relaxed">
+                        <Label htmlFor="agreement" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">
                             Tôi đồng ý với{' '}
                             <Button type="button" variant="link" className="p-0 h-auto text-xs text-primary hover:text-red-600">
                                 Điều khoản
@@ -316,7 +316,7 @@ const RegisterForm = ({ onSwitchToLogin, onSwitchToOTP, onClose }) => {
                 type="button"
                 variant="outline"
                 disabled={googleLoading}
-                className="w-full h-10 rounded-lg border-gray-200 text-gray-700 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all mb-4 text-sm"
+                className="w-full h-10 rounded-lg border-border text-gray-700 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all mb-4 text-sm"
                 onClick={() => handleSocialRegister('Google')}
             >
                 {googleLoading ? 'Đang xử lý...' : (
@@ -333,7 +333,7 @@ const RegisterForm = ({ onSwitchToLogin, onSwitchToOTP, onClose }) => {
             </Button>
 
             <div className="text-center text-xs">
-                <span className="text-gray-600">Đã có tài khoản? </span>
+                <span className="text-muted-foreground">Đã có tài khoản? </span>
                 <Button
                     type="button"
                     variant="link"

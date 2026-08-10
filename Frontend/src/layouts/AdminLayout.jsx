@@ -18,11 +18,10 @@ import {
     BellRing,
     Shield,
     Coffee,
-    Bug,
     Lock,
     CreditCard
 } from 'lucide-react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import ScrollToTop from '@/components/ScrollToTop';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -31,6 +30,8 @@ import { NavLinks } from '@/components/ui/nav-links';
 import { Sidebar, SidebarHeader, SidebarContent } from '@/components/ui/sidebar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import useAuth from '@/hooks/useAuth';
+import { userHasAdminAccess } from '@/utils/adminRole';
 
 const AdminSider = memo(({ collapsed, isMobile, location, onMenuClick }) => {
     const menuItems = useMemo(() => [
@@ -42,77 +43,72 @@ const AdminSider = memo(({ collapsed, isMobile, location, onMenuClick }) => {
         {
             href: '/admin/movies',
             icon: <Video className="h-4 w-4" />,
-            label: 'Quáº£n lÃ½ phim',
+            label: 'Quản lý phim',
         },
         {
             href: '/admin/cinemas',
             icon: <Store className="h-4 w-4" />,
-            label: 'Quáº£n lÃ½ ráº¡p',
+            label: 'Quản lý rạp',
         },
         {
             href: '/admin/comments',
             icon: <MessageSquare className="h-4 w-4" />,
-            label: 'BÃ¬nh luáº­n',
+            label: 'Bình luận',
         },
         {
             href: '/admin/schedules',
             icon: <Calendar className="h-4 w-4" />,
-            label: 'Lá»‹ch chiáº¿u',
+            label: 'Lịch chiếu',
         },
         {
             href: '/admin/users',
             icon: <Users className="h-4 w-4" />,
-            label: 'NgÆ°á»i dÃ¹ng',
+            label: 'Người dùng',
         },
         {
             href: '/admin/bookings',
             icon: <FileText className="h-4 w-4" />,
-            label: 'Äáº·t vÃ©',
+            label: 'Đặt vé',
         },
         {
             href: '/admin/payment',
             icon: <CreditCard className="h-4 w-4" />,
-            label: 'Thanh toÃ¡n',
+            label: 'Thanh toán',
         },
         {
             href: '/admin/reports',
             icon: <BarChart3 className="h-4 w-4" />,
-            label: 'BÃ¡o cÃ¡o',
+            label: 'Báo cáo',
         },
         {
             href: '/admin/promotions',
             icon: <Gift className="h-4 w-4" />,
-            label: 'Khuyáº¿n mÃ£i',
+            label: 'Khuyến mãi',
         },
         {
             href: '/admin/notifications',
             icon: <BellRing className="h-4 w-4" />,
-            label: 'ThÃ´ng bÃ¡o',
+            label: 'Thông báo',
         },
         {
             href: '/admin/staff',
             icon: <Shield className="h-4 w-4" />,
-            label: 'NhÃ¢n viÃªn',
+            label: 'Nhân viên',
         },
         {
             href: '/admin/roles-permissions',
             icon: <Lock className="h-4 w-4" />,
-            label: 'Vai trÃ² & Quyá»n',
+            label: 'Vai trò & Quyền',
         },
         {
             href: '/admin/food-beverage',
             icon: <Coffee className="h-4 w-4" />,
-            label: 'Äá»“ Äƒn & Äá»“ uá»‘ng',
-        },
-        {
-            href: '/admin/testing',
-            icon: <Bug className="h-4 w-4" />,
-            label: 'Testing',
+            label: 'Đồ ăn & Đồ uống',
         },
         {
             href: '/admin/settings',
             icon: <Settings className="h-4 w-4" />,
-            label: 'CÃ i Ä‘áº·t',
+            label: 'Cài đặt',
         },
     ], []);
 
@@ -132,7 +128,7 @@ const AdminSider = memo(({ collapsed, isMobile, location, onMenuClick }) => {
         >
             <SidebarHeader>
                 <div className="flex items-center gap-3 w-full">
-                    <span className="text-[28px] flex-shrink-0">ðŸŽ¬</span>
+                    <span className="text-[28px] flex-shrink-0">🎬</span>
                     {!collapsed && (
                         <div className="flex-1 overflow-hidden">
                             <h4 className="text-primary m-0 font-bold bg-gradient-to-r from-primary to-[#ff6b35] bg-clip-text text-transparent text-lg">
@@ -158,7 +154,7 @@ const AdminSider = memo(({ collapsed, isMobile, location, onMenuClick }) => {
 
 AdminSider.displayName = 'AdminSider';
 
-const AdminHeader = memo(({ collapsed, isMobile, onToggle }) => {
+const AdminHeader = memo(({ collapsed, isMobile, onToggle, user, onLogout }) => {
     const navigate = useNavigate();
     const [menuVisible, setMenuVisible] = useState(false);
 
@@ -166,18 +162,18 @@ const AdminHeader = memo(({ collapsed, isMobile, onToggle }) => {
         setMenuVisible(false);
         switch (key) {
             case 'profile':
-                navigate('/admin/profile');
+                navigate('/profile');
                 break;
             case 'settings':
                 navigate('/admin/settings');
                 break;
             case 'logout':
-                navigate('/');
+                onLogout();
                 break;
             default:
                 break;
         }
-    }, [navigate]);
+    }, [navigate, onLogout]);
 
     const headerLeft = isMobile ? 0 : (collapsed ? 60 : 200);
     const headerWidth = isMobile ? '100%' : `calc(100% - ${headerLeft}px)`;
@@ -222,18 +218,18 @@ const AdminHeader = memo(({ collapsed, isMobile, onToggle }) => {
                                 </AvatarFallback>
                             </Avatar>
                             <span className="text-gray-900 font-medium hidden md:inline">
-                                Admin User
+                                {user?.fullName || user?.name || user?.email || 'Quản trị viên'}
                             </span>
                         </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="min-w-[200px]">
                         <DropdownMenuItem onClick={() => handleMenuClick('profile')} className="flex items-center gap-3">
                             <User className="h-4 w-4" />
-                            <span>Há»“ sÆ¡ cÃ¡ nhÃ¢n</span>
+                            <span>Hồ sơ cá nhân</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleMenuClick('settings')} className="flex items-center gap-3">
                             <Settings className="h-4 w-4" />
-                            <span>CÃ i Ä‘áº·t</span>
+                            <span>Cài đặt</span>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -241,7 +237,7 @@ const AdminHeader = memo(({ collapsed, isMobile, onToggle }) => {
                             className="flex items-center gap-3 text-red-600 focus:text-red-600"
                         >
                             <LogOut className="h-4 w-4" />
-                            <span>ÄÄƒng xuáº¥t</span>
+                            <span>Đăng xuất</span>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -257,6 +253,7 @@ const AdminLayout = () => {
     const [isMobile, setIsMobile] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
+    const { isAuthenticated, isLoading, user, logout } = useAuth();
 
     useEffect(() => {
         const checkScreenSize = () => {
@@ -281,12 +278,29 @@ const AdminLayout = () => {
         setCollapsed(prev => !prev);
     }, []);
 
+    const handleLogout = useCallback(async () => {
+        await logout();
+        navigate('/auth/login', { replace: true });
+    }, [logout, navigate]);
+
+    if (isLoading) {
+        return <div className="flex min-h-dvh items-center justify-center text-sm text-muted-foreground">Đang kiểm tra phiên đăng nhập...</div>;
+    }
+
+    if (!isAuthenticated) {
+        return <Navigate to="/auth/login" replace state={{ from: location.pathname }} />;
+    }
+
+    if (!userHasAdminAccess(user)) {
+        return <Navigate to="/" replace />;
+    }
+
     return (
         <div className="flex min-h-dvh bg-muted/30">
             {isMobile && !collapsed && (
                 <button
                     type="button"
-                    aria-label="ÄÃ³ng menu quáº£n trá»‹"
+                    aria-label="Đóng menu quản trị"
                     className="fixed inset-0 z-[999] bg-black/40 backdrop-blur-[1px]"
                     onClick={() => setCollapsed(true)}
                 />
@@ -309,6 +323,8 @@ const AdminLayout = () => {
                     collapsed={collapsed}
                     isMobile={isMobile}
                     onToggle={handleToggle}
+                    user={user}
+                    onLogout={handleLogout}
                 />
 
                 <main

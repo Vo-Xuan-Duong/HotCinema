@@ -53,7 +53,7 @@ const CinemaDetail = () => {
       setCinema(data);
     } catch (error) {
       console.error('Error fetching cinema detail:', error);
-      notification.error('KhÃ´ng thá»ƒ táº£i thÃ´ng tin ráº¡p!');
+      notification.error('Không thể tải thông tin rạp!');
     } finally {
       setLoading(false);
     }
@@ -82,7 +82,7 @@ const CinemaDetail = () => {
                   allShowtimes.push({
                     id: showtime.showtimeId,
                     time: showtime.startTime,
-                    roomName: showtime.roomName || 'PhÃ²ng',
+                    roomName: showtime.roomName || 'Phòng',
                     screeningFormat: format.formatType,
                     status: showtime.status,
                     price: showtime.price
@@ -100,7 +100,7 @@ const CinemaDetail = () => {
             genre: 'Phim',
             duration: 'N/A',
             ageRating: movieData.formats?.[0]?.formatType || '2D',
-            poster: movieData.posterPath || 'https://via.placeholder.com/200x280/333/fff?text=Movie',
+            poster: movieData.posterPath || '/brand-placeholder.svg',
             showtimes: allShowtimes
           });
         });
@@ -117,7 +117,7 @@ const CinemaDetail = () => {
       setHasMore(currentPage < totalPagesFromApi - 1);
     } catch (error) {
       console.error('Error fetching showtimes:', error);
-      notification.error('KhÃ´ng thá»ƒ táº£i lá»‹ch chiáº¿u!');
+      notification.error('Không thể tải lịch chiếu!');
       if (pageNum === 0) {
         setMovies([]);
       }
@@ -132,31 +132,30 @@ const CinemaDetail = () => {
   };
 
   const cinemaImages = [
-    'https://via.placeholder.com/400x250/1a1a1a/ffffff?text=Cinema+Lobby',
-    'https://via.placeholder.com/400x250/8B0000/ffffff?text=Theater+Room',
-    'https://via.placeholder.com/400x250/FFA500/ffffff?text=Concession+Stand',
-    'https://via.placeholder.com/400x250/2F4F4F/ffffff?text=Seating+Area'
-  ];
+    cinema?.bannerUrl,
+    cinema?.imageUrl,
+    ...(Array.isArray(cinema?.images) ? cinema.images : [])
+  ].filter(Boolean);
 
   const amenities = [
-    { icon: <Wifi className="h-5 w-5" />, label: 'PhÃ²ng VIP', color: '#722ed1' },
-    { icon: <Flame className="h-5 w-5" />, label: 'Quáº§y Äƒn uá»‘ng', color: '#fa541c' },
-    { icon: <Coffee className="h-5 w-5" />, label: 'Chá»— Ä‘áº­u xe', color: '#13c2c2' },
-    { icon: <Car className="h-5 w-5" />, label: 'Wifi miá»…n phÃ­', color: '#1890ff' }
+    { icon: <Wifi className="h-5 w-5" />, label: 'Phòng VIP', color: '#722ed1' },
+    { icon: <Flame className="h-5 w-5" />, label: 'Quầy ăn uống', color: '#fa541c' },
+    { icon: <Coffee className="h-5 w-5" />, label: 'Chỗ đậu xe', color: '#13c2c2' },
+    { icon: <Car className="h-5 w-5" />, label: 'Wifi miễn phí', color: '#1890ff' }
   ];
 
   if (loading) {
-    return <ContentLoader message="Äang táº£i thÃ´ng tin ráº¡p..." />;
+    return <ContentLoader message="Đang tải thông tin rạp..." />;
   }
 
   if (!cinema) {
     return (
-      <div className="min-h-screen bg-white pb-16">
+      <div className="min-h-screen bg-card pb-16">
         <div className="max-w-[1200px] mx-auto px-4 md:px-6">
           <Empty
             description={
-              <span className="text-lg text-gray-600">
-                KhÃ´ng tÃ¬m tháº¥y thÃ´ng tin ráº¡p chiáº¿u
+              <span className="text-lg text-muted-foreground">
+                Không tìm thấy thông tin rạp chiếu
               </span>
             }
           />
@@ -166,8 +165,8 @@ const CinemaDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white pb-16 mt-14">
-      <div className="bg-white py-5 px-6 relative">
+    <div className="min-h-screen bg-card pb-16 mt-14">
+      <div className="bg-card py-5 px-6 relative">
         <div className="max-w-[1200px] mx-auto flex flex-col gap-2">
           <Button
             variant="outline"
@@ -175,31 +174,31 @@ const CinemaDetail = () => {
             onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cinema.address || '')}`, '_blank')}
           >
             <CheckCircle2 className="h-4 w-4 mr-2" />
-            Chá»‰ Ä‘Æ°á»ng
+            Chỉ đường
           </Button>
-          <h1 className="text-gray-900 text-2xl font-bold m-0 mb-2 tracking-tight leading-tight">
+          <h1 className="text-foreground text-2xl font-bold m-0 mb-2 tracking-tight leading-tight">
             {cinema.name || 'CGV Vincom Center'}
           </h1>
-          <p className="text-gray-600 text-sm flex items-center gap-1.5 m-0 font-normal">
+          <p className="text-muted-foreground text-sm flex items-center gap-1.5 m-0 font-normal">
             <MapPin className="text-primary text-sm" />
-            {cinema.address || 'Táº§ng 5, Vincom Center, 72 LÃª ThÃ¡nh TÃ´n, P. Báº¿n NghÃ©, Quáº­n 1, TPHCM'}
+            {cinema.address || 'Tầng 5, Vincom Center, 72 Lê Thánh Tôn, P. Bến Nghé, Quận 1, TPHCM'}
           </p>
         </div>
       </div>
 
       <div className="max-w-[1200px] mx-auto px-4 md:px-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 my-6">
+        {cinemaImages.length > 0 && <div className="grid grid-cols-2 md:grid-cols-4 gap-4 my-6">
           {cinemaImages.map((img, index) => (
             <div key={index} className="rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
               <img src={img} alt={`Cinema ${index + 1}`} className="w-full h-full object-cover" />
             </div>
           ))}
-        </div>
+        </div>}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <div className="mb-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Phim Ä‘ang chiáº¿u</h2>
+              <h2 className="text-xl font-bold text-foreground mb-4">Phim đang chiếu</h2>
               <div className="flex flex-wrap gap-2">
                 {dates.slice(0, 6).map((date) => (
                   <Button
@@ -208,7 +207,7 @@ const CinemaDetail = () => {
                     onClick={() => setActiveDate(date.value)}
                     className={activeDate === date.value ? "bg-primary text-white" : ""}
                   >
-                    {date.isToday ? 'HÃ´m nay' : date.label}
+                    {date.isToday ? 'Hôm nay' : date.label}
                   </Button>
                 ))}
               </div>
@@ -218,11 +217,11 @@ const CinemaDetail = () => {
               {showtimesLoading && movies.length === 0 ? (
                 <div className="text-center py-10">
                   <Loader2 className="w-8 h-8 text-primary mx-auto animate-spin" />
-                  <p className="mt-4 text-gray-600">Äang táº£i lá»‹ch chiáº¿u...</p>
+                  <p className="mt-4 text-muted-foreground">Đang tải lịch chiếu...</p>
                 </div>
               ) : movies.length > 0 ? (
                 movies.map(movie => (
-                  <div key={movie.id} className="bg-white rounded-lg shadow-md p-4 flex gap-4 hover:shadow-lg transition-shadow duration-300">
+                  <div key={movie.id} className="bg-card rounded-lg shadow-md p-4 flex gap-4 hover:shadow-lg transition-shadow duration-300">
                     <div className="relative flex-shrink-0">
                       <img src={movie.poster} alt={movie.title} className="w-24 h-32 object-cover rounded-lg" />
                       <span className="absolute top-2 right-2 bg-primary text-white text-xs font-bold px-2 py-1 rounded">
@@ -233,14 +232,14 @@ const CinemaDetail = () => {
                     <div className="flex-1 flex flex-col justify-between">
                       <div>
                         <h3
-                          className="text-lg font-bold text-gray-900 mb-2 cursor-pointer hover:text-primary transition-colors"
+                          className="text-lg font-bold text-foreground mb-2 cursor-pointer hover:text-primary transition-colors"
                           onClick={() => navigate(`/movies/${movie.id}`)}
                         >
                           {movie.title}
                         </h3>
-                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                           <span>{movie.genre}</span>
-                          <span>â€¢</span>
+                          <span>•</span>
                           <span>{movie.duration}</span>
                         </div>
                         <StatusBadge className="bg-gray-100 text-gray-700 text-xs font-medium px-2 py-1 rounded">
@@ -264,13 +263,13 @@ const CinemaDetail = () => {
                   </div>
                 ))
               ) : (
-                <Empty description="KhÃ´ng cÃ³ lá»‹ch chiáº¿u cho ngÃ y nÃ y" />
+                <Empty description="Không có lịch chiếu cho ngày này" />
               )}
 
               {hasMore && !showtimesLoading && movies.length > 0 && (
                 <div className="text-center mt-6">
                   <Button variant="outline" onClick={handleLoadMore}>
-                    Xem thÃªm
+                    Xem thêm
                   </Button>
                 </div>
               )}
@@ -284,8 +283,8 @@ const CinemaDetail = () => {
           </div>
 
           <div className="lg:col-span-1 space-y-6">
-            <Card className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Tiá»‡n Ã­ch ráº¡p</h2>
+            <Card className="bg-card rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-bold text-foreground mb-4">Tiện ích rạp</h2>
               <div className="grid grid-cols-2 gap-4">
                 {amenities.map((item, index) => (
                   <div key={index} className="flex flex-col items-center gap-2" style={{ color: item.color }}>
@@ -296,7 +295,7 @@ const CinemaDetail = () => {
               </div>
             </Card>
 
-            <Card className="bg-white rounded-lg shadow-md overflow-hidden h-64">
+            <Card className="bg-card rounded-lg shadow-md overflow-hidden h-64">
               <iframe
                 width="100%"
                 height="100%"

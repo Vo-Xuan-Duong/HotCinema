@@ -130,13 +130,13 @@ const MovieSliderEnhanced = ({
             <div className="max-w-[1200px] mx-auto">
                 {title && (
                     <div className="mb-8 text-center">
-                        <h2 className="text-3xl font-bold text-gray-900text-white mb-2">{title}</h2>
+                        <h2 className="text-3xl font-bold text-foregroundtext-white mb-2">{title}</h2>
                         <div className="w-24 h-1 bg-red-600 mx-auto rounded"></div>
                     </div>
                 )}
                 <div className={`relative ${!isSliderReady ? 'opacity-50' : ''}`}>
                     <button
-                        className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-whitebg-gray-800 shadow-lg border border-gray-200border-gray-700 flex items-center justify-center text-gray-700text-gray-300 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${isFirstSlide ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-cardbg-gray-800 shadow-lg border border-borderborder-gray-700 flex items-center justify-center text-gray-700text-gray-300 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${isFirstSlide ? 'opacity-50 cursor-not-allowed' : ''}`}
                         onClick={() => sliderRef.current?.slickPrev()}
                         disabled={isFirstSlide}
                         aria-label="Previous movies"
@@ -161,7 +161,7 @@ const MovieSliderEnhanced = ({
                     </div>
 
                     <button
-                        className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-whitebg-gray-800 shadow-lg border border-gray-200border-gray-700 flex items-center justify-center text-gray-700text-gray-300 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${isLastSlide ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-cardbg-gray-800 shadow-lg border border-borderborder-gray-700 flex items-center justify-center text-gray-700text-gray-300 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${isLastSlide ? 'opacity-50 cursor-not-allowed' : ''}`}
                         onClick={() => sliderRef.current?.slickNext()}
                         disabled={isLastSlide}
                         aria-label="Next movies"

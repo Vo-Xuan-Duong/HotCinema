@@ -25,11 +25,6 @@ const userService = {
     });
   },
 
-  // Alias cho getAllUsers (backward compatibility)
-  getUsers: async (params) => {
-    return userService.getAllUsers(params);
-  },
-
   // 5. Cập Nhật User
   updateUser: async (userId, data) => {
     return apiClient.put(`${ENDPOINTS.USERS}/${userId}`, data);
@@ -104,4 +99,4 @@ const userService = {
   },
 };
 
-export default userService; 
+export default userService;

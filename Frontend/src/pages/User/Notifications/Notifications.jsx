@@ -32,7 +32,7 @@ const Notifications = () => {
                     priority: 'medium' // Backend doesn't return priority yet, default to medium
                 })));
             } catch (err) {
-                notification.error(err.message || 'KhÃ´ng táº£i Ä‘Æ°á»£c danh sÃ¡ch thÃ´ng bÃ¡o');
+                notification.error(err.message || 'Không tải được danh sách thông báo');
             } finally {
                 setLoading(false);
             }
@@ -42,12 +42,12 @@ const Notifications = () => {
 
     const getNotificationIcon = (type) => {
         const icons = {
-            booking: 'ðŸŽ«',
-            promotion: 'ðŸŽ',
-            reminder: 'â°',
-            system: 'âš™ï¸'
+            booking: '🎫',
+            promotion: '🎁',
+            reminder: '⏰',
+            system: '⚙️'
         };
-        return icons[type] || 'ðŸ“¬';
+        return icons[type] || '📬';
     };
 
     const getPriorityColor = (priority) => {
@@ -64,7 +64,7 @@ const Notifications = () => {
         try {
             await notificationService.markAsRead(id);
         } catch (err) {
-            notification.error('KhÃ´ng thá»ƒ Ä‘Ã¡nh dáº¥u Ä‘Ã£ Ä‘á»c');
+            notification.error('Không thể đánh dấu đã đọc');
         }
     };
 
@@ -74,7 +74,7 @@ const Notifications = () => {
         try {
             await notificationService.delete(id);
         } catch (err) {
-            notification.error('XÃ³a tháº¥t báº¡i');
+            notification.error('Xóa thất bại');
             setNotifications(prev);
         }
     };
@@ -85,7 +85,7 @@ const Notifications = () => {
         try {
             await notificationService.markAllAsRead();
         } catch (err) {
-            notification.error('KhÃ´ng thá»ƒ Ä‘Ã¡nh dáº¥u táº¥t cáº£ Ä‘Ã£ Ä‘á»c');
+            notification.error('Không thể đánh dấu tất cả đã đọc');
             setNotifications(prev);
         }
     };
@@ -93,17 +93,17 @@ const Notifications = () => {
     const unreadCount = notifications.filter(notif => !notif.read).length;
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8 px-4">
+        <div className="min-h-screen bg-background py-8 px-4">
             <div className="max-w-[1200px] mx-auto">
-                <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-6">
+                <div className="bg-card rounded-xl shadow-md border border-border p-6 mb-6">
                     <div className="flex justify-between items-center flex-wrap gap-4">
                         <div>
-                            <h2 className="text-gray-900 mb-2 text-2xl font-bold flex items-center gap-2">
+                            <h2 className="text-foreground mb-2 text-2xl font-bold flex items-center gap-2">
                                 <Bell className="h-6 w-6" />
-                                ThÃ´ng bÃ¡o
+                                Thông báo
                             </h2>
-                            <p className="text-gray-600">
-                                {unreadCount > 0 ? `${unreadCount} thÃ´ng bÃ¡o chÆ°a Ä‘á»c` : 'Táº¥t cáº£ thÃ´ng bÃ¡o Ä‘Ã£ Ä‘Æ°á»£c Ä‘á»c'}
+                            <p className="text-muted-foreground">
+                                {unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : 'Tất cả thông báo đã được đọc'}
                             </p>
                         </div>
                         {unreadCount > 0 && (
@@ -112,7 +112,7 @@ const Notifications = () => {
                                 className="rounded-lg"
                             >
                                 <Check className="h-4 w-4 mr-2" />
-                                ÄÃ¡nh dáº¥u táº¥t cáº£ Ä‘Ã£ Ä‘á»c
+                                Đánh dấu tất cả đã đọc
                             </Button>
                         )}
                     </div>
@@ -120,7 +120,7 @@ const Notifications = () => {
 
                 <div>
                     {notifications.length === 0 && !loading ? (
-                        <Empty description="KhÃ´ng cÃ³ thÃ´ng bÃ¡o nÃ o" />
+                        <Empty description="Không có thông báo nào" />
                     ) : (
                         <ContentList
                             loading={loading}
@@ -130,7 +130,7 @@ const Notifications = () => {
                                     <Card
                                         className={`w-full rounded-lg shadow-sm border transition-all duration-300 ${!notification.read
                                                 ? 'bg-blue-50 border-blue-200 hover:shadow-md'
-                                                : 'bg-white border-gray-200 hover:shadow-md'
+                                                : 'bg-card border-border hover:shadow-md'
                                             }`}
                                     >
                                         <div className="flex gap-4 p-4">
@@ -143,19 +143,19 @@ const Notifications = () => {
                                             </Avatar>
                                             <div className="flex-1">
                                                 <div className="flex justify-between items-start flex-wrap gap-2 mb-2">
-                                                    <span className="text-gray-900 font-semibold">{notification.title}</span>
+                                                    <span className="text-foreground font-semibold">{notification.title}</span>
                                                     <div className="flex gap-2">
                                                         <StatusBadge tone={getPriorityColor(notification.priority)}>
-                                                            {notification.priority === 'high' ? 'Quan trá»ng' :
-                                                                notification.priority === 'medium' ? 'ThÃ´ng thÆ°á»ng' : 'Tháº¥p'}
+                                                            {notification.priority === 'high' ? 'Quan trọng' :
+                                                                notification.priority === 'medium' ? 'Thông thường' : 'Thấp'}
                                                         </StatusBadge>
                                                         {!notification.read && (
-                                                            <StatusBadge tone="red">Má»›i</StatusBadge>
+                                                            <StatusBadge tone="red">Mới</StatusBadge>
                                                         )}
                                                     </div>
                                                 </div>
                                                 <p className="text-gray-700 block mb-2">{notification.message}</p>
-                                                <p className="text-xs text-gray-500">
+                                                <p className="text-xs text-muted-foreground">
                                                     {notification.time}
                                                 </p>
                                                 <div className="flex gap-2 mt-3">
@@ -167,7 +167,7 @@ const Notifications = () => {
                                                             className="rounded"
                                                         >
                                                             <Eye className="h-4 w-4 mr-1" />
-                                                            ÄÃ£ Ä‘á»c
+                                                            Đã đọc
                                                         </Button>
                                                     )}
                                                     <Button
@@ -177,7 +177,7 @@ const Notifications = () => {
                                                         className="rounded text-red-600 hover:text-red-700"
                                                     >
                                                         <Trash2 className="h-4 w-4 mr-1" />
-                                                        XÃ³a
+                                                        Xóa
                                                     </Button>
                                                 </div>
                                             </div>

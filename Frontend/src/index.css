@@ -14,6 +14,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', sans-serif;
   }
 }
 
@@ -227,6 +228,54 @@
 }
 
 @keyframes app-spin {
+  }
+
+
+/* Responsive overrides */
+@keyframes dotPulse {
+
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.3);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes progressSlide {
+  0% {
+    transform: translateX(-100%);
+    width: 30%;
+  }
+
+  50% {
+    transform: translateX(0%);
+    width: 60%;
+  }
+
+  100% {
+    transform: translateX(100%);
+    width: 30%;
+  }
+}
+
+@keyframes app-spin {
   to {
     transform: rotate(360deg);
   }
@@ -237,7 +286,7 @@
   line-height: 1.5;
   font-weight: 400;
 
-  /* Shadcn/ui CSS Variables */
+  /* Shadcn/ui CSS Variables - Light */
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
   --card: 0 0% 100%;
@@ -266,31 +315,56 @@
   --text-primary: #1f2937;
   --text-secondary: #6b7280;
   --text-muted: #9ca3af;
-  /* Accent / brand colors */
   --accent-red: #e50914;
-  /* Primary brand accent */
   --accent-primary: var(--accent-red);
   --accent-orange: var(--accent-red);
-  /* Deprecated legacy alias */
   --accent-blue: #3b82f6;
   --border-color: #e5e7eb;
   --hover-bg: #f9fafb;
   --card-bg: #ffffff;
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-
+  
   color-scheme: light;
-  color: var(--text-primary);
-  background-color: var(--primary-bg);
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Dark theme removed - only light mode is used */
+.dark {
+  /* Shadcn/ui CSS Variables - Dark */
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 0 84.2% 60.2%; /* Red accent stays the same for brand */
+  --primary-foreground: 0 0% 98%;
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 0 84.2% 60.2%;
+
+  /* Modern dark theme color scheme */
+  --primary-bg: #0B0F19; /* Deep cinema black/blue */
+  --secondary-bg: #111827;
+  --accent-bg: #1F2937;
+  --text-primary: #F3F4F6;
+  --text-secondary: #9CA3AF;
+  --text-muted: #6B7280;
+  --border-color: #374151;
+  --hover-bg: #1F2937;
+  --card-bg: #111827;
+
+  color-scheme: dark;
+}
 
 a {
   font-weight: 500;
@@ -300,45 +374,6 @@ a {
 
 a:hover {
   color: hsl(var(--primary));
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: var(--primary-bg);
-  color: var(--text-primary);
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  /* padding-top: 64px; */
-}
-
-/* Remove padding-top for admin layout */
-body:has(.admin-layout-shadcn),
-body:has([class*="admin-layout"]) {
-  padding-top: 0 !important;
-  margin-top: 0 !important;
-}
-
-#root {
-  width: 100%;
-  /* Use 100% instead of 100vw to prevent scrollbar from creating white space */
-  max-width: 100%;
-  min-height: 100vh;
-  display: block;
-  background-color: var(--primary-bg);
-  overflow-x: hidden;
-  /* Ensure scrollbar is at the edge - no padding/margin */
-  padding-right: 0;
-  margin-right: 0;
-  box-sizing: border-box;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
 }
 
 /* Smooth scrolling for better UX */

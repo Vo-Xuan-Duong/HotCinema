@@ -78,7 +78,7 @@ const Users = () => {
       setRoles(rolesData);
     } catch (error) {
       console.error('Error loading roles:', error);
-      showNotification('error', 'Lá»—i', 'KhÃ´ng thá»ƒ táº£i danh sÃ¡ch vai trÃ²');
+      showNotification('error', 'Lỗi', 'Không thể tải danh sách vai trò');
       setRoles([]);
     } finally {
       setLoadingRoles(false);
@@ -138,7 +138,7 @@ const Users = () => {
       }));
     } catch (error) {
       console.error('Error loading users:', error);
-      showNotification('error', 'Lá»—i', 'KhÃ´ng thá»ƒ táº£i danh sÃ¡ch ngÆ°á»i dÃ¹ng');
+      showNotification('error', 'Lỗi', 'Không thể tải danh sách người dùng');
       setUsers([]);
       setPagination(prev => ({ ...prev, total: 0 }));
     } finally {
@@ -166,7 +166,7 @@ const Users = () => {
       const adminRole = roles.find(r =>
         r.name?.toLowerCase().includes('admin') ||
         r.code?.toLowerCase() === 'admin' ||
-        r.name?.toLowerCase() === 'quáº£n trá»‹ viÃªn'
+        r.name?.toLowerCase() === 'quản trị viên'
       );
       return adminRole && (role === adminRole.code || role === adminRole.name);
     }).length,
@@ -183,7 +183,7 @@ const Users = () => {
       const moderatorRole = roles.find(r =>
         r.name?.toLowerCase().includes('moderator') ||
         r.code?.toLowerCase() === 'moderator' ||
-        r.name?.toLowerCase().includes('kiá»ƒm duyá»‡t')
+        r.name?.toLowerCase().includes('kiểm duyệt')
       );
       return moderatorRole && (role === moderatorRole.code || role === moderatorRole.name);
     }).length
@@ -216,7 +216,7 @@ const Users = () => {
     setPagination(prev => ({ ...prev, current: 1 }));
   };
 
-  // Xá»­ lÃ½ thÃªm ngÆ°á»i dÃ¹ng
+  // Xử lý thêm người dùng
   const handleAddUser = async (values) => {
     try {
       // Find the selected role from roles list
@@ -238,7 +238,7 @@ const Users = () => {
       };
 
       await userService.createUser(createData);
-      showNotification('success', 'ThÃ nh cÃ´ng', 'ThÃªm ngÆ°á»i dÃ¹ng thÃ nh cÃ´ng!');
+      showNotification('success', 'Thành công', 'Thêm người dùng thành công!');
       setIsAddModalVisible(false);
       setFormValues({
         fullName: '',
@@ -251,11 +251,11 @@ const Users = () => {
       loadUsers();
     } catch (error) {
       console.error('Error creating user:', error);
-      showNotification('error', 'Lá»—i', error.response?.data?.message || 'KhÃ´ng thá»ƒ thÃªm ngÆ°á»i dÃ¹ng');
+      showNotification('error', 'Lỗi', error.response?.data?.message || 'Không thể thêm người dùng');
     }
   };
 
-  // Xá»­ lÃ½ chá»‰nh sá»­a ngÆ°á»i dÃ¹ng
+  // Xử lý chỉnh sửa người dùng
   const handleEditUser = async (values) => {
     try {
       // Find the selected role from roles list
@@ -276,7 +276,7 @@ const Users = () => {
       };
 
       await userService.updateUser(selectedUser.id, updateData);
-      showNotification('success', 'ThÃ nh cÃ´ng', 'Cáº­p nháº­t ngÆ°á»i dÃ¹ng thÃ nh cÃ´ng!');
+      showNotification('success', 'Thành công', 'Cập nhật người dùng thành công!');
       setIsEditModalVisible(false);
       setSelectedUser(null);
       setFormValues({
@@ -290,40 +290,40 @@ const Users = () => {
       loadUsers();
     } catch (error) {
       console.error('Error updating user:', error);
-      showNotification('error', 'Lá»—i', error.response?.data?.message || 'KhÃ´ng thá»ƒ cáº­p nháº­t ngÆ°á»i dÃ¹ng');
+      showNotification('error', 'Lỗi', error.response?.data?.message || 'Không thể cập nhật người dùng');
     }
   };
 
-  // Xá»­ lÃ½ xÃ³a ngÆ°á»i dÃ¹ng
+  // Xử lý xóa người dùng
   const handleDeleteUser = async (id) => {
     try {
       await userService.deleteUser(id);
-      showNotification('success', 'ThÃ nh cÃ´ng', 'XÃ³a ngÆ°á»i dÃ¹ng thÃ nh cÃ´ng!');
+      showNotification('success', 'Thành công', 'Xóa người dùng thành công!');
       loadUsers();
     } catch (error) {
       console.error('Error deleting user:', error);
-      showNotification('error', 'Lá»—i', error.response?.data?.message || 'KhÃ´ng thá»ƒ xÃ³a ngÆ°á»i dÃ¹ng');
+      showNotification('error', 'Lỗi', error.response?.data?.message || 'Không thể xóa người dùng');
     }
   };
 
-  // Xá»­ lÃ½ thay Ä‘á»•i tráº¡ng thÃ¡i
+  // Xử lý thay đổi trạng thái
   const handleStatusChange = async (id, newStatus) => {
     try {
       if (newStatus === 'active') {
         await userService.activateUser(id);
-        showNotification('success', 'ThÃ nh cÃ´ng', 'ÄÃ£ kÃ­ch hoáº¡t ngÆ°á»i dÃ¹ng!');
+        showNotification('success', 'Thành công', 'Đã kích hoạt người dùng!');
       } else {
         await userService.deactivateUser(id);
-        showNotification('success', 'ThÃ nh cÃ´ng', 'ÄÃ£ vÃ´ hiá»‡u hÃ³a ngÆ°á»i dÃ¹ng!');
+        showNotification('success', 'Thành công', 'Đã vô hiệu hóa người dùng!');
       }
       loadUsers();
     } catch (error) {
       console.error('Error changing user status:', error);
-      showNotification('error', 'Lá»—i', error.response?.data?.message || 'KhÃ´ng thá»ƒ thay Ä‘á»•i tráº¡ng thÃ¡i ngÆ°á»i dÃ¹ng');
+      showNotification('error', 'Lỗi', error.response?.data?.message || 'Không thể thay đổi trạng thái người dùng');
     }
   };
 
-  // Hiá»ƒn thá»‹ modal thÃªm/sá»­a
+  // Hiển thị modal thêm/sửa
   const showAddModal = async () => {
     // Ensure roles are loaded before opening modal
     if (roles.length === 0) {
@@ -369,7 +369,7 @@ const Users = () => {
     setIsDetailModalVisible(true);
   };
 
-  // Render tráº¡ng thÃ¡i
+  // Render trạng thái
   const renderStatus = (user) => {
     if (!user) return null;
     // Map backend status to frontend status
@@ -377,7 +377,7 @@ const Users = () => {
     const statusConfig = {
       active: {
         color: 'success',
-        text: 'Hoáº¡t Ä‘á»™ng',
+        text: 'Hoạt động',
         icon: <CheckCircle2 className="h-3 w-3" />,
         style: {
           background: '#f6ffed',
@@ -390,7 +390,7 @@ const Users = () => {
       },
       inactive: {
         color: 'default',
-        text: 'KhÃ´ng hoáº¡t Ä‘á»™ng',
+        text: 'Không hoạt động',
         icon: <Ban className="h-3 w-3" />,
         style: {
           background: '#fafafa',
@@ -403,7 +403,7 @@ const Users = () => {
       },
       suspended: {
         color: 'error',
-        text: 'Táº¡m khÃ³a',
+        text: 'Tạm khóa',
         icon: <Ban className="h-3 w-3" />,
         style: {
           background: '#fff2f0',
@@ -429,7 +429,7 @@ const Users = () => {
     );
   };
 
-  // Render vai trÃ²
+  // Render vai trò
   const renderRole = (user) => {
     if (!user) return null;
     // Backend returns role as String directly
@@ -438,7 +438,7 @@ const Users = () => {
     const roleConfig = {
       admin: {
         color: 'red',
-        text: 'Quáº£n trá»‹ viÃªn',
+        text: 'Quản trị viên',
         icon: <Crown className="h-3 w-3" />,
         style: {
           background: '#fff1f0',
@@ -451,7 +451,7 @@ const Users = () => {
       },
       moderator: {
         color: 'blue',
-        text: 'Kiá»ƒm duyá»‡t viÃªn',
+        text: 'Kiểm duyệt viên',
         icon: <User className="h-3 w-3" />,
         style: {
           background: '#e6f7ff',
@@ -477,7 +477,7 @@ const Users = () => {
       },
       user: {
         color: 'green',
-        text: 'NgÆ°á»i dÃ¹ng',
+        text: 'Người dùng',
         icon: <User className="h-3 w-3" />,
         style: {
           background: '#f6ffed',
@@ -503,10 +503,10 @@ const Users = () => {
     );
   };
 
-  // Cáº¥u hÃ¬nh cá»™t báº£ng
+  // Cấu hình cột bảng
   const columns = [
     {
-      title: 'NgÆ°á»i dÃ¹ng',
+      title: 'Người dùng',
       key: 'user',
       width: 320,
       fixed: 'left',
@@ -525,16 +525,16 @@ const Users = () => {
           />
           <div className="flex-1 min-w-0">
             <div
-              className="font-semibold text-gray-900 mb-1 text-base cursor-pointer hover:text-indigo-600 transition-colors"
+              className="font-semibold text-foreground mb-1 text-base cursor-pointer hover:text-indigo-600 transition-colors"
               onClick={() => showDetailModal(record)}
             >
               {record?.fullName || 'N/A'}
             </div>
-            <div className="text-gray-500 text-xs mb-1 flex items-center gap-1">
+            <div className="text-muted-foreground text-xs mb-1 flex items-center gap-1">
               <User className="h-3 w-3" />
               <span className="truncate">ID: {record?.id || 'N/A'}</span>
             </div>
-            <div className="text-gray-500 text-xs truncate">
+            <div className="text-muted-foreground text-xs truncate">
               {record?.email || 'N/A'}
             </div>
           </div>
@@ -542,7 +542,7 @@ const Users = () => {
       ),
     },
     {
-      title: 'Sá»‘ Ä‘iá»‡n thoáº¡i',
+      title: 'Số điện thoại',
       dataIndex: 'phone',
       key: 'phone',
       width: 150,
@@ -551,19 +551,19 @@ const Users = () => {
       ),
     },
     {
-      title: 'Vai trÃ²',
+      title: 'Vai trò',
       key: 'role',
       width: 160,
       render: (_, record) => renderRole(record),
     },
     {
-      title: 'Tráº¡ng thÃ¡i',
+      title: 'Trạng thái',
       key: 'status',
       width: 150,
       render: (_, record) => renderStatus(record),
     },
     {
-      title: 'Thao tÃ¡c',
+      title: 'Thao tác',
       key: 'actions',
       width: 280,
       fixed: 'right',
@@ -594,7 +594,7 @@ const Users = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  if (window.confirm('VÃ´ hiá»‡u hÃ³a ngÆ°á»i dÃ¹ng nÃ y? NgÆ°á»i dÃ¹ng sáº½ khÃ´ng thá»ƒ Ä‘Äƒng nháº­p sau khi bá»‹ vÃ´ hiá»‡u hÃ³a.')) {
+                  if (window.confirm('Vô hiệu hóa người dùng này? Người dùng sẽ không thể đăng nhập sau khi bị vô hiệu hóa.')) {
                     handleStatusChange(userId, 'inactive');
                   }
                 }}
@@ -607,7 +607,7 @@ const Users = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  if (window.confirm('KÃ­ch hoáº¡t ngÆ°á»i dÃ¹ng nÃ y? NgÆ°á»i dÃ¹ng sáº½ cÃ³ thá»ƒ Ä‘Äƒng nháº­p láº¡i sau khi Ä‘Æ°á»£c kÃ­ch hoáº¡t.')) {
+                  if (window.confirm('Kích hoạt người dùng này? Người dùng sẽ có thể đăng nhập lại sau khi được kích hoạt.')) {
                     handleStatusChange(userId, 'active');
                   }
                 }}
@@ -620,7 +620,7 @@ const Users = () => {
               variant="outline"
               size="sm"
               onClick={() => {
-                if (window.confirm('Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a ngÆ°á»i dÃ¹ng nÃ y? HÃ nh Ä‘á»™ng nÃ y khÃ´ng thá»ƒ hoÃ n tÃ¡c.')) {
+                if (window.confirm('Bạn có chắc chắn muốn xóa người dùng này? Hành động này không thể hoàn tác.')) {
                   handleDeleteUser(userId);
                 }
               }}
@@ -646,7 +646,7 @@ const Users = () => {
             href: '/admin/dashboard'
           },
           {
-            title: 'Quáº£n lÃ½ ngÆ°á»i dÃ¹ng',
+            title: 'Quản lý người dùng',
             icon: <UsersIcon className="h-4 w-4" />
           }
         ]}
@@ -660,8 +660,8 @@ const Users = () => {
               <UsersIcon className="h-6 w-6 text-indigo-600" />
             </div>
             <div>
-              <h2 className="m-0 text-gray-800 text-2xl font-bold">Quáº£n lÃ½ ngÆ°á»i dÃ¹ng</h2>
-              <p className="text-gray-500 mt-1">Quáº£n lÃ½ táº¥t cáº£ ngÆ°á»i dÃ¹ng trong há»‡ thá»‘ng</p>
+              <h2 className="m-0 text-foreground text-2xl font-bold">Quản lý người dùng</h2>
+              <p className="text-muted-foreground mt-1">Quản lý tất cả người dùng trong hệ thống</p>
             </div>
           </div>
           <Button
@@ -670,39 +670,39 @@ const Users = () => {
             className="rounded-lg shadow-md hover:shadow-lg transition-shadow bg-indigo-600 hover:bg-indigo-700 text-white"
           >
             <Plus className="h-4 w-4 mr-2" />
-            ThÃªm ngÆ°á»i dÃ¹ng
+            Thêm người dùng
           </Button>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-          <Card className="p-4 rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <Card className="p-4 rounded-xl shadow-md border border-border hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
             <Metric
-              label="Tá»•ng ngÆ°á»i dÃ¹ng"
+              label="Tổng người dùng"
               value={userStats.total}
               leading={<UsersIcon className="h-4 w-4 text-blue-500" />}
               valueStyle={{ color: '#1890ff' }}
             />
           </Card>
-          <Card className="p-4 rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <Card className="p-4 rounded-xl shadow-md border border-border hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
             <Metric
-              label="Äang hoáº¡t Ä‘á»™ng"
+              label="Đang hoạt động"
               value={userStats.active}
               leading={<CheckCircle2 className="h-4 w-4 text-green-500" />}
               valueStyle={{ color: '#52c41a' }}
             />
           </Card>
-          <Card className="p-4 rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <Card className="p-4 rounded-xl shadow-md border border-border hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
             <Metric
-              label="Táº¡m khÃ³a"
+              label="Tạm khóa"
               value={userStats.suspended}
               leading={<Ban className="h-4 w-4 text-red-500" />}
               valueStyle={{ color: '#ff4d4f' }}
             />
           </Card>
-          <Card className="p-4 rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <Card className="p-4 rounded-xl shadow-md border border-border hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
             <Metric
-              label="Quáº£n trá»‹ viÃªn"
+              label="Quản trị viên"
               value={userStats.admins}
               leading={<Crown className="h-4 w-4 text-yellow-500" />}
               valueStyle={{ color: '#faad14' }}
@@ -710,14 +710,14 @@ const Users = () => {
           </Card>
         </div>
 
-        {/* Bá»™ lá»c */}
-        <Card className="rounded-xl shadow-md border border-gray-200 mb-6">
+        {/* Bộ lọc */}
+        <Card className="rounded-xl shadow-md border border-border mb-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
             <div>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="TÃ¬m kiáº¿m theo tÃªn, email..."
+                  placeholder="Tìm kiếm theo tên, email..."
                   value={searchText}
                   onChange={(e) => {
                     setSearchText(e.target.value);
@@ -733,50 +733,50 @@ const Users = () => {
                 onValueChange={handleStatusFilterChange}
               >
                 <SelectTrigger className="w-full h-10">
-                  <SelectValue placeholder="Lá»c theo tráº¡ng thÃ¡i" />
+                  <SelectValue placeholder="Lọc theo trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Táº¥t cáº£ tráº¡ng thÃ¡i</SelectItem>
-                  <SelectItem value="active">Hoáº¡t Ä‘á»™ng</SelectItem>
-                  <SelectItem value="inactive">KhÃ´ng hoáº¡t Ä‘á»™ng</SelectItem>
-                  <SelectItem value="suspended">Táº¡m khÃ³a</SelectItem>
+                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="active">Hoạt động</SelectItem>
+                  <SelectItem value="inactive">Không hoạt động</SelectItem>
+                  <SelectItem value="suspended">Tạm khóa</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
         </Card>
 
-        {/* Báº£ng ngÆ°á»i dÃ¹ng */}
+        {/* Bảng người dùng */}
         <Card
-          className="bg-white rounded-xl shadow-md border border-gray-200"
+          className="bg-card rounded-xl shadow-md border border-border"
           ref={tableRef}
         >
           <div className="p-6">
             {loading ? (
               <div className="p-12 text-center">
                 <Loader2 className="h-10 w-10 animate-spin mx-auto text-indigo-600 mb-4" />
-                <p className="text-gray-500">Äang táº£i dá»¯ liá»‡u...</p>
+                <p className="text-muted-foreground">Đang tải dữ liệu...</p>
               </div>
             ) : users.length === 0 ? (
               <div className="p-12 text-center">
                 <User className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                <p className="text-gray-500 text-lg font-medium">KhÃ´ng cÃ³ ngÆ°á»i dÃ¹ng nÃ o</p>
-                <p className="text-gray-400 text-sm mt-2">HÃ£y thÃªm ngÆ°á»i dÃ¹ng má»›i Ä‘á»ƒ báº¯t Ä‘áº§u</p>
+                <p className="text-muted-foreground text-lg font-medium">Không có người dùng nào</p>
+                <p className="text-gray-400 text-sm mt-2">Hãy thêm người dùng mới để bắt đầu</p>
               </div>
             ) : (
               <DataTable
                 fields={columns}
                 rows={users}
-                getRowId={(record) => record?.id || Math.random()}
+                getRowId="id"
               />
             )}
           </div>
         </Card>
       </div>
 
-      {/* Modal thÃªm ngÆ°á»i dÃ¹ng */}
+      {/* Modal thêm người dùng */}
       <ResponsiveDialog
-        heading="ThÃªm ngÆ°á»i dÃ¹ng má»›i"
+        heading="Thêm người dùng mới"
         open={isAddModalVisible}
         onClose={() => {
           setIsAddModalVisible(false);
@@ -797,7 +797,7 @@ const Users = () => {
           e.preventDefault();
           // Validate required fields
           if (!formValues.fullName || !formValues.email || !formValues.phone || !formValues.role) {
-            showNotification('error', 'Lá»—i', 'Vui lÃ²ng Ä‘iá»n Ä‘áº§y Ä‘á»§ thÃ´ng tin báº¯t buá»™c');
+            showNotification('error', 'Lỗi', 'Vui lòng điền đầy đủ thông tin bắt buộc');
             return;
           }
           const values = {
@@ -809,11 +809,11 @@ const Users = () => {
           <div className="space-y-4 p-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block mb-2 font-semibold">Há» vÃ  tÃªn <span className="text-red-500">*</span></label>
+                <label className="block mb-2 font-semibold">Họ và tên <span className="text-red-500">*</span></label>
                 <Input
                   value={formValues.fullName}
                   onChange={(e) => setFormValues({ ...formValues, fullName: e.target.value })}
-                  placeholder="Nháº­p há» vÃ  tÃªn"
+                  placeholder="Nhập họ và tên"
                   required
                 />
               </div>
@@ -823,7 +823,7 @@ const Users = () => {
                   value={formValues.email}
                   onChange={(e) => setFormValues({ ...formValues, email: e.target.value })}
                   type="email"
-                  placeholder="Nháº­p email"
+                  placeholder="Nhập email"
                   required
                 />
               </div>
@@ -831,16 +831,16 @@ const Users = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block mb-2 font-semibold">Máº­t kháº©u <span className="text-red-500">*</span></label>
-                <Input name="password" type="password" placeholder="Nháº­p máº­t kháº©u" required minLength={6} />
-                <p className="text-xs text-gray-500 mt-1">Tá»‘i thiá»ƒu 6 kÃ½ tá»±</p>
+                <label className="block mb-2 font-semibold">Mật khẩu <span className="text-red-500">*</span></label>
+                <Input name="password" type="password" placeholder="Nhập mật khẩu" required minLength={6} />
+                <p className="text-xs text-muted-foreground mt-1">Tối thiểu 6 ký tự</p>
               </div>
               <div>
-                <label className="block mb-2 font-semibold">Sá»‘ Ä‘iá»‡n thoáº¡i <span className="text-red-500">*</span></label>
+                <label className="block mb-2 font-semibold">Số điện thoại <span className="text-red-500">*</span></label>
                 <Input
                   value={formValues.phone}
                   onChange={(e) => setFormValues({ ...formValues, phone: e.target.value })}
-                  placeholder="Nháº­p sá»‘ Ä‘iá»‡n thoáº¡i"
+                  placeholder="Nhập số điện thoại"
                   required
                   pattern="[0-9]{10,11}"
                 />
@@ -848,24 +848,24 @@ const Users = () => {
             </div>
 
             <div>
-              <label className="block mb-2 font-semibold">Äá»‹a chá»‰</label>
+              <label className="block mb-2 font-semibold">Địa chỉ</label>
               <Input
                 value={formValues.address}
                 onChange={(e) => setFormValues({ ...formValues, address: e.target.value })}
-                placeholder="Nháº­p Ä‘á»‹a chá»‰"
+                placeholder="Nhập địa chỉ"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block mb-2 font-semibold">Vai trÃ² <span className="text-red-500">*</span></label>
+                <label className="block mb-2 font-semibold">Vai trò <span className="text-red-500">*</span></label>
                 <Select
                   value={formValues.role}
                   onValueChange={(value) => setFormValues({ ...formValues, role: value })}
                   disabled={loadingRoles}
                 >
                   <SelectTrigger className="h-10">
-                    <SelectValue placeholder={loadingRoles ? "Äang táº£i..." : roles.length === 0 ? "ChÆ°a cÃ³ vai trÃ² nÃ o" : "Chá»n vai trÃ²"} />
+                    <SelectValue placeholder={loadingRoles ? "Đang tải..." : roles.length === 0 ? "Chưa có vai trò nào" : "Chọn vai trò"} />
                   </SelectTrigger>
                   <SelectContent>
                     {roles.length > 0 && roles.map(role => (
@@ -877,18 +877,18 @@ const Users = () => {
                 </Select>
               </div>
               <div>
-                <label className="block mb-2 font-semibold">Tráº¡ng thÃ¡i <span className="text-red-500">*</span></label>
+                <label className="block mb-2 font-semibold">Trạng thái <span className="text-red-500">*</span></label>
                 <Select
                   value={formValues.status}
                   onValueChange={(value) => setFormValues({ ...formValues, status: value })}
                 >
                   <SelectTrigger className="h-10">
-                    <SelectValue placeholder="Chá»n tráº¡ng thÃ¡i" />
+                    <SelectValue placeholder="Chọn trạng thái" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">Hoáº¡t Ä‘á»™ng</SelectItem>
-                    <SelectItem value="inactive">KhÃ´ng hoáº¡t Ä‘á»™ng</SelectItem>
-                    <SelectItem value="suspended">Táº¡m khÃ³a</SelectItem>
+                    <SelectItem value="active">Hoạt động</SelectItem>
+                    <SelectItem value="inactive">Không hoạt động</SelectItem>
+                    <SelectItem value="suspended">Tạm khóa</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -896,7 +896,7 @@ const Users = () => {
 
             <div className="flex justify-end gap-2 pt-4">
               <Button type="submit">
-                ThÃªm ngÆ°á»i dÃ¹ng
+                Thêm người dùng
               </Button>
               <Button variant="outline" onClick={() => {
                 setIsAddModalVisible(false);
@@ -909,16 +909,16 @@ const Users = () => {
                   status: 'active'
                 });
               }}>
-                Há»§y
+                Hủy
               </Button>
             </div>
           </div>
         </form>
       </ResponsiveDialog>
 
-      {/* Modal chá»‰nh sá»­a ngÆ°á»i dÃ¹ng */}
+      {/* Modal chỉnh sửa người dùng */}
       <ResponsiveDialog
-        heading="Chá»‰nh sá»­a ngÆ°á»i dÃ¹ng"
+        heading="Chỉnh sửa người dùng"
         open={isEditModalVisible}
         onClose={() => {
           setIsEditModalVisible(false);
@@ -941,7 +941,7 @@ const Users = () => {
             e.preventDefault();
             // Validate required fields
             if (!formValues.fullName || !formValues.email || !formValues.phone || !formValues.role) {
-              showNotification('error', 'Lá»—i', 'Vui lÃ²ng Ä‘iá»n Ä‘áº§y Ä‘á»§ thÃ´ng tin báº¯t buá»™c');
+              showNotification('error', 'Lỗi', 'Vui lòng điền đầy đủ thông tin bắt buộc');
               return;
             }
             handleEditUser(formValues);
@@ -951,12 +951,12 @@ const Users = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Há» vÃ  tÃªn <span className="text-red-500">*</span>
+                Họ và tên <span className="text-red-500">*</span>
               </label>
               <Input
                 value={formValues.fullName}
                 onChange={(e) => setFormValues({ ...formValues, fullName: e.target.value })}
-                placeholder="Nháº­p há» vÃ  tÃªn"
+                placeholder="Nhập họ và tên"
                 required
               />
             </div>
@@ -968,7 +968,7 @@ const Users = () => {
                 value={formValues.email}
                 onChange={(e) => setFormValues({ ...formValues, email: e.target.value })}
                 type="email"
-                placeholder="Nháº­p email"
+                placeholder="Nhập email"
                 required
               />
             </div>
@@ -977,24 +977,24 @@ const Users = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sá»‘ Ä‘iá»‡n thoáº¡i <span className="text-red-500">*</span>
+                Số điện thoại <span className="text-red-500">*</span>
               </label>
               <Input
                 value={formValues.phone}
                 onChange={(e) => setFormValues({ ...formValues, phone: e.target.value })}
-                placeholder="Nháº­p sá»‘ Ä‘iá»‡n thoáº¡i"
+                placeholder="Nhập số điện thoại"
                 required
                 pattern="[0-9]{10,11}"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Äá»‹a chá»‰
+                Địa chỉ
               </label>
               <Input
                 value={formValues.address}
                 onChange={(e) => setFormValues({ ...formValues, address: e.target.value })}
-                placeholder="Nháº­p Ä‘á»‹a chá»‰"
+                placeholder="Nhập địa chỉ"
               />
             </div>
           </div>
@@ -1002,7 +1002,7 @@ const Users = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Vai trÃ² <span className="text-red-500">*</span>
+                Vai trò <span className="text-red-500">*</span>
               </label>
               <Select
                 value={formValues.role}
@@ -1010,7 +1010,7 @@ const Users = () => {
                 disabled={loadingRoles}
               >
                 <SelectTrigger className="h-10">
-                  <SelectValue placeholder={loadingRoles ? "Äang táº£i..." : roles.length === 0 ? "ChÆ°a cÃ³ vai trÃ² nÃ o" : "Chá»n vai trÃ²"} />
+                  <SelectValue placeholder={loadingRoles ? "Đang tải..." : roles.length === 0 ? "Chưa có vai trò nào" : "Chọn vai trò"} />
                 </SelectTrigger>
                 <SelectContent>
                   {roles.length > 0 && roles.map(role => (
@@ -1023,30 +1023,30 @@ const Users = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tráº¡ng thÃ¡i <span className="text-red-500">*</span>
+                Trạng thái <span className="text-red-500">*</span>
               </label>
               <Select
                 value={formValues.status}
                 onValueChange={(value) => setFormValues({ ...formValues, status: value })}
               >
                 <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Chá»n tráº¡ng thÃ¡i" />
+                  <SelectValue placeholder="Chọn trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Hoáº¡t Ä‘á»™ng</SelectItem>
-                  <SelectItem value="inactive">KhÃ´ng hoáº¡t Ä‘á»™ng</SelectItem>
-                  <SelectItem value="suspended">Táº¡m khÃ³a</SelectItem>
+                  <SelectItem value="active">Hoạt động</SelectItem>
+                  <SelectItem value="inactive">Không hoạt động</SelectItem>
+                  <SelectItem value="suspended">Tạm khóa</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <div className="flex justify-end gap-3 pt-4 border-t border-border">
             <Button
               type="submit"
               className="bg-indigo-600 hover:bg-indigo-700 text-white h-10"
             >
-              Cáº­p nháº­t
+              Cập nhật
             </Button>
             <Button
               variant="outline"
@@ -1064,15 +1064,15 @@ const Users = () => {
               }}
               className="h-10"
             >
-              Há»§y
+              Hủy
             </Button>
           </div>
         </form>
       </ResponsiveDialog>
 
-      {/* Modal chi tiáº¿t ngÆ°á»i dÃ¹ng */}
+      {/* Modal chi tiết người dùng */}
       <ResponsiveDialog
-        heading="Chi tiáº¿t ngÆ°á»i dÃ¹ng"
+        heading="Chi tiết người dùng"
         open={isDetailModalVisible}
         onClose={() => {
           setIsDetailModalVisible(false);
@@ -1087,7 +1087,7 @@ const Users = () => {
                 setSelectedUser(null);
               }}
             >
-              ÄÃ³ng
+              Đóng
             </Button>
           </div>
         }
@@ -1095,14 +1095,14 @@ const Users = () => {
       >
         {selectedUser && (
           <div className="space-y-6">
-            <div className="text-center pb-6 border-b border-gray-200">
+            <div className="text-center pb-6 border-b border-border">
               <Avatar
                 src={selectedUser.avatar || selectedUser.avatarUrl}
                 size={80}
                 icon={<User className="h-10 w-10" />}
                 className="mx-auto mb-4"
               />
-              <h2 className="text-xl font-semibold mb-2 text-gray-900">{selectedUser.fullName || 'N/A'}</h2>
+              <h2 className="text-xl font-semibold mb-2 text-foreground">{selectedUser.fullName || 'N/A'}</h2>
               <div className="flex items-center justify-center gap-2">
                 {renderRole(selectedUser)}
                 {renderStatus(selectedUser)}
@@ -1112,44 +1112,44 @@ const Users = () => {
             <DetailList columns={2} className="gap-4">
               <DetailItem label="ID">{selectedUser.id || 'N/A'}</DetailItem>
               <DetailItem label="Email">{selectedUser.email || 'N/A'}</DetailItem>
-              <DetailItem label="Há» vÃ  tÃªn">{selectedUser.fullName || 'N/A'}</DetailItem>
-              <DetailItem label="Sá»‘ Ä‘iá»‡n thoáº¡i">{selectedUser.phone || 'N/A'}</DetailItem>
-              <DetailItem label="Äá»‹a chá»‰">{selectedUser.address || 'N/A'}</DetailItem>
-              <DetailItem label="NgÃ y sinh">
+              <DetailItem label="Họ và tên">{selectedUser.fullName || 'N/A'}</DetailItem>
+              <DetailItem label="Số điện thoại">{selectedUser.phone || 'N/A'}</DetailItem>
+              <DetailItem label="Địa chỉ">{selectedUser.address || 'N/A'}</DetailItem>
+              <DetailItem label="Ngày sinh">
                 {selectedUser.dateOfBirth
                   ? new Date(selectedUser.dateOfBirth).toLocaleDateString('vi-VN')
                   : 'N/A'
                 }
               </DetailItem>
-              <DetailItem label="Vai trÃ²">{renderRole(selectedUser)}</DetailItem>
-              <DetailItem label="Tráº¡ng thÃ¡i">{renderStatus(selectedUser)}</DetailItem>
-              <DetailItem label="Äiá»ƒm tÃ­ch lÅ©y">
+              <DetailItem label="Vai trò">{renderRole(selectedUser)}</DetailItem>
+              <DetailItem label="Trạng thái">{renderStatus(selectedUser)}</DetailItem>
+              <DetailItem label="Điểm tích lÅ©y">
                 <span className="font-semibold text-blue-600">
-                  {selectedUser.loyaltyPoints || 0} Ä‘iá»ƒm
+                  {selectedUser.loyaltyPoints || 0} điểm
                 </span>
               </DetailItem>
-              <DetailItem label="Háº¡ng thÃ nh viÃªn">
+              <DetailItem label="Hạng thành viên">
                 {selectedUser.membershipTier ? (
                   <StatusBadge tone="gold">{selectedUser.membershipTier}</StatusBadge>
                 ) : (
                   'N/A'
                 )}
               </DetailItem>
-              <DetailItem label="Láº§n Ä‘Äƒng nháº­p cuá»‘i">
+              <DetailItem label="Lần đăng nhập cuối">
                 {selectedUser.lastLogin
                   ? new Date(selectedUser.lastLogin).toLocaleDateString('vi-VN') + ' ' +
                   new Date(selectedUser.lastLogin).toLocaleTimeString('vi-VN')
-                  : 'ChÆ°a Ä‘Äƒng nháº­p'
+                  : 'Chưa đăng nhập'
                 }
               </DetailItem>
-              <DetailItem label="NgÃ y táº¡o">
+              <DetailItem label="Ngày tạo">
                 {selectedUser.createdAt
                   ? new Date(selectedUser.createdAt).toLocaleDateString('vi-VN') + ' ' +
                   new Date(selectedUser.createdAt).toLocaleTimeString('vi-VN')
                   : 'N/A'
                 }
               </DetailItem>
-              <DetailItem label="NgÃ y cáº­p nháº­t">
+              <DetailItem label="Ngày cập nhật">
                 {selectedUser.updatedAt
                   ? new Date(selectedUser.updatedAt).toLocaleDateString('vi-VN') + ' ' +
                   new Date(selectedUser.updatedAt).toLocaleTimeString('vi-VN')

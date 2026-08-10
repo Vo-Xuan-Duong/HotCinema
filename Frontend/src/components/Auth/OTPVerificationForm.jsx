@@ -139,7 +139,7 @@ const OTPVerificationForm = ({ email, onSuccess, onBack }) => {
                 <h2 className="text-2xl font-bold m-0 mb-2 bg-gradient-to-r from-[#e50914] to-[#ff6b35] bg-clip-text text-transparent md:text-xl">
                     Xác thực tài khoản
                 </h2>
-                <p className="text-gray-600 text-[13px] m-1">Nhập mã OTP đã được gửi đến</p>
+                <p className="text-muted-foreground text-[13px] m-1">Nhập mã OTP đã được gửi đến</p>
                 <p className="text-[#e50914] font-semibold text-sm mt-2">{email}</p>
             </div>
 
@@ -153,7 +153,7 @@ const OTPVerificationForm = ({ email, onSuccess, onBack }) => {
                                     ref={(el) => (inputRefs.current[index] = el)}
                                     maxLength={1}
                                     value={otp[index]}
-                                    className="w-12 h-14 text-center text-2xl font-bold bg-white/10 border-2 border-white/20 rounded-lg text-gray-900 transition-all duration-300 hover:border-primary/60 hover:bg-white/15 focus:border-primary focus:shadow-[0_0_0_3px_rgba(229,9,20,0.2)] focus:bg-white/15 md:w-[42px] md:h-[50px] md:text-xl"
+                                    className="w-12 h-14 text-center text-2xl font-bold bg-card/10 border-2 border-white/20 rounded-lg text-foreground transition-all duration-300 hover:border-primary/60 hover:bg-card/15 focus:border-primary focus:shadow-[0_0_0_3px_rgba(229,9,20,0.2)] focus:bg-card/15 md:w-[42px] md:h-[50px] md:text-xl"
                                     onChange={(e) => handleOTPChange(index, e.target.value)}
                                     onKeyDown={(e) => handleKeyDown(index, e)}
                                     onPaste={index === 0 ? handlePaste : undefined}
@@ -187,7 +187,7 @@ const OTPVerificationForm = ({ email, onSuccess, onBack }) => {
                             {resendLoading ? 'Đang gửi...' : 'Gửi lại mã OTP'}
                         </Button>
                     ) : (
-                        <span className="text-gray-500 text-[13px]">
+                        <span className="text-muted-foreground text-[13px]">
                             Gửi lại mã sau {countdown}s
                         </span>
                     )}
@@ -196,7 +196,7 @@ const OTPVerificationForm = ({ email, onSuccess, onBack }) => {
                     type="button"
                     variant="link"
                     onClick={onBack}
-                    className="text-gray-500 p-0 h-auto text-[13px] hover:text-gray-700"
+                    className="text-muted-foreground p-0 h-auto text-[13px] hover:text-gray-700"
                 >
                     Quay lại đăng ký
                 </Button>

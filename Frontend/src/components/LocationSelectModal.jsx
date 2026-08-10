@@ -31,11 +31,11 @@ export default function LocationSelectModal({ open, onClose, onSelect, value, ci
             maxWidth={780}
             destroyOnClose
             className="location-select-modal"
-            heading={<div className="location-modal-header"><span className="font-semibold text-lg">Chá»n thÃ nh phá»‘</span></div>}
+            heading={<div className="location-modal-header"><span className="font-semibold text-lg">Chọn thành phố</span></div>}
         >
             <div className="location-modal-toolbar">
                 <Input
-                    placeholder="TÃ¬m thÃ nh phá»‘ ..."
+                    placeholder="Tìm thành phố ..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     className="location-search-input"
@@ -57,12 +57,12 @@ export default function LocationSelectModal({ open, onClose, onSelect, value, ci
                 })}
                 {!filtered.length && (
                     <div className="no-results">
-                        <p className="text-gray-500">KhÃ´ng tÃ¬m tháº¥y thÃ nh phá»‘ phÃ¹ há»£p.</p>
+                        <p className="text-muted-foreground">Không tìm thấy thành phố phù hợp.</p>
                     </div>
                 )}
             </div>
             <div className="location-modal-footer">
-                <Button onClick={onClose} className="close-modal-btn">ÄÃ³ng</Button>
+                <Button onClick={onClose} className="close-modal-btn">Đóng</Button>
             </div>
         </ResponsiveDialog>
     );

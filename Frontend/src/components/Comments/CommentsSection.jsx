@@ -70,7 +70,7 @@ const CommentsSection = ({ movieId }) => {
   const loadAverageRating = async () => {
     try {
       const result = await reviewService.getAverageRating(movieId);
-      // Xá»­ lÃ½ response cÃ³ thá»ƒ cÃ³ nhiá»u cáº¥u trÃºc
+      // Xử lý response có thể có nhiều cấu trúc
       const data = result?.data || result;
       setAverageRating(data?.averageRating || 0);
       setRatingCount(data?.countRating || 0);
@@ -107,7 +107,7 @@ const CommentsSection = ({ movieId }) => {
         sort: sortParam
       });
 
-      // Xá»­ lÃ½ response tá»« API (cÃ³ thá»ƒ cÃ³ nhiá»u cáº¥u trÃºc)
+      // Xử lý response từ API (có thể có nhiều cấu trúc)
       const reviewsData = response?.content || response?.data?.content || response?.data || [];
 
       const mappedComments = reviewsData.map(review => ({
@@ -126,9 +126,9 @@ const CommentsSection = ({ movieId }) => {
           fullName: reply.fullName, // String
           avatarUrl: reply.avatarUrl, // String
           createdAt: reply.createdAt, // LocalDateTime
-          replies: reply.replies || [] // List<ReviewResponse> (nested, cÃ³ thá»ƒ rá»—ng)
+          replies: reply.replies || [] // List<ReviewResponse> (nested, có thể rỗng)
         })),
-        // Giá»¯ láº¡i cÃ¡c field cÅ© Ä‘á»ƒ tÆ°Æ¡ng thÃ­ch
+        // Giữ các trường hiện có trong phản hồi.
         userName: review.fullName,
         userAvatarUrl: review.avatarUrl,
         user: review.user || null
@@ -161,7 +161,7 @@ const CommentsSection = ({ movieId }) => {
         movieId: Number(movieId), // Long
         comment: newComment.trim(), // String
         rating: Number(rating) // Integer (1-5)
-        // parentId khÃ´ng cÃ³ vÃ¬ Ä‘Ã¢y lÃ  review gá»‘c
+        // parentId không có vì đây là review gốc
       };
 
       await reviewService.createReview(commentData);
@@ -172,10 +172,10 @@ const CommentsSection = ({ movieId }) => {
 
       setNewComment('');
       setRating(0);
-      notification.success('ÄÃ£ gá»­i bÃ¬nh luáº­n thÃ nh cÃ´ng');
+      notification.success('Đã gửi bình luận thành công');
     } catch (error) {
       console.error('Error submitting comment:', error);
-      notification.error(error?.response?.data?.message || 'KhÃ´ng thá»ƒ gá»­i bÃ¬nh luáº­n. Vui lÃ²ng thá»­ láº¡i.');
+      notification.error(error?.response?.data?.message || 'Không thể gửi bình luận. Vui lòng thử lại.');
     } finally {
       setIsSubmitting(false);
     }
@@ -191,7 +191,7 @@ const CommentsSection = ({ movieId }) => {
       const replyData = {
         movieId: Number(movieId), // Long
         comment: replyText.trim(), // String
-        rating: 5, // Integer (1-5), Reply máº·c Ä‘á»‹nh 5 sao
+        rating: 5, // Integer (1-5), Reply mặc định 5 sao
         parentId: Number(parentId) // Long
       };
 
@@ -203,10 +203,10 @@ const CommentsSection = ({ movieId }) => {
 
       setReplyText('');
       setReplyingTo(null);
-      notification.success('ÄÃ£ gá»­i pháº£n há»“i thÃ nh cÃ´ng');
+      notification.success('Đã gửi phản hồi thành công');
     } catch (error) {
       console.error('Error submitting reply:', error);
-      notification.error(error?.response?.data?.message || 'KhÃ´ng thá»ƒ gá»­i pháº£n há»“i. Vui lÃ²ng thá»­ láº¡i.');
+      notification.error(error?.response?.data?.message || 'Không thể gửi phản hồi. Vui lòng thử lại.');
     } finally {
       setIsSubmitting(false);
     }
@@ -217,17 +217,17 @@ const CommentsSection = ({ movieId }) => {
       await reviewService.deleteReview(commentId);
       await loadComments(pagination.page);
       await loadAverageRating();
-      notification.success('ÄÃ£ xÃ³a bÃ¬nh luáº­n thÃ nh cÃ´ng');
+      notification.success('Đã xóa bình luận thành công');
     } catch (error) {
       console.error('Error deleting comment:', error);
-      notification.error(error?.response?.data?.message || 'KhÃ´ng thá»ƒ xÃ³a bÃ¬nh luáº­n. Vui lÃ²ng thá»­ láº¡i.');
+      notification.error(error?.response?.data?.message || 'Không thể xóa bình luận. Vui lòng thử lại.');
     }
   };
 
   const handleEditComment = (comment) => {
-    // Kiá»ƒm tra náº¿u userId cá»§a comment khá»›p vá»›i userId cá»§a user hiá»‡n táº¡i
+    // Kiểm tra nếu userId của comment khớp với userId của user hiện tại
     if (!user || !comment.userId) {
-      notification.error('KhÃ´ng thá»ƒ chá»‰nh sá»­a bÃ¬nh luáº­n nÃ y');
+      notification.error('Không thể chỉnh sửa bình luận này');
       return;
     }
 
@@ -235,42 +235,42 @@ const CommentsSection = ({ movieId }) => {
     const currentUserId = String(user.id);
 
     if (commentUserId !== currentUserId) {
-      notification.error('Báº¡n chá»‰ cÃ³ thá»ƒ chá»‰nh sá»­a bÃ¬nh luáº­n cá»§a chÃ­nh mÃ¬nh');
+      notification.error('Bạn chỉ có thể chỉnh sửa bình luận của chính mình');
       return;
     }
 
     setEditingComment(comment.id);
     setEditText(comment.comment);
-    setEditRating(comment.rating || 0); // Backend tráº£ vá» 1-5 sao
+    setEditRating(comment.rating || 0); // Backend trả về 1-5 sao
   };
 
   const handleUpdateComment = async (commentId) => {
     if (!editText.trim() || editRating === 0) return;
 
-    // TÃ¬m comment hoáº·c reply trong danh sÃ¡ch
+    // Tìm comment hoặc reply trong danh sách
     let targetComment = null;
     let parentId = null;
 
-    // TÃ¬m trong comments
+    // Tìm trong comments
     for (const comment of comments) {
       if (comment.id === commentId) {
         targetComment = comment;
-        parentId = null; // ÄÃ¢y lÃ  comment gá»‘c
+        parentId = null; // Đây là comment gốc
         break;
       }
-      // TÃ¬m trong replies
+      // Tìm trong replies
       if (comment.replies && comment.replies.length > 0) {
         const reply = comment.replies.find(r => r.id === commentId);
         if (reply) {
           targetComment = reply;
-          parentId = comment.id; // ÄÃ¢y lÃ  reply, parentId lÃ  id cá»§a comment cha
+          parentId = comment.id; // Đây là reply, parentId là id của comment cha
           break;
         }
       }
     }
 
     if (!targetComment || !user || !targetComment.userId) {
-      notification.error('KhÃ´ng thá»ƒ cáº­p nháº­t bÃ¬nh luáº­n nÃ y');
+      notification.error('Không thể cập nhật bình luận này');
       setEditingComment(null);
       setEditText('');
       setEditRating(0);
@@ -278,7 +278,7 @@ const CommentsSection = ({ movieId }) => {
     }
 
     if (String(user.id) !== String(targetComment.userId)) {
-      notification.error('Báº¡n chá»‰ cÃ³ thá»ƒ chá»‰nh sá»­a bÃ¬nh luáº­n cá»§a chÃ­nh mÃ¬nh');
+      notification.error('Bạn chỉ có thể chỉnh sửa bình luận của chính mình');
       setEditingComment(null);
       setEditText('');
       setEditRating(0);
@@ -293,7 +293,7 @@ const CommentsSection = ({ movieId }) => {
         movieId: Number(movieId), // Long
         comment: editText.trim(), // String
         rating: Number(editRating), // Integer (1-5)
-        parentId: parentId ? Number(parentId) : null // Long (null cho review gá»‘c, cÃ³ giÃ¡ trá»‹ cho reply)
+        parentId: parentId ? Number(parentId) : null // Long (null cho review gốc, có giá trị cho reply)
       };
 
       await reviewService.updateReview(commentId, updateData);
@@ -303,10 +303,10 @@ const CommentsSection = ({ movieId }) => {
       setEditingComment(null);
       setEditText('');
       setEditRating(0);
-      notification.success('ÄÃ£ cáº­p nháº­t bÃ¬nh luáº­n thÃ nh cÃ´ng');
+      notification.success('Đã cập nhật bình luận thành công');
     } catch (error) {
       console.error('Error updating comment:', error);
-      notification.error(error?.response?.data?.message || 'KhÃ´ng thá»ƒ cáº­p nháº­t bÃ¬nh luáº­n. Vui lÃ²ng thá»­ láº¡i.');
+      notification.error(error?.response?.data?.message || 'Không thể cập nhật bình luận. Vui lòng thử lại.');
     } finally {
       setIsSubmitting(false);
     }
@@ -319,7 +319,7 @@ const CommentsSection = ({ movieId }) => {
   };
 
   const renderStars = (starRating, interactive = false, onStarClick = null) => {
-    // starRating lÃ  sá»‘ sao tá»« 1-5
+    // starRating là số sao từ 1-5
     return (
       <div className="flex gap-0.5 items-center">
         {[1, 2, 3, 4, 5].map((star) => {
@@ -351,10 +351,10 @@ const CommentsSection = ({ movieId }) => {
     const now = new Date();
     const diffInSeconds = Math.floor((now - date) / 1000);
 
-    if (diffInSeconds < 60) return 'Vá»«a xong';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} phÃºt trÆ°á»›c`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} giá» trÆ°á»›c`;
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} ngÃ y trÆ°á»›c`;
+    if (diffInSeconds < 60) return 'Vừa xong';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} phút trước`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} giờ trước`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} ngày trước`;
 
     return date.toLocaleDateString('vi-VN');
   };
@@ -363,7 +363,7 @@ const CommentsSection = ({ movieId }) => {
     return (
       <div className="py-12 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-        <span className="ml-3 text-gray-600">Äang táº£i bÃ¬nh luáº­n...</span>
+        <span className="ml-3 text-muted-foreground">Đang tải bình luận...</span>
       </div>
     );
   }
@@ -374,17 +374,17 @@ const CommentsSection = ({ movieId }) => {
       <div className="mb-6">
         <div className="flex justify-between items-start flex-wrap gap-4">
           <div className="flex-1">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">ÄÃ¡nh giÃ¡ vÃ  BÃ¬nh luáº­n</h2>
+            <h2 className="text-3xl font-bold text-foreground mb-4">Đánh giá và Bình luận</h2>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 {renderStars(averageRating)}
-                <span className="font-bold text-lg text-gray-900 ml-2">
+                <span className="font-bold text-lg text-foreground ml-2">
                   {averageRating > 0 ? averageRating.toFixed(1) : '0.0'}
                 </span>
-                <span className="text-gray-500 text-sm">/5</span>
+                <span className="text-muted-foreground text-sm">/5</span>
               </div>
-              <span className="text-gray-600 text-sm">
-                {ratingCount} {ratingCount === 1 ? 'ÄÃ¡nh giÃ¡' : 'ÄÃ¡nh giÃ¡'}
+              <span className="text-muted-foreground text-sm">
+                {ratingCount} {ratingCount === 1 ? 'Đánh giá' : 'Đánh giá'}
               </span>
             </div>
           </div>
@@ -393,45 +393,45 @@ const CommentsSection = ({ movieId }) => {
             variant="outline"
             className="bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300"
           >
-            Viáº¿t Ä‘Ã¡nh giÃ¡
+            Viết đánh giá
           </Button>
         </div>
       </div>
 
       {isAuthenticated && user ? (
-        <Card className="p-4 mb-6 border-gray-200 bg-white" id="comment-form">
+        <Card className="p-4 mb-6 border-border bg-card" id="comment-form">
           <form onSubmit={handleSubmitComment} className="space-y-4">
             <div className="flex gap-4 items-start">
               <Avatar className="h-10 w-10 flex-shrink-0">
                 <AvatarImage src={user.avatarUrl} alt={user.username || user.name} />
                 <AvatarFallback className="bg-gray-200">
-                  <User className="h-5 w-5 text-gray-500" />
+                  <User className="h-5 w-5 text-muted-foreground" />
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 space-y-3">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">ÄÃ¡nh giÃ¡ cá»§a báº¡n</label>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Đánh giá của bạn</label>
                   <div className="flex items-center gap-2 mb-3">
                     {renderStars(rating, true, setRating)}
                     {rating > 0 && (
-                      <span className="text-sm text-gray-600 ml-2">{rating}/5</span>
+                      <span className="text-sm text-muted-foreground ml-2">{rating}/5</span>
                     )}
                     {rating === 0 && (
-                      <span className="text-xs text-gray-400 ml-2">(Chá»n sá»‘ sao)</span>
+                      <span className="text-xs text-gray-400 ml-2">(Chọn số sao)</span>
                     )}
                   </div>
                 </div>
                 <Textarea
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Viáº¿t bÃ¬nh luáº­n cá»§a báº¡n..."
-                  className="min-h-[80px] resize-none border-gray-300 bg-gray-50"
+                  placeholder="Viết bình luận của bạn..."
+                  className="min-h-[80px] resize-none border-gray-300 bg-background"
                   rows="3"
                   maxLength={500}
                 />
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">
-                    {newComment.length}/500 kÃ½ tá»±
+                  <span className="text-xs text-muted-foreground">
+                    {newComment.length}/500 ký tự
                   </span>
                   <div className="flex items-center gap-2">
                     <Button
@@ -439,7 +439,7 @@ const CommentsSection = ({ movieId }) => {
                       variant="ghost"
                       size="sm"
                       disabled={!newComment.trim() || isSubmitting || rating === 0}
-                      className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                      className="h-8 w-8 p-0 text-gray-400 hover:text-muted-foreground disabled:opacity-50"
                     >
                       {isSubmitting ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -458,7 +458,7 @@ const CommentsSection = ({ movieId }) => {
           <div className="text-center">
             <MessageCircle className="h-12 w-12 mx-auto text-blue-500 mb-3" />
             <p className="text-gray-700 mb-3">
-              Vui lÃ²ng <a href="/login" className="text-blue-600 font-semibold hover:underline">Ä‘Äƒng nháº­p</a> Ä‘á»ƒ bÃ¬nh luáº­n vÃ  Ä‘Ã¡nh giÃ¡ phim
+              Vui lòng <a href="/login" className="text-blue-600 font-semibold hover:underline">đăng nhập</a> để bình luận và đánh giá phim
             </p>
           </div>
         </Card>
@@ -473,12 +473,12 @@ const CommentsSection = ({ movieId }) => {
                 alt={comment.fullName || comment.userName}
               />
               <AvatarFallback className="bg-gray-200">
-                <User className="h-5 w-5 text-gray-500" />
+                <User className="h-5 w-5 text-muted-foreground" />
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-3 mb-2">
-                <h4 className="font-semibold text-gray-900">{comment.fullName || comment.userName}</h4>
+                <h4 className="font-semibold text-foreground">{comment.fullName || comment.userName}</h4>
                 <div className="flex items-center gap-1 flex-shrink-0">
                   {renderStars(comment.rating || 0)}
                 </div>
@@ -489,43 +489,43 @@ const CommentsSection = ({ movieId }) => {
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 mb-2">
                       <Edit className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm font-semibold text-gray-700">Chá»‰nh sá»­a bÃ¬nh luáº­n</span>
+                      <span className="text-sm font-semibold text-gray-700">Chỉnh sửa bình luận</span>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-700 mb-2 block">Xáº¿p háº¡ng:</label>
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">Xếp hạng:</label>
                       <div className="flex items-center gap-2">
                         {renderStars(editRating, true, setEditRating)}
                         {editRating > 0 ? (
-                          <span className="text-sm text-gray-600 ml-2">{editRating}/5</span>
+                          <span className="text-sm text-muted-foreground ml-2">{editRating}/5</span>
                         ) : (
-                          <span className="text-xs text-gray-400 ml-2">(Chá»n sá»‘ sao)</span>
+                          <span className="text-xs text-gray-400 ml-2">(Chọn số sao)</span>
                         )}
                       </div>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-700 mb-2 block">Ná»™i dung:</label>
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">Nội dung:</label>
                       <Textarea
                         value={editText}
                         onChange={(e) => setEditText(e.target.value)}
                         className="min-h-[100px] resize-none border-gray-300"
                         rows="4"
                         maxLength={500}
-                        placeholder="Nháº­p ná»™i dung bÃ¬nh luáº­n..."
+                        placeholder="Nhập nội dung bình luận..."
                       />
                       <div className="flex items-center justify-between mt-1">
-                        <span className="text-xs text-gray-500">
-                          {editText.length}/500 kÃ½ tá»±
+                        <span className="text-xs text-muted-foreground">
+                          {editText.length}/500 ký tự
                         </span>
                       </div>
                     </div>
-                    <div className="flex justify-end gap-2 pt-2 border-t border-gray-200">
+                    <div className="flex justify-end gap-2 pt-2 border-t border-border">
                       <Button
                         variant="outline"
                         onClick={handleCancelEdit}
                         size="sm"
-                        className="text-gray-600 hover:text-gray-900"
+                        className="text-muted-foreground hover:text-foreground"
                       >
-                        Há»§y
+                        Hủy
                       </Button>
                       <Button
                         onClick={() => handleUpdateComment(comment.id)}
@@ -536,12 +536,12 @@ const CommentsSection = ({ movieId }) => {
                         {isSubmitting ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Äang lÆ°u...
+                            Đang lưu...
                           </>
                         ) : (
                           <>
                             <Edit className="h-4 w-4 mr-2" />
-                            LÆ°u thay Ä‘á»•i
+                            Lưu thay đổi
                           </>
                         )}
                       </Button>
@@ -550,8 +550,8 @@ const CommentsSection = ({ movieId }) => {
                 </Card>
               ) : (
                 <>
-                  <p className="text-gray-800 leading-relaxed mb-3">{comment.comment}</p>
-                  <div className="flex items-center gap-3 text-sm text-gray-500">
+                  <p className="text-foreground leading-relaxed mb-3">{comment.comment}</p>
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Clock className="h-3.5 w-3.5" />
                       {formatDate(comment.createdAt)}
@@ -560,11 +560,11 @@ const CommentsSection = ({ movieId }) => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-auto px-2 py-1 text-xs font-normal text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                        className="h-auto px-2 py-1 text-xs font-normal text-muted-foreground hover:text-blue-600 hover:bg-blue-50"
                         onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
                       >
                         <Reply className="h-3.5 w-3.5 mr-1" />
-                        Tráº£ lá»i
+                        Trả lời
                       </Button>
                     )}
                     {user && comment.userId && String(user.id) === String(comment.userId) && (
@@ -572,24 +572,24 @@ const CommentsSection = ({ movieId }) => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-auto px-2 py-1 text-xs font-normal text-gray-600 hover:text-indigo-600 hover:bg-indigo-50"
+                          className="h-auto px-2 py-1 text-xs font-normal text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50"
                           onClick={() => handleEditComment(comment)}
                         >
                           <Edit className="h-3.5 w-3.5 mr-1" />
-                          Sá»­a
+                          Sửa
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           className="h-auto px-2 py-1 text-xs font-normal text-red-600 hover:text-red-700 hover:bg-red-50"
                           onClick={() => {
-                            if (window.confirm('Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a bÃ¬nh luáº­n nÃ y?')) {
+                            if (window.confirm('Bạn có chắc chắn muốn xóa bình luận này?')) {
                               handleDeleteComment(comment.id);
                             }
                           }}
                         >
                           <Trash2 className="h-3.5 w-3.5 mr-1" />
-                          XÃ³a
+                          Xóa
                         </Button>
                       </>
                     )}
@@ -598,12 +598,12 @@ const CommentsSection = ({ movieId }) => {
               )}
 
               {replyingTo === comment.id && isAuthenticated && (
-                <Card className="mt-4 p-4 bg-gray-50 border-gray-200">
+                <Card className="mt-4 p-4 bg-background border-border">
                   <div className="space-y-3">
                     <Textarea
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
-                      placeholder="Viáº¿t pháº£n há»“i cá»§a báº¡n..."
+                      placeholder="Viết phản hồi của bạn..."
                       className="min-h-[80px]"
                       rows="3"
                     />
@@ -616,7 +616,7 @@ const CommentsSection = ({ movieId }) => {
                           setReplyText('');
                         }}
                       >
-                        Há»§y
+                        Hủy
                       </Button>
                       <Button
                         size="sm"
@@ -626,12 +626,12 @@ const CommentsSection = ({ movieId }) => {
                         {isSubmitting ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Äang gá»­i...
+                            Đang gửi...
                           </>
                         ) : (
                           <>
                             <Send className="h-4 w-4 mr-2" />
-                            Gá»­i
+                            Gửi
                           </>
                         )}
                       </Button>
@@ -650,7 +650,7 @@ const CommentsSection = ({ movieId }) => {
                           alt={reply.fullName || reply.userName}
                         />
                         <AvatarFallback className="bg-gray-200">
-                          <User className="h-4 w-4 text-gray-500" />
+                          <User className="h-4 w-4 text-muted-foreground" />
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
@@ -659,39 +659,39 @@ const CommentsSection = ({ movieId }) => {
                             <div className="space-y-2">
                               <div className="flex items-center gap-2 mb-2">
                                 <Edit className="h-3.5 w-3.5 text-blue-600" />
-                                <span className="text-xs font-semibold text-gray-700">Chá»‰nh sá»­a pháº£n há»“i</span>
+                                <span className="text-xs font-semibold text-gray-700">Chỉnh sửa phản hồi</span>
                               </div>
                               <div>
-                                <label className="text-xs font-medium text-gray-700 mb-1 block">Xáº¿p háº¡ng:</label>
+                                <label className="text-xs font-medium text-gray-700 mb-1 block">Xếp hạng:</label>
                                 <div className="flex items-center gap-2">
                                   {renderStars(editRating, true, setEditRating)}
                                   {editRating > 0 ? (
-                                    <span className="text-xs text-gray-600 ml-1">{editRating}/5</span>
+                                    <span className="text-xs text-muted-foreground ml-1">{editRating}/5</span>
                                   ) : (
-                                    <span className="text-xs text-gray-400 ml-1">(Chá»n sá»‘ sao)</span>
+                                    <span className="text-xs text-gray-400 ml-1">(Chọn số sao)</span>
                                   )}
                                 </div>
                               </div>
                               <div>
-                                <label className="text-xs font-medium text-gray-700 mb-1 block">Ná»™i dung:</label>
+                                <label className="text-xs font-medium text-gray-700 mb-1 block">Nội dung:</label>
                                 <Textarea
                                   value={editText}
                                   onChange={(e) => setEditText(e.target.value)}
                                   className="min-h-[60px] resize-none border-gray-300 text-sm"
                                   rows="2"
                                   maxLength={500}
-                                  placeholder="Nháº­p ná»™i dung pháº£n há»“i..."
+                                  placeholder="Nhập nội dung phản hồi..."
                                 />
-                                <span className="text-xs text-gray-500">{editText.length}/500 kÃ½ tá»±</span>
+                                <span className="text-xs text-muted-foreground">{editText.length}/500 ký tự</span>
                               </div>
-                              <div className="flex justify-end gap-2 pt-1 border-t border-gray-200">
+                              <div className="flex justify-end gap-2 pt-1 border-t border-border">
                                 <Button
                                   variant="outline"
                                   onClick={handleCancelEdit}
                                   size="sm"
-                                  className="text-xs h-7 text-gray-600 hover:text-gray-900"
+                                  className="text-xs h-7 text-muted-foreground hover:text-foreground"
                                 >
-                                  Há»§y
+                                  Hủy
                                 </Button>
                                 <Button
                                   onClick={() => handleUpdateComment(reply.id)}
@@ -702,12 +702,12 @@ const CommentsSection = ({ movieId }) => {
                                   {isSubmitting ? (
                                     <>
                                       <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                      Äang lÆ°u...
+                                      Đang lưu...
                                     </>
                                   ) : (
                                     <>
                                       <Edit className="h-3 w-3 mr-1" />
-                                      LÆ°u
+                                      Lưu
                                     </>
                                   )}
                                 </Button>
@@ -717,10 +717,10 @@ const CommentsSection = ({ movieId }) => {
                         ) : (
                           <>
                             <div className="mb-1">
-                              <h5 className="font-semibold text-sm text-gray-900">{reply.fullName || reply.userName}</h5>
+                              <h5 className="font-semibold text-sm text-foreground">{reply.fullName || reply.userName}</h5>
                             </div>
-                            <p className="text-gray-800 text-sm leading-relaxed mb-2">{reply.comment}</p>
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <p className="text-foreground text-sm leading-relaxed mb-2">{reply.comment}</p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               <span className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
                                 {formatDate(reply.createdAt)}
@@ -729,11 +729,11 @@ const CommentsSection = ({ movieId }) => {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-auto px-2 py-0.5 text-xs font-normal text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                                  className="h-auto px-2 py-0.5 text-xs font-normal text-muted-foreground hover:text-blue-600 hover:bg-blue-50"
                                   onClick={() => setReplyingTo(replyingTo === reply.id ? null : reply.id)}
                                 >
                                   <Reply className="h-3 w-3 mr-1" />
-                                  Tráº£ lá»i
+                                  Trả lời
                                 </Button>
                               )}
                               {user && reply.userId && String(user.id) === String(reply.userId) && (
@@ -741,24 +741,24 @@ const CommentsSection = ({ movieId }) => {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-auto px-2 py-0.5 text-xs font-normal text-gray-600 hover:text-indigo-600 hover:bg-indigo-50"
+                                    className="h-auto px-2 py-0.5 text-xs font-normal text-muted-foreground hover:text-indigo-600 hover:bg-indigo-50"
                                     onClick={() => handleEditComment(reply)}
                                   >
                                     <Edit className="h-3 w-3 mr-1" />
-                                    Sá»­a
+                                    Sửa
                                   </Button>
                                   <Button
                                     variant="ghost"
                                     size="sm"
                                     className="h-auto px-2 py-0.5 text-xs font-normal text-red-600 hover:text-red-700 hover:bg-red-50"
                                     onClick={() => {
-                                      if (window.confirm('Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a pháº£n há»“i nÃ y?')) {
+                                      if (window.confirm('Bạn có chắc chắn muốn xóa phản hồi này?')) {
                                         handleDeleteComment(reply.id);
                                       }
                                     }}
                                   >
                                     <Trash2 className="h-3 w-3 mr-1" />
-                                    XÃ³a
+                                    Xóa
                                   </Button>
                                 </>
                               )}
@@ -772,20 +772,20 @@ const CommentsSection = ({ movieId }) => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="ml-11 text-gray-600 hover:text-gray-900 text-xs"
+                      className="ml-11 text-muted-foreground hover:text-foreground text-xs"
                       onClick={() => setExpandedReplies({ ...expandedReplies, [comment.id]: true })}
                     >
-                      Xem thÃªm {comment.replies.length - 2} pháº£n há»“i
+                      Xem thêm {comment.replies.length - 2} phản hồi
                     </Button>
                   )}
                   {expandedReplies[comment.id] && comment.replies.length > 2 && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="ml-11 text-gray-600 hover:text-gray-900 text-xs"
+                      className="ml-11 text-muted-foreground hover:text-foreground text-xs"
                       onClick={() => setExpandedReplies({ ...expandedReplies, [comment.id]: false })}
                     >
-                      áº¨n bá»›t
+                      Ẩn bớt
                     </Button>
                   )}
                 </div>
@@ -805,10 +805,10 @@ const CommentsSection = ({ movieId }) => {
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Äang táº£i...
+                  Đang tải...
                 </>
               ) : (
-                'Xem thÃªm bÃ¬nh luáº­n'
+                'Xem thêm bình luận'
               )}
             </Button>
           </div>
@@ -818,8 +818,8 @@ const CommentsSection = ({ movieId }) => {
       {comments.length === 0 && (
         <Card className="p-12 text-center">
           <MessageCircle className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-          <p className="text-gray-600 text-lg mb-2">ChÆ°a cÃ³ bÃ¬nh luáº­n nÃ o</p>
-          <p className="text-gray-500 text-sm">HÃ£y lÃ  ngÆ°á»i Ä‘áº§u tiÃªn chia sáº» suy nghÄ© cá»§a báº¡n vá» bá»™ phim nÃ y!</p>
+          <p className="text-muted-foreground text-lg mb-2">Chưa có bình luận nào</p>
+          <p className="text-muted-foreground text-sm">Hãy là người đầu tiên chia sẻ suy nghĩ của bạn về bộ phim này!</p>
         </Card>
       )}
     </div>

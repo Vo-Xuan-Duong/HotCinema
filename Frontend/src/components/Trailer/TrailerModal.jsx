@@ -59,12 +59,12 @@ const TrailerModal = ({ isOpen, onClose, trailerUrl, movieTitle }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] p-0 bg-white border-gray-800 overflow-hidden [&>button]:hidden">
+      <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] p-0 bg-card border-gray-800 overflow-hidden [&>button]:hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 md:p-6 bg-gradient-to-r from-primary/90 via-red-600/90 to-orange-600/90 border-b border-white/10">
           <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
             <div className="flex-shrink-0">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-card/20 backdrop-blur-sm flex items-center justify-center">
                 <Play className="h-5 w-5 md:h-6 md:w-6 text-white" />
               </div>
             </div>
@@ -79,7 +79,7 @@ const TrailerModal = ({ isOpen, onClose, trailerUrl, movieTitle }) => {
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 md:h-10 md:w-10 text-white hover:bg-white/20"
+              className="h-9 w-9 md:h-10 md:w-10 text-white hover:bg-card/20"
               onClick={handleFullscreen}
               title="Toàn màn hình"
             >
@@ -88,7 +88,7 @@ const TrailerModal = ({ isOpen, onClose, trailerUrl, movieTitle }) => {
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 md:h-10 md:w-10 text-white hover:bg-white/20"
+              className="h-9 w-9 md:h-10 md:w-10 text-white hover:bg-card/20"
               onClick={handleShare}
               title="Chia sẻ"
             >
@@ -97,7 +97,7 @@ const TrailerModal = ({ isOpen, onClose, trailerUrl, movieTitle }) => {
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 md:h-10 md:w-10 text-white hover:bg-white/20"
+              className="h-9 w-9 md:h-10 md:w-10 text-white hover:bg-card/20"
               onClick={onClose}
               title="Đóng"
             >
@@ -141,7 +141,7 @@ const TrailerModal = ({ isOpen, onClose, trailerUrl, movieTitle }) => {
             <Button
               variant="outline"
               size="sm"
-              className="text-white border-white/20 hover:bg-white/10"
+              className="text-white border-white/20 hover:bg-card/10"
               onClick={handleFullscreen}
             >
               <Maximize2 className="h-4 w-4 mr-2" />
@@ -150,7 +150,7 @@ const TrailerModal = ({ isOpen, onClose, trailerUrl, movieTitle }) => {
             <Button
               variant="outline"
               size="sm"
-              className="text-white border-white/20 hover:bg-white/10"
+              className="text-white border-white/20 hover:bg-card/10"
               onClick={handleShare}
             >
               <Share2 className="h-4 w-4 mr-2" />

@@ -14,7 +14,6 @@ export const saveAuthData = ({ accessToken, refreshToken, user, rememberEmail })
         // Save access token
         if (accessToken) {
             localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
-            localStorage.setItem(STORAGE_KEYS.USER_TOKEN, accessToken); // Legacy support
         }
 
         // Save refresh token
@@ -51,7 +50,6 @@ export const clearAuthData = () => {
     try {
         localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
         localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.USER_TOKEN);
         localStorage.removeItem(STORAGE_KEYS.USER_INFO);
         localStorage.removeItem(STORAGE_KEYS.USER_ID);
         // Note: We don't clear REMEMBER_EMAIL on logout
@@ -65,8 +63,7 @@ export const clearAuthData = () => {
  */
 export const getAccessToken = () => {
     try {
-        return localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) ||
-            localStorage.getItem(STORAGE_KEYS.USER_TOKEN); // Fallback to legacy
+        return localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
     } catch {
         return null;
     }

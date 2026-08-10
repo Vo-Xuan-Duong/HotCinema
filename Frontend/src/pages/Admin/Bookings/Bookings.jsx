@@ -83,12 +83,12 @@ const Bookings = () => {
   const loadMovies = async () => {
     try {
       setLoadingMovies(true);
-      const response = await movieService.getAllMovies({ page: 0, size: 100 });
+      const response = await movieService.listPage({ page: 0, size: 100 });
       const moviesData = response?.data?.content || response?.data?.data || response?.data || [];
       setMovies(Array.isArray(moviesData) ? moviesData : []);
     } catch (error) {
       console.error('Error loading movies:', error);
-      showNotification('error', 'Lá»—i', 'KhÃ´ng thá»ƒ táº£i danh sÃ¡ch phim');
+      showNotification('error', 'Lỗi', 'Không thể tải danh sách phim');
       setMovies([]);
     } finally {
       setLoadingMovies(false);
@@ -103,7 +103,7 @@ const Bookings = () => {
       setCinemas(Array.isArray(cinemasData) ? cinemasData : []);
     } catch (error) {
       console.error('Error loading cinemas:', error);
-      showNotification('error', 'Lá»—i', 'KhÃ´ng thá»ƒ táº£i danh sÃ¡ch ráº¡p');
+      showNotification('error', 'Lỗi', 'Không thể tải danh sách rạp');
       setCinemas([]);
     } finally {
       setLoadingCinemas(false);
@@ -152,7 +152,7 @@ const Bookings = () => {
       }));
     } catch (error) {
       console.error('Error loading bookings:', error);
-      showNotification('error', 'Lá»—i', 'KhÃ´ng thá»ƒ táº£i danh sÃ¡ch Ä‘áº·t vÃ©');
+      showNotification('error', 'Lỗi', 'Không thể tải danh sách đặt vé');
       setBookings([]);
       setPagination(prev => ({ ...prev, total: 0 }));
     } finally {
@@ -201,7 +201,7 @@ const Bookings = () => {
     setPagination(prev => ({ ...prev, current: 1 }));
   };
 
-  // Thá»‘ng kÃª booking
+  // Thống kê booking
   const bookingStats = useMemo(() => {
     const stats = {
       total: pagination.total,
@@ -237,7 +237,7 @@ const Bookings = () => {
     return stats;
   }, [bookings, pagination.total]);
 
-  // Xá»­ lÃ½ cáº­p nháº­t tráº¡ng thÃ¡i booking
+  // Xử lý cập nhật trạng thái booking
   const handleStatusChange = async (bookingId, newStatus) => {
     try {
       if (newStatus === 'cancelled') {
@@ -245,38 +245,38 @@ const Bookings = () => {
       } else {
         await bookingService.updateBookingStatus(bookingId, newStatus);
       }
-      showNotification('success', 'ThÃ nh cÃ´ng', `ÄÃ£ ${newStatus === 'confirmed' ? 'xÃ¡c nháº­n' : newStatus === 'cancelled' ? 'há»§y' : 'cáº­p nháº­t'} booking!`);
+      showNotification('success', 'Thành công', `Đã ${newStatus === 'confirmed' ? 'xác nhận' : newStatus === 'cancelled' ? 'hủy' : 'cập nhật'} booking!`);
       loadBookings();
     } catch (error) {
       console.error('Error updating booking status:', error);
-      showNotification('error', 'Lá»—i', error.response?.data?.message || 'KhÃ´ng thá»ƒ cáº­p nháº­t tráº¡ng thÃ¡i booking');
+      showNotification('error', 'Lỗi', error.response?.data?.message || 'Không thể cập nhật trạng thái booking');
     }
   };
 
-  // Xá»­ lÃ½ xÃ³a booking
+  // Xử lý xóa booking
   const handleDeleteBooking = async (bookingId) => {
     try {
       await bookingService.deleteBooking(bookingId);
-      showNotification('success', 'ThÃ nh cÃ´ng', 'XÃ³a booking thÃ nh cÃ´ng!');
+      showNotification('success', 'Thành công', 'Xóa booking thành công!');
       loadBookings();
     } catch (error) {
       console.error('Error deleting booking:', error);
-      showNotification('error', 'Lá»—i', error.response?.data?.message || 'KhÃ´ng thá»ƒ xÃ³a booking');
+      showNotification('error', 'Lỗi', error.response?.data?.message || 'Không thể xóa booking');
     }
   };
 
-  // Xá»­ lÃ½ chá»‰nh sá»­a booking
+  // Xử lý chỉnh sửa booking
   const handleEditBooking = async (values) => {
     try {
       await bookingService.updateBooking(selectedBooking.id, values);
-      showNotification('success', 'ThÃ nh cÃ´ng', 'Cáº­p nháº­t booking thÃ nh cÃ´ng!');
+      showNotification('success', 'Thành công', 'Cập nhật booking thành công!');
       setIsEditModalVisible(false);
       setSelectedBooking(null);
       // Form reset not needed - using controlled components
       loadBookings();
     } catch (error) {
       console.error('Error updating booking:', error);
-      showNotification('error', 'Lá»—i', error.response?.data?.message || 'KhÃ´ng thá»ƒ cáº­p nháº­t booking');
+      showNotification('error', 'Lỗi', error.response?.data?.message || 'Không thể cập nhật booking');
     }
   };
 
@@ -296,13 +296,13 @@ const Bookings = () => {
     });
   };
 
-  // Render tráº¡ng thÃ¡i booking
+  // Render trạng thái booking
   const renderBookingStatus = (status) => {
     const statusConfig = {
-      confirmed: { color: 'green', text: 'ÄÃ£ thanh toÃ¡n', icon: <CheckCircle2 className="h-3 w-3" /> },
-      pending: { color: 'yellow', text: 'Chá» thanh toÃ¡n', icon: <Clock className="h-3 w-3" /> },
-      cancelled: { color: 'red', text: 'ÄÃ£ há»§y', icon: <XCircle className="h-3 w-3" /> },
-      expired: { color: 'gray', text: 'Háº¿t háº¡n', icon: <AlertCircle className="h-3 w-3" /> }
+      confirmed: { color: 'green', text: 'Đã thanh toán', icon: <CheckCircle2 className="h-3 w-3" /> },
+      pending: { color: 'yellow', text: 'Chờ thanh toán', icon: <Clock className="h-3 w-3" /> },
+      cancelled: { color: 'red', text: 'Đã hủy', icon: <XCircle className="h-3 w-3" /> },
+      expired: { color: 'gray', text: 'Hết hạn', icon: <AlertCircle className="h-3 w-3" /> }
     };
 
     const config = statusConfig[status] || statusConfig.pending;
@@ -316,35 +316,35 @@ const Bookings = () => {
     );
   };
 
-  // Render tráº¡ng thÃ¡i thanh toÃ¡n
+  // Render trạng thái thanh toán
   const renderPaymentStatus = (status) => {
     const statusConfig = {
-      paid: { color: 'green', text: 'ÄÃ£ thanh toÃ¡n' },
-      pending: { color: 'yellow', text: 'Chá» thanh toÃ¡n' },
-      failed: { color: 'red', text: 'Thanh toÃ¡n tháº¥t báº¡i' },
-      refunded: { color: 'gray', text: 'ÄÃ£ hoÃ n tiá»n' }
+      paid: { color: 'green', text: 'Đã thanh toán' },
+      pending: { color: 'yellow', text: 'Chờ thanh toán' },
+      failed: { color: 'red', text: 'Thanh toán thất bại' },
+      refunded: { color: 'gray', text: 'Đã hoàn tiền' }
     };
 
     const config = statusConfig[status] || statusConfig.pending;
     return <StatusBadge tone={config.color}>{config.text}</StatusBadge>;
   };
 
-  // Render phÆ°Æ¡ng thá»©c thanh toÃ¡n
+  // Render phương thức thanh toán
   const renderPaymentMethod = (method) => {
     const methodConfig = {
-      credit_card: 'Tháº» tÃ­n dá»¥ng',
-      bank_transfer: 'Chuyá»ƒn khoáº£n',
-      e_wallet: 'VÃ­ Ä‘iá»‡n tá»­',
-      cash: 'Tiá»n máº·t'
+      credit_card: 'Thẻ tín dụng',
+      bank_transfer: 'Chuyển khoản',
+      e_wallet: 'Ví điện tử',
+      cash: 'Tiền mặt'
     };
 
     return methodConfig[method] || method;
   };
 
-  // Cáº¥u hÃ¬nh cá»™t báº£ng
+  // Cấu hình cột bảng
   const columns = [
     {
-      title: 'MÃ£ Ä‘áº·t vÃ©',
+      title: 'Mã đặt vé',
       key: 'bookingCode',
       width: 120,
       render: (_, record) => (
@@ -353,13 +353,13 @@ const Bookings = () => {
           onClick={() => showDetailModal(record)}
         >
           <div className="font-semibold text-indigo-600 hover:underline">#{record.bookingCode || record.id}</div>
-          <div className="text-xs text-gray-500">ID: {record.id}</div>
+          <div className="text-xs text-muted-foreground">ID: {record.id}</div>
         </div>
       ),
       sorter: (a, b) => (a.id || 0) - (b.id || 0),
     },
     {
-      title: 'KhÃ¡ch hÃ ng',
+      title: 'Khách hàng',
       key: 'customer',
       render: (_, record) => (
         <div>
@@ -367,7 +367,7 @@ const Bookings = () => {
             <User className="h-4 w-4" />
             {record.userFullName || record.fullName || 'N/A'}
           </div>
-          <div className="text-gray-600 text-xs">
+          <div className="text-muted-foreground text-xs">
             {record.userEmail || record.customerInfo?.email || 'N/A'}
           </div>
         </div>
@@ -382,17 +382,17 @@ const Bookings = () => {
             <Video className="h-4 w-4" />
             {record.movieTitle || 'N/A'}
           </div>
-          <div className="text-gray-600 text-xs">
+          <div className="text-muted-foreground text-xs">
             {record.cinemaName || 'N/A'}
           </div>
         </div>
       ),
     },
     {
-      title: 'Suáº¥t chiáº¿u',
+      title: 'Suất chiếu',
       key: 'showtime',
       render: (_, record) => {
-        // showDate lÃ  LocalDate (YYYY-MM-DD), startTime vÃ  endTime lÃ  LocalTime (HH:mm:ss)
+        // showDate là LocalDate (YYYY-MM-DD), startTime và endTime là LocalTime (HH:mm:ss)
         const showDate = record.showDate;
         const startTime = record.startTime;
         const endTime = record.endTime;
@@ -409,11 +409,11 @@ const Bookings = () => {
           }
         };
 
-        // Format time: LocalTime string "HH:mm:ss" hoáº·c "HH:mm"
+        // Format time: LocalTime string "HH:mm:ss" hoặc "HH:mm"
         const formatTime = (timeStr) => {
           if (!timeStr) return 'N/A';
           try {
-            // Náº¿u lÃ  "HH:mm:ss", chá»‰ láº¥y "HH:mm"
+            // Nếu là "HH:mm:ss", chỉ lấy "HH:mm"
             const time = timeStr.split(':').slice(0, 2).join(':');
             return time;
           } catch {
@@ -427,12 +427,12 @@ const Bookings = () => {
               <Calendar className="h-4 w-4" />
               {formatDate(showDate)}
             </div>
-            <div className="text-gray-600 text-xs">
+            <div className="text-muted-foreground text-xs">
               {formatTime(startTime)} - {formatTime(endTime)}
             </div>
             {roomName && (
-              <div className="text-gray-600 text-xs">
-                PhÃ²ng: {roomName}
+              <div className="text-muted-foreground text-xs">
+                Phòng: {roomName}
               </div>
             )}
           </div>
@@ -440,10 +440,10 @@ const Bookings = () => {
       },
     },
     {
-      title: 'Gháº¿',
+      title: 'Ghế',
       key: 'seats',
       render: (_, record) => {
-        // seats lÃ  List<SeatSnapshot> vá»›i cáº¥u trÃºc: { seatId, seatName, price, seatType }
+        // seats là List<SeatSnapshot> với cấu trúc: { seatId, seatName, price, seatType }
         const seats = record.seats || [];
         const seatNames = seats.length > 0
           ? seats.map(seat => seat.seatName || `Seat-${seat.seatId}`)
@@ -452,9 +452,9 @@ const Bookings = () => {
         return (
           <div>
             <Badge className="bg-blue-600 text-white px-2 py-0.5 rounded text-xs">
-              {seats.length || seatNames.length || 0} gháº¿
+              {seats.length || seatNames.length || 0} ghế
             </Badge>
-            {/* <div className="text-xs mt-1 text-gray-600">
+            {/* <div className="text-xs mt-1 text-muted-foreground">
               {seatNames.length > 0 ? seatNames.join(', ') : 'N/A'}
             </div> */}
             {seats.length > 0 && seats.some(seat => seat.seatType) && (
@@ -471,31 +471,31 @@ const Bookings = () => {
       },
     },
     {
-      title: 'Tá»•ng tiá»n',
+      title: 'Tổng tiền',
       key: 'finalAmount',
       render: (_, record) => {
         const amount = record.finalAmount || record.totalPrice || 0;
         return (
           <div className="font-bold text-blue-600 flex items-center gap-1">
             {/* <DollarSign className="h-4 w-4" /> */}
-            {amount.toLocaleString('vi-VN')} â‚«
+            {amount.toLocaleString('vi-VN')} ₫
           </div>
         );
       },
       sorter: (a, b) => (a.finalAmount || a.totalPrice || 0) - (b.finalAmount || b.totalPrice || 0),
     },
     {
-      title: 'Tráº¡ng thÃ¡i',
+      title: 'Trạng thái',
       key: 'status',
       render: (_, record) => {
         const status = record.bookingStatus || record.status;
         return renderBookingStatus(status);
       },
       filters: [
-        { text: 'ÄÃ£ xÃ¡c nháº­n', value: 'CONFIRMED' },
-        { text: 'Chá» xá»­ lÃ½', value: 'PENDING' },
-        { text: 'ÄÃ£ há»§y', value: 'CANCELLED' },
-        { text: 'Háº¿t háº¡n', value: 'EXPIRED' }
+        { text: 'Đã xác nhận', value: 'CONFIRMED' },
+        { text: 'Chờ xử lý', value: 'PENDING' },
+        { text: 'Đã hủy', value: 'CANCELLED' },
+        { text: 'Hết hạn', value: 'EXPIRED' }
       ],
       onFilter: (value, record) => {
         const recordStatus = (record.bookingStatus || record.status)?.toUpperCase();
@@ -517,7 +517,7 @@ const Bookings = () => {
               href: '/admin/dashboard'
             },
             {
-              title: 'Quáº£n lÃ½ Ä‘áº·t vÃ©',
+              title: 'Quản lý đặt vé',
               icon: <Ticket className="h-4 w-4" />
             }
           ]}
@@ -530,43 +530,43 @@ const Bookings = () => {
               <Ticket className="h-6 w-6 text-indigo-600" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 m-0">Quáº£n lÃ½ Ä‘áº·t vÃ©</h1>
-              <p className="text-gray-500 mt-1">Quáº£n lÃ½ vÃ  theo dÃµi táº¥t cáº£ cÃ¡c Ä‘áº·t vÃ© trong há»‡ thá»‘ng</p>
+              <h1 className="text-3xl font-bold text-foreground m-0">Quản lý đặt vé</h1>
+              <p className="text-muted-foreground mt-1">Quản lý và theo dõi tất cả các đặt vé trong hệ thống</p>
             </div>
           </div>
         </div>
 
-        {/* Thá»‘ng kÃª tá»•ng quan */}
+        {/* Thống kê tổng quan */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
+          <Card className="p-4 bg-card rounded-xl shadow-md border border-border hover:shadow-lg transition-shadow">
             <Metric
-              label="Tá»•ng booking"
+              label="Tổng booking"
               value={bookingStats.total}
               leading={<Calendar className="h-4 w-4 text-blue-500" />}
               valueStyle={{ color: '#1890ff' }}
             />
           </Card>
-          <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
+          <Card className="p-4 bg-card rounded-xl shadow-md border border-border hover:shadow-lg transition-shadow">
             <Metric
-              label="ÄÃ£ xÃ¡c nháº­n"
+              label="Đã xác nhận"
               value={bookingStats.confirmed}
               leading={<CheckCircle2 className="h-4 w-4 text-green-500" />}
               valueStyle={{ color: '#52c41a' }}
             />
           </Card>
-          <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
+          <Card className="p-4 bg-card rounded-xl shadow-md border border-border hover:shadow-lg transition-shadow">
             <Metric
-              label="Tá»•ng doanh thu"
+              label="Tổng doanh thu"
               value={bookingStats.totalRevenue}
               leading={<DollarSign className="h-4 w-4 text-yellow-500" />}
-              suffix="â‚«"
+              suffix="₫"
               formatter={(value) => value.toLocaleString('vi-VN')}
               valueStyle={{ color: '#faad14' }}
             />
           </Card>
-          <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
+          <Card className="p-4 bg-card rounded-xl shadow-md border border-border hover:shadow-lg transition-shadow">
             <Metric
-              label="Tá»•ng gháº¿ Ä‘Ã£ bÃ¡n"
+              label="Tổng ghế đã bán"
               value={bookingStats.totalSeats}
               leading={<User className="h-4 w-4 text-purple-500" />}
               valueStyle={{ color: '#722ed1' }}
@@ -574,14 +574,14 @@ const Bookings = () => {
           </Card>
         </div>
 
-        {/* Bá»™ lá»c */}
-        <Card className="bg-white rounded-xl shadow-md border border-gray-200 mb-6">
+        {/* Bộ lọc */}
+        <Card className="bg-card rounded-xl shadow-md border border-border mb-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4">
             <div>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="TÃ¬m kiáº¿m theo tÃªn, email, phim..."
+                  placeholder="Tìm kiếm theo tên, email, phim..."
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
                   className="rounded-lg pl-10"
@@ -594,14 +594,14 @@ const Bookings = () => {
                 onValueChange={setStatusFilter}
               >
                 <SelectTrigger className="w-full h-10">
-                  <SelectValue placeholder="Lá»c theo tráº¡ng thÃ¡i" />
+                  <SelectValue placeholder="Lọc theo trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Táº¥t cáº£ tráº¡ng thÃ¡i</SelectItem>
-                  <SelectItem value="confirmed">ÄÃ£ xÃ¡c nháº­n</SelectItem>
-                  <SelectItem value="pending">Chá» xá»­ lÃ½</SelectItem>
-                  <SelectItem value="cancelled">ÄÃ£ há»§y</SelectItem>
-                  <SelectItem value="expired">Háº¿t háº¡n</SelectItem>
+                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="confirmed">Đã xác nhận</SelectItem>
+                  <SelectItem value="pending">Chờ xử lý</SelectItem>
+                  <SelectItem value="cancelled">Đã hủy</SelectItem>
+                  <SelectItem value="expired">Hết hạn</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -611,10 +611,10 @@ const Bookings = () => {
                 onValueChange={setMovieFilter}
               >
                 <SelectTrigger className="w-full h-10">
-                  <SelectValue placeholder="Lá»c theo phim" />
+                  <SelectValue placeholder="Lọc theo phim" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Táº¥t cáº£ phim</SelectItem>
+                  <SelectItem value="all">Tất cả phim</SelectItem>
                   {movies.map(movie => (
                     <SelectItem key={movie.id} value={movie.id.toString()}>
                       {movie.title}
@@ -629,10 +629,10 @@ const Bookings = () => {
                 onValueChange={setCinemaFilter}
               >
                 <SelectTrigger className="w-full h-10">
-                  <SelectValue placeholder="Lá»c theo ráº¡p" />
+                  <SelectValue placeholder="Lọc theo rạp" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Táº¥t cáº£ ráº¡p</SelectItem>
+                  <SelectItem value="all">Tất cả rạp</SelectItem>
                   {cinemas.map(cinema => (
                     <SelectItem key={cinema.id} value={cinema.id.toString()}>
                       {cinema.name}
@@ -644,19 +644,19 @@ const Bookings = () => {
           </div>
         </Card>
 
-        {/* Báº£ng booking */}
-        <Card className="bg-white rounded-xl shadow-md border border-gray-200">
+        {/* Bảng booking */}
+        <Card className="bg-card rounded-xl shadow-md border border-border">
           <div className="p-5">
             {loading ? (
               <div className="p-12 text-center">
                 <Loader2 className="h-10 w-10 animate-spin mx-auto text-indigo-600 mb-4" />
-                <p className="text-gray-500">Äang táº£i dá»¯ liá»‡u...</p>
+                <p className="text-muted-foreground">Đang tải dữ liệu...</p>
               </div>
             ) : bookings.length === 0 ? (
               <div className="p-12 text-center">
                 <Ticket className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                <p className="text-gray-500 text-lg font-medium">KhÃ´ng cÃ³ Ä‘áº·t vÃ© nÃ o</p>
-                <p className="text-gray-400 text-sm mt-2">ChÆ°a cÃ³ Ä‘áº·t vÃ© nÃ o trong há»‡ thá»‘ng</p>
+                <p className="text-muted-foreground text-lg font-medium">Không có đặt vé nào</p>
+                <p className="text-gray-400 text-sm mt-2">Chưa có đặt vé nào trong hệ thống</p>
               </div>
             ) : (
               <>
@@ -668,12 +668,12 @@ const Bookings = () => {
                     pageControls={false}
                   />
                 </div>
-                <div className="mt-4 flex items-center justify-between flex-wrap gap-4 pt-4 border-t border-gray-200">
-                  <div className="text-sm text-gray-600">
+                <div className="mt-4 flex items-center justify-between flex-wrap gap-4 pt-4 border-t border-border">
+                  <div className="text-sm text-muted-foreground">
                     {pagination.total > 0 ? (
-                      <>Hiá»ƒn thá»‹ {(pagination.current - 1) * pagination.pageSize + 1} - {Math.min(pagination.current * pagination.pageSize, pagination.total)} trong tá»•ng sá»‘ {pagination.total} booking</>
+                      <>Hiển thị {(pagination.current - 1) * pagination.pageSize + 1} - {Math.min(pagination.current * pagination.pageSize, pagination.total)} trong tổng số {pagination.total} booking</>
                     ) : (
-                      <>KhÃ´ng cÃ³ dá»¯ liá»‡u</>
+                      <>Không có dữ liệu</>
                     )}
                   </div>
                   {pagination.total > 0 && (
@@ -693,14 +693,14 @@ const Bookings = () => {
           </div>
         </Card>
 
-        {/* Modal chá»‰nh sá»­a booking */}
+        {/* Modal chỉnh sửa booking */}
         <ResponsiveDialog
           heading={
             <div className="flex items-center gap-2">
               <div className="p-2 bg-indigo-100 rounded-lg">
                 <Edit className="h-5 w-5 text-indigo-600" />
               </div>
-              <span className="text-xl font-semibold">Chá»‰nh sá»­a booking</span>
+              <span className="text-xl font-semibold">Chỉnh sửa booking</span>
             </div>
           }
           open={isEditModalVisible}
@@ -720,7 +720,7 @@ const Bookings = () => {
             onSubmit={(e) => {
               e.preventDefault();
               if (!formValues.status || !formValues.paymentStatus || !formValues.paymentMethod) {
-                showNotification('error', 'Lá»—i', 'Vui lÃ²ng Ä‘iá»n Ä‘áº§y Ä‘á»§ thÃ´ng tin');
+                showNotification('error', 'Lỗi', 'Vui lòng điền đầy đủ thông tin');
                 return;
               }
               handleEditBooking(formValues);
@@ -729,73 +729,73 @@ const Bookings = () => {
           >
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                <CheckCircle2 className="h-4 w-4 text-gray-500" />
-                Tráº¡ng thÃ¡i booking <span className="text-red-500">*</span>
+                <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                Trạng thái booking <span className="text-red-500">*</span>
               </label>
               <Select
                 value={formValues.status}
                 onValueChange={(value) => setFormValues({ ...formValues, status: value })}
               >
                 <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Chá»n tráº¡ng thÃ¡i booking" />
+                  <SelectValue placeholder="Chọn trạng thái booking" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="confirmed">ÄÃ£ xÃ¡c nháº­n</SelectItem>
-                  <SelectItem value="pending">Chá» xá»­ lÃ½</SelectItem>
-                  <SelectItem value="cancelled">ÄÃ£ há»§y</SelectItem>
-                  <SelectItem value="expired">Háº¿t háº¡n</SelectItem>
+                  <SelectItem value="confirmed">Đã xác nhận</SelectItem>
+                  <SelectItem value="pending">Chờ xử lý</SelectItem>
+                  <SelectItem value="cancelled">Đã hủy</SelectItem>
+                  <SelectItem value="expired">Hết hạn</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                <DollarSign className="h-4 w-4 text-gray-500" />
-                Tráº¡ng thÃ¡i thanh toÃ¡n <span className="text-red-500">*</span>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                Trạng thái thanh toán <span className="text-red-500">*</span>
               </label>
               <Select
                 value={formValues.paymentStatus}
                 onValueChange={(value) => setFormValues({ ...formValues, paymentStatus: value })}
               >
                 <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Chá»n tráº¡ng thÃ¡i thanh toÃ¡n" />
+                  <SelectValue placeholder="Chọn trạng thái thanh toán" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="paid">ÄÃ£ thanh toÃ¡n</SelectItem>
-                  <SelectItem value="pending">Chá» thanh toÃ¡n</SelectItem>
-                  <SelectItem value="failed">Thanh toÃ¡n tháº¥t báº¡i</SelectItem>
-                  <SelectItem value="refunded">ÄÃ£ hoÃ n tiá»n</SelectItem>
+                  <SelectItem value="paid">Đã thanh toán</SelectItem>
+                  <SelectItem value="pending">Chờ thanh toán</SelectItem>
+                  <SelectItem value="failed">Thanh toán thất bại</SelectItem>
+                  <SelectItem value="refunded">Đã hoàn tiền</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                <DollarSign className="h-4 w-4 text-gray-500" />
-                PhÆ°Æ¡ng thá»©c thanh toÃ¡n <span className="text-red-500">*</span>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                Phương thức thanh toán <span className="text-red-500">*</span>
               </label>
               <Select
                 value={formValues.paymentMethod}
                 onValueChange={(value) => setFormValues({ ...formValues, paymentMethod: value })}
               >
                 <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Chá»n phÆ°Æ¡ng thá»©c thanh toÃ¡n" />
+                  <SelectValue placeholder="Chọn phương thức thanh toán" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="credit_card">Tháº» tÃ­n dá»¥ng</SelectItem>
-                  <SelectItem value="bank_transfer">Chuyá»ƒn khoáº£n</SelectItem>
-                  <SelectItem value="e_wallet">VÃ­ Ä‘iá»‡n tá»­</SelectItem>
-                  <SelectItem value="cash">Tiá»n máº·t</SelectItem>
+                  <SelectItem value="credit_card">Thẻ tín dụng</SelectItem>
+                  <SelectItem value="bank_transfer">Chuyển khoản</SelectItem>
+                  <SelectItem value="e_wallet">Ví điện tử</SelectItem>
+                  <SelectItem value="cash">Tiền mặt</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+            <div className="flex justify-end gap-3 pt-4 border-t border-border">
               <Button
                 type="submit"
                 className="bg-indigo-600 hover:bg-indigo-700 text-white h-10"
               >
-                Cáº­p nháº­t
+                Cập nhật
               </Button>
               <Button
                 variant="outline"
@@ -810,7 +810,7 @@ const Bookings = () => {
                 }}
                 className="h-10"
               >
-                Há»§y
+                Hủy
               </Button>
             </div>
           </form>

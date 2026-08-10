@@ -79,7 +79,7 @@ const Upload = ({
             <div key={file.uid} className="flex items-center gap-2 p-2 border rounded">
               <span className="flex-1 text-sm truncate">{file.name}</span>
               {file.status === 'uploading' && (
-                <span className="text-xs text-gray-500">Đang tải...</span>
+                <span className="text-xs text-muted-foreground">Đang tải...</span>
               )}
               <Button
                 variant="ghost"
@@ -104,7 +104,7 @@ Upload.Dragger = ({ children, ...props }) => {
         {children || (
           <>
             <UploadIcon className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            <p className="text-gray-600">Kéo thả file vào đây hoặc click để chọn</p>
+            <p className="text-muted-foreground">Kéo thả file vào đây hoặc click để chọn</p>
           </>
         )}
       </Upload>

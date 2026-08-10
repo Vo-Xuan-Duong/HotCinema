@@ -9,13 +9,16 @@ export const authService = {
     login: async (data) => {
         const response = await api.post('/auth/login', data);
 
-        console.log('Login response:', response);
-
-        // Let apiClient handle token storage via setAuthToken
-        if (response?.data?.accessToken) {
-            api.setAuthToken(response.data.accessToken, response.data.refreshToken, response.data.userAuth);
+        const auth = response?.data || response;
+        if (auth?.accessToken) {
+            api.setAuthToken(auth.accessToken, auth.refreshToken, auth.userAuth);
         }
-        return response;
+        return {
+            ...response,
+            token: auth?.accessToken,
+            refreshToken: auth?.refreshToken,
+            user: auth?.userAuth,
+        };
     },
 
     register: async (data) => {
@@ -25,12 +28,15 @@ export const authService = {
     },
 
     refreshToken: async (refreshToken) => {
-        return api.get('/auth/refresh-token', { refreshToken });
+        return api.get('/auth/refresh', { params: { refreshToken } });
     },
 
-    logout: () => {
-        api.removeAuthToken();
-        return api.post('/auth/logout');
+    logout: async () => {
+        try {
+            return await api.get('/auth/logout');
+        } finally {
+            api.removeAuthToken();
+        }
     },
 
     forgotPassword: async (email) => {
@@ -58,12 +64,14 @@ export const authService = {
     },
 
     getCurrentUser: async () => {
-        return api.get('/users/me');
+        return api.get('/auth/current-user');
     },
 
     // Update user profile
     updateProfile: async (userData) => {
-        return api.put('/users/profile', userData);
+        const response = await api.put('/users/profile', userData);
+        const user = response?.data || response;
+        return { user };
     },
 
     validateToken: async () => {
@@ -73,17 +81,17 @@ export const authService = {
     // Google OAuth login - Send authorization code to backend
     // Backend will exchange code for ID token, validate, and return JWT
     loginWithGoogle: async (code) => {
-        console.log('Login with Google authorization code');
-
         const response = await api.post('/auth/google', { code: code });
-
-        console.log('Login with Google response:', response);
-
-        // Let apiClient handle token storage via setAuthToken
-        if (response?.data?.accessToken) {
-            api.setAuthToken(response.data.accessToken, response.data.refreshToken, response.data.userAuth);
+        const auth = response?.data || response;
+        if (auth?.accessToken) {
+            api.setAuthToken(auth.accessToken, auth.refreshToken, auth.userAuth);
         }
-        return response;
+        return {
+            ...response,
+            token: auth?.accessToken,
+            refreshToken: auth?.refreshToken,
+            user: auth?.userAuth,
+        };
     },
 
     // Google OAuth callback (for server-side flow - fallback)

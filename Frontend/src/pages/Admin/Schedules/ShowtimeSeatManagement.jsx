@@ -35,7 +35,7 @@ const ShowtimeSeatManagement = () => {
             setShowtime(showtimeData);
         } catch (error) {
             console.error('Error loading showtime:', error);
-            showNotification('error', 'Lá»—i', 'KhÃ´ng thá»ƒ táº£i thÃ´ng tin lá»‹ch chiáº¿u');
+            showNotification('error', 'Lỗi', 'Không thể tải thông tin lịch chiếu');
             navigate('/admin/schedules');
         } finally {
             setLoading(false);
@@ -59,13 +59,13 @@ const ShowtimeSeatManagement = () => {
             <div className="min-h-screen p-6">
                 <Alert
                     variant="default"
-                    title="KhÃ´ng tÃ¬m tháº¥y thÃ´ng tin"
-                    description="Lá»‹ch chiáº¿u khÃ´ng tá»“n táº¡i."
+                    title="Không tìm thấy thông tin"
+                    description="Lịch chiếu không tồn tại."
                     className="mb-4 bg-red-50 border-red-200"
                 />
                 <Button onClick={handleClose} variant="outline">
                     <ArrowLeft className="h-4 w-4 mr-2" />
-                    Quay láº¡i
+                    Quay lại
                 </Button>
             </div>
         );
@@ -83,19 +83,19 @@ const ShowtimeSeatManagement = () => {
                         href: '/admin/dashboard'
                     },
                     {
-                        title: 'Quáº£n lÃ½ lá»‹ch chiáº¿u',
+                        title: 'Quản lý lịch chiếu',
                         icon: <Calendar className="h-4 w-4" />,
                         href: '/admin/schedules'
                     },
                     {
-                        title: `SÆ¡ Ä‘á»“ gháº¿ - ${showtime.movieTitle || 'Lá»‹ch chiáº¿u'}`,
+                        title: `Sơ đồ ghế - ${showtime.movieTitle || 'Lịch chiếu'}`,
                         icon: <Grid3x3 className="h-4 w-4" />
                     },
                 ]}
             />
 
             {/* Header */}
-            <Card className="mb-6 rounded-xl shadow-md border border-gray-200 p-6">
+            <Card className="mb-6 rounded-xl shadow-md border border-border p-6">
                 <div className="flex justify-between items-center flex-wrap gap-4">
                     <div className="flex-1">
                         <div className="flex items-center gap-3 mb-3">
@@ -103,14 +103,14 @@ const ShowtimeSeatManagement = () => {
                                 <Grid3x3 className="h-6 w-6 text-indigo-600" />
                             </div>
                             <div>
-                                <h2 className="text-2xl font-bold m-0 text-gray-800">
-                                    SÆ¡ Ä‘á»“ gháº¿
+                                <h2 className="text-2xl font-bold m-0 text-foreground">
+                                    Sơ đồ ghế
                                 </h2>
-                                <p className="text-sm text-gray-500 mt-1">Quáº£n lÃ½ sÆ¡ Ä‘á»“ gháº¿ cho lá»‹ch chiáº¿u</p>
+                                <p className="text-sm text-muted-foreground mt-1">Quản lý sơ đồ ghế cho lịch chiếu</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm text-gray-600">
+                            <span className="text-sm text-muted-foreground">
                                 {showtime.movieTitle}
                                 {showtime.cinemaName && ` - ${showtime.cinemaName}`}
                                 {showtime.roomName && ` - ${showtime.roomName}`}
@@ -133,18 +133,18 @@ const ShowtimeSeatManagement = () => {
                         className="h-10"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Quay láº¡i
+                        Quay lại
                     </Button>
                 </div>
             </Card>
 
             {/* Seat Viewer */}
-            <Card className="rounded-xl shadow-md border border-gray-200 p-6">
+            <Card className="rounded-xl shadow-md border border-border p-6">
                 <SeatViewer
                     showtimeId={showtime.id}
                     selectedScreen={{
-                        name: showtime.roomName || 'PhÃ²ng chiáº¿u',
-                        cinemaName: showtime.cinemaName || 'Ráº¡p chiáº¿u'
+                        name: showtime.roomName || 'Phòng chiếu',
+                        cinemaName: showtime.cinemaName || 'Rạp chiếu'
                     }}
                 />
             </Card>

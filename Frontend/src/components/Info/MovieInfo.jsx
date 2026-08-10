@@ -84,7 +84,7 @@ const MovieInfo = ({ movie }) => {
                   {[1, 2, 3, 4, 5].map((star) => (
                     <span
                       key={star}
-                      className={`text-xl transition-colors duration-200 ${star <= Math.round(rating) ? 'text-yellow-400' : 'text-gray-600'}`}
+                      className={`text-xl transition-colors duration-200 ${star <= Math.round(rating) ? 'text-yellow-400' : 'text-muted-foreground'}`}
                     >
                       ★
                     </span>
@@ -99,7 +99,7 @@ const MovieInfo = ({ movie }) => {
 
             <div className="mt-4">
               <h3 className="text-xl font-extrabold m-0 mb-4 text-white relative pl-4 before:content-[''] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-5 before:bg-gradient-to-br before:from-indigo-500 before:to-purple-600 before:rounded-sm md:text-lg sm:text-base">Thông tin phim</h3>
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-5 mb-6 p-6 bg-white/5 rounded-xl backdrop-blur-[10px] md:grid-cols-[repeat(2,1fr)] md:gap-3 md:p-4 sm:grid-cols-1">
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-5 mb-6 p-6 bg-card/5 rounded-xl backdrop-blur-[10px] md:grid-cols-[repeat(2,1fr)] md:gap-3 md:p-4 sm:grid-cols-1">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-yellow-400 text-base mr-1">Thể loại:</span>
                   <span className="font-bold text-base rounded-md px-2.5 py-0.5 bg-[rgba(162,89,255,0.13)] text-[#a259ff] ml-0.5">{movie.genre}</span>

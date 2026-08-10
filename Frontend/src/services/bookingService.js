@@ -34,15 +34,6 @@ const bookingService = {
     return unwrapArray(res);
   },
 
-  // Backward-compat aliases
-  async getAllBookings(params) {
-    return this.listPage(params);
-  },
-
-  async getBookings(params) {
-    return this.listPage(params);
-  },
-
   // ==================== Single Booking ====================
 
   /**
@@ -105,17 +96,6 @@ const bookingService = {
   },
 
   // ==================== Cancel & Delete ====================
-
-  /**
-   * Cancel booking (soft delete / status change)
-   * @param {string|number} bookingId - Booking ID
-   * @param {string} reason - Cancellation reason (optional)
-   * @returns {Promise} Cancelled booking
-   */
-  async cancelBooking(bookingId, reason) {
-    const res = await apiClient.patch(`${base}/${bookingId}/cancel`, { reason });
-    return unwrap(res);
-  },
 
   /**
    * Delete booking (hard delete)
@@ -282,10 +262,10 @@ const bookingService = {
    */
   getStatusDisplayName(status) {
     const statusNames = {
-      [BOOKING_STATUS.PENDING]: 'Chá» xá»­ lÃ½',
-      [BOOKING_STATUS.CONFIRMED]: 'ÄÃ£ xÃ¡c nháº­n',
-      [BOOKING_STATUS.CANCELLED]: 'ÄÃ£ há»§y',
-      [BOOKING_STATUS.COMPLETED]: 'HoÃ n thÃ nh'
+      [BOOKING_STATUS.PENDING]: 'Chờ xử lý',
+      [BOOKING_STATUS.CONFIRMED]: 'Đã xác nhận',
+      [BOOKING_STATUS.CANCELLED]: 'Đã hủy',
+      [BOOKING_STATUS.COMPLETED]: 'Hoàn thành'
     };
     return statusNames[status] || status;
   },

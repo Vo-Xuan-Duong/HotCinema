@@ -24,7 +24,7 @@ const ContentLoader = ({
         
         {/* Message with fade animation */}
         <div className="flex flex-col items-center gap-3 animate-[fadeIn_0.6s_ease-out]">
-          <p className="text-lg font-semibold text-gray-800 m-0 tracking-wide">
+          <p className="text-lg font-semibold text-foreground m-0 tracking-wide">
             {message}
           </p>
           {/* Enhanced dots */}

@@ -68,17 +68,17 @@ const CinemaDetail = () => {
     const loadCinemaDetail = async () => {
         setLoading(true);
         try {
-            // Gá»i API Ä‘á»ƒ láº¥y thÃ´ng tin cinema
+            // Gọi API để lấy thông tin cinema
             const cinemaResponse = await cinemaService.getCinemaById(id);
             const cinemaData = cinemaResponse?.data?.data || cinemaResponse?.data || cinemaResponse;
 
-            // Gá»i API Ä‘á»ƒ láº¥y danh sÃ¡ch phÃ²ng - handle 404 with empty array
+            // Gọi API để lấy danh sách phòng - handle 404 with empty array
             let roomsData = [];
             try {
                 const roomsResponse = await cinemaService.getRoomsByCinemaId(id);
                 roomsData = roomsResponse?.data?.data || roomsResponse?.data || roomsResponse || [];
             } catch (roomError) {
-                // Náº¿u API rooms tráº£ vá» 404 hoáº·c lá»—i khÃ¡c, sá»­ dá»¥ng danh sÃ¡ch rá»—ng
+                // Nếu API rooms trả về 404 hoặc lỗi khác, sử dụng danh sách rỗng
                 if (roomError.response?.status !== 404) {
                     console.warn('Error fetching rooms, using empty array:', roomError);
                 }
@@ -89,12 +89,12 @@ const CinemaDetail = () => {
                 setCinema(cinemaData);
                 setRooms(Array.isArray(roomsData) ? roomsData : []);
             } else {
-                showNotification('error', 'Lá»—i', 'KhÃ´ng tÃ¬m tháº¥y ráº¡p phim');
+                showNotification('error', 'Lỗi', 'Không tìm thấy rạp phim');
                 navigate('/admin/cinemas');
             }
         } catch (error) {
             console.error('Error loading cinema detail:', error);
-            showNotification('error', 'Lá»—i', error.response?.data?.message || 'Lá»—i khi táº£i thÃ´ng tin ráº¡p phim');
+            showNotification('error', 'Lỗi', error.response?.data?.message || 'Lỗi khi tải thông tin rạp phim');
         } finally {
             setLoading(false);
         }
@@ -130,22 +130,22 @@ const CinemaDetail = () => {
         try {
             // Validate
             if (!roomFormValues.name?.trim()) {
-                showNotification('error', 'Lá»—i', 'Vui lÃ²ng nháº­p tÃªn phÃ²ng!');
+                showNotification('error', 'Lỗi', 'Vui lòng nhập tên phòng!');
                 return;
             }
             if (roomFormValues.name.trim().length < 3) {
-                showNotification('error', 'Lá»—i', 'TÃªn phÃ²ng pháº£i cÃ³ Ã­t nháº¥t 3 kÃ½ tá»±!');
+                showNotification('error', 'Lỗi', 'Tên phòng phải có ít nhất 3 ký tự!');
                 return;
             }
             if (roomFormValues.name.trim().length > 50) {
-                showNotification('error', 'Lá»—i', 'TÃªn phÃ²ng khÃ´ng Ä‘Æ°á»£c quÃ¡ 50 kÃ½ tá»±!');
+                showNotification('error', 'Lỗi', 'Tên phòng không được quá 50 ký tự!');
                 return;
             }
 
             setSubmittingRoom(true);
             console.log('Submitting room data:', roomFormValues);
 
-            // Map theo RoomRequest tá»« backend
+            // Map theo RoomRequest từ backend
             const roomData = {
                 name: roomFormValues.name.trim(),
                 theaterType: roomFormValues.theaterType, // TWO_D, THREE_D, IMAX, IMAX_3D, FOUR_DX, SCREEN_X
@@ -162,13 +162,13 @@ const CinemaDetail = () => {
                 console.log('Updating room:', selectedRoom.id);
                 const response = await cinemaService.updateRoom(id, selectedRoom.id, roomData);
                 console.log('Update room response:', response);
-                showNotification('success', 'ThÃ nh cÃ´ng', 'Cáº­p nháº­t phÃ²ng chiáº¿u thÃ nh cÃ´ng');
+                showNotification('success', 'Thành công', 'Cập nhật phòng chiếu thành công');
             } else {
                 // Create new room
                 console.log('Creating new room for cinema:', id);
                 const response = await cinemaService.addRoom(id, roomData);
                 console.log('Create room response:', response);
-                showNotification('success', 'ThÃ nh cÃ´ng', 'ThÃªm phÃ²ng chiáº¿u thÃ nh cÃ´ng');
+                showNotification('success', 'Thành công', 'Thêm phòng chiếu thành công');
             }
 
             setShowAddRoom(false);
@@ -186,7 +186,7 @@ const CinemaDetail = () => {
         } catch (error) {
             console.error('Error saving room:', error);
             console.error('Error response:', error.response);
-            showNotification('error', 'Lá»—i', error.response?.data?.message || error.message || 'LÆ°u thÃ´ng tin phÃ²ng tháº¥t báº¡i');
+            showNotification('error', 'Lỗi', error.response?.data?.message || error.message || 'Lưu thông tin phòng thất bại');
         } finally {
             setSubmittingRoom(false);
         }
@@ -197,18 +197,18 @@ const CinemaDetail = () => {
     };
 
     const handleDeleteRoom = async (roomId) => {
-        console.log('ðŸ—‘ï¸ Deleting room:', roomId, 'from cinema:', id);
+        console.log('🗑️ Deleting room:', roomId, 'from cinema:', id);
         try {
             await cinemaService.deleteRoom(id, roomId);
-            showNotification('success', 'ThÃ nh cÃ´ng', 'XÃ³a phÃ²ng chiáº¿u thÃ nh cÃ´ng');
-            // Reload danh sÃ¡ch phÃ²ng
+            showNotification('success', 'Thành công', 'Xóa phòng chiếu thành công');
+            // Reload danh sách phòng
             await loadCinemaDetail();
             setShowDeleteConfirm(false);
             setRoomToDelete(null);
         } catch (error) {
             console.error('Error deleting room:', error);
-            const errorMessage = error.response?.data?.message || error.message || 'XÃ³a phÃ²ng tháº¥t báº¡i';
-            showNotification('error', 'Lá»—i', errorMessage);
+            const errorMessage = error.response?.data?.message || error.message || 'Xóa phòng thất bại';
+            showNotification('error', 'Lỗi', errorMessage);
         }
     };
 
@@ -221,7 +221,7 @@ const CinemaDetail = () => {
         if (roomToDelete && roomToDelete.id) {
             handleDeleteRoom(roomToDelete.id);
         } else {
-            showNotification('error', 'Lá»—i', 'KhÃ´ng tÃ¬m tháº¥y ID phÃ²ng chiáº¿u');
+            showNotification('error', 'Lỗi', 'Không tìm thấy ID phòng chiếu');
             setShowDeleteConfirm(false);
             setRoomToDelete(null);
         }
@@ -234,11 +234,11 @@ const CinemaDetail = () => {
     const handleDeleteCinema = async () => {
         try {
             await cinemaService.deleteCinema(cinema.id);
-            showNotification('success', 'ThÃ nh cÃ´ng', 'XÃ³a ráº¡p thÃ nh cÃ´ng!');
+            showNotification('success', 'Thành công', 'Xóa rạp thành công!');
             navigate('/admin/cinemas');
         } catch (error) {
             console.error('Error deleting cinema:', error);
-            showNotification('error', 'Lá»—i', error.response?.data?.message || 'Lá»—i khi xÃ³a ráº¡p');
+            showNotification('error', 'Lỗi', error.response?.data?.message || 'Lỗi khi xóa rạp');
         }
     };
 
@@ -254,8 +254,8 @@ const CinemaDetail = () => {
         return (
             <div>
                 <Alert
-                    message="KhÃ´ng tÃ¬m tháº¥y ráº¡p"
-                    description="Ráº¡p báº¡n Ä‘ang tÃ¬m kiáº¿m khÃ´ng tá»“n táº¡i hoáº·c Ä‘Ã£ bá»‹ xÃ³a."
+                    message="Không tìm thấy rạp"
+                    description="Rạp bạn đang tìm kiếm không tồn tại hoặc đã bị xóa."
                     type="error"
                     showIcon
                 />
@@ -263,25 +263,25 @@ const CinemaDetail = () => {
                     <Button
                         onClick={() => navigate('/admin/cinemas')}
                         variant="outline"
-                        className="border-gray-300 hover:bg-gray-50"
+                        className="border-gray-300 hover:bg-background"
                     >
-                        Quay láº¡i danh sÃ¡ch
+                        Quay lại danh sách
                     </Button>
                 </div>
             </div>
         );
     }
 
-    // Äá»‹nh nghÄ©a columns cho báº£ng phÃ²ng chiáº¿u
+    // Định nghĩa columns cho bảng phòng chiếu
     const columns = [
         {
-            title: 'TÃªn phÃ²ng',
+            title: 'Tên phòng',
             dataIndex: 'name',
             key: 'name',
             render: (text) => <span className="font-semibold">{text}</span>
         },
         {
-            title: 'Loáº¡i ráº¡p',
+            title: 'Loại rạp',
             dataIndex: 'theaterType',
             key: 'theaterType',
             render: (theaterType) => {
@@ -298,7 +298,7 @@ const CinemaDetail = () => {
             }
         },
         {
-            title: 'MÃ n hÃ¬nh',
+            title: 'Màn hình',
             dataIndex: 'screenType',
             key: 'screenType',
             render: (screenType) => {
@@ -313,7 +313,7 @@ const CinemaDetail = () => {
             }
         },
         {
-            title: 'Ã‚m thanh',
+            title: 'Âm thanh',
             dataIndex: 'soundSystem',
             key: 'soundSystem',
             render: (soundSystem) => {
@@ -328,7 +328,7 @@ const CinemaDetail = () => {
             }
         },
         {
-            title: 'Sá»©c chá»©a',
+            title: 'Sức chứa',
             key: 'capacity',
             render: (_, record) => {
                 const rows = record.numberOfRows || record.rowsCount || 0;
@@ -336,15 +336,15 @@ const CinemaDetail = () => {
                 const seats = rows * columns;
                 return seats > 0 ? (
                     <span>
-                        <strong>{seats}</strong> gháº¿ ({rows} hÃ ng Ã— {columns} cá»™t)
+                        <strong>{seats}</strong> ghế ({rows} hàng × {columns} cột)
                     </span>
                 ) : (
-                    <span className="text-gray-500">ChÆ°a cáº­p nháº­t</span>
+                    <span className="text-muted-foreground">Chưa cập nhật</span>
                 );
             }
         },
         {
-            title: 'HÃ nh Ä‘á»™ng',
+            title: 'Hành động',
             key: 'actions',
             render: (_, record) => (
                 <div className="flex items-center gap-2">
@@ -354,7 +354,7 @@ const CinemaDetail = () => {
                         className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
                     >
                         <Edit className="h-4 w-4 mr-1" />
-                        Sá»­a
+                        Sửa
                     </Button>
                     <Button
                         size="sm"
@@ -363,7 +363,7 @@ const CinemaDetail = () => {
                         className="border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400"
                     >
                         <Settings className="h-4 w-4 mr-1" />
-                        Quáº£n lÃ½ gháº¿
+                        Quản lý ghế
                     </Button>
                     <Button
                         variant="destructive"
@@ -375,7 +375,7 @@ const CinemaDetail = () => {
                         }}
                     >
                         <Trash2 className="h-4 w-4 mr-1" />
-                        XÃ³a
+                        Xóa
                     </Button>
                 </div>
             )
@@ -394,26 +394,26 @@ const CinemaDetail = () => {
                         href: '/admin/dashboard'
                     },
                     {
-                        title: 'Quáº£n lÃ½ ráº¡p',
+                        title: 'Quản lý rạp',
                         icon: <Building2 className="h-4 w-4" />,
                         href: '/admin/cinemas'
                     },
                     {
-                        title: cinema ? `Chi tiáº¿t: ${cinema.name}` : 'Chi tiáº¿t ráº¡p',
+                        title: cinema ? `Chi tiết: ${cinema.name}` : 'Chi tiết rạp',
                     },
                 ]}
             />
 
             {/* Header */}
-            <Card className="mb-6 rounded-xl shadow-md border border-gray-200 p-6">
+            <Card className="mb-6 rounded-xl shadow-md border border-border p-6">
                 <div className="flex justify-between items-center flex-wrap gap-4">
                     <div className="flex items-center gap-4">
                         <div>
-                            <h2 className="m-0 mb-1 text-gray-800 text-2xl font-bold">
+                            <h2 className="m-0 mb-1 text-foreground text-2xl font-bold">
                                 {cinema.name}
                             </h2>
                             {cinema.address && (
-                                <p className="text-gray-500 text-sm mt-1">
+                                <p className="text-muted-foreground text-sm mt-1">
                                     {cinema.address}
                                 </p>
                             )}
@@ -426,20 +426,20 @@ const CinemaDetail = () => {
                             className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
                         >
                             <Edit className="h-4 w-4 mr-2" />
-                            Chá»‰nh sá»­a
+                            Chỉnh sửa
                         </Button>
                         <Button
                             variant="destructive"
                             size="lg"
                             className="bg-red-600 hover:bg-red-700 text-white shadow-sm"
                             onClick={() => {
-                                if (window.confirm(`Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a ráº¡p "${cinema.name}"?`)) {
+                                if (window.confirm(`Bạn có chắc chắn muốn xóa rạp "${cinema.name}"?`)) {
                                     handleDeleteCinema();
                                 }
                             }}
                         >
                             <Trash2 className="h-4 w-4 mr-2" />
-                            XÃ³a ráº¡p
+                            Xóa rạp
                         </Button>
                     </div>
                 </div>
@@ -449,7 +449,7 @@ const CinemaDetail = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
                 {/* Left Column - Image */}
                 <div className="md:col-span-1">
-                    <Card className="rounded-xl shadow-md border border-gray-200 p-4">
+                    <Card className="rounded-xl shadow-md border border-border p-4">
                         <img
                             src={cinema.image}
                             alt={cinema.name}
@@ -463,16 +463,16 @@ const CinemaDetail = () => {
 
                 {/* Right Column - Info */}
                 <div className="md:col-span-3">
-                    <Card className="rounded-xl shadow-md border border-gray-200">
+                    <Card className="rounded-xl shadow-md border border-border">
                         <div className="p-6">
-                            <h3 className="text-lg font-semibold mb-4 pb-2 border-b border-gray-200">ThÃ´ng tin ráº¡p</h3>
+                            <h3 className="text-lg font-semibold mb-4 pb-2 border-b border-border">Thông tin rạp</h3>
                             <DetailList columns={2} bordered>
-                                <DetailItem label="Tráº¡ng thÃ¡i">
+                                <DetailItem label="Trạng thái">
                                     {(() => {
                                         const statusMap = {
-                                            'active': { text: 'Hoáº¡t Ä‘á»™ng', color: 'green' },
-                                            'inactive': { text: 'KhÃ´ng hoáº¡t Ä‘á»™ng', color: 'red' },
-                                            'maintenance': { text: 'Báº£o trÃ¬', color: 'orange' }
+                                            'active': { text: 'Hoạt động', color: 'green' },
+                                            'inactive': { text: 'Không hoạt động', color: 'red' },
+                                            'maintenance': { text: 'Bảo trì', color: 'orange' }
                                         };
                                         const status = cinema.status || 'active';
                                         const statusInfo = statusMap[status] || { text: status || 'N/A', color: 'default' };
@@ -481,18 +481,18 @@ const CinemaDetail = () => {
                                 </DetailItem>
                                 <DetailItem label={
                                     <span className="flex items-center gap-1">
-                                        <MapPin className="h-4 w-4" /> Äá»‹a chá»‰
+                                        <MapPin className="h-4 w-4" /> Địa chỉ
                                     </span>
                                 }>
                                     {cinema.address || '-'}
                                 </DetailItem>
                                 {cinema.city && (
-                                    <DetailItem label="Khu vá»±c">
+                                    <DetailItem label="Khu vực">
                                         {typeof cinema.city === 'object' ? cinema.city.name : cinema.city}
                                     </DetailItem>
                                 )}
                                 {cinema.facilities && Array.isArray(cinema.facilities) && cinema.facilities.length > 0 && (
-                                    <DetailItem label="Tiá»‡n Ã­ch" wide>
+                                    <DetailItem label="Tiện ích" wide>
                                         <div className="flex flex-wrap gap-2">
                                             {cinema.facilities.map((facility, index) => (
                                                 <StatusBadge key={index} tone="cyan">{facility}</StatusBadge>
@@ -507,7 +507,7 @@ const CinemaDetail = () => {
                                     <Separator className="my-4" />
                                     <div>
                                         <h5 className="text-base font-semibold mb-2 flex items-center gap-2">
-                                            <FileText className="h-4 w-4" /> MÃ´ táº£
+                                            <FileText className="h-4 w-4" /> Mô tả
                                         </h5>
                                         <p className="text-gray-700 whitespace-pre-wrap">
                                             {cinema.description}
@@ -521,12 +521,12 @@ const CinemaDetail = () => {
             </div>
 
             {/* Rooms Table */}
-            <Card className="rounded-xl shadow-md border border-gray-200">
+            <Card className="rounded-xl shadow-md border border-border">
                 <div className="p-6">
                     <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
                         <div className="flex items-center gap-3">
                             <Settings className="h-5 w-5 text-blue-600" />
-                            <h3 className="text-lg font-semibold m-0">Danh sÃ¡ch phÃ²ng chiáº¿u</h3>
+                            <h3 className="text-lg font-semibold m-0">Danh sách phòng chiếu</h3>
                             <Badge count={rooms.length} />
                         </div>
                         <Button
@@ -535,7 +535,7 @@ const CinemaDetail = () => {
                             className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
                         >
                             <Plus className="h-4 w-4 mr-2" />
-                            ThÃªm phÃ²ng
+                            Thêm phòng
                         </Button>
                     </div>
                     {rooms.length > 0 ? (
@@ -547,7 +547,7 @@ const CinemaDetail = () => {
                     ) : (
                         <div className="flex flex-col justify-center items-center py-12">
                             <Empty
-                                description="ChÆ°a cÃ³ phÃ²ng chiáº¿u nÃ o"
+                                description="Chưa có phòng chiếu nào"
                             />
                             <Button
                                 onClick={handleAddRoom}
@@ -555,7 +555,7 @@ const CinemaDetail = () => {
                                 className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
                             >
                                 <Plus className="h-4 w-4 mr-2" />
-                                ThÃªm phÃ²ng chiáº¿u Ä‘áº§u tiÃªn
+                                Thêm phòng chiếu đầu tiên
                             </Button>
                         </div>
                     )}
@@ -572,7 +572,7 @@ const CinemaDetail = () => {
                             <Plus className="h-5 w-5 text-green-600" />
                         )}
                         <span className="text-lg font-semibold">
-                            {showEditRoom ? 'Chá»‰nh sá»­a phÃ²ng chiáº¿u' : 'Táº¡o phÃ²ng chiáº¿u má»›i'}
+                            {showEditRoom ? 'Chỉnh sửa phòng chiếu' : 'Tạo phòng chiếu mới'}
                         </span>
                     </div>
                 }
@@ -597,38 +597,38 @@ const CinemaDetail = () => {
                 style={{ maxWidth: '900px' }}
             >
                 {submittingRoom && (
-                    <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10 rounded-lg">
+                    <div className="absolute inset-0 bg-card/80 flex items-center justify-center z-10 rounded-lg">
                         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
                     </div>
                 )}
                 <form onSubmit={(e) => { e.preventDefault(); handleSubmitRoom(); }} className="space-y-4">
-                    {/* ThÃ´ng tin cÆ¡ báº£n */}
-                    <Card className="mb-4 p-4 bg-gray-50">
+                    {/* Thông tin cơ bản */}
+                    <Card className="mb-4 p-4 bg-background">
                         <h5 className="mb-4 text-base font-semibold flex items-center gap-2">
                             <Home className="h-4 w-4 text-blue-600" />
-                            <span>ThÃ´ng tin cÆ¡ báº£n</span>
+                            <span>Thông tin cơ bản</span>
                         </h5>
 
                         <div className="mb-4">
                             <label className="block mb-2 font-semibold">
-                                TÃªn phÃ²ng <span className="text-red-500">*</span>
+                                Tên phòng <span className="text-red-500">*</span>
                             </label>
                             <div className="relative">
                                 <Home className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                                 <Input
                                     value={roomFormValues.name}
                                     onChange={(e) => setRoomFormValues({ ...roomFormValues, name: e.target.value })}
-                                    placeholder="VD: PhÃ²ng chiáº¿u 1, Room A, ..."
+                                    placeholder="VD: Phòng chiếu 1, Room A, ..."
                                     className="pl-10 h-11"
                                     disabled={submittingRoom}
                                 />
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">TÃªn phÃ²ng chiáº¿u duy nháº¥t trong ráº¡p</p>
+                            <p className="text-xs text-muted-foreground mt-1">Tên phòng chiếu duy nhất trong rạp</p>
                         </div>
 
                         <div>
                             <label className="block mb-2 font-semibold">
-                                Loáº¡i ráº¡p chiáº¿u <span className="text-red-500">*</span>
+                                Loại rạp chiếu <span className="text-red-500">*</span>
                             </label>
                             <RadioGroup
                                 value={roomFormValues.theaterType}
@@ -636,80 +636,80 @@ const CinemaDetail = () => {
                                 className="grid grid-cols-2 sm:grid-cols-3 gap-2"
                             >
                                 <RadioGroup.Button value="TWO_D" className="text-center text-sm py-2">
-                                    ðŸŽ¬ 2D
+                                    🎬 2D
                                 </RadioGroup.Button>
                                 <RadioGroup.Button value="THREE_D" className="text-center text-sm py-2">
-                                    ðŸ•¶ï¸ 3D
+                                    🕶️ 3D
                                 </RadioGroup.Button>
                                 <RadioGroup.Button value="IMAX" className="text-center text-sm py-2">
-                                    ðŸŽ¥ IMAX
+                                    🎥 IMAX
                                 </RadioGroup.Button>
                                 <RadioGroup.Button value="IMAX_3D" className="text-center text-sm py-2">
-                                    ðŸŽ¬ IMAX 3D
+                                    🎬 IMAX 3D
                                 </RadioGroup.Button>
                                 <RadioGroup.Button value="FOUR_DX" className="text-center text-sm py-2">
-                                    ðŸŽ¢ 4DX
+                                    🎢 4DX
                                 </RadioGroup.Button>
                                 <RadioGroup.Button value="SCREEN_X" className="text-center text-sm py-2">
-                                    ðŸ“º ScreenX
+                                    📺 ScreenX
                                 </RadioGroup.Button>
                             </RadioGroup>
-                            <p className="text-xs text-gray-500 mt-1">Chá»n cÃ´ng nghá»‡ chiáº¿u phim</p>
+                            <p className="text-xs text-muted-foreground mt-1">Chọn công nghệ chiếu phim</p>
                         </div>
                     </Card>
 
-                    {/* Cáº¥u hÃ¬nh sÆ¡ Ä‘á»“ gháº¿ */}
-                    <Card className="mb-4 p-4 bg-gray-50">
+                    {/* Cấu hình sơ đồ ghế */}
+                    <Card className="mb-4 p-4 bg-background">
                         <h5 className="mb-4 text-base font-semibold flex items-center gap-2">
                             <Settings className="h-4 w-4 text-green-600" />
-                            <span>Cáº¥u hÃ¬nh sÆ¡ Ä‘á»“ gháº¿</span>
+                            <span>Cấu hình sơ đồ ghế</span>
                         </h5>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="block mb-2 font-semibold">
-                                    Sá»‘ hÃ ng gháº¿ <span className="text-red-500">*</span>
+                                    Số hàng ghế <span className="text-red-500">*</span>
                                 </label>
                                 <NumberStepper
                                     value={roomFormValues.numberOfRows}
                                     onValueChange={(value) => setRoomFormValues({ ...roomFormValues, numberOfRows: value || 10 })}
                                     min={1}
                                     max={26}
-                                    placeholder="VD: 10 hÃ ng"
+                                    placeholder="VD: 10 hàng"
                                     className="w-full h-11"
                                     disabled={submittingRoom}
                                 />
-                                <p className="text-xs text-gray-500 mt-1">Sá»‘ hÃ ng gháº¿ tá»« A-Z (tá»‘i Ä‘a 26 hÃ ng)</p>
+                                <p className="text-xs text-muted-foreground mt-1">Số hàng ghế từ A-Z (tối đa 26 hàng)</p>
                             </div>
                             <div>
                                 <label className="block mb-2 font-semibold">
-                                    Sá»‘ cá»™t gháº¿ <span className="text-red-500">*</span>
+                                    Số cột ghế <span className="text-red-500">*</span>
                                 </label>
                                 <NumberStepper
                                     value={roomFormValues.numberOfColumns}
                                     onValueChange={(value) => setRoomFormValues({ ...roomFormValues, numberOfColumns: value || 12 })}
                                     min={1}
                                     max={30}
-                                    placeholder="VD: 12 cá»™t"
+                                    placeholder="VD: 12 cột"
                                     className="w-full h-11"
                                     disabled={submittingRoom}
                                 />
-                                <p className="text-xs text-gray-500 mt-1">Sá»‘ gháº¿ trÃªn má»—i hÃ ng (tá»‘i Ä‘a 30 gháº¿)</p>
+                                <p className="text-xs text-muted-foreground mt-1">Số ghế trên mỗi hàng (tối đa 30 ghế)</p>
                             </div>
                         </div>
                     </Card>
 
-                    {/* Cáº¥u hÃ¬nh mÃ n hÃ¬nh vÃ  Ã¢m thanh */}
-                    <Card className="mb-4 p-4 bg-gray-50">
+                    {/* Cấu hình màn hình và âm thanh */}
+                    <Card className="mb-4 p-4 bg-background">
                         <h5 className="mb-4 text-base font-semibold flex items-center gap-2">
                             <ImageIcon className="h-4 w-4 text-blue-600" />
-                            <span>Cáº¥u hÃ¬nh mÃ n hÃ¬nh vÃ  Ã¢m thanh</span>
+                            <span>Cấu hình màn hình và âm thanh</span>
                         </h5>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="block mb-2 font-semibold">
-                                    Loáº¡i mÃ n hÃ¬nh <span className="text-red-500">*</span>
+                                    Loại màn hình <span className="text-red-500">*</span>
                                 </label>
                                 <Select
                                     value={roomFormValues.screenType}
@@ -717,7 +717,7 @@ const CinemaDetail = () => {
                                     disabled={submittingRoom}
                                 >
                                     <SelectTrigger className="h-11">
-                                        <SelectValue placeholder="Chá»n loáº¡i mÃ n hÃ¬nh" />
+                                        <SelectValue placeholder="Chọn loại màn hình" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="STANDARD">Standard</SelectItem>
@@ -727,11 +727,11 @@ const CinemaDetail = () => {
                                         <SelectItem value="IMAX">IMAX</SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <p className="text-xs text-gray-500 mt-1">Chá»n loáº¡i mÃ n hÃ¬nh chiáº¿u phim</p>
+                                <p className="text-xs text-muted-foreground mt-1">Chọn loại màn hình chiếu phim</p>
                             </div>
                             <div>
                                 <label className="block mb-2 font-semibold">
-                                    Há»‡ thá»‘ng Ã¢m thanh <span className="text-red-500">*</span>
+                                    Hệ thống âm thanh <span className="text-red-500">*</span>
                                 </label>
                                 <Select
                                     value={roomFormValues.soundSystem}
@@ -739,7 +739,7 @@ const CinemaDetail = () => {
                                     disabled={submittingRoom}
                                 >
                                     <SelectTrigger className="h-11">
-                                        <SelectValue placeholder="Chá»n há»‡ thá»‘ng Ã¢m thanh" />
+                                        <SelectValue placeholder="Chọn hệ thống âm thanh" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="STEREO">Stereo</SelectItem>
@@ -749,12 +749,12 @@ const CinemaDetail = () => {
                                         <SelectItem value="DOLBY_ATMOS">Dolby Atmos</SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <p className="text-xs text-gray-500 mt-1">Chá»n há»‡ thá»‘ng Ã¢m thanh</p>
+                                <p className="text-xs text-muted-foreground mt-1">Chọn hệ thống âm thanh</p>
                             </div>
                         </div>
                     </Card>
 
-                    {/* Thá»‘ng kÃª */}
+                    {/* Thống kê */}
                     {(() => {
                         const numberOfRows = roomFormValues.numberOfRows || 0;
                         const numberOfColumns = roomFormValues.numberOfColumns || 0;
@@ -765,26 +765,26 @@ const CinemaDetail = () => {
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
                                         <Metric
-                                            label={<span className="text-white/90 text-xs">Tá»•ng sá»‘ gháº¿</span>}
+                                            label={<span className="text-white/90 text-xs">Tổng số ghế</span>}
                                             value={totalSeats}
                                             valueStyle={{ color: 'white', fontSize: '24px', fontWeight: 'bold' }}
-                                            suffix={<span className="text-xs">gháº¿</span>}
+                                            suffix={<span className="text-xs">ghế</span>}
                                         />
                                     </div>
                                     <div>
                                         <Metric
-                                            label={<span className="text-white/90 text-xs">Sá»‘ hÃ ng</span>}
+                                            label={<span className="text-white/90 text-xs">Số hàng</span>}
                                             value={numberOfRows}
                                             valueStyle={{ color: 'white', fontSize: '24px', fontWeight: 'bold' }}
-                                            suffix={<span className="text-xs">hÃ ng</span>}
+                                            suffix={<span className="text-xs">hàng</span>}
                                         />
                                     </div>
                                     <div>
                                         <Metric
-                                            label={<span className="text-white/90 text-xs">Sá»‘ cá»™t</span>}
+                                            label={<span className="text-white/90 text-xs">Số cột</span>}
                                             value={numberOfColumns}
                                             valueStyle={{ color: 'white', fontSize: '24px', fontWeight: 'bold' }}
-                                            suffix={<span className="text-xs">cá»™t</span>}
+                                            suffix={<span className="text-xs">cột</span>}
                                         />
                                     </div>
                                 </div>
@@ -816,7 +816,7 @@ const CinemaDetail = () => {
                             disabled={submittingRoom}
                             className="min-w-[100px]"
                         >
-                            Há»§y bá»
+                            Hủy bỏ
                         </Button>
                         <Button
                             type="submit"
@@ -827,19 +827,19 @@ const CinemaDetail = () => {
                             {submittingRoom ? (
                                 <>
                                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Äang xá»­ lÃ½...
+                                    Đang xử lý...
                                 </>
                             ) : (
                                 <>
                                     {showEditRoom ? (
                                         <>
                                             <Edit className="h-4 w-4 mr-2" />
-                                            Cáº­p nháº­t
+                                            Cập nhật
                                         </>
                                     ) : (
                                         <>
                                             <Plus className="h-4 w-4 mr-2" />
-                                            Táº¡o phÃ²ng
+                                            Tạo phòng
                                         </>
                                     )}
                                 </>
@@ -851,7 +851,7 @@ const CinemaDetail = () => {
 
             {/* Delete Room Confirmation Modal */}
             <ResponsiveDialog
-                heading="XÃ³a phÃ²ng chiáº¿u"
+                heading="Xóa phòng chiếu"
                 open={showDeleteConfirm}
                 onClose={() => {
                     setShowDeleteConfirm(false);
@@ -865,25 +865,25 @@ const CinemaDetail = () => {
                                 setShowDeleteConfirm(false);
                                 setRoomToDelete(null);
                             }}
-                            className="border-gray-300 hover:bg-gray-50"
+                            className="border-gray-300 hover:bg-background"
                         >
-                            Há»§y
+                            Hủy
                         </Button>
                         <Button
                             variant="destructive"
                             onClick={confirmDelete}
                             className="bg-red-600 hover:bg-red-700 text-white shadow-sm"
                         >
-                            XÃ³a
+                            Xóa
                         </Button>
                     </div>
                 }
             >
                 <p className="mb-2">
-                    Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a phÃ²ng <strong>"{roomToDelete?.name}"</strong>?
+                    Bạn có chắc chắn muốn xóa phòng <strong>"{roomToDelete?.name}"</strong>?
                 </p>
                 <p className="text-red-600 text-sm">
-                    HÃ nh Ä‘á»™ng nÃ y khÃ´ng thá»ƒ hoÃ n tÃ¡c.
+                    Hành động này không thể hoàn tác.
                 </p>
             </ResponsiveDialog>
 

@@ -6,6 +6,7 @@ const notificationService = {
     markAsRead: (id) => apiClient.post(`${ENDPOINTS.NOTIFICATIONS}/${id}/read`),
     markAllAsRead: () => apiClient.post(`${ENDPOINTS.NOTIFICATIONS}/read-all`),
     delete: (id) => apiClient.delete(`${ENDPOINTS.NOTIFICATIONS}/${id}`),
+    broadcast: (payload) => apiClient.post(`${ENDPOINTS.NOTIFICATIONS}/broadcast`, payload),
 };
 
 export default notificationService;

@@ -126,21 +126,21 @@ const BookingFailed = () => {
                     </div>
                 </div> */}
 
-                <h2 className="text-center text-gray-900 mb-4 text-3xl md:text-4xl font-bold">
+                <h2 className="text-center text-foreground mb-4 text-3xl md:text-4xl font-bold">
                     Thanh toán không thành công
                 </h2>
 
-                {/* <p className="block text-center text-gray-600 mb-2 text-base md:text-lg max-w-2xl mx-auto">
+                {/* <p className="block text-center text-muted-foreground mb-2 text-base md:text-lg max-w-2xl mx-auto">
                     {errorMessage}
                 </p> */}
                 
                 {reason && reason !== 'Thanh toán không thành công.' && (
-                    <p className="block text-center text-gray-500 mb-8 text-sm">
+                    <p className="block text-center text-muted-foreground mb-8 text-sm">
                         Lý do: {reason}
                     </p>
                 )}
 
-                <Card className="bg-white rounded-xl shadow-xl border border-gray-200 mb-6 overflow-hidden">
+                <Card className="bg-card rounded-xl shadow-xl border border-border mb-6 overflow-hidden">
                     <div className="bg-gradient-to-r from-primary to-red-600 p-4">
                         <p className="text-white text-lg font-bold">Tóm tắt đơn hàng</p>
                     </div>
@@ -148,22 +148,22 @@ const BookingFailed = () => {
                     <div className="p-6 space-y-4">
                         {movieTitle && (
                             <div className="flex justify-between items-start py-2">
-                                <p className="text-gray-600 font-medium text-sm">Phim:</p>
-                                <p className="text-gray-900 font-semibold text-right flex-1 ml-4 text-sm">{movieTitle}</p>
+                                <p className="text-muted-foreground font-medium text-sm">Phim:</p>
+                                <p className="text-foreground font-semibold text-right flex-1 ml-4 text-sm">{movieTitle}</p>
                             </div>
                         )}
 
                         {cinemaName && (
                             <div className="flex justify-between items-start py-2">
-                                <p className="text-gray-600 font-medium text-sm">Rạp:</p>
-                                <p className="text-gray-900 font-semibold text-right flex-1 ml-4 text-sm">{cinemaName}</p>
+                                <p className="text-muted-foreground font-medium text-sm">Rạp:</p>
+                                <p className="text-foreground font-semibold text-right flex-1 ml-4 text-sm">{cinemaName}</p>
                             </div>
                         )}
 
                         {showTime && (
                             <div className="flex justify-between items-start py-2">
-                                <p className="text-gray-600 font-medium text-sm">Suất chiếu:</p>
-                                <p className="text-gray-900 font-semibold text-right flex-1 ml-4 text-sm">
+                                <p className="text-muted-foreground font-medium text-sm">Suất chiếu:</p>
+                                <p className="text-foreground font-semibold text-right flex-1 ml-4 text-sm">
                                     {showTime} - {showDate ? dayjs(showDate).format('DD/MM/YYYY') : ''}
                                 </p>
                             </div>
@@ -171,22 +171,22 @@ const BookingFailed = () => {
 
                         {seatNumbers && (
                             <div className="flex justify-between items-start py-2">
-                                <p className="text-gray-600 font-medium text-sm">Số vé:</p>
-                                <p className="text-gray-900 font-semibold text-right flex-1 ml-4 text-sm">{seatNumbers}</p>
+                                <p className="text-muted-foreground font-medium text-sm">Số vé:</p>
+                                <p className="text-foreground font-semibold text-right flex-1 ml-4 text-sm">{seatNumbers}</p>
                             </div>
                         )}
 
                         {bookingCode && (
                             <div className="flex justify-between items-start py-2">
-                                <p className="text-gray-600 font-medium text-sm">Mã đặt vé:</p>
-                                <p className="text-gray-900 font-semibold text-right flex-1 ml-4 text-sm font-mono">{bookingCode}</p>
+                                <p className="text-muted-foreground font-medium text-sm">Mã đặt vé:</p>
+                                <p className="text-foreground font-semibold text-right flex-1 ml-4 text-sm font-mono">{bookingCode}</p>
                             </div>
                         )}
 
-                        <div className="border-t border-gray-200 my-4"></div>
+                        <div className="border-t border-border my-4"></div>
 
                         <div className="flex justify-between items-center pt-2">
-                            <p className="text-gray-900 font-bold text-lg">Tổng cộng:</p>
+                            <p className="text-foreground font-bold text-lg">Tổng cộng:</p>
                             <p className="text-red-600 font-bold text-xl">{totalAmount}</p>
                         </div>
                     </div>

@@ -22,7 +22,7 @@ const MovieCard = ({ movie, onTrailerClick, viewMode = 'grid' }) => {
   if (viewMode === 'list') {
     return (
       <Card
-        className="rounded-xl overflow-hidden bg-white/95 backdrop-blur-[10px] border border-white/20 mb-4 hover:shadow-lg transition-all duration-300 md:flex md:flex-col cursor-pointer"
+        className="rounded-xl overflow-hidden bg-card/95 backdrop-blur-[10px] border border-white/20 mb-4 hover:shadow-lg transition-all duration-300 md:flex md:flex-col cursor-pointer"
       >
         <div className="flex items-stretch md:flex-col">
           <div className="w-[140px] h-[200px] relative flex-shrink-0 md:w-full md:h-[200px]">
@@ -38,7 +38,7 @@ const MovieCard = ({ movie, onTrailerClick, viewMode = 'grid' }) => {
           <div className="flex-1 p-5 md:p-4 flex flex-col justify-between">
             <div className="flex justify-between items-start mb-3 md:flex-col md:gap-2">
               <Link to={`/movies/${id}`} className="text-inherit no-underline font-semibold text-base hover:text-[#667eea]">
-                <h3 className="m-0 text-xl font-semibold text-gray-800 md:text-lg">{title}</h3>
+                <h3 className="m-0 text-xl font-semibold text-foreground md:text-lg">{title}</h3>
               </Link>
               <div className="flex items-center gap-2">
                 <StarRating readOnly value={rating / 2} precision={0.5} />
@@ -50,14 +50,14 @@ const MovieCard = ({ movie, onTrailerClick, viewMode = 'grid' }) => {
                 <StatusBadge tone="blue">{genre.split(', ')[0]}</StatusBadge>
               )}
               {duration && (
-                <span className="text-gray-600 text-sm">{duration}</span>
+                <span className="text-muted-foreground text-sm">{duration}</span>
               )}
               {releaseDate && (
-                <span className="text-gray-600 text-sm">{releaseDate}</span>
+                <span className="text-muted-foreground text-sm">{releaseDate}</span>
               )}
             </div>
             {description && (
-              <p className="text-gray-600 leading-relaxed mb-4 flex-1">
+              <p className="text-muted-foreground leading-relaxed mb-4 flex-1">
                 {description.length > 120
                   ? `${description.substring(0, 120)}...`
                   : description
@@ -68,7 +68,7 @@ const MovieCard = ({ movie, onTrailerClick, viewMode = 'grid' }) => {
               <Link to={`/movies/${id}`}>
                 <Button>
                   <Eye className="h-4 w-4 mr-2" />
-                  Chi tiáº¿t
+                  Chi tiết
                 </Button>
               </Link>
               <Button
@@ -91,7 +91,7 @@ const MovieCard = ({ movie, onTrailerClick, viewMode = 'grid' }) => {
   // Grid mode (default)
   return (
     <Card
-      className="rounded-2xl overflow-hidden transition-all duration-300 bg-white/95 backdrop-blur-[10px] border border-white/20 hover:-translate-y-2 hover:shadow-xl cursor-pointer"
+      className="rounded-2xl overflow-hidden transition-all duration-300 bg-card/95 backdrop-blur-[10px] border border-white/20 hover:-translate-y-2 hover:shadow-xl cursor-pointer"
     >
       <div className="relative overflow-hidden h-[350px] md:h-[280px] sm:h-[240px]">
         <Link to={`/movies/${id}`}>
@@ -106,7 +106,7 @@ const MovieCard = ({ movie, onTrailerClick, viewMode = 'grid' }) => {
           <Button
             variant="default"
             size="icon"
-            className="scale-80 hover:scale-100 transition-transform duration-300 bg-white/15 backdrop-blur-[10px] border-2 border-white/80 w-[50px] h-[50px] flex items-center justify-center text-white hover:bg-gradient-to-br hover:from-primary hover:to-[#ff6b35] hover:border-white hover:scale-110 md:w-10 md:h-10"
+            className="scale-80 hover:scale-100 transition-transform duration-300 bg-card/15 backdrop-blur-[10px] border-2 border-white/80 w-[50px] h-[50px] flex items-center justify-center text-white hover:bg-gradient-to-br hover:from-primary hover:to-[#ff6b35] hover:border-white hover:scale-110 md:w-10 md:h-10"
             onClick={(e) => {
               e.stopPropagation();
               onTrailerClick?.(movie);
@@ -133,7 +133,7 @@ const MovieCard = ({ movie, onTrailerClick, viewMode = 'grid' }) => {
             ))}
           </div>
           {releaseDate && (
-            <div className="text-sm text-gray-600 mt-1">{releaseDate}</div>
+            <div className="text-sm text-muted-foreground mt-1">{releaseDate}</div>
           )}
         </div>
       </div>

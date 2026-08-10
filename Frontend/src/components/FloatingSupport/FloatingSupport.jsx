@@ -1,14 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Headphones, MessageCircle, Phone } from 'lucide-react';
 import ChatModal from '@/components/ChatModal/ChatModal';
 
 const FloatingSupport = () => {
     const [chatModalOpen, setChatModalOpen] = useState(false);
-
-    useEffect(() => {
-        console.log('FloatingSupport mounted');
-        return () => console.log('FloatingSupport unmounted');
-    }, []);
 
     return (
         <>

@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import useNotification from '@/hooks/useNotification';
+import settingsService from '@/services/settingsService';
 
 const Settings = () => {
     const navigate = useNavigate();
@@ -103,8 +104,7 @@ const Settings = () => {
     const loadSettings = async () => {
         try {
             setLoading(true);
-            const response = await fetch('/data/settings.json');
-            const data = await response.json();
+            const data = await settingsService.get();
             setSettings(data);
 
             // Update form values with loaded data
@@ -145,7 +145,7 @@ const Settings = () => {
                 }));
             }
         } catch (error) {
-            notification.error('Lá»—i khi táº£i cÃ i Ä‘áº·t há»‡ thá»‘ng');
+            notification.error('Lỗi khi tải cài đặt hệ thống');
             console.error('Error loading settings:', error);
         } finally {
             setLoading(false);
@@ -159,11 +159,11 @@ const Settings = () => {
 
             // Validation
             if (!formValues.company?.name?.trim()) {
-                notification.error('Vui lÃ²ng nháº­p tÃªn cÃ´ng ty!');
+                notification.error('Vui lòng nhập tên công ty!');
                 return;
             }
             if (!formValues.pricing?.basePrice || formValues.pricing.basePrice <= 0) {
-                notification.error('Vui lÃ²ng nháº­p giÃ¡ vÃ© cÆ¡ báº£n há»£p lá»‡!');
+                notification.error('Vui lòng nhập giá vé cơ bản hợp lệ!');
                 return;
             }
 
@@ -174,15 +174,13 @@ const Settings = () => {
                 updatedBy: 'admin'
             };
 
-            setSettings(formattedData);
+            const savedSettings = await settingsService.update(formattedData);
+            setSettings(savedSettings || formattedData);
             setHasChanges(false);
-            notification.success('LÆ°u cÃ i Ä‘áº·t thÃ nh cÃ´ng');
-
-            // Here you would send the data to your backend API
-            console.log('Saved settings:', formattedData);
+            notification.success('Lưu cài đặt thành công');
 
         } catch (error) {
-            notification.error('CÃ³ lá»—i xáº£y ra khi lÆ°u cÃ i Ä‘áº·t');
+            notification.error('Có lỗi xảy ra khi lưu cài đặt');
             console.error('Error saving settings:', error);
         } finally {
             setSaveLoading(false);
@@ -197,7 +195,7 @@ const Settings = () => {
             }));
         }
         setHasChanges(false);
-        notification.info('ÄÃ£ khÃ´i phá»¥c vá» cÃ i Ä‘áº·t ban Ä‘áº§u');
+        notification.info('Đã khôi phục về cài đặt ban đầu');
     };
 
     const handleFormChange = (path, value) => {
@@ -226,14 +224,14 @@ const Settings = () => {
 
     const pricingSection = (
         <Card className="mb-6 rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <DollarSign className="h-5 w-5 text-indigo-600" />
-                CÃ i Ä‘áº·t giÃ¡ vÃ©
+                Cài đặt giá vé
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                        GiÃ¡ vÃ© cÆ¡ báº£n <span className="text-red-500">*</span>
+                        Giá vé cơ bản <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                         <NumberStepper
@@ -242,12 +240,12 @@ const Settings = () => {
                             onValueChange={(value) => handleFormChange('pricing.basePrice', value)}
                             className="w-full pr-12"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">Ä‘</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">đ</span>
                     </div>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Phá»¥ thu cuá»‘i tuáº§n
+                        Phụ thu cuối tuần
                     </label>
                     <div className="relative">
                         <NumberStepper
@@ -256,12 +254,12 @@ const Settings = () => {
                             onValueChange={(value) => handleFormChange('pricing.weekendSurcharge', value)}
                             className="w-full pr-12"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">Ä‘</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">đ</span>
                     </div>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Phá»¥ thu ngÃ y lá»…
+                        Phụ thu ngày lễ
                     </label>
                     <div className="relative">
                         <NumberStepper
@@ -270,18 +268,18 @@ const Settings = () => {
                             onValueChange={(value) => handleFormChange('pricing.holidaySurcharge', value)}
                             className="w-full pr-12"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">Ä‘</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">đ</span>
                     </div>
                 </div>
             </div>
 
             <Separator className="my-6">
-                <span className="text-sm text-gray-500 px-2 bg-white">Phá»¥ thu theo loáº¡i gháº¿</span>
+                <span className="text-sm text-muted-foreground px-2 bg-card">Phụ thu theo loại ghế</span>
             </Separator>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Gháº¿ VIP</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Ghế VIP</label>
                     <div className="relative">
                         <NumberStepper
                             min={0}
@@ -289,11 +287,11 @@ const Settings = () => {
                             onValueChange={(value) => handleFormChange('pricing.vipSurcharge', value)}
                             className="w-full pr-12"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">Ä‘</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">đ</span>
                     </div>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Gháº¿ Premium</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Ghế Premium</label>
                     <div className="relative">
                         <NumberStepper
                             min={0}
@@ -301,11 +299,11 @@ const Settings = () => {
                             onValueChange={(value) => handleFormChange('pricing.premiumSurcharge', value)}
                             className="w-full pr-12"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">Ä‘</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">đ</span>
                     </div>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Gháº¿ Ä‘Ã´i</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Ghế đôi</label>
                     <div className="relative">
                         <NumberStepper
                             min={0}
@@ -313,18 +311,18 @@ const Settings = () => {
                             onValueChange={(value) => handleFormChange('pricing.coupleSurcharge', value)}
                             className="w-full pr-12"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">Ä‘</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">đ</span>
                     </div>
                 </div>
             </div>
 
             <Separator className="my-6">
-                <span className="text-sm text-gray-500 px-2 bg-white">Chiáº¿t kháº¥u Ä‘áº·c biá»‡t</span>
+                <span className="text-sm text-muted-foreground px-2 bg-card">Chiết khấu đặc biệt</span>
             </Separator>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Giáº£m giÃ¡ tráº» em</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Giảm giá trẻ em</label>
                     <div className="relative">
                         <NumberStepper
                             min={0}
@@ -333,11 +331,11 @@ const Settings = () => {
                             onValueChange={(value) => handleFormChange('pricing.childDiscount', value)}
                             className="w-full pr-12"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">%</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
                     </div>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Giáº£m giÃ¡ há»c sinh/sinh viÃªn</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Giảm giá học sinh/sinh viên</label>
                     <div className="relative">
                         <NumberStepper
                             min={0}
@@ -346,11 +344,11 @@ const Settings = () => {
                             onValueChange={(value) => handleFormChange('pricing.studentDiscount', value)}
                             className="w-full pr-12"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">%</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
                     </div>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Giáº£m giÃ¡ ngÆ°á»i cao tuá»•i</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Giảm giá người cao tuổi</label>
                     <div className="relative">
                         <NumberStepper
                             min={0}
@@ -359,7 +357,7 @@ const Settings = () => {
                             onValueChange={(value) => handleFormChange('pricing.seniorDiscount', value)}
                             className="w-full pr-12"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">%</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
                     </div>
                 </div>
             </div>
@@ -368,19 +366,19 @@ const Settings = () => {
 
     const companySection = (
         <Card className="mb-6 rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <Building2 className="h-5 w-5 text-indigo-600" />
-                ThÃ´ng tin cÃ´ng ty
+                Thông tin công ty
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                        TÃªn cÃ´ng ty <span className="text-red-500">*</span>
+                        Tên công ty <span className="text-red-500">*</span>
                     </label>
                     <Input
                         value={formValues.company?.name || ''}
                         onChange={(e) => handleFormChange('company.name', e.target.value)}
-                        placeholder="Nháº­p tÃªn cÃ´ng ty"
+                        placeholder="Nhập tên công ty"
                     />
                 </div>
                 <div>
@@ -388,7 +386,7 @@ const Settings = () => {
                     <Input
                         value={formValues.company?.slogan || ''}
                         onChange={(e) => handleFormChange('company.slogan', e.target.value)}
-                        placeholder="Nháº­p slogan"
+                        placeholder="Nhập slogan"
                     />
                 </div>
             </div>
@@ -404,7 +402,7 @@ const Settings = () => {
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Sá»‘ Ä‘iá»‡n thoáº¡i</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Số điện thoại</label>
                     <Input
                         value={formValues.company?.phone || ''}
                         onChange={(e) => handleFormChange('company.phone', e.target.value)}
@@ -422,17 +420,17 @@ const Settings = () => {
             </div>
 
             <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Äá»‹a chá»‰</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Địa chỉ</label>
                 <Textarea
                     rows={3}
                     value={formValues.company?.address || ''}
                     onChange={(e) => handleFormChange('company.address', e.target.value)}
-                    placeholder="Nháº­p Ä‘á»‹a chá»‰ cÃ´ng ty"
+                    placeholder="Nhập địa chỉ công ty"
                 />
             </div>
 
             <Separator className="my-6">
-                <span className="text-sm text-gray-500 px-2 bg-white">Máº¡ng xÃ£ há»™i</span>
+                <span className="text-sm text-muted-foreground px-2 bg-card">Mạng xã hội</span>
             </Separator>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -466,13 +464,13 @@ const Settings = () => {
 
     const bookingSection = (
         <Card className="mb-6 rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <ShoppingCart className="h-5 w-5 text-indigo-600" />
-                CÃ i Ä‘áº·t Ä‘áº·t vÃ©
+                Cài đặt đặt vé
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Sá»‘ gháº¿ tá»‘i Ä‘a/láº§n Ä‘áº·t</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Số ghế tối đa/lần đặt</label>
                     <NumberStepper
                         min={1}
                         max={20}
@@ -482,7 +480,7 @@ const Settings = () => {
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Thá»i gian giá»¯ chá»— (phÃºt)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Thời gian giữ chỗ (phút)</label>
                     <NumberStepper
                         min={5}
                         max={60}
@@ -492,7 +490,7 @@ const Settings = () => {
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Äáº·t vÃ© trÆ°á»›c (ngÃ y)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Đặt vé trước (ngày)</label>
                     <NumberStepper
                         min={1}
                         max={90}
@@ -504,7 +502,7 @@ const Settings = () => {
             </div>
 
             <Separator className="my-6">
-                <span className="text-sm text-gray-500 px-2 bg-white">ChÃ­nh sÃ¡ch há»§y vÃ©</span>
+                <span className="text-sm text-muted-foreground px-2 bg-card">Chính sách hủy vé</span>
             </Separator>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -513,10 +511,10 @@ const Settings = () => {
                         checked={formValues.booking?.cancellationPolicy?.enableCancellation || false}
                         onCheckedChange={(checked) => handleFormChange('booking.cancellationPolicy.enableCancellation', checked)}
                     />
-                    <label className="text-sm font-medium text-gray-700">Cho phÃ©p há»§y vÃ©</label>
+                    <label className="text-sm font-medium text-gray-700">Cho phép hủy vé</label>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Háº¡n há»§y (giá» trÆ°á»›c chiáº¿u)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Hạn hủy (giờ trước chiếu)</label>
                     <NumberStepper
                         min={1}
                         max={24}
@@ -526,7 +524,7 @@ const Settings = () => {
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">% hoÃ n tiá»n</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">% hoàn tiền</label>
                     <div className="relative">
                         <NumberStepper
                             min={0}
@@ -535,17 +533,17 @@ const Settings = () => {
                             onValueChange={(value) => handleFormChange('booking.cancellationPolicy.refundPercentage', value)}
                             className="w-full pr-12"
                         />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">%</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
                     </div>
                 </div>
             </div>
 
             <Separator className="my-6">
-                <span className="text-sm text-gray-500 px-2 bg-white">PhÆ°Æ¡ng thá»©c thanh toÃ¡n</span>
+                <span className="text-sm text-muted-foreground px-2 bg-card">Phương thức thanh toán</span>
             </Separator>
 
             <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">PhÆ°Æ¡ng thá»©c Ä‘Æ°á»£c kÃ­ch hoáº¡t</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Phương thức được kích hoạt</label>
                 <div className="flex flex-wrap gap-4">
                     <div className="flex items-center gap-2">
                         <Checkbox
@@ -587,7 +585,7 @@ const Settings = () => {
                                 }
                             }}
                         />
-                        <label className="text-sm text-gray-700">Chuyá»ƒn khoáº£n</label>
+                        <label className="text-sm text-gray-700">Chuyển khoản</label>
                     </div>
                     <div className="flex items-center gap-2">
                         <Checkbox
@@ -601,26 +599,26 @@ const Settings = () => {
                                 }
                             }}
                         />
-                        <label className="text-sm text-gray-700">Tiá»n máº·t</label>
+                        <label className="text-sm text-gray-700">Tiền mặt</label>
                     </div>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">PhÆ°Æ¡ng thá»©c máº·c Ä‘á»‹nh</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Phương thức mặc định</label>
                     <Select
                         value={formValues.booking?.payment?.defaultMethod || 'vnpay'}
                         onValueChange={(value) => handleFormChange('booking.payment.defaultMethod', value)}
                     >
                         <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Chá»n phÆ°Æ¡ng thá»©c" />
+                            <SelectValue placeholder="Chọn phương thức" />
                         </SelectTrigger>
                         <SelectContent position="popper">
                             <SelectItem value="momo">MoMo</SelectItem>
                             <SelectItem value="vnpay">VNPay</SelectItem>
-                            <SelectItem value="banking">Chuyá»ƒn khoáº£n</SelectItem>
-                            <SelectItem value="cash">Tiá»n máº·t</SelectItem>
+                            <SelectItem value="banking">Chuyển khoản</SelectItem>
+                            <SelectItem value="cash">Tiền mặt</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -629,7 +627,7 @@ const Settings = () => {
                         checked={formValues.booking?.payment?.autoRefundEnabled || false}
                         onCheckedChange={(checked) => handleFormChange('booking.payment.autoRefundEnabled', checked)}
                     />
-                    <label className="text-sm font-medium text-gray-700">Tá»± Ä‘á»™ng hoÃ n tiá»n</label>
+                    <label className="text-sm font-medium text-gray-700">Tự động hoàn tiền</label>
                 </div>
             </div>
         </Card>
@@ -637,9 +635,9 @@ const Settings = () => {
 
     const systemSection = (
         <Card className="mb-6 rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <SettingsIcon className="h-5 w-5 text-indigo-600" />
-                CÃ i Ä‘áº·t há»‡ thá»‘ng
+                Cài đặt hệ thống
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="flex items-center gap-2">
@@ -647,24 +645,24 @@ const Settings = () => {
                         checked={formValues.system?.maintenanceMode || false}
                         onCheckedChange={(checked) => handleFormChange('system.maintenanceMode', checked)}
                     />
-                    <label className="text-sm font-medium text-gray-700">Cháº¿ Ä‘á»™ báº£o trÃ¬</label>
+                    <label className="text-sm font-medium text-gray-700">Chế độ bảo trì</label>
                 </div>
                 <div className="flex items-center gap-2">
                     <Checkbox
                         checked={formValues.system?.enableRegistration !== false}
                         onCheckedChange={(checked) => handleFormChange('system.enableRegistration', checked)}
                     />
-                    <label className="text-sm font-medium text-gray-700">ÄÄƒng kÃ½ tÃ i khoáº£n má»›i</label>
+                    <label className="text-sm font-medium text-gray-700">Đăng ký tài khoản mới</label>
                 </div>
             </div>
 
             <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">ThÃ´ng bÃ¡o báº£o trÃ¬</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Thông báo bảo trì</label>
                 <Textarea
                     rows={3}
                     value={formValues.system?.maintenanceMessage || ''}
                     onChange={(e) => handleFormChange('system.maintenanceMessage', e.target.value)}
-                    placeholder="Nháº­p thÃ´ng bÃ¡o báº£o trÃ¬"
+                    placeholder="Nhập thông báo bảo trì"
                 />
             </div>
 
@@ -674,53 +672,53 @@ const Settings = () => {
                         checked={formValues.system?.enableGuestBooking || false}
                         onCheckedChange={(checked) => handleFormChange('system.enableGuestBooking', checked)}
                     />
-                    <label className="text-sm font-medium text-gray-700">Äáº·t vÃ© khÃ´ng cáº§n Ä‘Äƒng kÃ½</label>
+                    <label className="text-sm font-medium text-gray-700">Đặt vé không cần đăng ký</label>
                 </div>
                 <div className="flex items-center gap-2">
                     <Checkbox
                         checked={formValues.system?.enableReviews !== false}
                         onCheckedChange={(checked) => handleFormChange('system.enableReviews', checked)}
                     />
-                    <label className="text-sm font-medium text-gray-700">ÄÃ¡nh giÃ¡ phim</label>
+                    <label className="text-sm font-medium text-gray-700">Đánh giá phim</label>
                 </div>
                 <div className="flex items-center gap-2">
                     <Checkbox
                         checked={formValues.system?.enableRatings !== false}
                         onCheckedChange={(checked) => handleFormChange('system.enableRatings', checked)}
                     />
-                    <label className="text-sm font-medium text-gray-700">Xáº¿p háº¡ng phim</label>
+                    <label className="text-sm font-medium text-gray-700">Xếp hạng phim</label>
                 </div>
             </div>
 
             <Separator className="my-6">
-                <span className="text-sm text-gray-500 px-2 bg-white">CÃ i Ä‘áº·t Ä‘á»‹nh dáº¡ng</span>
+                <span className="text-sm text-muted-foreground px-2 bg-card">Cài đặt định dạng</span>
             </Separator>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">MÃºi giá»</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Múi giờ</label>
                     <Select
                         value={formValues.system?.timezone || 'Asia/Ho_Chi_Minh'}
                         onValueChange={(value) => handleFormChange('system.timezone', value)}
                     >
                         <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Chá»n mÃºi giá»" />
+                            <SelectValue placeholder="Chọn múi giờ" />
                         </SelectTrigger>
                         <SelectContent position="popper">
-                            <SelectItem value="Asia/Ho_Chi_Minh">Viá»‡t Nam (UTC+7)</SelectItem>
+                            <SelectItem value="Asia/Ho_Chi_Minh">Việt Nam (UTC+7)</SelectItem>
                             <SelectItem value="Asia/Bangkok">Bangkok (UTC+7)</SelectItem>
                             <SelectItem value="Asia/Singapore">Singapore (UTC+8)</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Äá»‹nh dáº¡ng ngÃ y</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Định dạng ngày</label>
                     <Select
                         value={formValues.system?.dateFormat || 'DD/MM/YYYY'}
                         onValueChange={(value) => handleFormChange('system.dateFormat', value)}
                     >
                         <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Chá»n Ä‘á»‹nh dáº¡ng" />
+                            <SelectValue placeholder="Chọn định dạng" />
                         </SelectTrigger>
                         <SelectContent position="popper">
                             <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
@@ -730,16 +728,16 @@ const Settings = () => {
                     </Select>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tiá»n tá»‡</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tiền tệ</label>
                     <Select
                         value={formValues.system?.currency || 'VND'}
                         onValueChange={(value) => handleFormChange('system.currency', value)}
                     >
                         <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Chá»n tiá»n tá»‡" />
+                            <SelectValue placeholder="Chọn tiền tệ" />
                         </SelectTrigger>
                         <SelectContent position="popper">
-                            <SelectItem value="VND">VND (Viá»‡t Nam Äá»“ng)</SelectItem>
+                            <SelectItem value="VND">VND (Việt Nam Đồng)</SelectItem>
                             <SelectItem value="USD">USD (US Dollar)</SelectItem>
                         </SelectContent>
                     </Select>
@@ -750,13 +748,13 @@ const Settings = () => {
 
     const cinemaSection = (
         <Card className="mb-6 rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <Video className="h-5 w-5 text-indigo-600" />
-                CÃ i Ä‘áº·t ráº¡p chiáº¿u
+                Cài đặt rạp chiếu
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Giá» má»Ÿ cá»­a máº·c Ä‘á»‹nh</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Giờ mở cửa mặc định</label>
                     <Input
                         type="time"
                         value={formValues.cinema?.defaultOpenTime || '08:00'}
@@ -765,7 +763,7 @@ const Settings = () => {
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Giá» Ä‘Ã³ng cá»­a máº·c Ä‘á»‹nh</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Giờ đóng cửa mặc định</label>
                     <Input
                         type="time"
                         value={formValues.cinema?.defaultCloseTime || '23:00'}
@@ -777,7 +775,7 @@ const Settings = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Thá»i gian dá»n dáº¹p (phÃºt)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Thời gian dọn dẹp (phút)</label>
                     <NumberStepper
                         min={15}
                         max={60}
@@ -787,7 +785,7 @@ const Settings = () => {
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Sá»‘ suáº¥t chiáº¿u tá»‘i Ä‘a/ngÃ y</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Số suất chiếu tối đa/ngày</label>
                     <NumberStepper
                         min={4}
                         max={20}
@@ -804,14 +802,14 @@ const Settings = () => {
                         checked={formValues.cinema?.enableOnlineSeating !== false}
                         onCheckedChange={(checked) => handleFormChange('cinema.enableOnlineSeating', checked)}
                     />
-                    <label className="text-sm font-medium text-gray-700">Chá»n chá»— ngá»“i online</label>
+                    <label className="text-sm font-medium text-gray-700">Chọn chỗ ngồi online</label>
                 </div>
                 <div className="flex items-center gap-2">
                     <Checkbox
                         checked={formValues.cinema?.enableFoodOrdering !== false}
                         onCheckedChange={(checked) => handleFormChange('cinema.enableFoodOrdering', checked)}
                     />
-                    <label className="text-sm font-medium text-gray-700">Äáº·t Ä‘á»“ Äƒn online</label>
+                    <label className="text-sm font-medium text-gray-700">Đặt đồ ăn online</label>
                 </div>
             </div>
         </Card>
@@ -823,7 +821,7 @@ const Settings = () => {
             label: (
                 <span className="flex items-center gap-2">
                     <DollarSign className="h-4 w-4" />
-                    GiÃ¡ vÃ©
+                    Giá vé
                 </span>
             ),
             children: pricingSection
@@ -833,7 +831,7 @@ const Settings = () => {
             label: (
                 <span className="flex items-center gap-2">
                     <Building2 className="h-4 w-4" />
-                    CÃ´ng ty
+                    Công ty
                 </span>
             ),
             children: companySection
@@ -843,7 +841,7 @@ const Settings = () => {
             label: (
                 <span className="flex items-center gap-2">
                     <ShoppingCart className="h-4 w-4" />
-                    Äáº·t vÃ©
+                    Đặt vé
                 </span>
             ),
             children: bookingSection
@@ -853,7 +851,7 @@ const Settings = () => {
             label: (
                 <span className="flex items-center gap-2">
                     <SettingsIcon className="h-4 w-4" />
-                    Há»‡ thá»‘ng
+                    Hệ thống
                 </span>
             ),
             children: systemSection
@@ -863,7 +861,7 @@ const Settings = () => {
             label: (
                 <span className="flex items-center gap-2">
                     <Video className="h-4 w-4" />
-                    Ráº¡p chiáº¿u
+                    Rạp chiếu
                 </span>
             ),
             children: cinemaSection
@@ -872,7 +870,7 @@ const Settings = () => {
 
     if (loading) {
         return (
-            <div className="p-6 bg-gray-50 min-h-screen flex items-center justify-center">
+            <div className="p-6 bg-background min-h-screen flex items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
             </div>
         );
@@ -890,24 +888,24 @@ const Settings = () => {
                         href: '/admin/dashboard'
                     },
                     {
-                        title: 'CÃ i Ä‘áº·t',
+                        title: 'Cài đặt',
                         icon: <SettingsIcon className="h-4 w-4" />
                     }
                 ]}
             />
 
-            <div className="flex justify-between items-center mb-6 p-4 bg-white rounded-lg shadow-md">
-                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <div className="flex justify-between items-center mb-6 p-4 bg-card rounded-lg shadow-md">
+                <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
                     <div className="p-2 bg-indigo-100 rounded-lg">
                         <SettingsIcon className="h-5 w-5 text-indigo-600" />
                     </div>
-                    CÃ i Ä‘áº·t há»‡ thá»‘ng
+                    Cài đặt hệ thống
                 </h2>
                 <div className="flex items-center gap-3">
                     {hasChanges && (
                         <Alert className="mr-2">
                             <Info className="h-4 w-4" />
-                            <span>CÃ³ thay Ä‘á»•i chÆ°a lÆ°u</span>
+                            <span>Có thay đổi chưa lưu</span>
                         </Alert>
                     )}
                     <Button
@@ -916,7 +914,7 @@ const Settings = () => {
                         disabled={!hasChanges}
                     >
                         <RotateCw className="h-4 w-4 mr-2" />
-                        KhÃ´i phá»¥c
+                        Khôi phục
                     </Button>
                     <Button
                         className="bg-indigo-600 hover:bg-indigo-700"
@@ -928,7 +926,7 @@ const Settings = () => {
                         ) : (
                             <Save className="h-4 w-4 mr-2" />
                         )}
-                        LÆ°u cÃ i Ä‘áº·t
+                        Lưu cài đặt
                     </Button>
                 </div>
             </div>
@@ -937,13 +935,13 @@ const Settings = () => {
                 value={activeTab}
                 onValueChange={setActiveTab}
                 items={tabItems}
-                className="bg-white rounded-lg shadow-md overflow-hidden p-4"
+                className="bg-card rounded-lg shadow-md overflow-hidden p-4"
             />
 
-            <div className="text-center p-4 bg-white rounded-lg shadow-md mt-6">
-                <p className="text-sm text-gray-500">
-                    Cáº­p nháº­t láº§n cuá»‘i: {settings.lastUpdated ? dayjs(settings.lastUpdated).format('DD/MM/YYYY HH:mm') : 'ChÆ°a cÃ³'}
-                    {settings.updatedBy && ` bá»Ÿi ${settings.updatedBy}`}
+            <div className="text-center p-4 bg-card rounded-lg shadow-md mt-6">
+                <p className="text-sm text-muted-foreground">
+                    Cập nhật lần cuối: {settings.lastUpdated ? dayjs(settings.lastUpdated).format('DD/MM/YYYY HH:mm') : 'Chưa có'}
+                    {settings.updatedBy && ` bởi ${settings.updatedBy}`}
                 </p>
             </div>
         </div>

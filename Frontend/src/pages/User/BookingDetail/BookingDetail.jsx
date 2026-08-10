@@ -28,7 +28,7 @@ const BookingDetail = () => {
             setBooking(response);
         } catch (error) {
             console.error('Error loading booking detail:', error);
-            notification.error('KhÃ´ng thá»ƒ táº£i thÃ´ng tin Ä‘áº·t vÃ©');
+            notification.error('Không thể tải thông tin đặt vé');
             navigate('/account-settings');
         } finally {
             setLoading(false);
@@ -37,11 +37,11 @@ const BookingDetail = () => {
 
     const getStatusConfig = (status) => {
         const configs = {
-            'PENDING': { color: 'warning', icon: <Clock className="h-4 w-4" />, text: 'Äang chá» thanh toÃ¡n' },
-            'PAID': { color: 'success', icon: <CheckCircle2 className="h-4 w-4" />, text: 'ÄÃ£ thanh toÃ¡n' },
-            'CANCELLED': { color: 'default', icon: <XCircle className="h-4 w-4" />, text: 'ÄÃ£ há»§y' },
-            'FAILED': { color: 'error', icon: <XCircle className="h-4 w-4" />, text: 'Thanh toÃ¡n lá»—i' },
-            'REFUNDED': { color: 'info', icon: <CheckCircle2 className="h-4 w-4" />, text: 'ÄÃ£ hoÃ n tiá»n' }
+            'PENDING': { color: 'warning', icon: <Clock className="h-4 w-4" />, text: 'Đang chờ thanh toán' },
+            'PAID': { color: 'success', icon: <CheckCircle2 className="h-4 w-4" />, text: 'Đã thanh toán' },
+            'CANCELLED': { color: 'default', icon: <XCircle className="h-4 w-4" />, text: 'Đã hủy' },
+            'FAILED': { color: 'error', icon: <XCircle className="h-4 w-4" />, text: 'Thanh toán lỗi' },
+            'REFUNDED': { color: 'info', icon: <CheckCircle2 className="h-4 w-4" />, text: 'Đã hoàn tiền' }
         };
         return configs[status] || configs['PENDING'];
     };
@@ -62,12 +62,12 @@ const BookingDetail = () => {
     const handleCopyCode = () => {
         if (booking?.bookingCode) {
             navigator.clipboard.writeText(booking.bookingCode);
-            notification.success('ÄÃ£ sao chÃ©p mÃ£ Ä‘áº·t vÃ©');
+            notification.success('Đã sao chép mã đặt vé');
         }
     };
 
     if (loading) {
-        return <ContentLoader message="Äang táº£i thÃ´ng tin..." />;
+        return <ContentLoader message="Đang tải thông tin..." />;
     }
 
     if (!booking) {
@@ -77,7 +77,7 @@ const BookingDetail = () => {
     const statusConfig = getStatusConfig(booking.status);
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8 px-4">
+        <div className="min-h-screen bg-background py-8 px-4">
             <div className="max-w-[1200px] mx-auto">
                 <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
                     <Button
@@ -86,7 +86,7 @@ const BookingDetail = () => {
                         className="rounded-lg"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Quay láº¡i
+                        Quay lại
                     </Button>
                     <div className="flex gap-2">
                         <Button
@@ -96,23 +96,23 @@ const BookingDetail = () => {
                             className="rounded-lg"
                         >
                             <Download className="h-4 w-4 mr-2" />
-                            Táº£i xuá»‘ng
+                            Tải xuống
                         </Button>
                         <Button
                             onClick={handlePrint}
                             className="rounded-lg"
                         >
                             <Printer className="h-4 w-4 mr-2" />
-                            In vÃ©
+                            In vé
                         </Button>
                     </div>
                 </div>
 
-                <h2 className="text-gray-900 text-2xl font-bold mb-6">Chi tiáº¿t Ä‘áº·t vÃ©</h2>
+                <h2 className="text-foreground text-2xl font-bold mb-6">Chi tiết đặt vé</h2>
 
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-6">
                     <div className="space-y-6">
-                        <Card className="bg-white rounded-xl shadow-md border border-gray-200">
+                        <Card className="bg-card rounded-xl shadow-md border border-border">
                             <div className="flex flex-col items-center">
                                 {booking.qrCodeBase64 ? (
                                     <img
@@ -122,20 +122,20 @@ const BookingDetail = () => {
                                     />
                                 ) : (
                                     <div className="w-64 h-64 flex items-center justify-center bg-gray-100 rounded-lg mb-6">
-                                        <p className="text-gray-500">QR Code khÃ´ng kháº£ dá»¥ng</p>
+                                        <p className="text-muted-foreground">QR Code không khả dụng</p>
                                     </div>
                                 )}
                                 <div className="text-center mb-4">
-                                    <p className="text-gray-500 text-sm mb-2">MÃ£ Ä‘áº·t vÃ©</p>
+                                    <p className="text-muted-foreground text-sm mb-2">Mã đặt vé</p>
                                     <div className="flex items-center gap-2 justify-center">
-                                        <h4 className="text-gray-900 text-xl font-bold">{booking.bookingCode}</h4>
+                                        <h4 className="text-foreground text-xl font-bold">{booking.bookingCode}</h4>
                                         <Button
                                             variant="ghost"
                                             size="sm"
                                             onClick={handleCopyCode}
                                             className="h-6 w-6 p-0"
                                         >
-                                            ðŸ“‹
+                                            📋
                                         </Button>
                                     </div>
                                 </div>
@@ -150,7 +150,7 @@ const BookingDetail = () => {
                         </Card>
 
                         {booking.moviePosterUrl && (
-                            <Card className="bg-white rounded-xl shadow-md border border-gray-200">
+                            <Card className="bg-card rounded-xl shadow-md border border-border">
                                 <img
                                     src={booking.moviePosterUrl}
                                     alt={booking.movieTitle}
@@ -161,37 +161,37 @@ const BookingDetail = () => {
                     </div>
 
                     <div className="space-y-6">
-                        <Card className="bg-white rounded-xl shadow-md border border-gray-200">
-                            <h4 className="text-lg font-semibold mb-4">ThÃ´ng tin phim</h4>
+                        <Card className="bg-card rounded-xl shadow-md border border-border">
+                            <h4 className="text-lg font-semibold mb-4">Thông tin phim</h4>
                             <DetailList columns={2}>
-                                <DetailItem label="TÃªn phim">
+                                <DetailItem label="Tên phim">
                                     <span className="font-semibold">{booking.movieTitle}</span>
                                 </DetailItem>
-                                <DetailItem label="Äá»‹nh dáº¡ng">
+                                <DetailItem label="Định dạng">
                                     {booking.movieFormat || 'N/A'}
                                 </DetailItem>
                             </DetailList>
                         </Card>
 
-                        <Card className="bg-white rounded-xl shadow-md border border-gray-200">
-                            <h4 className="text-lg font-semibold mb-4">ThÃ´ng tin ráº¡p</h4>
+                        <Card className="bg-card rounded-xl shadow-md border border-border">
+                            <h4 className="text-lg font-semibold mb-4">Thông tin rạp</h4>
                             <DetailList columns={2}>
-                                <DetailItem label="Ráº¡p chiáº¿u">
+                                <DetailItem label="Rạp chiếu">
                                     <span className="font-semibold">{booking.cinemaName}</span>
                                 </DetailItem>
-                                <DetailItem label="PhÃ²ng chiáº¿u">
+                                <DetailItem label="Phòng chiếu">
                                     {booking.roomName || 'N/A'}
                                 </DetailItem>
-                                <DetailItem label="Äá»‹a chá»‰" wide>
+                                <DetailItem label="Địa chỉ" wide>
                                     {booking.cinemaAddress || 'N/A'}
                                 </DetailItem>
                             </DetailList>
                         </Card>
 
-                        <Card className="bg-white rounded-xl shadow-md border border-gray-200">
-                            <h4 className="text-lg font-semibold mb-4">ThÃ´ng tin suáº¥t chiáº¿u</h4>
+                        <Card className="bg-card rounded-xl shadow-md border border-border">
+                            <h4 className="text-lg font-semibold mb-4">Thông tin suất chiếu</h4>
                             <DetailList columns={2}>
-                                <DetailItem label="NgÃ y chiáº¿u">
+                                <DetailItem label="Ngày chiếu">
                                     {booking.showtimeDateTime ? new Date(booking.showtimeDateTime).toLocaleDateString('vi-VN', {
                                         weekday: 'long',
                                         day: '2-digit',
@@ -199,16 +199,16 @@ const BookingDetail = () => {
                                         year: 'numeric'
                                     }) : 'N/A'}
                                 </DetailItem>
-                                <DetailItem label="Giá» chiáº¿u">
+                                <DetailItem label="Giờ chiếu">
                                     {booking.showtimeStartTime} - {booking.showtimeEndTime}
                                 </DetailItem>
                             </DetailList>
                         </Card>
 
-                        <Card className="bg-white rounded-xl shadow-md border border-gray-200">
-                            <h4 className="text-lg font-semibold mb-4">ThÃ´ng tin gháº¿</h4>
+                        <Card className="bg-card rounded-xl shadow-md border border-border">
+                            <h4 className="text-lg font-semibold mb-4">Thông tin ghế</h4>
                             <div className="flex flex-col gap-3">
-                                <p className="font-semibold">Gháº¿ Ä‘Ã£ chá»n: </p>
+                                <p className="font-semibold">Ghế đã chọn: </p>
                                 <div className="flex flex-wrap gap-2">
                                     {booking.seats?.map((seat, index) => (
                                         <StatusBadge key={index} tone="blue" className="px-3 py-1">
@@ -219,32 +219,32 @@ const BookingDetail = () => {
                             </div>
                         </Card>
 
-                        <Card className="bg-white rounded-xl shadow-md border border-gray-200">
-                            <h4 className="text-lg font-semibold mb-4">ThÃ´ng tin thanh toÃ¡n</h4>
+                        <Card className="bg-card rounded-xl shadow-md border border-border">
+                            <h4 className="text-lg font-semibold mb-4">Thông tin thanh toán</h4>
                             <DetailList columns={1}>
-                                <DetailItem label="GiÃ¡ gá»‘c">
-                                    {(booking.originalPrice || 0).toLocaleString('vi-VN')}Ä‘
+                                <DetailItem label="Giá gốc">
+                                    {(booking.originalPrice || 0).toLocaleString('vi-VN')}đ
                                 </DetailItem>
                                 {booking.discountAmount > 0 && (
-                                    <DetailItem label="Giáº£m giÃ¡">
-                                        <span className="text-red-600">-{(booking.discountAmount || 0).toLocaleString('vi-VN')}Ä‘</span>
+                                    <DetailItem label="Giảm giá">
+                                        <span className="text-red-600">-{(booking.discountAmount || 0).toLocaleString('vi-VN')}đ</span>
                                     </DetailItem>
                                 )}
-                                <DetailItem label="Tá»•ng tiá»n">
+                                <DetailItem label="Tổng tiền">
                                     <span className="text-xl text-blue-600 font-bold">
-                                        {(booking.totalPrice || 0).toLocaleString('vi-VN')}Ä‘
+                                        {(booking.totalPrice || 0).toLocaleString('vi-VN')}đ
                                     </span>
                                 </DetailItem>
-                                <DetailItem label="NgÃ y Ä‘áº·t vÃ©">
+                                <DetailItem label="Ngày đặt vé">
                                     {booking.bookingDate ? new Date(booking.bookingDate).toLocaleString('vi-VN') : 'N/A'}
                                 </DetailItem>
                             </DetailList>
                         </Card>
 
-                        <Card className="bg-white rounded-xl shadow-md border border-gray-200">
-                            <h4 className="text-lg font-semibold mb-4">ThÃ´ng tin khÃ¡ch hÃ ng</h4>
+                        <Card className="bg-card rounded-xl shadow-md border border-border">
+                            <h4 className="text-lg font-semibold mb-4">Thông tin khách hàng</h4>
                             <DetailList columns={2}>
-                                <DetailItem label="Há» tÃªn">
+                                <DetailItem label="Họ tên">
                                     {booking.userName || 'N/A'}
                                 </DetailItem>
                                 <DetailItem label="Email">

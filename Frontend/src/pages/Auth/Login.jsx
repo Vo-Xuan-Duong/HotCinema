@@ -18,12 +18,12 @@ const Login = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="flex min-h-screen bg-card">
       <div className="relative flex w-full flex-col overflow-y-auto lg:w-1/2">
         <div className="absolute left-6 top-6 z-10">
           <button
             onClick={() => navigate('/')}
-            className="flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-sm font-medium text-gray-500 shadow-sm backdrop-blur-md transition-colors hover:text-primary"
+            className="flex items-center gap-2 rounded-full bg-card/80 px-3 py-1.5 text-sm font-medium text-muted-foreground shadow-sm backdrop-blur-md transition-colors hover:text-primary"
           >
             <ChevronLeft className="h-4 w-4" />
             Trở về trang chủ
@@ -33,10 +33,10 @@ const Login = () => {
         <div className="mx-auto flex min-h-screen w-full max-w-[600px] flex-1 items-center justify-center p-8 sm:p-12 lg:p-16">
           <div className="w-full py-12">
             <div className="mb-8">
-              <h2 className="mb-3 text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+              <h2 className="mb-3 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
                 Chào mừng trở lại
               </h2>
-              <p className="text-base text-gray-500">
+              <p className="text-base text-muted-foreground">
                 Đăng nhập vào HotCinemas để tiếp tục đặt vé, theo dõi lịch sử và nhận ưu đãi thành viên.
               </p>
             </div>

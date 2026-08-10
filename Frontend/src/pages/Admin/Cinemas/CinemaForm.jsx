@@ -169,7 +169,7 @@ const CinemaForm = () => {
             <div className="mb-2">
                 <div className="flex items-center gap-4 mb-4">
                     <div>
-                        <h2 className="m-0 mb-2 text-gray-800 text-2xl font-bold">
+                        <h2 className="m-0 mb-2 text-foreground text-2xl font-bold">
                             {isEditMode ? 'Chỉnh Sửa Rạp' : 'Thêm Rạp Mới'}
                         </h2>
                     </div>
@@ -177,12 +177,12 @@ const CinemaForm = () => {
             </div>
 
             {/* Form */}
-            <Card className="rounded-xl shadow-md border border-gray-200">
+            <Card className="rounded-xl shadow-md border border-border">
                 <div className="p-6">
                     {loadingCinema ? (
                         <div className="text-center py-12">
                             <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400 mb-4" />
-                            <p className="text-gray-500">Đang tải thông tin rạp...</p>
+                            <p className="text-muted-foreground">Đang tải thông tin rạp...</p>
                         </div>
                     ) : (
                         <form onSubmit={(e) => {
@@ -206,7 +206,7 @@ const CinemaForm = () => {
                                 {/* Left Column - Main Info */}
                                 <div className="lg:col-span-2 space-y-6">
                                     <div>
-                                        <h4 className="text-lg font-semibold text-gray-800 mb-6 pb-2 border-b border-gray-200">
+                                        <h4 className="text-lg font-semibold text-foreground mb-6 pb-2 border-b border-border">
                                             Thông tin cơ bản
                                         </h4>
                                     </div>
@@ -258,7 +258,7 @@ const CinemaForm = () => {
                                             </SelectTrigger>
                                             <SelectContent>
                                                 {regions.length === 0 ? (
-                                                    <div className="px-2 py-1.5 text-sm text-gray-500 text-center">
+                                                    <div className="px-2 py-1.5 text-sm text-muted-foreground text-center">
                                                         Đang tải...
                                                     </div>
                                                 ) : (
@@ -297,7 +297,7 @@ const CinemaForm = () => {
                                             onChange={(e) => setFormValues(prev => ({ ...prev, description: e.target.value }))}
                                             className="w-full resize-none"
                                         />
-                                        <p className="text-xs text-gray-500 mt-1">
+                                        <p className="text-xs text-muted-foreground mt-1">
                                             Mô tả về rạp chiếu phim, tiện ích, và các thông tin khác
                                         </p>
                                     </div>
@@ -307,7 +307,7 @@ const CinemaForm = () => {
                                 <div className="lg:col-span-1">
                                     <div className="space-y-6">
                                         <div>
-                                            <h4 className="text-lg font-semibold text-gray-800 mb-6 pb-2 border-b border-gray-200">
+                                            <h4 className="text-lg font-semibold text-foreground mb-6 pb-2 border-b border-border">
                                                 Hình ảnh
                                             </h4>
                                         </div>
@@ -325,7 +325,7 @@ const CinemaForm = () => {
                                                     className="pl-10"
                                                 />
                                             </div>
-                                            <p className="text-xs text-gray-500 mt-1">
+                                            <p className="text-xs text-muted-foreground mt-1">
                                                 Nhập URL hình ảnh từ internet
                                             </p>
                                         </div>
@@ -336,7 +336,7 @@ const CinemaForm = () => {
                                                 <label className="block text-sm font-semibold text-gray-700">
                                                     Xem trước
                                                 </label>
-                                                <div className="relative rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+                                                <div className="relative rounded-lg overflow-hidden border border-border bg-background">
                                                     <img
                                                         src={previewImage}
                                                         alt="Preview"
@@ -348,9 +348,9 @@ const CinemaForm = () => {
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50">
+                                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-background">
                                                 <ImageIcon className="h-12 w-12 mx-auto text-gray-400 mb-2" />
-                                                <p className="text-sm text-gray-500">
+                                                <p className="text-sm text-muted-foreground">
                                                     Chưa có hình ảnh
                                                 </p>
                                                 <p className="text-xs text-gray-400 mt-1">

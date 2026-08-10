@@ -18,15 +18,15 @@ const Breadcrumb = ({ items = [], className, ...props }) => {
         return (
           <React.Fragment key={index}>
             {isLast ? (
-              <span className="text-gray-500 font-medium">{content}</span>
+              <span className="text-muted-foreground font-medium">{content}</span>
             ) : (
               <>
                 {item.href ? (
-                  <Link to={item.href} className="text-gray-600 hover:text-primary transition-colors">
+                  <Link to={item.href} className="text-muted-foreground hover:text-primary transition-colors">
                     {content}
                   </Link>
                 ) : (
-                  <span className="text-gray-600">{content}</span>
+                  <span className="text-muted-foreground">{content}</span>
                 )}
                 <ChevronRight className="h-4 w-4 text-gray-400 mx-1" />
               </>

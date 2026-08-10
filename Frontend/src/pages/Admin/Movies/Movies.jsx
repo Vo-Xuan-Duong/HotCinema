@@ -69,7 +69,7 @@ const Movies = () => {
       const searchParams = {
         page: pagination.current - 1, // Backend uses 0-based index
         size: pagination.pageSize,
-        sort: 'releaseDate,desc' // Sáº¯p xáº¿p theo ngÃ y phÃ¡t hÃ nh tá»« má»›i Ä‘áº¿n cÅ©
+        sort: 'releaseDate,desc' // Sắp xếp theo ngày phát hành từ mới đến cũ
       };
 
       // Add keyword if searchText exists
@@ -93,7 +93,7 @@ const Movies = () => {
       }
 
       // Use search API when there's any filter or searchText
-      // Otherwise use getAllMovies for simple listing
+      // Otherwise use the canonical paginated listing endpoint.
       const hasFilters = searchText || filters.status || filters.genreId || filters.releaseYear;
 
       let response;
@@ -111,46 +111,46 @@ const Movies = () => {
         if (filters.rating) {
           listParams.minRating = filters.rating;
         }
-        response = await movieService.getAllMovies(listParams);
+        response = await movieService.listPage(listParams);
       }
 
-      // Xá»­ lÃ½ response vá»›i nhiá»u cáº¥u trÃºc cÃ³ thá»ƒ cÃ³
+      // Xử lý response với nhiều cấu trúc có thể có
       console.log('Full response:', response);
 
       let moviesData = [];
       let totalCount = 0;
 
-      // Case 1: Response cÃ³ cáº¥u trÃºc Page object: { content: [...], totalElements, ... }
+      // Case 1: Response có cấu trúc Page object: { content: [...], totalElements, ... }
       if (response && Array.isArray(response.content)) {
         moviesData = response.content;
         totalCount = response.totalElements || response.content.length;
       }
-      // Case 2: Response cÃ³ data.content (nested trong data)
+      // Case 2: Response có data.content (nested trong data)
       else if (response?.data && Array.isArray(response.data.content)) {
         moviesData = response.data.content;
         totalCount = response.data.totalElements || response.data.content.length;
       }
-      // Case 3: Response lÃ  array trá»±c tiáº¿p
+      // Case 3: Response là array trực tiếp
       else if (Array.isArray(response)) {
         moviesData = response;
         totalCount = response.length;
       }
-      // Case 4: Response cÃ³ data lÃ  array
+      // Case 4: Response có data là array
       else if (response?.data && Array.isArray(response.data)) {
         moviesData = response.data;
         totalCount = response.data.length;
       }
-      // Case 5: Response cÃ³ items thay vÃ¬ content
+      // Case 5: Response có items thay vì content
       else if (response && Array.isArray(response.items)) {
         moviesData = response.items;
         totalCount = response.totalElements || response.items.length;
       }
-      // Case 6: Response cÃ³ results thay vÃ¬ content
+      // Case 6: Response có results thay vì content
       else if (response && Array.isArray(response.results)) {
         moviesData = response.results;
         totalCount = response.totalElements || response.results.length;
       }
-      // Default: khÃ´ng cÃ³ dá»¯ liá»‡u
+      // Default: không có dữ liệu
       else {
         console.warn('Unexpected response structure:', response);
         moviesData = [];
@@ -167,7 +167,7 @@ const Movies = () => {
       }));
     } catch (error) {
       console.error('Error loading movies:', error);
-      notification.error('Lá»—i khi táº£i danh sÃ¡ch phim');
+      notification.error('Lỗi khi tải danh sách phim');
       setMovies([]);
       setPagination(prev => ({ ...prev, total: 0 }));
     } finally {
@@ -186,11 +186,11 @@ const Movies = () => {
   const handleDeleteMovie = async (movieId) => {
     try {
       await movieService.deleteMovie(movieId);
-      notification.success('XÃ³a phim thÃ nh cÃ´ng!');
-      loadMovies(); // Reload danh sÃ¡ch
+      notification.success('Xóa phim thành công!');
+      loadMovies(); // Reload danh sách
     } catch (error) {
       console.error('Error deleting movie:', error);
-      notification.error(error.response?.data?.message || 'Lá»—i khi xÃ³a phim');
+      notification.error(error.response?.data?.message || 'Lỗi khi xóa phim');
     }
   };
 
@@ -258,13 +258,13 @@ const Movies = () => {
       ),
     },
     {
-      title: 'TÃªn Phim',
+      title: 'Tên Phim',
       dataIndex: 'title',
       key: 'title',
       width: 280,
       render: (title, record) => {
         const durationMinutes = record.durationMinutes || record.durationFormatted || record.runtime || record.duration || 0;
-        const durationFormatted = record.durationFormatted || `${durationMinutes} phÃºt`;
+        const durationFormatted = record.durationFormatted || `${durationMinutes} phút`;
 
         return (
           <div>
@@ -277,11 +277,11 @@ const Movies = () => {
             </Button>
             {record.originalTitle && record.originalTitle !== title && (
               <div className="mb-1">
-                <span className="text-gray-500 text-xs">{record.originalTitle}</span>
+                <span className="text-muted-foreground text-xs">{record.originalTitle}</span>
               </div>
             )}
             <div className="mb-1">
-              <span className="text-gray-500 text-xs flex items-center gap-1">
+              <span className="text-muted-foreground text-xs flex items-center gap-1">
                 <Clock className="h-3 w-3" />
                 {durationFormatted}
               </span>
@@ -298,7 +298,7 @@ const Movies = () => {
       },
     },
     {
-      title: 'Thá»ƒ Loáº¡i',
+      title: 'Thể Loại',
       dataIndex: 'genres',
       key: 'genres',
       render: (genres, record) => {
@@ -313,19 +313,19 @@ const Movies = () => {
                 {g}
               </StatusBadge>
             ))}
-            {genreList.length > 3 && <span className="text-gray-500">...</span>}
+            {genreList.length > 3 && <span className="text-muted-foreground">...</span>}
           </div>
         );
       },
     },
     {
-      title: 'NgÃ y PhÃ¡t HÃ nh',
+      title: 'Ngày Phát Hành',
       dataIndex: 'releaseDate',
       key: 'releaseDate',
       render: (date) => date ? dayjs(date).format('DD/MM/YYYY') : '-'
     },
     {
-      title: 'ÄÃ¡nh GiÃ¡',
+      title: 'Đánh Giá',
       dataIndex: 'averageRating',
       key: 'averageRating',
       width: 140,
@@ -358,7 +358,7 @@ const Movies = () => {
                 {ratingValue > 0 ? ratingValue.toFixed(1) : '-'}
               </span>
               {ratingValue > 0 && (
-                <span className="text-gray-500 text-xs ml-0.5">
+                <span className="text-muted-foreground text-xs ml-0.5">
                   /10
                 </span>
               )}
@@ -373,22 +373,22 @@ const Movies = () => {
               />
             )}
             {ratingValue === 0 && (
-              <span className="text-gray-500 text-[11px]">ChÆ°a cÃ³ Ä‘Ã¡nh giÃ¡</span>
+              <span className="text-muted-foreground text-[11px]">Chưa có đánh giá</span>
             )}
           </div>
         );
       },
     },
     {
-      title: 'Tráº¡ng thÃ¡i',
+      title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
       render: (status) => {
         // Map status values to display
         const statusMap = {
-          'NOW_SHOWING': { text: 'Äang chiáº¿u', color: 'green' },
-          'COMING_SOON': { text: 'Sáº¯p chiáº¿u', color: 'orange' },
-          'ENDED': { text: 'ÄÃ£ káº¿t thÃºc', color: 'default' }
+          'NOW_SHOWING': { text: 'Đang chiếu', color: 'green' },
+          'COMING_SOON': { text: 'Sắp chiếu', color: 'orange' },
+          'ENDED': { text: 'Đã kết thúc', color: 'default' }
         };
         const statusInfo = statusMap[status] || { text: status || 'N/A', color: 'default' };
         return (
@@ -399,7 +399,7 @@ const Movies = () => {
       },
     },
     {
-      title: 'Thao TÃ¡c',
+      title: 'Thao Tác',
       key: 'actions',
       render: (_, record) => (
         <div className="flex items-center gap-2">
@@ -409,20 +409,20 @@ const Movies = () => {
             className="bg-blue-500 hover:bg-blue-600 text-white"
           >
             <Edit className="h-4 w-4 mr-1" />
-            Sá»­a
+            Sửa
           </Button>
           <Button
             variant="destructive"
             size="sm"
             onClick={() => {
-              if (window.confirm('Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a phim nÃ y?')) {
+              if (window.confirm('Bạn có chắc chắn muốn xóa phim này?')) {
                 handleDeleteMovie(record.id);
               }
             }}
             className="bg-red-500 hover:bg-red-600 text-white"
           >
             <Trash2 className="h-4 w-4 mr-1" />
-            XÃ³a
+            Xóa
           </Button>
         </div>
       ),
@@ -441,7 +441,7 @@ const Movies = () => {
             href: '/admin/dashboard'
           },
           {
-            title: 'Quáº£n lÃ½ phim',
+            title: 'Quản lý phim',
             icon: <Film className="h-4 w-4" />
           }
         ]}
@@ -451,15 +451,15 @@ const Movies = () => {
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
           <div>
-            <h2 className="m-0 mb-2 text-gray-800 text-2xl font-bold">Quáº£n lÃ½ Phim</h2>
-            <p className="text-gray-500">Quáº£n lÃ½ vÃ  theo dÃµi táº¥t cáº£ cÃ¡c bá»™ phim trong há»‡ thá»‘ng</p>
+            <h2 className="m-0 mb-2 text-foreground text-2xl font-bold">Quản lý Phim</h2>
+            <p className="text-muted-foreground">Quản lý và theo dõi tất cả các bộ phim trong hệ thống</p>
           </div>
           <Button
             size="lg"
             onClick={handleAddMovie}
             className="rounded-lg shadow-md hover:shadow-lg transition-shadow bg-blue-600 hover:bg-blue-700 text-white"
           >
-            + ThÃªm Phim Má»›i
+            + Thêm Phim Mới
           </Button>
         </div>
 
@@ -467,11 +467,11 @@ const Movies = () => {
         <div className="space-y-4">
           <div className="flex gap-4 flex-wrap items-end">
             <div className="flex-1 min-w-[300px]">
-              <label className="block mb-2 font-semibold">TÃ¬m kiáº¿m</label>
+              <label className="block mb-2 font-semibold">Tìm kiếm</label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="TÃ¬m kiáº¿m phim theo tÃªn hoáº·c thá»ƒ loáº¡i..."
+                  placeholder="Tìm kiếm phim theo tên hoặc thể loại..."
                   value={searchText}
                   onChange={(e) => {
                     setSearchText(e.target.value);
@@ -483,34 +483,34 @@ const Movies = () => {
             </div>
 
             <div className="min-w-[200px]">
-              <label className="block mb-2 font-semibold">Tráº¡ng thÃ¡i</label>
+              <label className="block mb-2 font-semibold">Trạng thái</label>
               <Select
                 value={filters.status ? filters.status : "all"}
                 onValueChange={(value) => handleFilterChange('status', value === 'all' ? null : value)}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Táº¥t cáº£ tráº¡ng thÃ¡i" />
+                  <SelectValue placeholder="Tất cả trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Táº¥t cáº£ tráº¡ng thÃ¡i</SelectItem>
-                  <SelectItem value="NOW_SHOWING">Äang chiáº¿u</SelectItem>
-                  <SelectItem value="COMING_SOON">Sáº¯p chiáº¿u</SelectItem>
-                  <SelectItem value="ENDED">ÄÃ£ káº¿t thÃºc</SelectItem>
+                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="NOW_SHOWING">Đang chiếu</SelectItem>
+                  <SelectItem value="COMING_SOON">Sắp chiếu</SelectItem>
+                  <SelectItem value="ENDED">Đã kết thúc</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="min-w-[200px]">
-              <label className="block mb-2 font-semibold">Thá»ƒ loáº¡i</label>
+              <label className="block mb-2 font-semibold">Thể loại</label>
               <Select
                 value={filters.genreId ? filters.genreId.toString() : "all"}
                 onValueChange={(value) => handleFilterChange('genreId', value === 'all' ? null : parseInt(value))}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Táº¥t cáº£ thá»ƒ loáº¡i" />
+                  <SelectValue placeholder="Tất cả thể loại" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Táº¥t cáº£ thá»ƒ loáº¡i</SelectItem>
+                  <SelectItem value="all">Tất cả thể loại</SelectItem>
                   {genres.map(genre => (
                     <SelectItem key={genre.id} value={genre.id.toString()}>
                       {genre.name}
@@ -521,16 +521,16 @@ const Movies = () => {
             </div>
 
             <div className="min-w-[150px]">
-              <label className="block mb-2 font-semibold">NÄƒm phÃ¡t hÃ nh</label>
+              <label className="block mb-2 font-semibold">Năm phát hành</label>
               <Select
                 value={filters.releaseYear ? filters.releaseYear.toString() : "all"}
                 onValueChange={(value) => handleFilterChange('releaseYear', value === 'all' ? null : parseInt(value))}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Táº¥t cáº£ nÄƒm" />
+                  <SelectValue placeholder="Tất cả năm" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Táº¥t cáº£ nÄƒm</SelectItem>
+                  <SelectItem value="all">Tất cả năm</SelectItem>
                   {Array.from({ length: 30 }, (_, i) => {
                     const year = new Date().getFullYear() - i;
                     return (
@@ -544,19 +544,19 @@ const Movies = () => {
             </div>
 
             <div className="min-w-[150px]">
-              <label className="block mb-2 font-semibold">ÄÃ¡nh giÃ¡ tá»‘i thiá»ƒu</label>
+              <label className="block mb-2 font-semibold">Đánh giá tối thiểu</label>
               <Select
                 value={filters.rating ? filters.rating.toString() : "all"}
                 onValueChange={(value) => handleFilterChange('rating', value === 'all' ? null : parseFloat(value))}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Táº¥t cáº£" />
+                  <SelectValue placeholder="Tất cả" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Táº¥t cáº£</SelectItem>
-                  <SelectItem value="7">7.0+ â­</SelectItem>
-                  <SelectItem value="8">8.0+ â­â­</SelectItem>
-                  <SelectItem value="9">9.0+ â­â­â­</SelectItem>
+                  <SelectItem value="all">Tất cả</SelectItem>
+                  <SelectItem value="7">7.0+ ⭐</SelectItem>
+                  <SelectItem value="8">8.0+ ⭐⭐</SelectItem>
+                  <SelectItem value="9">9.0+ ⭐⭐⭐</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -564,26 +564,26 @@ const Movies = () => {
             {hasActiveFilters && (
               <Button
                 onClick={handleClearFilters}
-                className="rounded-lg border-gray-300 text-gray-700 hover:bg-gray-50"
+                className="rounded-lg border-gray-300 text-gray-700 hover:bg-background"
                 variant="outline"
               >
-                XÃ³a bá»™ lá»c
+                Xóa bộ lọc
               </Button>
             )}
           </div>
 
           {hasActiveFilters && (
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-gray-500 text-sm flex items-center gap-1">
-                <Filter className="h-4 w-4" /> Äang lá»c:
+              <span className="text-muted-foreground text-sm flex items-center gap-1">
+                <Filter className="h-4 w-4" /> Đang lọc:
               </span>
               {filters.status && (
                 <StatusBadge tone="blue" className="flex items-center gap-1 pr-1">
-                  <span>Tráº¡ng thÃ¡i: {filters.status === 'NOW_SHOWING' ? 'Äang chiáº¿u' : filters.status === 'COMING_SOON' ? 'Sáº¯p chiáº¿u' : 'ÄÃ£ káº¿t thÃºc'}</span>
+                  <span>Trạng thái: {filters.status === 'NOW_SHOWING' ? 'Đang chiếu' : filters.status === 'COMING_SOON' ? 'Sắp chiếu' : 'Đã kết thúc'}</span>
                   <button
                     onClick={() => handleFilterChange('status', null)}
                     className="ml-1 hover:bg-gray-300 rounded-full p-0.5 transition-colors"
-                    aria-label="XÃ³a bá»™ lá»c"
+                    aria-label="Xóa bộ lọc"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -591,11 +591,11 @@ const Movies = () => {
               )}
               {filters.genreId && (
                 <StatusBadge tone="green" className="flex items-center gap-1 pr-1">
-                  <span>Thá»ƒ loáº¡i: {genres.find(g => g.id === filters.genreId)?.name || filters.genreId}</span>
+                  <span>Thể loại: {genres.find(g => g.id === filters.genreId)?.name || filters.genreId}</span>
                   <button
                     onClick={() => handleFilterChange('genreId', null)}
                     className="ml-1 hover:bg-gray-300 rounded-full p-0.5 transition-colors"
-                    aria-label="XÃ³a bá»™ lá»c"
+                    aria-label="Xóa bộ lọc"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -603,11 +603,11 @@ const Movies = () => {
               )}
               {filters.releaseYear && (
                 <StatusBadge tone="orange" className="flex items-center gap-1 pr-1">
-                  <span>NÄƒm: {filters.releaseYear}</span>
+                  <span>Năm: {filters.releaseYear}</span>
                   <button
                     onClick={() => handleFilterChange('releaseYear', null)}
                     className="ml-1 hover:bg-gray-300 rounded-full p-0.5 transition-colors"
-                    aria-label="XÃ³a bá»™ lá»c"
+                    aria-label="Xóa bộ lọc"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -615,11 +615,11 @@ const Movies = () => {
               )}
               {filters.rating && (
                 <StatusBadge tone="purple" className="flex items-center gap-1 pr-1">
-                  <span>ÄÃ¡nh giÃ¡: {filters.rating}+</span>
+                  <span>Đánh giá: {filters.rating}+</span>
                   <button
                     onClick={() => handleFilterChange('rating', null)}
                     className="ml-1 hover:bg-gray-300 rounded-full p-0.5 transition-colors"
-                    aria-label="XÃ³a bá»™ lá»c"
+                    aria-label="Xóa bộ lọc"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -627,18 +627,18 @@ const Movies = () => {
               )}
               {searchText && (
                 <StatusBadge tone="info" className="flex items-center gap-1 pr-1">
-                  <span>TÃ¬m kiáº¿m: {searchText}</span>
+                  <span>Tìm kiếm: {searchText}</span>
                   <button
                     onClick={() => setSearchText('')}
                     className="ml-1 hover:bg-gray-300 rounded-full p-0.5 transition-colors"
-                    aria-label="XÃ³a tÃ¬m kiáº¿m"
+                    aria-label="Xóa tìm kiếm"
                   >
                     <X className="h-3 w-3" />
                   </button>
                 </StatusBadge>
               )}
-              <span className="text-gray-500 text-sm ml-2">
-                ({pagination.total} káº¿t quáº£)
+              <span className="text-muted-foreground text-sm ml-2">
+                ({pagination.total} kết quả)
               </span>
             </div>
           )}
@@ -647,7 +647,7 @@ const Movies = () => {
 
       {/* Movies Table */}
       <div ref={tableRef}>
-        <Card className="rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
+        <Card className="rounded-xl shadow-md border border-border hover:shadow-lg transition-shadow">
           <div className="p-5">
             {loading ? (
               <div className="p-8 text-center">
@@ -663,8 +663,8 @@ const Movies = () => {
                 />
                 {pagination.total > 0 && (
                   <div className="mt-4 flex items-center justify-between flex-wrap gap-4">
-                    <div className="text-sm text-gray-600">
-                      Hiá»ƒn thá»‹ {(pagination.current - 1) * pagination.pageSize + 1} - {Math.min(pagination.current * pagination.pageSize, pagination.total)} cá»§a {pagination.total} phim
+                    <div className="text-sm text-muted-foreground">
+                      Hiển thị {(pagination.current - 1) * pagination.pageSize + 1} - {Math.min(pagination.current * pagination.pageSize, pagination.total)} của {pagination.total} phim
                     </div>
                     <Pagination
                       page={pagination.current}

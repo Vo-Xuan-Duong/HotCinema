@@ -16,7 +16,7 @@ const BadgeRibbon = ({
     orange: "bg-orange-500",
     purple: "bg-purple-500",
     volcano: "bg-orange-600",
-    default: "bg-gray-500",
+    default: "bg-background0",
   }
 
   const bgColor = colorConfig[color] || colorConfig.default

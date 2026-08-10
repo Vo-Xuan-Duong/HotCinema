@@ -151,8 +151,8 @@ const Movies = () => {
                 return {
                     ...m,
                     id: m.id ?? m._id ?? index + 1,
-                    poster: m.posterUrl || m.posterPath || '/vite.svg',
-                    backdrop: m.backdropUrl || m.backdropPath || m.poster || m.posterUrl || '/vite.svg',
+                    poster: m.posterUrl || m.posterPath || '/brand-placeholder.svg',
+                    backdrop: m.backdropUrl || m.backdropPath || m.poster || m.posterUrl || '/brand-placeholder.svg',
                     posterPath: m.posterUrl || m.posterPath,
                     backdropPath: m.backdropUrl || m.backdropPath,
                     averageRating: m.averageRating ? parseFloat(m.averageRating) : 0,
@@ -233,7 +233,7 @@ const Movies = () => {
     };
 
     const formatGenre = (genre) => {
-        if (!genre) return 'ChÆ°a phÃ¢n loáº¡i';
+        if (!genre) return 'Chưa phân loại';
 
         if (typeof genre === 'string') {
             const cleaned = genre.replace(/Phim\s+/g, '');
@@ -254,25 +254,24 @@ const Movies = () => {
                 })
                 .filter(Boolean);
 
-            if (cleanedGenres.length === 0) return 'ChÆ°a phÃ¢n loáº¡i';
+            if (cleanedGenres.length === 0) return 'Chưa phân loại';
             if (cleanedGenres.length > 2) {
                 return `${cleanedGenres[0]}, ${cleanedGenres[1]}...`;
             }
             return cleanedGenres.join(', ');
         }
 
-        return 'ChÆ°a phÃ¢n loáº¡i';
+        return 'Chưa phân loại';
     };
 
     const paginatedMovies = filteredMovies;
 
     const FilterSection = () => (
-        <Card className="mb-4 rounded-[10px] shadow-[0_1px_4px_rgba(0,0,0,0.08)] border border-gray-100 bg-white relative z-[10] p-3">
+        <Card className="mb-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-white/10 dark:border-white/5 bg-card/40 backdrop-blur-2xl relative z-[10] p-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                        placeholder="TÃ¬m kiáº¿m phim..."
+                    <Input placeholder="Tìm kiếm phim..." className="bg-background/50 border-white/10 h-10 rounded-xl focus-visible:ring-primary"
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
                         className="pl-10 h-9"
@@ -283,10 +282,10 @@ const Movies = () => {
                     onValueChange={setSelectedGenre}
                 >
                     <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Táº¥t cáº£ thá»ƒ loáº¡i" />
+                        <SelectValue placeholder="Tất cả thể loại" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">Táº¥t cáº£ thá»ƒ loáº¡i</SelectItem>
+                        <SelectItem value="all">Tất cả thể loại</SelectItem>
                         {genres.map(genre => (
                             <SelectItem key={genre.id} value={genre.name}>
                                 {genre.name}
@@ -299,13 +298,13 @@ const Movies = () => {
                     onValueChange={setSelectedStatus}
                 >
                     <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Táº¥t cáº£ phim" />
+                        <SelectValue placeholder="Tất cả phim" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">Táº¥t cáº£ phim</SelectItem>
-                        <SelectItem value="NOW_SHOWING">Äang chiáº¿u</SelectItem>
-                        <SelectItem value="COMING_SOON">Sáº¯p chiáº¿u</SelectItem>
-                        <SelectItem value="ARCHIVED">ÄÃ£ chiáº¿u</SelectItem>
+                        <SelectItem value="all">Tất cả phim</SelectItem>
+                        <SelectItem value="NOW_SHOWING">Đang chiếu</SelectItem>
+                        <SelectItem value="COMING_SOON">Sắp chiếu</SelectItem>
+                        <SelectItem value="ARCHIVED">Đã chiếu</SelectItem>
                     </SelectContent>
                 </Select>
                 <Select
@@ -313,10 +312,10 @@ const Movies = () => {
                     onValueChange={setSelectedYear}
                 >
                     <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Táº¥t cáº£ nÄƒm" />
+                        <SelectValue placeholder="Tất cả năm" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">Táº¥t cáº£ nÄƒm</SelectItem>
+                        <SelectItem value="all">Tất cả năm</SelectItem>
                         <SelectItem value="2025">2025</SelectItem>
                         <SelectItem value="2024">2024</SelectItem>
                         <SelectItem value="2023">2023</SelectItem>
@@ -325,7 +324,7 @@ const Movies = () => {
                     </SelectContent>
                 </Select>
                 <Button onClick={resetFilters} className="h-9 w-full">
-                    Äáº·t láº¡i
+                    Đặt lại
                 </Button>
             </div>
         </Card>
@@ -333,13 +332,12 @@ const Movies = () => {
 
     const MovieCard = ({ movie }) => {
         const status = getMovieStatus(movie);
-        const statusText = status === 'upcoming' ? 'Sáº¯p chiáº¿u' : status === 'archived' ? 'ÄÃ£ chiáº¿u' : 'Äang chiáº¿u';
+        const statusText = status === 'upcoming' ? 'Sắp chiếu' : status === 'archived' ? 'Đã chiếu' : 'Đang chiếu';
         const statusColor = status === 'upcoming' ? 'blue' : status === 'archived' ? 'default' : 'volcano';
 
         return (
             <BadgeRibbon text={statusText} color={statusColor}>
-                <Card
-                    className="group rounded-xl overflow-hidden transition-all duration-500 ease-out hover:shadow-2xl hover:-translate-y-2 hover:scale-[1.02] cursor-pointer"
+                <Card className="group rounded-2xl overflow-hidden transition-all duration-500 ease-out hover:shadow-[0_15px_30px_rgba(229,9,20,0.15)] hover:-translate-y-2 hover:border-primary/50 cursor-pointer bg-card/40 backdrop-blur-md border border-white/10"
                     onClick={() => navigate(`/movies/${movie.id}`)}
                 >
                     <div className="relative group overflow-hidden">
@@ -363,7 +361,7 @@ const Movies = () => {
                             <StatusBadge tone="blue" className="text-xs">
                                 {formatGenre(movie.genre)}
                             </StatusBadge>
-                            <div className="flex justify-between items-center text-xs text-gray-600">
+                            <div className="flex justify-between items-center text-xs text-muted-foreground">
                                 <span className="flex items-center gap-1">
                                     <Clock className="h-3 w-3" />
                                     {movie.durationFormatted || (movie.duration ? `${movie.duration}p` : 'N/A')}
@@ -383,7 +381,7 @@ const Movies = () => {
                             }}
                         >
                             <Ticket className="h-3 w-3 mr-1" />
-                            Äáº·t vÃ© ngay
+                            Đặt vé ngay
                         </Button>
                     </div>
                 </Card>
@@ -392,8 +390,7 @@ const Movies = () => {
     };
 
     const ListMovieCard = ({ movie }) => (
-        <Card
-            className="rounded-xl overflow-hidden transition-all duration-300 hover:shadow-lg cursor-pointer"
+        <Card className="rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-[0_10px_20px_rgba(229,9,20,0.15)] hover:border-primary/30 cursor-pointer bg-card/40 backdrop-blur-xl border border-white/10"
             onClick={() => navigate(`/movies/${movie.id}`)}
         >
             <div className="p-5">
@@ -407,7 +404,7 @@ const Movies = () => {
                         <Badge
                             count={(() => {
                                 const status = getMovieStatus(movie);
-                                return status === 'upcoming' ? 'Sáº¯p chiáº¿u' : status === 'archived' ? 'ÄÃ£ chiáº¿u' : 'Äang chiáº¿u';
+                                return status === 'upcoming' ? 'Sắp chiếu' : status === 'archived' ? 'Đã chiếu' : 'Đang chiếu';
                             })()}
                             className="absolute top-1 right-1"
                         />
@@ -418,16 +415,16 @@ const Movies = () => {
                         </h4>
                         <div className="flex flex-wrap gap-2 mb-2">
                             <StatusBadge tone="blue">{formatGenre(movie.genre)}</StatusBadge>
-                            <span className="text-xs text-gray-600 flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
-                                {movie.durationFormatted || (movie.duration ? `${movie.duration} phÃºt` : 'N/A')}
+                                {movie.durationFormatted || (movie.duration ? `${movie.duration} phút` : 'N/A')}
                             </span>
-                            <span className="text-xs text-gray-600 flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
                                 {movie.releaseDate || 'N/A'}
                             </span>
                         </div>
-                        <p className="text-sm text-gray-600 line-clamp-2 mb-0">
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-0">
                             {movie.overview}
                         </p>
                     </div>
@@ -437,9 +434,9 @@ const Movies = () => {
                                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                                 <span className="font-semibold text-base">{movie.averageRating?.toFixed(1) || '0.0'}</span>
                             </div>
-                            <span className="text-xs text-gray-600 flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
                                 <Eye className="h-3 w-3" />
-                                {movie.views?.toLocaleString()} lÆ°á»£t xem
+                                {movie.views?.toLocaleString()} lượt xem
                             </span>
                         </div>
                         <div className="flex flex-col gap-2 w-full">
@@ -451,7 +448,7 @@ const Movies = () => {
                                 }}
                             >
                                 <Ticket className="h-3.5 w-3.5 mr-1" />
-                                Äáº·t vÃ©
+                                Đặt vé
                             </Button>
                             <div className="flex gap-2">
                                 <Button
@@ -481,12 +478,26 @@ const Movies = () => {
     );
 
     if (loading) {
-        return <ContentLoader message="Äang táº£i danh sÃ¡ch phim..." />;
+        return <ContentLoader message="Đang tải danh sách phim..." />;
     }
 
     return (
-        <div className="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen pb-[60px] pt-16">
-            <div className="max-w-[1200px] mx-auto px-4">
+        <div className="bg-background relative min-h-screen pb-[60px] pt-16 overflow-hidden">
+            {/* Ambient Background */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+                <div className="absolute top-[-10%] left-[10%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] mix-blend-screen animate-pulse"></div>
+                <div className="absolute top-[20%] right-[0%] w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[100px] mix-blend-screen animate-pulse delay-700"></div>
+            </div>
+            <div className="max-w-[1200px] mx-auto px-4 relative z-10">
+                {/* Hero Title */}
+                <div className="text-center mb-10 pt-8">
+                    <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white via-primary/80 to-primary">
+                        PHIM ĐANG CHIẾU & SẮP CHIẾU
+                    </h1>
+                    <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+                        Khám phá thế giới điện ảnh đa sắc màu với những bộ phim bom tấn mới nhất
+                    </p>
+                </div>
                 <FilterSection />
 
                 <div className="mt-6">
@@ -521,7 +532,7 @@ const Movies = () => {
                                         pageSizeOptions={['15', '30', '45', '60']}
                                         showQuickJumper
                                         showTotal={(total, range) =>
-                                            `${range[0]}-${range[1]} cá»§a ${total} phim`
+                                            `${range[0]}-${range[1]} của ${total} phim`
                                         }
                                     />
                                 </div>
@@ -531,9 +542,9 @@ const Movies = () => {
                         <Empty
                             description={
                                 <div className="flex flex-col items-center gap-3">
-                                    <p>KhÃ´ng tÃ¬m tháº¥y phim nÃ o phÃ¹ há»£p</p>
+                                    <p>Không tìm thấy phim nào phù hợp</p>
                                     <Button onClick={resetFilters}>
-                                        Äáº·t láº¡i bá»™ lá»c
+                                        Đặt lại bộ lọc
                                     </Button>
                                 </div>
                             }

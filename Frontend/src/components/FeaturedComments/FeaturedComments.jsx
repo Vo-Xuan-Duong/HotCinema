@@ -86,7 +86,7 @@ const FeaturedComments = () => {
           {commentsData.map((item, idx) => (
             <Card 
               key={idx}
-              className="bg-white/5 backdrop-blur-xl border-white/10 overflow-hidden group hover:bg-white/10 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-red-500/20"
+              className="bg-card/5 backdrop-blur-xl border-white/10 overflow-hidden group hover:bg-card/10 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-red-500/20"
             >
               {/* Movie Image Header */}
               <div className="relative h-48 overflow-hidden">
@@ -101,7 +101,7 @@ const FeaturedComments = () => {
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Button
                     size="icon"
-                    className="h-14 w-14 rounded-full bg-white/95 hover:bg-[#e50914] text-[#e50914] hover:text-white shadow-xl hover:shadow-red-500/50 transition-all duration-300 hover:scale-110"
+                    className="h-14 w-14 rounded-full bg-card/95 hover:bg-[#e50914] text-[#e50914] hover:text-white shadow-xl hover:shadow-red-500/50 transition-all duration-300 hover:scale-110"
                   >
                     <Play className="h-6 w-6 ml-1" />
                   </Button>
@@ -168,7 +168,7 @@ const FeaturedComments = () => {
           <Button
             variant="outline"
             size="lg"
-            className="bg-white/5 backdrop-blur-xl border-2 border-[#e50914]/50 text-[#e50914] hover:bg-gradient-to-r hover:from-[#e50914] hover:to-[#ff6b35] hover:text-white hover:border-transparent shadow-lg hover:shadow-xl hover:shadow-red-500/30 transition-all duration-300 hover:scale-105 px-8 py-6 text-lg font-bold"
+            className="bg-card/5 backdrop-blur-xl border-2 border-[#e50914]/50 text-[#e50914] hover:bg-gradient-to-r hover:from-[#e50914] hover:to-[#ff6b35] hover:text-white hover:border-transparent shadow-lg hover:shadow-xl hover:shadow-red-500/30 transition-all duration-300 hover:scale-105 px-8 py-6 text-lg font-bold"
           >
             Xem tiếp nhé !
             <ArrowRight className="h-5 w-5 ml-2" />

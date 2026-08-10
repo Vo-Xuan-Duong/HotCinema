@@ -24,12 +24,12 @@ function Pagination({
     : [...new Set([1, page - 1, page, page + 1, totalPages].filter((value) => value >= 1 && value <= totalPages))]
 
   return (
-    <nav aria-label="PhÃ¢n trang" className={cn("flex flex-wrap items-center justify-center gap-2", className)} {...props}>
+    <nav aria-label="Phân trang" className={cn("flex flex-wrap items-center justify-center gap-2", className)} {...props}>
       <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => goTo(1)} disabled={page === 1}><ChevronsLeft className="h-4 w-4" /></Button>
       <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => goTo(page - 1)} disabled={page === 1}><ChevronLeft className="h-4 w-4" /></Button>
       {pages.map((pageNumber, index) => (
         <React.Fragment key={pageNumber}>
-          {index > 0 && pageNumber - pages[index - 1] > 1 && <span className="px-1 text-muted-foreground">â€¦</span>}
+          {index > 0 && pageNumber - pages[index - 1] > 1 && <span className="px-1 text-muted-foreground">…</span>}
           <Button variant={page === pageNumber ? "default" : "outline"} size="sm" className="min-w-9" onClick={() => goTo(pageNumber)}>{pageNumber}</Button>
         </React.Fragment>
       ))}
@@ -43,7 +43,7 @@ function Pagination({
       )}
       {allowPageJump && (
         <Input
-          aria-label="Äi Ä‘áº¿n trang"
+          aria-label="Đi đến trang"
           type="number"
           min={1}
           max={totalPages}
@@ -53,7 +53,7 @@ function Pagination({
           onKeyDown={(event) => event.key === "Enter" && goTo(Number(jumpValue))}
         />
       )}
-      <span className="text-sm text-muted-foreground">Trang {page}/{totalPages} Â· {totalItems} má»¥c</span>
+      <span className="text-sm text-muted-foreground">Trang {page}/{totalPages} · {totalItems} mục</span>
     </nav>
   )
 }

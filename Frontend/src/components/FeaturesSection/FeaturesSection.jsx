@@ -26,7 +26,7 @@ const FeaturesSection = () => {
   ];
 
   return (
-    <section className="bg-white md:py-20 md:mt-10 sm:py-16 sm:mt-10">
+    <section className="bg-card md:py-20 md:mt-10 sm:py-16 sm:mt-10">
       <div className="max-w-[1200px] mx-auto px-6 md:px-4 sm:px-4">
         <h2 className="text-center mb-12 bg-gradient-to-br from-gray-800 to-green-600 bg-clip-text text-transparent text-4xl font-bold md:text-3xl sm:text-2xl sm:mb-8">
           Tại sao chọn HotCinemas?
@@ -40,10 +40,10 @@ const FeaturesSection = () => {
               <div className="text-5xl mb-4 block animate-[iconFloat_3s_ease-in-out_infinite] drop-shadow-[0_4px_8px_rgba(0,0,0,0.1)] md:text-4xl sm:text-4xl">
                 {feature.icon}
               </div>
-              <h4 className="text-gray-800 mb-4 text-xl font-semibold">
+              <h4 className="text-foreground mb-4 text-xl font-semibold">
                 {feature.title}
               </h4>
-              <p className="text-gray-600 leading-relaxed text-sm m-0">
+              <p className="text-muted-foreground leading-relaxed text-sm m-0">
                 {feature.description}
               </p>
             </Card>

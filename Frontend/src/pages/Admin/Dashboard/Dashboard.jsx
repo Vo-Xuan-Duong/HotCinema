@@ -37,6 +37,7 @@ import movieService from '@/services/movieService';
 import userService from '@/services/userService';
 import cinemaService from '@/services/cinemaService';
 import showtimeService from '@/services/showtimeService';
+import revenueService from '@/services/revenueService';
 import { useNotification } from '@/hooks/useNotification';
 
 const Dashboard = () => {
@@ -86,15 +87,30 @@ const Dashboard = () => {
       setError(null);
 
       // Fetch all data in parallel
-      const [moviesRes, cinemasRes, usersRes, bookingsRes, bookingStatsRes, upcomingMoviesRes, todayShowtimesRes] = await Promise.all([
+      const rangeParams = {
+        startDate: dateRange[0]?.format('YYYY-MM-DD'),
+        endDate: dateRange[1]?.format('YYYY-MM-DD')
+      };
+      const [
+        moviesRes,
+        cinemasRes,
+        usersRes,
+        bookingsRes,
+        revenueSummary,
+        revenueByDate,
+        topMoviesRes,
+        topCinemasRes,
+        upcomingMoviesRes,
+        todayShowtimesRes
+      ] = await Promise.all([
         movieService.listPage({ page: 0, size: 1 }),
         cinemaService.getAllCinemas({ page: 0, size: 1 }),
         userService.getAllUsers({ page: 0, size: 1 }),
         bookingService.listPage({ page: 0, size: 5, sortBy: 'bookingDate', sortDir: 'desc' }),
-        bookingService.getBookingStats({
-          startDate: dateRange[0]?.format('YYYY-MM-DD'),
-          endDate: dateRange[1]?.format('YYYY-MM-DD')
-        }),
+        revenueService.getSummary(rangeParams),
+        revenueService.getByDate(rangeParams),
+        revenueService.getTopMovies({ ...rangeParams, limit: 5 }),
+        revenueService.getTopCinemas({ ...rangeParams, limit: 5 }),
         movieService.getComingSoonPage({ page: 0, size: 5 }),
         (showtimeService.getShowtimesByDate && showtimeService.getShowtimesByDate(dayjs().format('YYYY-MM-DD'))) || Promise.resolve({ content: [] })
       ]);
@@ -105,18 +121,10 @@ const Dashboard = () => {
       const totalUsers = usersRes?.data?.totalElements || usersRes?.totalElements || 0;
 
       const bookings = bookingsRes?.content || bookingsRes?.data?.content || [];
-      const statsData = bookingStatsRes?.data || bookingStatsRes || {};
+      const statsData = revenueSummary || {};
 
       // Calculate additional stats
-      const cancelledBookings = statsData.cancelledBookings || 0;
-      const totalSeatsBooked = statsData.totalSeats || 0;
-      const totalSeatsAvailable = statsData.totalSeatsAvailable || totalSeatsBooked * 2; // Estimate if not provided
-      const occupancyRate = totalSeatsAvailable > 0
-        ? Math.round((totalSeatsBooked / totalSeatsAvailable) * 100)
-        : 0;
-
-      // Get new users this month
-      const newUsersThisMonth = statsData.newUsersThisMonth || 0;
+      const totalSeatsBooked = statsData.totalTickets || 0;
 
       // Get today's showtimes count
       const todayShowtimesCount = todayShowtimesRes?.content?.length || todayShowtimesRes?.length || 0;
@@ -124,70 +132,34 @@ const Dashboard = () => {
       // Get upcoming movies count
       const upcomingMoviesCount = upcomingMoviesRes?.totalElements || upcomingMoviesRes?.data?.totalElements || 0;
 
-      // Calculate growth (simplified - should compare with previous period)
-      const previousPeriodRevenue = statsData.previousPeriodRevenue || statsData.totalRevenue * 0.9;
-      const previousPeriodBookings = statsData.previousPeriodBookings || statsData.totalBookings * 0.9;
-      const revenueGrowth = previousPeriodRevenue > 0
-        ? Math.round(((statsData.totalRevenue - previousPeriodRevenue) / previousPeriodRevenue) * 100)
-        : 0;
-      const bookingGrowth = previousPeriodBookings > 0
-        ? Math.round(((statsData.totalBookings - previousPeriodBookings) / previousPeriodBookings) * 100)
-        : 0;
-
       setStats({
         totalMovies,
         totalCinemas,
         totalUsers,
         totalBookings: statsData.totalBookings || 0,
-        confirmedBookings: statsData.confirmedBookings || 0,
-        pendingBookings: statsData.pendingBookings || 0,
-        cancelledBookings,
+        confirmedBookings: statsData.totalSuccessfulPayments || 0,
+        pendingBookings: statsData.totalPendingPayments || 0,
+        cancelledBookings: statsData.totalFailedPayments || 0,
         totalRevenue: statsData.totalRevenue || 0,
         totalSeats: totalSeatsBooked,
-        occupancyRate,
-        newUsersThisMonth,
+        occupancyRate: 0,
+        newUsersThisMonth: 0,
         todayShowtimes: todayShowtimesCount,
         upcomingMovies: upcomingMoviesCount,
-        revenueGrowth,
-        bookingGrowth
+        revenueGrowth: 0,
+        bookingGrowth: 0
       });
 
       // Set recent bookings
       setRecentBookings(bookings);
 
-      // Generate revenue data from stats (simplified - backend should provide this)
-      const months = [];
-      const start = dateRange[0];
-      const end = dateRange[1];
-      let current = start.startOf('month');
-
-      while (current.isBefore(end) || current.isSame(end, 'month')) {
-        months.push({
-          month: `T${current.month() + 1}`,
-          revenue: Math.floor(Math.random() * 30000000) + 40000000, // Mock data - should come from API
-          bookings: Math.floor(Math.random() * 100) + 150
-        });
-        current = current.add(1, 'month');
-      }
-      setRevenueData(months);
-
-      // Fetch top movies (simplified - should calculate from bookings)
-      const moviesList = await movieService.list({ page: 0, size: 10 });
-      const moviesArray = moviesList?.content || moviesList || [];
-      setTopMovies(moviesArray.slice(0, 5).map(movie => ({
-        ...movie,
-        totalRevenue: Math.floor(Math.random() * 50000000) + 20000000, // Mock - should come from API
-        totalBookings: Math.floor(Math.random() * 200) + 50
+      setRevenueData((Array.isArray(revenueByDate) ? revenueByDate : []).map((item) => ({
+        month: dayjs(item.date).format('DD/MM'),
+        revenue: Number(item.totalRevenue || 0),
+        bookings: Number(item.totalBookings || 0)
       })));
-
-      // Fetch top cinemas
-      const cinemasList = await cinemaService.getAllCinemas({ page: 0, size: 10 });
-      const cinemasArray = cinemasList?.data?.content || cinemasList?.content || cinemasList || [];
-      setTopCinemas(cinemasArray.slice(0, 5).map(cinema => ({
-        ...cinema,
-        totalRevenue: Math.floor(Math.random() * 80000000) + 30000000, // Mock - should come from API
-        totalBookings: Math.floor(Math.random() * 300) + 100
-      })));
+      setTopMovies(Array.isArray(topMoviesRes) ? topMoviesRes : []);
+      setTopCinemas(Array.isArray(topCinemasRes) ? topCinemasRes : []);
 
       // Set upcoming movies
       const upcomingArray = upcomingMoviesRes?.content || upcomingMoviesRes?.data?.content || [];
@@ -199,33 +171,33 @@ const Dashboard = () => {
 
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
-      setError('KhÃ´ng thá»ƒ táº£i dá»¯ liá»‡u dashboard. Vui lÃ²ng thá»­ láº¡i sau.');
-      showNotification('error', 'Lá»—i', 'KhÃ´ng thá»ƒ táº£i dá»¯ liá»‡u dashboard');
+      setError('Không thể tải dữ liệu dashboard. Vui lòng thử lại sau.');
+      showNotification('error', 'Lỗi', 'Không thể tải dữ liệu dashboard');
     } finally {
       setLoading(false);
     }
   };
 
-  // Render tráº¡ng thÃ¡i booking
+  // Render trạng thái booking
   const renderBookingStatus = (status) => {
     const statusConfig = {
-      CONFIRMED: { color: 'success', text: 'ÄÃ£ xÃ¡c nháº­n' },
-      PENDING: { color: 'warning', text: 'Chá» xá»­ lÃ½' },
-      CANCELLED: { color: 'error', text: 'ÄÃ£ há»§y' },
-      COMPLETED: { color: 'success', text: 'HoÃ n thÃ nh' },
-      EXPIRED: { color: 'default', text: 'Háº¿t háº¡n' },
-      confirmed: { color: 'success', text: 'ÄÃ£ xÃ¡c nháº­n' },
-      pending: { color: 'warning', text: 'Chá» xá»­ lÃ½' },
-      cancelled: { color: 'error', text: 'ÄÃ£ há»§y' },
-      completed: { color: 'success', text: 'HoÃ n thÃ nh' },
-      expired: { color: 'default', text: 'Háº¿t háº¡n' }
+      CONFIRMED: { color: 'success', text: 'Đã xác nhận' },
+      PENDING: { color: 'warning', text: 'Chờ xử lý' },
+      CANCELLED: { color: 'error', text: 'Đã hủy' },
+      COMPLETED: { color: 'success', text: 'Hoàn thành' },
+      EXPIRED: { color: 'default', text: 'Hết hạn' },
+      confirmed: { color: 'success', text: 'Đã xác nhận' },
+      pending: { color: 'warning', text: 'Chờ xử lý' },
+      cancelled: { color: 'error', text: 'Đã hủy' },
+      completed: { color: 'success', text: 'Hoàn thành' },
+      expired: { color: 'default', text: 'Hết hạn' }
     };
 
     const config = statusConfig[status] || statusConfig.pending;
     return <StatusBadge tone={config.color}>{config.text}</StatusBadge>;
   };
 
-  // Cá»™t cho báº£ng booking gáº§n Ä‘Ã¢y
+  // Cột cho bảng booking gần đây
   const bookingColumns = [
     {
       title: 'ID',
@@ -234,7 +206,7 @@ const Dashboard = () => {
       width: 60,
     },
     {
-      title: 'KhÃ¡ch hÃ ng',
+      title: 'Khách hàng',
       dataIndex: 'userName',
       key: 'userName',
       render: (text, record) => (
@@ -248,7 +220,7 @@ const Dashboard = () => {
           </Avatar>
           <div>
             <div className="font-medium">{text || record.user?.fullName || record.user?.email || 'N/A'}</div>
-            <p className="text-gray-500 text-xs">
+            <p className="text-muted-foreground text-xs">
               {record.user?.email || record.customerInfo?.email || ''}
             </p>
           </div>
@@ -263,20 +235,20 @@ const Dashboard = () => {
       render: (text, record) => text || record.movie?.title || record.showtime?.movie?.title || 'N/A',
     },
     {
-      title: 'Ráº¡p',
+      title: 'Rạp',
       dataIndex: 'cinemaName',
       key: 'cinemaName',
       ellipsis: true,
       render: (text, record) => text || record.cinema?.name || record.showtime?.cinema?.name || 'N/A',
     },
     {
-      title: 'Tá»•ng tiá»n',
+      title: 'Tổng tiền',
       dataIndex: 'totalPrice',
       key: 'totalPrice',
-      render: (amount) => `${(amount || 0)?.toLocaleString('vi-VN')} â‚«`,
+      render: (amount) => `${(amount || 0)?.toLocaleString('vi-VN')} ₫`,
     },
     {
-      title: 'Tráº¡ng thÃ¡i',
+      title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
       render: renderBookingStatus,
@@ -310,17 +282,17 @@ const Dashboard = () => {
       />
 
       {/* Header */}
-      <div className="mb-6 p-4 bg-white rounded-lg shadow-md flex justify-between items-center flex-wrap gap-4">
+      <div className="mb-6 p-4 bg-card rounded-lg shadow-md flex justify-between items-center flex-wrap gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-indigo-100 rounded-lg">
             <BarChart3 className="h-6 w-6 text-indigo-600" />
           </div>
           <div>
-            <h2 className="m-0 text-gray-800 text-2xl font-bold">
+            <h2 className="m-0 text-foreground text-2xl font-bold">
               Dashboard
             </h2>
-            <p className="text-gray-500 text-sm mt-1">
-              Tá»•ng quan vá» há»‡ thá»‘ng vÃ  thá»‘ng kÃª
+            <p className="text-muted-foreground text-sm mt-1">
+              Tổng quan về hệ thống và thống kê
             </p>
           </div>
         </div>
@@ -335,7 +307,7 @@ const Dashboard = () => {
         <Alert variant="destructive" className="mb-6">
           <AlertTriangle className="h-4 w-4" />
           <div>
-            <div className="font-semibold">Lá»—i</div>
+            <div className="font-semibold">Lỗi</div>
             <div>{error}</div>
           </div>
         </Alert>
@@ -343,48 +315,48 @@ const Dashboard = () => {
 
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-        <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+        <Card className="p-4 bg-card rounded-xl shadow-md border border-border hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
             <Metric
-              label="Tá»•ng sá»‘ phim"
+              label="Tổng số phim"
               value={stats.totalMovies}
               leading={<Video className="h-6 w-6 text-blue-500" />}
               valueStyle={{ color: '#1890ff' }}
             />
           )}
         </Card>
-        <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+        <Card className="p-4 bg-card rounded-xl shadow-md border border-border hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
             <Metric
-              label="Tá»•ng sá»‘ ráº¡p"
+              label="Tổng số rạp"
               value={stats.totalCinemas}
               leading={<Store className="h-6 w-6 text-green-500" />}
               valueStyle={{ color: '#52c41a' }}
             />
           )}
         </Card>
-        <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+        <Card className="p-4 bg-card rounded-xl shadow-md border border-border hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
             <Metric
-              label="Tá»•ng ngÆ°á»i dÃ¹ng"
+              label="Tổng người dùng"
               value={stats.totalUsers}
               leading={<User className="h-6 w-6 text-yellow-500" />}
               valueStyle={{ color: '#faad14' }}
             />
           )}
         </Card>
-        <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+        <Card className="p-4 bg-card rounded-xl shadow-md border border-border hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
             <Metric
-              label="Tá»•ng Ä‘áº·t vÃ©"
+              label="Tổng đặt vé"
               value={stats.totalBookings}
               leading={<Calendar className="h-6 w-6 text-purple-500" />}
               valueStyle={{ color: '#722ed1' }}
@@ -395,16 +367,16 @@ const Dashboard = () => {
 
       {/* Revenue and Performance */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-        <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+        <Card className="p-4 bg-card rounded-xl shadow-md border border-border hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
             <>
               <Metric
-                label="Tá»•ng doanh thu"
+                label="Tổng doanh thu"
                 value={stats.totalRevenue}
                 leading={<DollarSign className="h-4 w-4" />}
-                suffix="â‚«"
+                suffix="₫"
                 formatter={(value) => (value || 0)?.toLocaleString('vi-VN')}
                 valueStyle={{ color: '#1890ff' }}
               />
@@ -414,30 +386,30 @@ const Dashboard = () => {
                     {stats.revenueGrowth > 0 ? <ArrowUp className="h-3 w-3 inline" /> : <ArrowDown className="h-3 w-3 inline" />}
                     {' '}{Math.abs(stats.revenueGrowth)}%
                   </span>
-                  <span className="text-gray-500 ml-1">so vá»›i ká»³ trÆ°á»›c</span>
+                  <span className="text-muted-foreground ml-1">so với kỳ trước</span>
                 </div>
               )}
             </>
           )}
         </Card>
-        <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+        <Card className="p-4 bg-card rounded-xl shadow-md border border-border hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
             <Metric
-              label="VÃ© Ä‘Ã£ xÃ¡c nháº­n"
+              label="Vé đã xác nhận"
               value={stats.confirmedBookings}
               leading={<Trophy className="h-4 w-4 text-green-500" />}
               valueStyle={{ color: '#52c41a' }}
             />
           )}
         </Card>
-        <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+        <Card className="p-4 bg-card rounded-xl shadow-md border border-border hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
             <Metric
-              label="Tá»· lá»‡ láº¥p Ä‘áº§y"
+              label="Tỷ lệ lấp đầy"
               value={stats.occupancyRate}
               trailing="%"
               leading={<Users className="h-4 w-4 text-blue-500" />}
@@ -445,12 +417,12 @@ const Dashboard = () => {
             />
           )}
         </Card>
-        <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+        <Card className="p-4 bg-card rounded-xl shadow-md border border-border hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
             <Metric
-              label="VÃ© Ä‘Ã£ há»§y"
+              label="Vé đã hủy"
               value={stats.cancelledBookings}
               leading={<XCircle className="h-4 w-4 text-red-500" />}
               valueStyle={{ color: '#ff4d4f' }}
@@ -461,48 +433,48 @@ const Dashboard = () => {
 
       {/* Additional Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-        <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+        <Card className="p-4 bg-card rounded-xl shadow-md border border-border hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
             <Metric
-              label="NgÆ°á»i dÃ¹ng má»›i (thÃ¡ng nÃ y)"
+              label="Người dùng mới (tháng này)"
               value={stats.newUsersThisMonth}
               leading={<User className="h-4 w-4 text-green-500" />}
               valueStyle={{ color: '#52c41a' }}
             />
           )}
         </Card>
-        <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+        <Card className="p-4 bg-card rounded-xl shadow-md border border-border hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
             <Metric
-              label="Suáº¥t chiáº¿u hÃ´m nay"
+              label="Suất chiếu hôm nay"
               value={stats.todayShowtimes}
               leading={<Clock className="h-4 w-4 text-purple-500" />}
               valueStyle={{ color: '#722ed1' }}
             />
           )}
         </Card>
-        <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+        <Card className="p-4 bg-card rounded-xl shadow-md border border-border hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
             <Metric
-              label="Phim sáº¯p chiáº¿u"
+              label="Phim sắp chiếu"
               value={stats.upcomingMovies}
               leading={<Flame className="h-4 w-4 text-orange-500" />}
               valueStyle={{ color: '#fa8c16' }}
             />
           )}
         </Card>
-        <Card className="p-4 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+        <Card className="p-4 bg-card rounded-xl shadow-md border border-border hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
           {loading ? (
             <Skeleton className="h-24" />
           ) : (
             <Metric
-              label="TÄƒng trÆ°á»Ÿng Ä‘áº·t vÃ©"
+              label="Tăng trưởng đặt vé"
               value={stats.bookingGrowth}
               trailing="%"
               leading={stats.bookingGrowth >= 0 ? <ArrowUp className="h-4 w-4 text-green-500" /> : <ArrowDown className="h-4 w-4 text-red-500" />}
@@ -514,9 +486,9 @@ const Dashboard = () => {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <Card className="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
-          <div className="border-b border-gray-200 px-5 py-4 mb-0">
-            <h3 className="text-lg font-semibold m-0">Doanh thu theo thÃ¡ng</h3>
+        <Card className="bg-card rounded-xl shadow-md border border-border hover:shadow-lg transition-shadow">
+          <div className="border-b border-border px-5 py-4 mb-0">
+            <h3 className="text-lg font-semibold m-0">Doanh thu theo tháng</h3>
           </div>
           <div className="p-5">
             <ResponsiveContainer width="100%" height={300}>
@@ -525,7 +497,7 @@ const Dashboard = () => {
                 <XAxis dataKey="month" />
                 <YAxis tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`} />
                 <Tooltip
-                  formatter={(value) => [`${value.toLocaleString('vi-VN')} â‚«`, 'Doanh thu']}
+                  formatter={(value) => [`${value.toLocaleString('vi-VN')} ₫`, 'Doanh thu']}
                 />
                 <Legend />
                 <Line
@@ -539,9 +511,9 @@ const Dashboard = () => {
             </ResponsiveContainer>
           </div>
         </Card>
-        <Card className="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
-          <div className="border-b border-gray-200 px-5 py-4 mb-0">
-            <h3 className="text-lg font-semibold m-0">Sá»‘ lÆ°á»£ng Ä‘áº·t vÃ© theo thÃ¡ng</h3>
+        <Card className="bg-card rounded-xl shadow-md border border-border hover:shadow-lg transition-shadow">
+          <div className="border-b border-border px-5 py-4 mb-0">
+            <h3 className="text-lg font-semibold m-0">Số lượng đặt vé theo tháng</h3>
           </div>
           <div className="p-5">
             <ResponsiveContainer width="100%" height={300}>
@@ -549,7 +521,7 @@ const Dashboard = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
-                <Tooltip formatter={(value) => [value, 'Sá»‘ Ä‘áº·t vÃ©']} />
+                <Tooltip formatter={(value) => [value, 'Số đặt vé']} />
                 <Legend />
                 <Bar dataKey="bookings" fill="#52c41a" />
               </BarChart>
@@ -561,9 +533,9 @@ const Dashboard = () => {
       {/* Recent Bookings and Top Lists */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
         <div className="lg:col-span-7">
-          <Card className="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
-            <div className="border-b border-gray-200 px-5 py-4 mb-0">
-              <h3 className="text-lg font-semibold m-0">Äáº·t vÃ© gáº§n Ä‘Ã¢y</h3>
+          <Card className="bg-card rounded-xl shadow-md border border-border hover:shadow-lg transition-shadow">
+            <div className="border-b border-border px-5 py-4 mb-0">
+              <h3 className="text-lg font-semibold m-0">Đặt vé gần đây</h3>
             </div>
             <div className="p-5">
               {loading ? (
@@ -584,8 +556,8 @@ const Dashboard = () => {
           </Card>
         </div>
         <div className="lg:col-span-5">
-          <Card className="bg-white rounded-xl shadow-md border border-gray-200">
-            <div className="border-b border-gray-200 px-5 py-4 mb-0">
+          <Card className="bg-card rounded-xl shadow-md border border-border">
+            <div className="border-b border-border px-5 py-4 mb-0">
               <h3 className="text-base font-semibold m-0">Top phim doanh thu cao</h3>
             </div>
             <div className="p-5 space-y-4">
@@ -597,7 +569,7 @@ const Dashboard = () => {
                 </div>
               ) : topMovies.length > 0 ? (
                 topMovies.map((movie, index) => (
-                  <div key={movie.id || movie.movieId} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <div key={movie.id || movie.movieId} className="flex items-center gap-3 p-3 bg-background rounded-lg hover:bg-gray-100 transition-colors">
                     <div className="w-8 h-8 flex items-center justify-center bg-red-600 text-white rounded-full font-bold text-sm">#{index + 1}</div>
                     <Avatar className="h-10 w-10 flex-shrink-0">
                       {movie.poster || movie.posterUrl ? (
@@ -607,15 +579,15 @@ const Dashboard = () => {
                       )}
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-gray-900 truncate">{movie.title}</div>
-                      <div className="text-sm text-gray-600">
-                        {movie.totalBookings || 0} vÃ© | {(movie.totalRevenue || 0).toLocaleString('vi-VN')} â‚«
+                      <div className="font-semibold text-foreground truncate">{movie.title}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {movie.totalBookings || 0} vé | {(movie.totalRevenue || 0).toLocaleString('vi-VN')} ₫
                       </div>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-gray-500">ChÆ°a cÃ³ dá»¯ liá»‡u</p>
+                <p className="text-muted-foreground">Chưa có dữ liệu</p>
               )}
             </div>
           </Card>
@@ -624,9 +596,9 @@ const Dashboard = () => {
 
       {/* Top Cinemas and Upcoming Movies */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <Card className="bg-white rounded-xl shadow-md border border-gray-200">
-          <div className="border-b border-gray-200 px-5 py-4 mb-0">
-            <h3 className="text-base font-semibold m-0">Top ráº¡p doanh thu cao</h3>
+        <Card className="bg-card rounded-xl shadow-md border border-border">
+          <div className="border-b border-border px-5 py-4 mb-0">
+            <h3 className="text-base font-semibold m-0">Top rạp doanh thu cao</h3>
           </div>
           <div className="p-5 space-y-4">
             {loading ? (
@@ -637,27 +609,27 @@ const Dashboard = () => {
               </div>
             ) : topCinemas.length > 0 ? (
               topCinemas.map((cinema, index) => (
-                <div key={cinema.id || cinema.cinemaId} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div key={cinema.id || cinema.cinemaId} className="flex items-center gap-3 p-3 bg-background rounded-lg hover:bg-gray-100 transition-colors">
                   <div className="w-8 h-8 flex items-center justify-center bg-green-600 text-white rounded-full font-bold text-sm">#{index + 1}</div>
                   <Avatar className="h-10 w-10 flex-shrink-0 bg-green-100 flex items-center justify-center">
                     <Store className="h-5 w-5 text-green-600" />
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-gray-900 truncate">{cinema.name}</div>
-                    <div className="text-sm text-gray-600">
-                      {cinema.totalBookings || 0} vÃ© | {(cinema.totalRevenue || 0).toLocaleString('vi-VN')} â‚«
+                    <div className="font-semibold text-foreground truncate">{cinema.name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {cinema.totalBookings || 0} vé | {(cinema.totalRevenue || 0).toLocaleString('vi-VN')} ₫
                     </div>
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-gray-500">ChÆ°a cÃ³ dá»¯ liá»‡u</p>
+              <p className="text-muted-foreground">Chưa có dữ liệu</p>
             )}
           </div>
         </Card>
-        <Card className="bg-white rounded-xl shadow-md border border-gray-200">
-          <div className="border-b border-gray-200 px-5 py-4 mb-0">
-            <h3 className="text-base font-semibold m-0">Phim sáº¯p chiáº¿u</h3>
+        <Card className="bg-card rounded-xl shadow-md border border-border">
+          <div className="border-b border-border px-5 py-4 mb-0">
+            <h3 className="text-base font-semibold m-0">Phim sắp chiếu</h3>
           </div>
           <div className="p-5 space-y-4">
             {loading ? (
@@ -668,7 +640,7 @@ const Dashboard = () => {
               </div>
             ) : upcomingMovies.length > 0 ? (
               upcomingMovies.map((movie) => (
-                <div key={movie.id || movie.movieId} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" onClick={() => navigate(`/admin/movies/${movie.id}`)}>
+                <div key={movie.id || movie.movieId} className="flex items-center gap-3 p-3 bg-background rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" onClick={() => navigate(`/admin/movies/${movie.id}`)}>
                   <Avatar className="h-10 w-10 flex-shrink-0">
                     {movie.poster || movie.posterUrl ? (
                       <img src={movie.poster || movie.posterUrl} alt={movie.title} className="w-full h-full object-cover" />
@@ -677,16 +649,16 @@ const Dashboard = () => {
                     )}
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-gray-900 truncate">{movie.title}</div>
-                    <div className="text-sm text-gray-600">
-                      {movie.releaseDate ? dayjs(movie.releaseDate).format('DD/MM/YYYY') : 'ChÆ°a cÃ³ ngÃ y'}
+                    <div className="font-semibold text-foreground truncate">{movie.title}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {movie.releaseDate ? dayjs(movie.releaseDate).format('DD/MM/YYYY') : 'Chưa có ngày'}
                     </div>
                   </div>
-                  <StatusBadge tone="orange">Sáº¯p chiáº¿u</StatusBadge>
+                  <StatusBadge tone="orange">Sắp chiếu</StatusBadge>
                 </div>
               ))
             ) : (
-              <p className="text-gray-500">ChÆ°a cÃ³ phim sáº¯p chiáº¿u</p>
+              <p className="text-muted-foreground">Chưa có phim sắp chiếu</p>
             )}
           </div>
         </Card>

@@ -22,8 +22,6 @@ export const ENDPOINTS = {
   PERMISSIONS: '/permissions'
 };
 
-export const API_ENDPOINTS = ENDPOINTS; // Backward compatibility
-
 // Movie Categories
 export const MOVIE_CATEGORIES = {
   NOW_SHOWING: 'nowShowing',
@@ -112,7 +110,6 @@ export const USER_ROLES = {
 export const STORAGE_KEYS = {
   ACCESS_TOKEN: 'access_token',
   REFRESH_TOKEN: 'refresh_token',
-  USER_TOKEN: 'user_token', // Legacy key for backward compatibility
   USER_INFO: 'user_info',
   USER_ID: 'user_id',
   CART_ITEMS: 'cart_items',
@@ -164,4 +161,4 @@ export const SUCCESS_MESSAGES = {
   REGISTER_SUCCESS: 'Đăng ký thành công!',
   UPDATE_SUCCESS: 'Cập nhật thành công!',
   DELETE_SUCCESS: 'Xóa thành công!'
-}; 
+};

@@ -39,20 +39,20 @@ const BookingDetail = () => {
       setBooking(response?.data || response);
     } catch (error) {
       console.error('Error loading booking detail:', error);
-      showNotification('error', 'Lá»—i', 'KhÃ´ng thá»ƒ táº£i chi tiáº¿t Ä‘áº·t vÃ©');
+      showNotification('error', 'Lỗi', 'Không thể tải chi tiết đặt vé');
       navigate('/admin/bookings');
     } finally {
       setLoading(false);
     }
   };
 
-  // Render tráº¡ng thÃ¡i booking
+  // Render trạng thái booking
   const renderBookingStatus = (status) => {
     const statusConfig = {
-      confirmed: { color: 'green', text: 'ÄÃ£ thanh toÃ¡n', icon: <CheckCircle2 className="h-3 w-3" /> },
-      pending: { color: 'yellow', text: 'Chá» thanh toÃ¡n', icon: <Clock className="h-3 w-3" /> },
-      cancelled: { color: 'red', text: 'ÄÃ£ há»§y', icon: <XCircle className="h-3 w-3" /> },
-      expired: { color: 'gray', text: 'Háº¿t háº¡n', icon: <AlertCircle className="h-3 w-3" /> }
+      confirmed: { color: 'green', text: 'Đã thanh toán', icon: <CheckCircle2 className="h-3 w-3" /> },
+      pending: { color: 'yellow', text: 'Chờ thanh toán', icon: <Clock className="h-3 w-3" /> },
+      cancelled: { color: 'red', text: 'Đã hủy', icon: <XCircle className="h-3 w-3" /> },
+      expired: { color: 'gray', text: 'Hết hạn', icon: <AlertCircle className="h-3 w-3" /> }
     };
 
     const normalizedStatus = status?.toLowerCase();
@@ -72,7 +72,7 @@ const BookingDetail = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-10 w-10 animate-spin mx-auto text-indigo-600 mb-4" />
-          <p className="text-gray-500">Äang táº£i chi tiáº¿t Ä‘áº·t vÃ©...</p>
+          <p className="text-muted-foreground">Đang tải chi tiết đặt vé...</p>
         </div>
       </div>
     );
@@ -82,13 +82,13 @@ const BookingDetail = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-500 text-lg">KhÃ´ng tÃ¬m tháº¥y thÃ´ng tin Ä‘áº·t vÃ© vá»›i mÃ£: {bookingCode}</p>
+          <p className="text-muted-foreground text-lg">Không tìm thấy thông tin đặt vé với mã: {bookingCode}</p>
           <Button
             variant="outline"
             onClick={() => navigate('/admin/bookings')}
             className="mt-4"
           >
-            Quay láº¡i danh sÃ¡ch
+            Quay lại danh sách
           </Button>
         </div>
       </div>
@@ -108,12 +108,12 @@ const BookingDetail = () => {
               href: '/admin/dashboard'
             },
             {
-              title: 'Quáº£n lÃ½ Ä‘áº·t vÃ©',
+              title: 'Quản lý đặt vé',
               icon: <Ticket className="h-4 w-4" />,
               href: '/admin/bookings'
             },
             {
-              title: `Chi tiáº¿t Ä‘áº·t vÃ© #${bookingCode}`,
+              title: `Chi tiết đặt vé #${bookingCode}`,
               icon: <Ticket className="h-4 w-4" />
             }
           ]}
@@ -128,17 +128,17 @@ const BookingDetail = () => {
               className="h-10"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Quay láº¡i
+              Quay lại
             </Button>
             <div className="flex items-center gap-3">
               <div className="p-2 bg-indigo-100 rounded-lg">
                 <Ticket className="h-6 w-6 text-indigo-600" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 m-0">
-                  Chi tiáº¿t Ä‘áº·t vÃ© #{bookingCode}
+                <h1 className="text-3xl font-bold text-foreground m-0">
+                  Chi tiết đặt vé #{bookingCode}
                 </h1>
-                <p className="text-gray-500 mt-1">ThÃ´ng tin chi tiáº¿t vá» Ä‘áº·t vÃ©</p>
+                <p className="text-muted-foreground mt-1">Thông tin chi tiết về đặt vé</p>
               </div>
             </div>
           </div>
@@ -158,7 +158,7 @@ const BookingDetail = () => {
                   />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-3xl font-bold text-gray-900 mb-2">{booking.movieTitle || 'N/A'}</h2>
+                  <h2 className="text-3xl font-bold text-foreground mb-2">{booking.movieTitle || 'N/A'}</h2>
                   <div className="flex flex-wrap gap-2 mb-4">
                     {booking.movieFormat && (
                       <StatusBadge tone="blue" className="text-sm px-3 py-1">
@@ -174,16 +174,16 @@ const BookingDetail = () => {
                   </div>
                   <div className="space-y-2 text-gray-700">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold">Ráº¡p:</span>
+                      <span className="font-semibold">Rạp:</span>
                       <span>{booking.cinemaName || 'N/A'}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold">PhÃ²ng:</span>
+                      <span className="font-semibold">Phòng:</span>
                       <span>{booking.roomName || 'N/A'}</span>
                     </div>
                     {booking.cinemaAddress && (
                       <div className="flex items-start gap-2">
-                        <span className="font-semibold">Äá»‹a chá»‰:</span>
+                        <span className="font-semibold">Địa chỉ:</span>
                         <span>{booking.cinemaAddress}</span>
                       </div>
                     )}
@@ -199,15 +199,15 @@ const BookingDetail = () => {
             <Card className="p-6 border-l-4 border-l-indigo-500">
               <div className="flex items-center gap-2 mb-4">
                 <Ticket className="h-5 w-5 text-indigo-600" />
-                <h3 className="text-lg font-semibold m-0">ThÃ´ng tin Ä‘áº·t vÃ©</h3>
+                <h3 className="text-lg font-semibold m-0">Thông tin đặt vé</h3>
               </div>
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">MÃ£ Ä‘áº·t vÃ©</p>
+                  <p className="text-sm text-muted-foreground mb-1">Mã đặt vé</p>
                   <p className="text-lg font-bold text-indigo-600">#{booking.bookingCode || booking.id}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">NgÃ y Ä‘áº·t</p>
+                  <p className="text-sm text-muted-foreground mb-1">Ngày đặt</p>
                   <p className="font-medium">
                     {booking.bookingDate ? (
                       <>
@@ -218,7 +218,7 @@ const BookingDetail = () => {
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 mb-2">Tráº¡ng thÃ¡i</p>
+                  <p className="text-sm text-muted-foreground mb-2">Trạng thái</p>
                   {renderBookingStatus(booking.status)}
                 </div>
               </div>
@@ -228,20 +228,20 @@ const BookingDetail = () => {
             <Card className="p-6 border-l-4 border-l-green-500">
               <div className="flex items-center gap-2 mb-4">
                 <User className="h-5 w-5 text-green-600" />
-                <h3 className="text-lg font-semibold m-0">ThÃ´ng tin khÃ¡ch hÃ ng</h3>
+                <h3 className="text-lg font-semibold m-0">Thông tin khách hàng</h3>
               </div>
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">TÃªn khÃ¡ch hÃ ng</p>
-                  <p className="font-semibold text-gray-900">{booking.userName || 'N/A'}</p>
+                  <p className="text-sm text-muted-foreground mb-1">Tên khách hàng</p>
+                  <p className="font-semibold text-foreground">{booking.userName || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Email</p>
+                  <p className="text-sm text-muted-foreground mb-1">Email</p>
                   <p className="font-medium text-gray-700">{booking.userEmail || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">User ID</p>
-                  <p className="font-medium text-gray-600">{booking.userId || 'N/A'}</p>
+                  <p className="text-sm text-muted-foreground mb-1">User ID</p>
+                  <p className="font-medium text-muted-foreground">{booking.userId || 'N/A'}</p>
                 </div>
               </div>
             </Card>
@@ -250,29 +250,29 @@ const BookingDetail = () => {
             <Card className="p-6 border-l-4 border-l-orange-500 bg-gradient-to-br from-orange-50 to-yellow-50">
               <div className="flex items-center gap-2 mb-4">
                 <DollarSign className="h-5 w-5 text-orange-600" />
-                <h3 className="text-lg font-semibold m-0">Thanh toÃ¡n</h3>
+                <h3 className="text-lg font-semibold m-0">Thanh toán</h3>
               </div>
               <div className="space-y-3">
                 {booking.totalAmount && (
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Tá»•ng tiá»n</p>
-                    <p className="text-lg text-gray-600 line-through">
-                      {booking.totalAmount.toLocaleString('vi-VN')} â‚«
+                    <p className="text-sm text-muted-foreground mb-1">Tổng tiền</p>
+                    <p className="text-lg text-muted-foreground line-through">
+                      {booking.totalAmount.toLocaleString('vi-VN')} ₫
                     </p>
                   </div>
                 )}
                 {booking.discountAmount && booking.discountAmount > 0 && (
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Giáº£m giÃ¡</p>
+                    <p className="text-sm text-muted-foreground mb-1">Giảm giá</p>
                     <p className="text-lg font-semibold text-green-600">
-                      -{booking.discountAmount.toLocaleString('vi-VN')} â‚«
+                      -{booking.discountAmount.toLocaleString('vi-VN')} ₫
                     </p>
                   </div>
                 )}
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">ThÃ nh tiá»n</p>
+                  <p className="text-sm text-muted-foreground mb-1">Thành tiền</p>
                   <p className="text-2xl font-bold text-orange-600">
-                    {(booking.finalAmount || 0).toLocaleString('vi-VN')} â‚«
+                    {(booking.finalAmount || 0).toLocaleString('vi-VN')} ₫
                   </p>
                 </div>
               </div>
@@ -281,16 +281,16 @@ const BookingDetail = () => {
 
           {/* Showtime Details */}
           <Card className="p-6">
-            <div className="flex items-center gap-2 mb-6 pb-4 border-b border-gray-200">
+            <div className="flex items-center gap-2 mb-6 pb-4 border-b border-border">
               <Calendar className="h-5 w-5 text-indigo-600" />
-              <h3 className="text-lg font-semibold m-0">Chi tiáº¿t suáº¥t chiáº¿u</h3>
+              <h3 className="text-lg font-semibold m-0">Chi tiết suất chiếu</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
               <div>
-                <p className="text-sm text-gray-500 mb-2">NgÃ y chiáº¿u</p>
+                <p className="text-sm text-muted-foreground mb-2">Ngày chiếu</p>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-gray-400" />
-                  <p className="font-semibold text-gray-900">
+                  <p className="font-semibold text-foreground">
                     {booking.showtimeDateTime ? (
                       (() => {
                         try {
@@ -304,10 +304,10 @@ const BookingDetail = () => {
                 </div>
               </div>
               <div>
-                <p className="text-sm text-gray-500 mb-2">Giá» chiáº¿u</p>
+                <p className="text-sm text-muted-foreground mb-2">Giờ chiếu</p>
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-gray-400" />
-                  <p className="font-semibold text-gray-900">
+                  <p className="font-semibold text-foreground">
                     {booking.showtimeStartTime && booking.showtimeEndTime ? (
                       `${(() => {
                         try {
@@ -327,15 +327,15 @@ const BookingDetail = () => {
                 </div>
               </div>
               <div>
-                <p className="text-sm text-gray-500 mb-2">Showtime ID</p>
+                <p className="text-sm text-muted-foreground mb-2">Showtime ID</p>
                 <p className="font-medium text-gray-700">{booking.showtimeId || 'N/A'}</p>
               </div>
             </div>
 
             {/* Seats */}
             <div>
-              <p className="text-sm text-gray-500 mb-3">Gháº¿ Ä‘Ã£ chá»n ({booking.seats?.length || 0} gháº¿)</p>
-              <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-sm text-muted-foreground mb-3">Ghế đã chọn ({booking.seats?.length || 0} ghế)</p>
+              <div className="flex flex-wrap gap-2 p-4 bg-background rounded-lg border border-border">
                 {booking.seats && booking.seats.length > 0 ? (
                   booking.seats.map((seat, index) => (
                     <StatusBadge
@@ -348,13 +348,13 @@ const BookingDetail = () => {
                         <span className="text-xs ml-1 opacity-75">
                           ({typeof seat.price === 'number'
                             ? seat.price.toLocaleString('vi-VN')
-                            : String(seat.price)} â‚«)
+                            : String(seat.price)} ₫)
                         </span>
                       )}
                     </StatusBadge>
                   ))
                 ) : (
-                  <span className="text-gray-500">N/A</span>
+                  <span className="text-muted-foreground">N/A</span>
                 )}
               </div>
             </div>

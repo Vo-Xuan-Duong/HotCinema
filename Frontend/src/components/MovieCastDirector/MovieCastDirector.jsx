@@ -6,7 +6,7 @@ const MovieCastDirector = ({ actors = [], director = '', title = 'Thông tin eki
     }
 
     return (
-        <div className="mb-3 rounded-lg border border-border bg-card px-4 py-3 shadow-sm dark:border-white/10 dark:bg-white/[0.05] md:mb-2 md:px-3 md:py-2">
+        <div className="mb-3 rounded-lg border border-border bg-card px-4 py-3 shadow-sm dark:border-white/10 dark:bg-card/[0.05] md:mb-2 md:px-3 md:py-2">
             <h3 className="mb-2.5 flex items-center gap-1.5 text-sm font-semibold text-card-foreground before:h-4 before:w-[3px] before:rounded-sm before:bg-gradient-to-br before:from-primary before:to-amber-500 md:mb-2 md:text-[13px] max-[480px]:mb-1.5 max-[480px]:text-xs max-[480px]:before:h-3 max-[480px]:before:w-0.5">
                 {title}
             </h3>

@@ -39,8 +39,8 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-[420px] bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-2xl shadow-[0_10px_30px_-5px_rgba(0,0,0,0.12),0_4px_16px_-2px_rgba(0,0,0,0.08)]">
-                <DialogHeader className="bg-gradient-to-b from-white/90 to-white/75 border-b border-gray-200 pb-4">
+            <DialogContent className="max-w-[420px] bg-gradient-to-br from-white to-gray-50 border border-border rounded-2xl shadow-[0_10px_30px_-5px_rgba(0,0,0,0.12),0_4px_16px_-2px_rgba(0,0,0,0.08)]">
+                <DialogHeader className="bg-gradient-to-b from-white/90 to-white/75 border-b border-border pb-4">
                     <DialogTitle className="text-2xl font-bold text-center bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent">
                         🎬 HotCinemas
                     </DialogTitle>

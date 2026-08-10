@@ -65,15 +65,6 @@ const paymentService = {
         return unwrapArray(res);
     },
 
-    // Backward-compat aliases
-    async getAllPayments(params) {
-        return this.listPage(params);
-    },
-
-    async getPayments(params) {
-        return this.listPage(params);
-    },
-
     // ==================== Single Payment ====================
 
     /**
@@ -249,13 +240,6 @@ const paymentService = {
             'ZALOPAY': 'ZaloPay',
             'CREDIT_CARD': 'Thẻ tín dụng',
             'DEBIT_CARD': 'Thẻ ghi nợ',
-            // Backward compatibility
-            'momo': 'Ví MoMo',
-            'vnpay': 'VNPay',
-            'zalopay': 'ZaloPay',
-            'credit': 'Thẻ tín dụng/ghi nợ',
-            'banking': 'Chuyển khoản ngân hàng',
-            'cash': 'Tiền mặt'
         };
         return methods[method] || methods[method?.toUpperCase()] || method;
     },

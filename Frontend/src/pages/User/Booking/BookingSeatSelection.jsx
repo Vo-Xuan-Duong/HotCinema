@@ -50,7 +50,7 @@ const BookingSeatSelection = () => {
     const [promotionInfo, setPromotionInfo] = useState(null);
     const [isValidatingPromotion, setIsValidatingPromotion] = useState(false);
 
-    // Helper function Ä‘á»ƒ láº¥y current user ID nháº¥t quÃ¡n
+    // Helper function để lấy current user ID nhất quán
     const getCurrentUserId = useCallback(() => {
         return user?.id?.toString() || localStorage.getItem('user_id') || null;
     }, [user]);
@@ -88,7 +88,7 @@ const BookingSeatSelection = () => {
             case 'held':
                 updateSeatStatus(seatIds, 'held', userId);
 
-                // Chá»‰ tá»± Ä‘á»™ng thÃªm vÃ o selectedSeats náº¿u lÃ  gháº¿ cá»§a user hiá»‡n táº¡i
+                // Chỉ tự động thêm vào selectedSeats nếu là ghế của user hiện tại
                 if (userId && currentUserId && userId.toString() === currentUserId.toString()) {
                     setSeatLayout(prevLayout => {
                         const mySeats = [];
@@ -188,7 +188,7 @@ const BookingSeatSelection = () => {
 
         } catch (error) {
             console.error('Error loading showtime details:', error);
-            notification.error('KhÃ´ng thá»ƒ táº£i thÃ´ng tin suáº¥t chiáº¿u');
+            notification.error('Không thể tải thông tin suất chiếu');
         } finally {
             setLoading(false);
         }
@@ -199,7 +199,13 @@ const BookingSeatSelection = () => {
             (seatsData?.data ? seatsData.data : []);
 
         if (seatsArray.length === 0) {
-            generateMockSeats();
+            setSeatLayout({
+                rows: [],
+                totalSeats: 0,
+                availableSeats: 0,
+                bookedSeats: 0
+            });
+            setSelectedSeats([]);
             return;
         }
 
@@ -260,14 +266,14 @@ const BookingSeatSelection = () => {
             }
         });
 
-        // Sáº¯p xáº¿p rows theo rowNumber (tÄƒng dáº§n)
+        // Sắp xếp rows theo rowNumber (tăng dần)
         const rows = Object.values(rowsMap).sort((a, b) => {
             const rowA = a.rowNumber || 0;
             const rowB = b.rowNumber || 0;
             return rowA - rowB;
         });
 
-        // Sáº¯p xáº¿p seats trong má»—i row theo col (tÄƒng dáº§n)
+        // Sắp xếp seats trong mỗi row theo col (tăng dần)
         rows.forEach(row => {
             row.seats.sort((a, b) => {
                 const colA = a.col || 0;
@@ -276,11 +282,11 @@ const BookingSeatSelection = () => {
             });
         });
 
-        // TÃ­nh toÃ¡n maxColInRoom Ä‘á»ƒ Ä‘áº£m báº£o alignment giá»¯a cÃ¡c hÃ ng
+        // Tính toán maxColInRoom để đảm bảo alignment giữa các hàng
         const allCols = rows.flatMap(r => r.seats.map(s => s.col || 0));
         const maxColInRoom = allCols.length > 0 ? Math.max(...allCols) : 0;
 
-        // LÆ°u maxColInRoom vÃ o má»—i row Ä‘á»ƒ sá»­ dá»¥ng khi render
+        // Lưu maxColInRoom vào mỗi row để sử dụng khi render
         rows.forEach(row => {
             row.maxColInRoom = maxColInRoom;
         });
@@ -295,67 +301,9 @@ const BookingSeatSelection = () => {
         if (mySelectedSeats.length > 0) {
             setSelectedSeats(mySelectedSeats);
             setTimeout(() => {
-                notification.info(`ÄÃ£ khÃ´i phá»¥c ${mySelectedSeats.length} gháº¿ báº¡n Ä‘Ã£ chá»n trÆ°á»›c Ä‘Ã³`);
+                notification.info(`Đã khôi phục ${mySelectedSeats.length} ghế bạn đã chọn trước đó`);
             }, 500);
         }
-    };
-
-    const generateMockSeats = () => {
-        const rowLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K'];
-        const rows = [];
-        let totalSeats = 0;
-        let availableSeats = 0;
-        let bookedSeats = 0;
-
-        rowLabels.forEach((label, rowIndex) => {
-            const seats = [];
-            const seatsPerRow = rowIndex < 2 ? 4 : 10;
-
-            for (let i = 1; i <= seatsPerRow; i++) {
-                const seatId = `${label}${i}`;
-                let status = 'available';
-                let seatType = 'normal';
-
-                if (['C4', 'C5', 'C6', 'C7'].includes(seatId)) {
-                    status = 'booked';
-                }
-
-                if (['D', 'E'].includes(label)) {
-                    seatType = 'vip';
-                }
-
-                totalSeats++;
-                if (status === 'booked') {
-                    bookedSeats++;
-                } else {
-                    availableSeats++;
-                }
-
-                seats.push({
-                    id: seatId,
-                    col: i,
-                    name: seatId,
-                    seatType: seatType,
-                    status: status,
-                    price: seatType === 'vip' ? 135000 : seatType === 'couple' ? 190000 : 95000,
-                    rowLabel: label,
-                    row: rowIndex + 1,
-                    lockedByUserId: null
-                });
-            }
-
-            rows.push({
-                label,
-                seats
-            });
-        });
-
-        setSeatLayout({
-            rows,
-            totalSeats,
-            availableSeats,
-            bookedSeats
-        });
     };
 
     const getSeatColor = (seat) => {
@@ -366,34 +314,34 @@ const BookingSeatSelection = () => {
             currentUserId &&
             seat.lockedByUserId.toString() === currentUserId.toString();
 
-        // Náº¿u Ä‘ang Ä‘Æ°á»£c chá»n hoáº·c Ä‘ang giá»¯ bá»Ÿi user hiá»‡n táº¡i
+        // Nếu đang được chọn hoặc đang giữ bởi user hiện tại
         if (isSelected || isMyHeld) {
-            return '#1890ff'; // MÃ u xanh dÆ°Æ¡ng - Äang chá»n
+            return '#1890ff'; // Màu xanh dương - Đang chọn
         }
 
-        // Æ¯u tiÃªn hiá»ƒn thá»‹ tráº¡ng thÃ¡i trÆ°á»›c, sau Ä‘Ã³ má»›i Ä‘áº¿n loáº¡i gháº¿
+        // Ưu tiên hiển thị trạng thái trước, sau đó mới đến loại ghế
         switch (seat.status) {
             case 'blocked':
-                return '#8c8c8c'; // MÃ u xÃ¡m Ä‘áº­m - Gháº¿ bá»‹ khÃ³a
+                return '#8c8c8c'; // Màu xám đậm - Ghế bị khóa
             case 'booked':
-                return '#ff4d4f'; // MÃ u Ä‘á» - Gháº¿ Ä‘Ã£ Ä‘áº·t
+                return '#ff4d4f'; // Màu đỏ - Ghế đã đặt
             case 'held':
-                return '#faad14'; // MÃ u vÃ ng cam - Gháº¿ Ä‘ang giá»¯ chá»— (ngÆ°á»i khÃ¡c)
+                return '#faad14'; // Màu vàng cam - Ghế đang giữ chỗ (người khác)
             case 'unavailable':
-                return '#d9d9d9'; // MÃ u xÃ¡m nháº¡t - Gháº¿ khÃ´ng kháº£ dá»¥ng
+                return '#d9d9d9'; // Màu xám nhạt - Ghế không khả dụng
             case 'maintenance':
-                return '#722ed1'; // MÃ u tÃ­m - Gháº¿ Ä‘ang báº£o trÃ¬
+                return '#722ed1'; // Màu tím - Ghế đang bảo trì
             case 'available':
             default:
-                // Khi available, mÃ u sáº¯c dá»±a vÃ o loáº¡i gháº¿
+                // Khi available, màu sắc dựa vào loại ghế
                 switch (seat.seatType) {
                     case 'vip':
-                        return '#faad14'; // MÃ u vÃ ng cho VIP
+                        return '#faad14'; // Màu vàng cho VIP
                     case 'couple':
-                        return '#eb2f96'; // MÃ u há»“ng cho gháº¿ Ä‘Ã´i
+                        return '#eb2f96'; // Màu hồng cho ghế đôi
                     case 'normal':
                     default:
-                        return '#52c41a'; // MÃ u xanh cho gháº¿ thÆ°á»ng
+                        return '#52c41a'; // Màu xanh cho ghế thường
                 }
         }
     };
@@ -406,33 +354,33 @@ const BookingSeatSelection = () => {
             currentUserId &&
             seat.lockedByUserId.toString() === currentUserId.toString();
 
-        // Náº¿u Ä‘ang Ä‘Æ°á»£c chá»n hoáº·c Ä‘ang giá»¯ bá»Ÿi user hiá»‡n táº¡i
+        // Nếu đang được chọn hoặc đang giữ bởi user hiện tại
         if (isSelected || isMyHeld) {
             return <UserCheck className="h-4 w-4" />;
         }
 
-        // Æ¯u tiÃªn hiá»ƒn thá»‹ icon tráº¡ng thÃ¡i trÆ°á»›c
+        // Ưu tiên hiển thị icon trạng thái trước
         switch (seat.status) {
             case 'blocked':
-                return <Lock className="h-4 w-4" />; // Icon khÃ³a
+                return <Lock className="h-4 w-4" />; // Icon khóa
             case 'booked':
-                return <UserCheck className="h-4 w-4" />; // Icon user - ÄÃ£ Ä‘áº·t
+                return <UserCheck className="h-4 w-4" />; // Icon user - Đã đặt
             case 'held':
-                return <Clock3 className="h-4 w-4" />; // Icon Ä‘á»“ng há»“ - Äang giá»¯
+                return <Clock3 className="h-4 w-4" />; // Icon đồng hồ - Đang giữ
             case 'unavailable':
-                return <XCircle className="h-4 w-4" />; // Icon X - KhÃ´ng kháº£ dá»¥ng
+                return <XCircle className="h-4 w-4" />; // Icon X - Không khả dụng
             case 'maintenance':
-                return <Settings className="h-4 w-4" />; // Icon cÃ´ng cá»¥ - Báº£o trÃ¬
+                return <Settings className="h-4 w-4" />; // Icon công cụ - Bảo trì
             case 'available':
             default:
-                // Khi available, icon dá»±a vÃ o loáº¡i gháº¿
+                // Khi available, icon dựa vào loại ghế
                 switch (seat.seatType) {
                     case 'vip':
                         return <StarIcon className="h-4 w-4" />;
                     case 'couple':
                         return <HeartIcon className="h-4 w-4" />;
                     case 'sweetbox':
-                        return <HeartIcon className="h-4 w-4" />; // Icon trÃ¡i tim cho Sweetbox
+                        return <HeartIcon className="h-4 w-4" />; // Icon trái tim cho Sweetbox
                     case 'normal':
                     default:
                         return <User className="h-4 w-4" />;
@@ -442,34 +390,34 @@ const BookingSeatSelection = () => {
 
     const getStatusText = (status) => {
         const statusTextMap = {
-            'available': 'CÃ³ thá»ƒ Ä‘áº·t',
-            'held': 'Äang giá»¯ chá»—',
-            'booked': 'ÄÃ£ Ä‘áº·t',
-            'unavailable': 'KhÃ´ng kháº£ dá»¥ng',
-            'maintenance': 'Äang báº£o trÃ¬',
-            'blocked': 'Bá»‹ khÃ³a'
+            'available': 'Có thể đặt',
+            'held': 'Đang giữ chỗ',
+            'booked': 'Đã đặt',
+            'unavailable': 'Không khả dụng',
+            'maintenance': 'Đang bảo trì',
+            'blocked': 'Bị khóa'
         };
-        return statusTextMap[status] || 'KhÃ´ng xÃ¡c Ä‘á»‹nh';
+        return statusTextMap[status] || 'Không xác định';
     };
 
     const handleSeatClick = async (seat) => {
         if (seat.status === 'booked') {
-            notification.warning('Gháº¿ nÃ y Ä‘Ã£ Ä‘Æ°á»£c Ä‘áº·t');
+            notification.warning('Ghế này đã được đặt');
             return;
         }
 
         if (seat.status === 'unavailable') {
-            notification.warning('Gháº¿ nÃ y khÃ´ng kháº£ dá»¥ng');
+            notification.warning('Ghế này không khả dụng');
             return;
         }
 
         if (seat.status === 'maintenance') {
-            notification.warning('Gháº¿ nÃ y Ä‘ang báº£o trÃ¬');
+            notification.warning('Ghế này đang bảo trì');
             return;
         }
 
         if (seat.status === 'blocked') {
-            notification.warning('Gháº¿ nÃ y Ä‘Ã£ bá»‹ khÃ³a');
+            notification.warning('Ghế này đã bị khóa');
             return;
         }
 
@@ -477,7 +425,7 @@ const BookingSeatSelection = () => {
 
         if (seat.status === 'held' && seat.lockedByUserId) {
             if (seat.lockedByUserId.toString() !== currentUserId) {
-                notification.warning('Gháº¿ nÃ y Ä‘ang Ä‘Æ°á»£c giá»¯ bá»Ÿi ngÆ°á»i dÃ¹ng khÃ¡c');
+                notification.warning('Ghế này đang được giữ bởi người dùng khác');
                 return;
             }
         }
@@ -492,11 +440,11 @@ const BookingSeatSelection = () => {
                 setSelectedSeats(newSelectedSeats);
             } else {
                 if (selectedSeats.length >= 10) {
-                    notification.warning('Chá»‰ Ä‘Æ°á»£c chá»n tá»‘i Ä‘a 10 gháº¿');
+                    notification.warning('Chỉ được chọn tối đa 10 ghế');
                     return;
                 }
 
-                // Náº¿u khÃ´ng cÃ³ userId thÃ¬ truyá»n null (backend sáº½ xá»­ lÃ½ anonymous / guest náº¿u cáº§n)
+                // Nếu không có userId thì truyền null (backend sẽ xử lý anonymous / guest nếu cần)
                 await showtimeService.lockSeats(showtimeId, seatId, currentUserId ?? null);
 
                 const newSelectedSeats = [...selectedSeats, {
@@ -510,11 +458,11 @@ const BookingSeatSelection = () => {
             console.error('Error locking/unlocking seat:', error);
 
             if (error.response?.status === 409) {
-                notification.error('Gháº¿ Ä‘Ã£ Ä‘Æ°á»£c ngÆ°á»i khÃ¡c chá»n');
+                notification.error('Ghế đã được người khác chọn');
             } else if (error.response?.status === 400) {
-                notification.error('KhÃ´ng thá»ƒ chá»n gháº¿ nÃ y');
+                notification.error('Không thể chọn ghế này');
             } else {
-                notification.error('CÃ³ lá»—i xáº£y ra. Vui lÃ²ng thá»­ láº¡i');
+                notification.error('Có lỗi xảy ra. Vui lòng thử lại');
             }
         }
     };
@@ -531,7 +479,7 @@ const BookingSeatSelection = () => {
 
     const handleValidatePromotion = async () => {
         if (!promotionCode.trim()) {
-            notification.warning('Vui lÃ²ng nháº­p mÃ£ giáº£m giÃ¡');
+            notification.warning('Vui lòng nhập mã giảm giá');
             return;
         }
 
@@ -542,7 +490,7 @@ const BookingSeatSelection = () => {
             const promotion = response?.data || response;
 
             if (!promotion) {
-                notification.error('MÃ£ giáº£m giÃ¡ khÃ´ng tá»“n táº¡i');
+                notification.error('Mã giảm giá không tồn tại');
                 setPromotionDiscount(0);
                 setPromotionInfo(null);
                 return;
@@ -554,17 +502,17 @@ const BookingSeatSelection = () => {
             const endDate = dayjs(promotion.endDate);
 
             if (promotion.status !== 'ACTIVE' && promotion.status !== true) {
-                notification.error('MÃ£ giáº£m giÃ¡ nÃ y hiá»‡n khÃ´ng hoáº¡t Ä‘á»™ng');
+                notification.error('Mã giảm giá này hiện không hoạt động');
                 return;
             }
 
             if (now.isBefore(startDate)) {
-                notification.error(`MÃ£ giáº£m giÃ¡ chÆ°a Ä‘áº¿n ngÃ y Ã¡p dá»¥ng (báº¯t Ä‘áº§u tá»« ${startDate.format('DD/MM/YYYY')})`);
+                notification.error(`Mã giảm giá chưa đến ngày áp dụng (bắt đầu từ ${startDate.format('DD/MM/YYYY')})`);
                 return;
             }
 
             if (now.isAfter(endDate)) {
-                notification.error('MÃ£ giáº£m giÃ¡ Ä‘Ã£ háº¿t háº¡n');
+                notification.error('Mã giảm giá đã hết hạn');
                 return;
             }
 
@@ -591,16 +539,16 @@ const BookingSeatSelection = () => {
                 discountPercent: promotion.discountType === 'PERCENTAGE' ? promotion.discountValue : 0,
                 discountType: promotion.discountType
             });
-            notification.success('Ãp dá»¥ng mÃ£ giáº£m giÃ¡ thÃ nh cÃ´ng!');
+            notification.success('Áp dụng mã giảm giá thành công!');
 
         } catch (error) {
             console.error('Error validating promotion code:', error);
             setPromotionDiscount(0);
             setPromotionInfo(null);
             if (error.response?.status === 404) {
-                notification.error('MÃ£ giáº£m giÃ¡ khÃ´ng tá»“n táº¡i');
+                notification.error('Mã giảm giá không tồn tại');
             } else {
-                notification.error('KhÃ´ng thá»ƒ kiá»ƒm tra mÃ£ giáº£m giÃ¡. Vui lÃ²ng thá»­ láº¡i.');
+                notification.error('Không thể kiểm tra mã giảm giá. Vui lòng thử lại.');
             }
         } finally {
             setIsValidatingPromotion(false);
@@ -611,7 +559,7 @@ const BookingSeatSelection = () => {
         setPromotionCode('');
         setPromotionDiscount(0);
         setPromotionInfo(null);
-        notification.info('ÄÃ£ xÃ³a mÃ£ giáº£m giÃ¡');
+        notification.info('Đã xóa mã giảm giá');
     };
 
     const checkLoginStatus = () => {
@@ -619,7 +567,7 @@ const BookingSeatSelection = () => {
         const token = localStorage.getItem('access_token');
 
         if (!user && (!userId || !token)) {
-            notification.warning('Vui lÃ²ng Ä‘Äƒng nháº­p Ä‘á»ƒ Ä‘áº·t vÃ©');
+            notification.warning('Vui lòng đăng nhập để đặt vé');
             setShowAuthModal(true);
             return false;
         }
@@ -628,7 +576,7 @@ const BookingSeatSelection = () => {
 
     const handleContinue = async () => {
         if (selectedSeats.length === 0) {
-            notification.warning('Vui lÃ²ng chá»n Ã­t nháº¥t má»™t gháº¿');
+            notification.warning('Vui lòng chọn ít nhất một ghế');
             return;
         }
 
@@ -647,7 +595,7 @@ const BookingSeatSelection = () => {
             }).filter(id => !isNaN(id) && id > 0); // Filter out invalid IDs
 
             if (seatIds.length === 0) {
-                notification.error('KhÃ´ng cÃ³ gháº¿ há»£p lá»‡ Ä‘á»ƒ Ä‘áº·t');
+                notification.error('Không có ghế hợp lệ để đặt');
                 setIsCreatingBooking(false);
                 return;
             }
@@ -660,7 +608,7 @@ const BookingSeatSelection = () => {
 
             const bookingResponse = await bookingService.createBooking(bookingPayload);
 
-            notification.success('ÄÃ£ táº¡o Ä‘Æ¡n Ä‘áº·t vÃ© thÃ nh cÃ´ng!');
+            notification.success('Đã tạo đơn đặt vé thành công!');
 
             const bookingData = bookingResponse?.data || bookingResponse;
 
@@ -686,12 +634,12 @@ const BookingSeatSelection = () => {
             console.error('Error creating booking:', error);
 
             if (error.response?.status === 409) {
-                notification.error('Má»™t sá»‘ gháº¿ Ä‘Ã£ Ä‘Æ°á»£c ngÆ°á»i khÃ¡c Ä‘áº·t. Vui lÃ²ng chá»n láº¡i.');
+                notification.error('Một số ghế đã được người khác đặt. Vui lòng chọn lại.');
                 loadShowtimeDetails();
             } else if (error.response?.status === 400) {
-                notification.error(error.response?.data?.message || 'Dá»¯ liá»‡u khÃ´ng há»£p lá»‡');
+                notification.error(error.response?.data?.message || 'Dữ liệu không hợp lệ');
             } else if (error.response?.status === 401) {
-                notification.error('Vui lÃ²ng Ä‘Äƒng nháº­p Ä‘á»ƒ Ä‘áº·t vÃ©');
+                notification.error('Vui lòng đăng nhập để đặt vé');
                 navigate('/login', {
                     state: {
                         from: location.pathname,
@@ -702,7 +650,7 @@ const BookingSeatSelection = () => {
                     }
                 });
             } else {
-                notification.error('CÃ³ lá»—i xáº£y ra khi táº¡o Ä‘Æ¡n Ä‘áº·t vÃ©. Vui lÃ²ng thá»­ láº¡i.');
+                notification.error('Có lỗi xảy ra khi tạo đơn đặt vé. Vui lòng thử lại.');
             }
         } finally {
             setIsCreatingBooking(false);
@@ -710,38 +658,38 @@ const BookingSeatSelection = () => {
     };
 
     if (loading) {
-        return <ContentLoader message="Äang táº£i sÆ¡ Ä‘á»“ gháº¿..." />;
+        return <ContentLoader message="Đang tải sơ đồ ghế..." />;
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8 px-4 mt-8">
+        <div className="min-h-screen bg-background text-foreground py-8 px-4 mt-8">
             <div className="max-w-[1200px] mx-auto relative">
                 {/* {wsConnected && (
                     <div className="fixed top-20 right-5 bg-green-500 text-white py-2 px-4 rounded-full flex items-center gap-2 text-sm font-medium shadow-lg shadow-green-500/30 z-[1000] animate-slide-in-right">
-                        <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                        <span>Äang káº¿t ná»‘i real-time</span>
+                        <div className="w-2 h-2 bg-card text-card-foreground rounded-full animate-pulse"></div>
+                        <span>Đang kết nối real-time</span>
                     </div>
                 )} */}
 
-                <div className="bg-white border border-gray-200 rounded-xl p-5 mb-4 shadow-md">
+                <div className="bg-card text-card-foreground border border-border rounded-xl p-5 mb-4 shadow-md">
                     <div className="flex flex-col gap-3">
-                        <h1 className="text-2xl font-semibold text-primary">Chá»n Gháº¿ Ngá»“i</h1>
+                        <h1 className="text-2xl font-semibold text-primary">Chọn Ghế Ngồi</h1>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div className="flex flex-col">
-                                <span className="text-gray-600 text-sm font-medium mb-1">Phim:</span>
-                                <span className="text-gray-900 font-semibold">{showtimeInfo.movieTitle || 'The Avengers'}</span>
+                                <span className="text-muted-foreground text-sm font-medium mb-1">Phim:</span>
+                                <span className="text-foreground font-semibold">{showtimeInfo.movieTitle || 'The Avengers'}</span>
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-gray-600 text-sm font-medium mb-1">Ráº¡p:</span>
-                                <span className="text-gray-900 font-semibold">{showtimeInfo.cinemaName || 'Galaxy Nguyá»…n Du'}</span>
+                                <span className="text-muted-foreground text-sm font-medium mb-1">Rạp:</span>
+                                <span className="text-foreground font-semibold">{showtimeInfo.cinemaName || 'Galaxy Nguyễn Du'}</span>
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-gray-600 text-sm font-medium mb-1">PhÃ²ng chiáº¿u:</span>
-                                <span className="text-gray-900 font-semibold">{showtimeInfo.roomName || 'PhÃ²ng chiáº¿u 2'}</span>
+                                <span className="text-muted-foreground text-sm font-medium mb-1">Phòng chiếu:</span>
+                                <span className="text-foreground font-semibold">{showtimeInfo.roomName || 'Phòng chiếu 2'}</span>
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-gray-600 text-sm font-medium mb-1">Suáº¥t chiáº¿u:</span>
-                                <span className="text-gray-900 font-semibold">
+                                <span className="text-muted-foreground text-sm font-medium mb-1">Suất chiếu:</span>
+                                <span className="text-foreground font-semibold">
                                     {showtimeInfo.startTime || '18:30'} - {showtimeInfo.date || dayjs().format('DD/MM/YYYY')}
                                 </span>
                             </div>
@@ -751,13 +699,13 @@ const BookingSeatSelection = () => {
 
                 <div className="flex gap-6 flex-col lg:flex-row">
                     <div className="flex-1">
-                        <div className="bg-gradient-to-r from-gray-300 to-gray-400 rounded-lg py-1 mb-2 text-center">
-                            <div className="text-gray-700 font-bold text-lg tracking-wider">MÃ€N HÃŒNH</div>
+                        <div className="bg-gradient-to-r from-muted-foreground/30 to-muted-foreground/50 rounded-lg py-1 mb-2 text-center">
+                            <div className="text-muted-foreground font-bold text-lg tracking-wider">MÀN HÌNH</div>
                         </div>
 
-                        <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200 mb-6 overflow-x-auto">
+                        <div className="bg-card text-card-foreground rounded-xl p-6 shadow-md border border-border mb-6 overflow-x-auto">
                             {seatLayout.rows.map((row, rowIndex) => {
-                                // TÃ­nh toÃ¡n sá»‘ cá»™t tá»‘i Ä‘a trong phÃ²ng Ä‘á»ƒ Ä‘áº£m báº£o alignment
+                                // Tính toán số cột tối đa trong phòng để đảm bảo alignment
                                 const allCols = seatLayout.rows.flatMap(r => r.seats.map(s => s.col || 0));
                                 const maxColInRoom = allCols.length > 0 ? Math.max(...allCols) : 0;
                                 const totalCols = maxColInRoom || 20; // Fallback to 20 if no seats
@@ -781,13 +729,13 @@ const BookingSeatSelection = () => {
                                                 const gridPosition = index + 1;
                                                 const seat = row.seats.find(s => s.col === currentCol);
 
-                                                // Kiá»ƒm tra xem cá»™t trÆ°á»›c cÃ³ gháº¿ Ä‘Ã´i khÃ´ng (gháº¿ Ä‘Ã´i chiáº¿m cá»™t hiá»‡n táº¡i)
+                                                // Kiểm tra xem cột trước có ghế đôi không (ghế đôi chiếm cột hiện tại)
                                                 const prevCol = currentCol - 1;
                                                 const prevSeat = row.seats.find(s => s.col === prevCol);
                                                 const isOccupiedByCoupleSeat = prevSeat && prevSeat.seatType === 'couple';
 
                                                 if (isOccupiedByCoupleSeat) {
-                                                    // Cá»™t nÃ y bá»‹ gháº¿ Ä‘Ã´i chiáº¿m, khÃ´ng render gÃ¬
+                                                    // Cột này bị ghế đôi chiếm, không render gì
                                                     return null;
                                                 }
 
@@ -806,22 +754,22 @@ const BookingSeatSelection = () => {
                                                     let canClick = true;
 
                                                     if (isSelected || isMyHeld) {
-                                                        displayStatus = 'Äang chá»n (click Ä‘á»ƒ bá» chá»n)';
+                                                        displayStatus = 'Đang chọn (click để bỏ chọn)';
                                                         canClick = true;
                                                     } else if (isOthersHeld) {
-                                                        displayStatus = 'NgÆ°á»i khÃ¡c giá»¯';
+                                                        displayStatus = 'Người khác giữ';
                                                         canClick = false;
                                                     } else if (isDisabled) {
-                                                        displayStatus = seat.status === 'booked' ? 'ÄÃ£ bÃ¡n' : 'KhÃ´ng kháº£ dá»¥ng';
+                                                        displayStatus = seat.status === 'booked' ? 'Đã bán' : 'Không khả dụng';
                                                         canClick = false;
                                                     } else {
-                                                        displayStatus = 'CÃ³ thá»ƒ chá»n';
+                                                        displayStatus = 'Có thể chọn';
                                                         canClick = true;
                                                     }
 
                                                     const seatTypeText = seat.seatType === 'vip' ? 'VIP' :
-                                                        seat.seatType === 'couple' ? 'ÄÃ´i' :
-                                                            seat.seatType === 'sweetbox' ? 'Sweetbox' : 'ThÆ°á»ng';
+                                                        seat.seatType === 'couple' ? 'Đôi' :
+                                                            seat.seatType === 'sweetbox' ? 'Sweetbox' : 'Thường';
 
                                                     return (
                                                         <Tooltip key={`seat-${seat.id}`}>
@@ -832,7 +780,7 @@ const BookingSeatSelection = () => {
                                                                         backgroundColor: getSeatColor(seat),
                                                                         color: 'white',
                                                                         gridColumn: isCoupleSeat
-                                                                            ? `${gridPosition} / span 2` // Gháº¿ Ä‘Ã´i chiáº¿m 2 cá»™t
+                                                                            ? `${gridPosition} / span 2` // Ghế đôi chiếm 2 cột
                                                                             : gridPosition,
                                                                         width: isCoupleSeat ? '72px' : '36px',
                                                                         height: '36px',
@@ -881,18 +829,18 @@ const BookingSeatSelection = () => {
                                                             </TooltipTrigger>
                                                             <TooltipContent>
                                                                 <div className="space-y-1">
-                                                                    <div><strong>Gháº¿ {seat.name}</strong></div>
-                                                                    <div>HÃ ng: {row.label} (Cá»™t: {seat.col})</div>
-                                                                    <div>Loáº¡i: {seatTypeText}</div>
-                                                                    <div>Tráº¡ng thÃ¡i: {getStatusText(seat.status)}</div>
-                                                                    <div>GiÃ¡: {seat.price.toLocaleString()}Ä‘</div>
-                                                                    {isCoupleSeat && <div style={{ color: '#eb2f96' }}>âš ï¸ Chiáº¿m 2 vá»‹ trÃ­</div>}
+                                                                    <div><strong>Ghế {seat.name}</strong></div>
+                                                                    <div>Hàng: {row.label} (Cột: {seat.col})</div>
+                                                                    <div>Loại: {seatTypeText}</div>
+                                                                    <div>Trạng thái: {getStatusText(seat.status)}</div>
+                                                                    <div>Giá: {seat.price.toLocaleString()}đ</div>
+                                                                    {isCoupleSeat && <div style={{ color: '#eb2f96' }}>âš ï¸ Chiếm 2 vị trí</div>}
                                                                 </div>
                                                             </TooltipContent>
                                                         </Tooltip>
                                                     );
                                                 } else {
-                                                    // Ã” trá»‘ng - khÃ´ng cÃ³ gháº¿ á»Ÿ cá»™t nÃ y
+                                                    // Ô trống - không có ghế ở cột này
                                                     return (
                                                         <div
                                                             key={`empty-${row.label}-${currentCol}`}
@@ -907,86 +855,86 @@ const BookingSeatSelection = () => {
                             })}
                         </div>
 
-                        <div className="flex flex-wrap gap-4 justify-center bg-white rounded-xl p-4 shadow-md border border-gray-200">
-                            {/* Loáº¡i gháº¿ */}
+                        <div className="flex flex-wrap gap-4 justify-center bg-card text-card-foreground rounded-xl p-4 shadow-md border border-border">
+                            {/* Loại ghế */}
                             <div className="flex items-center gap-2">
                                 <div className="w-9 h-9 rounded-lg border border-white/30 flex items-center justify-center" style={{ backgroundColor: '#52c41a' }}>
                                     <User className="h-4 w-4 text-white" />
                                 </div>
-                                <span className="text-sm text-gray-700 font-medium">Gháº¿ thÆ°á»ng</span>
+                                <span className="text-sm text-muted-foreground font-medium">Ghế thường</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="w-9 h-9 rounded-lg border border-white/30 flex items-center justify-center" style={{ backgroundColor: '#faad14' }}>
                                     <StarIcon className="h-4 w-4 text-white" />
                                 </div>
-                                <span className="text-sm text-gray-700 font-medium">Gháº¿ VIP</span>
+                                <span className="text-sm text-muted-foreground font-medium">Ghế VIP</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="w-9 h-9 rounded-lg border border-white/30 flex items-center justify-center" style={{ backgroundColor: '#eb2f96' }}>
                                     <HeartIcon className="h-4 w-4 text-white" />
                                 </div>
-                                <span className="text-sm text-gray-700 font-medium">Gháº¿ Ä‘Ã´i</span>
+                                <span className="text-sm text-muted-foreground font-medium">Ghế đôi</span>
                             </div>
 
                             {/* Divider */}
                             <div className="w-px h-6 bg-gray-300"></div>
 
-                            {/* Tráº¡ng thÃ¡i */}
+                            {/* Trạng thái */}
                             <div className="flex items-center gap-2">
                                 <div className="w-9 h-9 rounded-lg border-2 border-blue-500 flex items-center justify-center" style={{ backgroundColor: '#1890ff' }}>
                                     <UserCheck className="h-4 w-4 text-white" />
                                 </div>
-                                <span className="text-sm text-gray-700 font-medium">Äang chá»n</span>
+                                <span className="text-sm text-muted-foreground font-medium">Đang chọn</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="w-9 h-9 rounded-lg border border-white/30 flex items-center justify-center" style={{ backgroundColor: '#faad14' }}>
                                     <Clock3 className="h-4 w-4 text-white" />
                                 </div>
-                                <span className="text-sm text-gray-700 font-medium">Äang giá»¯</span>
+                                <span className="text-sm text-muted-foreground font-medium">Đang giữ</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="w-9 h-9 rounded-lg border border-white/30 flex items-center justify-center opacity-60" style={{ backgroundColor: '#ff4d4f' }}>
                                     <UserCheck className="h-4 w-4 text-white" />
                                 </div>
-                                <span className="text-sm text-gray-700 font-medium">ÄÃ£ bÃ¡n</span>
+                                <span className="text-sm text-muted-foreground font-medium">Đã bán</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="w-9 h-9 rounded-lg border border-white/30 flex items-center justify-center opacity-60" style={{ backgroundColor: '#8c8c8c' }}>
                                     <Lock className="h-4 w-4 text-white" />
                                 </div>
-                                <span className="text-sm text-gray-700 font-medium">Bá»‹ khÃ³a</span>
+                                <span className="text-sm text-muted-foreground font-medium">Bị khóa</span>
                             </div>
                         </div>
                     </div>
 
                     <div className="lg:w-80 flex-shrink-0">
-                        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 sticky top-24">
-                            <h3 className="text-xl font-bold text-gray-900 mb-6">TÃ³m táº¯t Ä‘áº·t vÃ©</h3>
+                        <div className="bg-card text-card-foreground rounded-xl shadow-md border border-border p-6 sticky top-24">
+                            <h3 className="text-xl font-bold text-foreground mb-6">Tóm tắt đặt vé</h3>
 
-                            <div className="mb-6 pb-4 border-b border-gray-200">
+                            <div className="mb-6 pb-4 border-b border-border">
                                 <div className="flex justify-between items-start mb-3">
-                                    <span className="text-gray-600 text-sm">Phim:</span>
-                                    <span className="text-gray-900 font-semibold text-right flex-1 ml-4">{showtimeInfo.movieTitle || 'The Avengers'}</span>
+                                    <span className="text-muted-foreground text-sm">Phim:</span>
+                                    <span className="text-foreground font-semibold text-right flex-1 ml-4">{showtimeInfo.movieTitle || 'The Avengers'}</span>
                                 </div>
                                 <div className="flex justify-between items-start mb-3">
-                                    <span className="text-gray-600 text-sm">Ráº¡p:</span>
-                                    <span className="text-gray-900 font-semibold text-right flex-1 ml-4">{showtimeInfo.cinemaName || 'Galaxy Nguyá»…n Du'}</span>
+                                    <span className="text-muted-foreground text-sm">Rạp:</span>
+                                    <span className="text-foreground font-semibold text-right flex-1 ml-4">{showtimeInfo.cinemaName || 'Galaxy Nguyễn Du'}</span>
                                 </div>
                                 <div className="flex justify-between items-start">
-                                    <span className="text-gray-600 text-sm">Suáº¥t chiáº¿u:</span>
-                                    <span className="text-gray-900 font-semibold text-right flex-1 ml-4">
+                                    <span className="text-muted-foreground text-sm">Suất chiếu:</span>
+                                    <span className="text-foreground font-semibold text-right flex-1 ml-4">
                                         {showtimeInfo.startTime || '18:30'} - {showtimeInfo.date || dayjs().format('DD/MM')}
                                     </span>
                                 </div>
                             </div>
 
-                            <div className="mb-6 pb-4 border-b border-gray-200">
+                            <div className="mb-6 pb-4 border-b border-border">
                                 <div className="flex justify-between items-start mb-3">
-                                    <span className="text-gray-600 text-sm font-semibold">Gháº¿ Ä‘Ã£ chá»n ({selectedSeats.length}):</span>
-                                    <span className="text-gray-900 font-semibold text-right flex-1 ml-4">
+                                    <span className="text-muted-foreground text-sm font-semibold">Ghế đã chọn ({selectedSeats.length}):</span>
+                                    <span className="text-foreground font-semibold text-right flex-1 ml-4">
                                         {selectedSeats.length > 0
                                             ? selectedSeats.map(s => s.name).join(', ')
-                                            : 'ChÆ°a chá»n gháº¿'
+                                            : 'Chưa chọn ghế'
                                         }
                                     </span>
                                 </div>
@@ -994,11 +942,11 @@ const BookingSeatSelection = () => {
                                     <div className="space-y-2 mt-3">
                                         {selectedSeats.map(seat => (
                                             <div key={seat.id} className="flex justify-between items-center text-sm">
-                                                <span className="text-gray-700 font-medium">{seat.name}</span>
-                                                <span className="text-gray-600">
-                                                    {seat.seatType === 'vip' ? 'VIP' : seat.seatType === 'couple' ? 'ÄÃ´i' : 'ThÆ°á»ng'}
+                                                <span className="text-muted-foreground font-medium">{seat.name}</span>
+                                                <span className="text-muted-foreground">
+                                                    {seat.seatType === 'vip' ? 'VIP' : seat.seatType === 'couple' ? 'Đôi' : 'Thường'}
                                                 </span>
-                                                <span className="text-gray-900 font-semibold">{seat.price.toLocaleString()}Ä‘</span>
+                                                <span className="text-foreground font-semibold">{seat.price.toLocaleString()}đ</span>
                                             </div>
                                         ))}
                                     </div>
@@ -1006,19 +954,19 @@ const BookingSeatSelection = () => {
                             </div>
 
                             {selectedSeats.length > 0 && (
-                                <div className="mb-6 pb-4 border-b border-gray-200">
+                                <div className="mb-6 pb-4 border-b border-border">
                                     {['normal', 'vip', 'couple'].map(seatType => {
                                         const seatsOfType = selectedSeats.filter(s => s.seatType === seatType);
                                         if (seatsOfType.length === 0) return null;
 
-                                        const typeName = seatType === 'vip' ? 'VIP' : seatType === 'couple' ? 'ÄÃ´i' : 'ThÆ°á»ng';
+                                        const typeName = seatType === 'vip' ? 'VIP' : seatType === 'couple' ? 'Đôi' : 'Thường';
                                         const avgPrice = seatsOfType.reduce((sum, s) => sum + s.price, 0) / seatsOfType.length;
 
                                         return (
                                             <div key={seatType} className="flex justify-between items-center mb-2">
-                                                <span className="text-gray-600 text-sm">GiÃ¡ vÃ© {typeName}:</span>
-                                                <span className="text-gray-900 font-semibold">
-                                                    {seatsOfType.length} x {avgPrice.toLocaleString()}Ä‘
+                                                <span className="text-muted-foreground text-sm">Giá vé {typeName}:</span>
+                                                <span className="text-foreground font-semibold">
+                                                    {seatsOfType.length} x {avgPrice.toLocaleString()}đ
                                                 </span>
                                             </div>
                                         );
@@ -1027,14 +975,14 @@ const BookingSeatSelection = () => {
                             )}
 
                             {/* Promotion Code Section */}
-                            <div className="mb-6 pb-4 border-b border-gray-200">
+                            <div className="mb-6 pb-4 border-b border-border">
                                 <div className="flex flex-col gap-2">
-                                    <label className="text-sm font-semibold text-gray-700">MÃ£ giáº£m giÃ¡</label>
+                                    <label className="text-sm font-semibold text-muted-foreground">Mã giảm giá</label>
                                     {!promotionInfo ? (
                                         <div className="flex gap-2">
                                             <Input
                                                 type="text"
-                                                placeholder="Nháº­p mÃ£ giáº£m giÃ¡"
+                                                placeholder="Nhập mã giảm giá"
                                                 value={promotionCode}
                                                 onChange={(e) => setPromotionCode(e.target.value.toUpperCase())}
                                                 onKeyDown={(e) => {
@@ -1050,7 +998,7 @@ const BookingSeatSelection = () => {
                                                 disabled={!promotionCode.trim() || isValidatingPromotion}
                                                 className="h-10 px-4 bg-primary hover:bg-red-700 text-white"
                                             >
-                                                {isValidatingPromotion ? 'Äang kiá»ƒm tra...' : 'Ãp dá»¥ng'}
+                                                {isValidatingPromotion ? 'Đang kiểm tra...' : 'Áp dụng'}
                                             </Button>
                                         </div>
                                     ) : (
@@ -1063,11 +1011,11 @@ const BookingSeatSelection = () => {
                                                     </div>
                                                     {promotionInfo.discountPercent > 0 ? (
                                                         <div className="text-xs text-green-600">
-                                                            Giáº£m {promotionInfo.discountPercent}%
+                                                            Giảm {promotionInfo.discountPercent}%
                                                         </div>
                                                     ) : (
                                                         <div className="text-xs text-green-600">
-                                                            Giáº£m {promotionInfo.discount.toLocaleString()}Ä‘
+                                                            Giảm {promotionInfo.discount.toLocaleString()}đ
                                                         </div>
                                                     )}
                                                 </div>
@@ -1085,30 +1033,30 @@ const BookingSeatSelection = () => {
                                 </div>
                             </div>
 
-                            <div className="mb-4 pb-4 border-b border-gray-200">
+                            <div className="mb-4 pb-4 border-b border-border">
                                 <div className="flex justify-between items-center mb-2">
-                                    <span className="text-gray-600 text-sm">Táº¡m tÃ­nh:</span>
-                                    <span className="text-gray-900 font-semibold">{calculateSubtotal().toLocaleString()}Ä‘</span>
+                                    <span className="text-muted-foreground text-sm">Tạm tính:</span>
+                                    <span className="text-foreground font-semibold">{calculateSubtotal().toLocaleString()}đ</span>
                                 </div>
                                 {promotionDiscount > 0 && (
                                     <div className="flex justify-between items-center">
-                                        <span className="text-green-600 text-sm">Giáº£m giÃ¡:</span>
-                                        <span className="text-green-600 font-semibold">-{promotionDiscount.toLocaleString()}Ä‘</span>
+                                        <span className="text-green-600 text-sm">Giảm giá:</span>
+                                        <span className="text-green-600 font-semibold">-{promotionDiscount.toLocaleString()}đ</span>
                                     </div>
                                 )}
                             </div>
 
-                            <div className="flex justify-between items-center mb-6 pt-4 border-t border-gray-200">
-                                <span className="text-lg font-bold text-gray-900">Tá»•ng cá»™ng</span>
-                                <span className="text-2xl font-bold text-primary">{calculateTotal().toLocaleString()}Ä‘</span>
+                            <div className="flex justify-between items-center mb-6 pt-4 border-t border-border">
+                                <span className="text-lg font-bold text-foreground">Tổng cộng</span>
+                                <span className="text-2xl font-bold text-primary">{calculateTotal().toLocaleString()}đ</span>
                             </div>
 
                             <button
-                                className="w-full bg-primary hover:bg-red-700 text-white rounded-lg py-3 px-6 font-semibold text-base transition-all duration-200 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed hover:-translate-y-0.5 hover:shadow-lg"
+                                className="w-full bg-primary hover:bg-red-700 text-white rounded-lg py-3 px-6 font-semibold text-base transition-all duration-200 disabled:bg-gray-300 disabled:text-muted-foreground disabled:cursor-not-allowed hover:-translate-y-0.5 hover:shadow-lg"
                                 onClick={handleContinue}
                                 disabled={selectedSeats.length === 0 || isCreatingBooking}
                             >
-                                {isCreatingBooking ? 'Äang xá»­ lÃ½...' : 'Äáº·t vÃ©'}
+                                {isCreatingBooking ? 'Đang xử lý...' : 'Đặt vé'}
                             </button>
                         </div>
                     </div>

@@ -27,7 +27,7 @@ const Progress = ({
         />
       </div>
       {showInfo && (
-        <div className="mt-1 text-sm text-gray-600 text-right">
+        <div className="mt-1 text-sm text-muted-foreground text-right">
           {percent.toFixed(0)}%
         </div>
       )}

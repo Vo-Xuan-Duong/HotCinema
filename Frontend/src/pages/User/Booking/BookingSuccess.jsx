@@ -150,7 +150,7 @@ const BookingSuccess = () => {
                         totalAmountValue: totalAmountValue,
                         discountAmount: discountValue,
                         finalAmount: totalAmountValue,
-                        moviePoster: bookingDetails.moviePosterUrl || 'https://via.placeholder.com/300x450',
+                        moviePoster: bookingDetails.moviePosterUrl || '/brand-placeholder.svg',
                         bookingDate: bookingDetails.bookingDate,
                         userName: bookingDetails.userName,
                         userEmail: bookingDetails.userEmail
@@ -261,28 +261,28 @@ const BookingSuccess = () => {
     } = bookingData;
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center py-10 px-5">
+        <div className="min-h-screen bg-background flex items-center justify-center py-10 px-5">
             <div className="max-w-[1200px] w-full mt-8">
                 <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-8 mb-10">
-                    <Card className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
+                    <Card className="bg-card rounded-2xl p-8 shadow-lg border border-border">
                         <div className="text-center mb-5">
-                            <p className="text-gray-800 text-base font-semibold block">
+                            <p className="text-foreground text-base font-semibold block">
                                 Mã vé của bạn
                             </p>
                         </div>
 
                         <div className="flex flex-col items-center justify-center mb-6">
                             {qrCodeUrl && (
-                                <div className="bg-white p-4 rounded-lg shadow-md">
+                                <div className="bg-card p-4 rounded-lg shadow-md">
                                     <img src={qrCodeUrl} alt="QR Code" className="w-64 h-64" />
                                 </div>
                             )}
                         </div>
 
                         <div className="text-center mb-6">
-                            <p className="text-gray-600 text-sm block mb-2">Mã đặt vé:</p>
-                            <h3 className="text-gray-900 text-2xl font-bold mb-2">{bookingCode}</h3>
-                            <p className="text-gray-500 text-xs block">
+                            <p className="text-muted-foreground text-sm block mb-2">Mã đặt vé:</p>
+                            <h3 className="text-foreground text-2xl font-bold mb-2">{bookingCode}</h3>
+                            <p className="text-muted-foreground text-xs block">
                                 Sử dụng mã này để xuất vé tại rạp
                             </p>
                         </div>
@@ -317,17 +317,17 @@ const BookingSuccess = () => {
                         </div>
                     </Card>
 
-                    <Card className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
+                    <Card className="bg-card rounded-2xl p-8 shadow-lg border border-border">
 
                         <div className="text-center mb-6">
                             <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto animate-pulse" />
                         </div>
 
-                        <h2 className="text-gray-800 text-center mb-2.5 text-3xl font-bold">
+                        <h2 className="text-foreground text-center mb-2.5 text-3xl font-bold">
                             Chúc mừng! Bạn đã đặt vé thành công.
                         </h2>
 
-                        <h4 className="text-gray-800 text-xl font-bold mb-6">Chi tiết vé</h4>
+                        <h4 className="text-foreground text-xl font-bold mb-6">Chi tiết vé</h4>
 
                         <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-6">
                             <div className="flex flex-col">
@@ -337,38 +337,38 @@ const BookingSuccess = () => {
                                     className="w-full h-64 object-cover rounded-lg mb-4"
                                 />
                                 <div className="flex flex-col">
-                                    <p className="text-gray-500 text-xs font-medium mb-1">Phim</p>
-                                    <p className="text-gray-900 text-base font-semibold">{movieTitle}</p>
+                                    <p className="text-muted-foreground text-xs font-medium mb-1">Phim</p>
+                                    <p className="text-foreground text-base font-semibold">{movieTitle}</p>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="flex flex-col gap-6">
                                     <div className="flex flex-col">
-                                        <p className="text-gray-500 text-xs font-medium mb-1">Rạp chiếu</p>
-                                        <p className="text-gray-900 text-base font-semibold mb-1">{cinemaName}</p>
-                                        <p className="text-gray-600 text-sm">{cinemaAddress}</p>
+                                        <p className="text-muted-foreground text-xs font-medium mb-1">Rạp chiếu</p>
+                                        <p className="text-foreground text-base font-semibold mb-1">{cinemaName}</p>
+                                        <p className="text-muted-foreground text-sm">{cinemaAddress}</p>
                                     </div>
 
                                     <div className="flex flex-col">
-                                        <p className="text-gray-500 text-xs font-medium mb-1">Thông tin chỗ ngồi</p>
-                                        <p className="text-gray-900 text-base font-semibold mb-1">{roomName}</p>
-                                        <p className="text-gray-600 text-sm">Ghế: {seatNumbers}</p>
+                                        <p className="text-muted-foreground text-xs font-medium mb-1">Thông tin chỗ ngồi</p>
+                                        <p className="text-foreground text-base font-semibold mb-1">{roomName}</p>
+                                        <p className="text-muted-foreground text-sm">Ghế: {seatNumbers}</p>
                                     </div>
                                 </div>
 
                                 <div className="flex flex-col gap-6">
                                     <div className="flex flex-col">
-                                        <p className="text-gray-500 text-xs font-medium mb-1">Suất chiếu</p>
-                                        <p className="text-gray-900 text-base font-semibold mb-1">{showDate}</p>
-                                        <p className="text-gray-600 text-sm">{showTimeRange || showTime}</p>
+                                        <p className="text-muted-foreground text-xs font-medium mb-1">Suất chiếu</p>
+                                        <p className="text-foreground text-base font-semibold mb-1">{showDate}</p>
+                                        <p className="text-muted-foreground text-sm">{showTimeRange || showTime}</p>
                                         {formatType && (
-                                            <p className="text-gray-500 text-xs mt-1">{formatType}</p>
+                                            <p className="text-muted-foreground text-xs mt-1">{formatType}</p>
                                         )}
                                     </div>
 
-                                    <div className="flex flex-col pt-4 border-t border-gray-200">
-                                        <p className="text-gray-500 text-xs font-medium mb-1">Thanh toán</p>
+                                    <div className="flex flex-col pt-4 border-t border-border">
+                                        <p className="text-muted-foreground text-xs font-medium mb-1">Thanh toán</p>
                                         <p className="text-red-600 text-2xl font-bold">{totalAmount}</p>
                                     </div>
                                 </div>

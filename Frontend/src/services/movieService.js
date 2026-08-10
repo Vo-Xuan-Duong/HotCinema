@@ -26,10 +26,6 @@ const movieService = {
     return unwrapArray(res); // Chỉ trả về mảng content
   },
 
-  // Backward-compat aliases
-  async getAllMovies(params) { return this.listPage(params); }, // Đổi từ list -> listPage để giữ pagination
-  async getMovies(params) { return this.listPage(params); },
-
   // Get by id
   async getMovieById(id) {
     const res = await apiClient.get(`${base}/${id}`);
@@ -115,4 +111,4 @@ const movieService = {
   },
 };
 
-export default movieService; 
+export default movieService;

@@ -135,7 +135,7 @@ const MovieShowcase = ({ movies = [], title = "Phim Ä‘áº·c sáº¯c", load
 
   if (loading) {
     return (
-      <div className="py-4 pb-12 bg-white">
+      <div className="py-4 pb-12 bg-transparent">
         <div className="max-w-[1200px] mx-auto px-8 md:px-6 sm:px-4">
           <Skeleton className="h-8 w-64 mb-6" />
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-6">
@@ -149,7 +149,7 @@ const MovieShowcase = ({ movies = [], title = "Phim Ä‘áº·c sáº¯c", load
   }
 
   return (
-    <section className="py-4 pb-12 bg-white">
+    <section className="py-4 pb-12 bg-transparent">
       <div className="max-w-[1200px] mx-auto px-8 md:px-6 sm:px-4">
         {/* Section Header */}
         <div className="flex justify-between items-start mb-8 flex-wrap gap-4 md:flex-col md:items-start">
@@ -159,10 +159,10 @@ const MovieShowcase = ({ movies = [], title = "Phim Ä‘áº·c sáº¯c", load
                 <Star className="h-6 w-6 text-white" />
               </Avatar>
               <div>
-                <h2 className="text-gray-800 m-0 font-bold text-2xl md:text-xl">
+                <h2 className="text-foreground m-0 font-bold text-2xl md:text-xl">
                   {title}
                 </h2>
-                <p className="text-gray-600 text-base block mt-2 md:hidden">
+                <p className="text-muted-foreground text-base block mt-2 md:hidden">
                   KhÃ¡m phÃ¡ nhá»¯ng bá»™ phim hay nháº¥t Ä‘ang chiáº¿u táº¡i HotCinemas
                 </p>
               </div>
@@ -180,7 +180,7 @@ const MovieShowcase = ({ movies = [], title = "Phim Ä‘áº·c sáº¯c", load
                   variant="outline"
                   size="icon"
                   disabled={!canScrollLeft}
-                  className="absolute -left-5 top-1/2 z-10 bg-white shadow-lg border-0 w-12 h-10 rounded-full transition-all duration-300 hover:bg-gradient-to-br hover:from-primary hover:to-orange-500 hover:text-white hover:brightness-125 disabled:hidden"
+                  className="absolute -left-5 top-1/2 z-10 bg-background text-foreground shadow-lg border border-border w-12 h-10 rounded-full transition-all duration-300 hover:bg-gradient-to-br hover:from-primary hover:to-orange-500 hover:text-white hover:brightness-125 disabled:hidden"
                   onClick={scrollLeft}
                 >
                   <ChevronRight className="h-5 w-5 rotate-180" />
@@ -191,7 +191,7 @@ const MovieShowcase = ({ movies = [], title = "Phim Ä‘áº·c sáº¯c", load
                   variant="outline"
                   size="icon"
                   disabled={!canScrollRight}
-                  className="absolute -right-5 top-1/2 z-10 bg-white shadow-lg border-0 w-12 h-10 rounded-full transition-all duration-300 hover:bg-gradient-to-br hover:from-primary hover:to-orange-500 hover:text-white hover:brightness-125 disabled:hidden"
+                  className="absolute -right-5 top-1/2 z-10 bg-background text-foreground shadow-lg border border-border w-12 h-10 rounded-full transition-all duration-300 hover:bg-gradient-to-br hover:from-primary hover:to-orange-500 hover:text-white hover:brightness-125 disabled:hidden"
                   onClick={scrollRight}
                 >
                   <ChevronRight className="h-5 w-5" />
@@ -213,7 +213,7 @@ const MovieShowcase = ({ movies = [], title = "Phim Ä‘áº·c sáº¯c", load
                   >
                     <Link to={`/movies/${movie.id}`} className="block text-inherit no-underline w-full h-full hover:text-inherit">
                       <Card
-                        className="bg-white border-0 rounded-xl overflow-hidden h-[380px] flex flex-col shadow-none md:h-[380px] sm:h-[280px] hover:!shadow-none hover:!transform-none hover:!scale-100"
+                        className="bg-card text-card-foreground border border-border rounded-xl overflow-hidden h-[380px] flex flex-col shadow-none md:h-[380px] sm:h-[280px] hover:!shadow-none hover:!transform-none hover:!scale-100"
                       >
                         {/* Movie Poster Container */}
                         <div
@@ -256,16 +256,16 @@ const MovieShowcase = ({ movies = [], title = "Phim Ä‘áº·c sáº¯c", load
                         </div>
 
                         {/* Movie Info Section */}
-                        <div className="p-1 pt-2 pb-2 bg-white">
+                        <div className="p-1 pt-2 pb-2 bg-transparent">
                           {/* Movie Title */}
-                          <div className="mb-1.5 text-black">
-                            <span className="text-xs font-semibold leading-snug text-red-600 md:text-sm block truncate" title={movie.title}>
+                          <div className="mb-1.5 text-foreground">
+                            <span className="text-xs font-semibold leading-snug text-primary md:text-sm block truncate" title={movie.title}>
                               {movie.title}
                             </span>
                           </div>
 
                           {/* Genre Tags */}
-                          <div className="mb-1 text-[10px] text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis sm:text-[9px]">
+                          <div className="mb-1 text-[10px] text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis sm:text-[9px]">
                             {(() => {
                               let genreList = [];
                               if (Array.isArray(movie.genres) && movie.genres.length > 0) {
@@ -292,7 +292,7 @@ const MovieShowcase = ({ movies = [], title = "Phim Ä‘áº·c sáº¯c", load
           <Empty
             description={
               <div className="flex flex-col items-center gap-2">
-                <p className="text-gray-600">KhÃ´ng cÃ³ phim nÃ o Ä‘á»ƒ hiá»ƒn thá»‹</p>
+                <p className="text-muted-foreground">KhÃ´ng cÃ³ phim nÃ o Ä‘á»ƒ hiá»ƒn thá»‹</p>
               </div>
             }
             className="my-12 py-8"

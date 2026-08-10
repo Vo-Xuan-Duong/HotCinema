@@ -1,189 +1,196 @@
-import React, { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CalendarDays, Loader2, MapPin, RefreshCw } from 'lucide-react';
+import movieService from '@/services/movieService';
+import cinemaService from '@/services/cinemaService';
+import showtimeService from '@/services/showtimeService';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const mockMovies = [
-  { id: 1, title: 'Avengers: Endgame' },
-  { id: 2, title: 'Spider-Man: No Way Home' },
-  { id: 3, title: 'The Batman' },
-  { id: 4, title: 'Black Panther: Wakanda Forever' }
-];
-const mockCinemas = [
-  { id: 1, name: 'CGV Vincom Đồng Khởi' },
-  { id: 2, name: 'Lotte Cinema Gò Vấp' },
-  { id: 3, name: 'BHD Star Bitexco' }
-];
-const mockShowtimes = [
-  { id: 1, time: '10:00' },
-  { id: 2, time: '13:30' },
-  { id: 3, time: '16:00' },
-  { id: 4, time: '19:00' }
-];
-const mockSeats = Array.from({ length: 30 }, (_, i) => ({ code: `A${i + 1}`, booked: false }));
+const asArray = (value) => {
+  const data = value?.data ?? value;
+  if (Array.isArray(data)) return data;
+  return Array.isArray(data?.content) ? data.content : [];
+};
 
 const Booking = () => {
-  const [step, setStep] = useState(1);
-  const [movie, setMovie] = useState('');
-  const [cinema, setCinema] = useState('');
-  const [showtime, setShowtime] = useState('');
-  const [selectedSeats, setSelectedSeats] = useState([]);
   const navigate = useNavigate();
+  const [movies, setMovies] = useState([]);
+  const [cinemas, setCinemas] = useState([]);
+  const [showtimes, setShowtimes] = useState([]);
+  const [movieId, setMovieId] = useState('');
+  const [cinemaId, setCinemaId] = useState('');
+  const [showtimeId, setShowtimeId] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [loadingShowtimes, setLoadingShowtimes] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSeatClick = (code) => {
-    setSelectedSeats(seats => seats.includes(code)
-      ? seats.filter(s => s !== code)
-      : [...seats, code]
-    );
+  const loadOptions = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const [movieResult, cinemaResult] = await Promise.all([
+        movieService.getNowShowingPage({ page: 0, size: 100 }),
+        cinemaService.getAllCinemasNoPagination(),
+      ]);
+      setMovies(asArray(movieResult));
+      setCinemas(asArray(cinemaResult));
+    } catch (requestError) {
+      setError(requestError?.message || 'Không thể tải danh sách phim và rạp.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleNext = () => setStep(step + 1);
-  const handlePrev = () => setStep(step - 1);
+  useEffect(() => {
+    loadOptions();
+  }, []);
 
-  const handleBooking = (e) => {
-    e.preventDefault();
-    // Giả lập đặt vé thành công
-    navigate('/booking/confirm', {
-      state: {
-        movie: mockMovies.find(m => m.id === Number(movie)),
-        cinema: mockCinemas.find(c => c.id === Number(cinema)),
-        showtime: mockShowtimes.find(s => s.id === Number(showtime)),
-        seats: selectedSeats
+  useEffect(() => {
+    if (!movieId || !cinemaId) {
+      setShowtimes([]);
+      setShowtimeId('');
+      return;
+    }
+
+    const loadShowtimes = async () => {
+      setLoadingShowtimes(true);
+      setError('');
+      setShowtimeId('');
+      try {
+        const result = await showtimeService.getShowtimesWithFilters({
+          movieId: Number(movieId),
+          cinemaId: Number(cinemaId),
+          fromDate: new Date().toISOString().slice(0, 10),
+        });
+        setShowtimes(asArray(result));
+      } catch (requestError) {
+        setShowtimes([]);
+        setError(requestError?.message || 'Không thể tải suất chiếu phù hợp.');
+      } finally {
+        setLoadingShowtimes(false);
       }
+    };
+
+    loadShowtimes();
+  }, [movieId, cinemaId]);
+
+  const selectedShowtime = useMemo(
+    () => showtimes.find((item) => String(item.id) === showtimeId),
+    [showtimes, showtimeId],
+  );
+
+  const continueToSeats = () => {
+    if (!selectedShowtime) return;
+    navigate(`/booking/seats/${selectedShowtime.id}`, {
+      state: {
+        movieTitle: selectedShowtime.movieTitle,
+        cinemaName: selectedShowtime.cinemaName,
+        roomName: selectedShowtime.roomName,
+        date: selectedShowtime.date || selectedShowtime.showtimeDate,
+        startTime: selectedShowtime.startTime,
+        price: selectedShowtime.price,
+      },
     });
   };
 
   return (
-    <div className="py-8 px-4">
-      <div className="max-w-[1200px] mx-auto">
-        <h2 className="text-red-500 text-3xl mb-8 text-center font-bold">Đặt vé xem phim</h2>
-        <form className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 max-w-lg mx-auto flex flex-col gap-8" onSubmit={handleBooking}>
-          {step === 1 && (
-            <div className="flex flex-col gap-4">
-              <label className="font-semibold mb-2 text-purple-600">Chọn phim:</label>
-              <select 
-                value={movie} 
-                onChange={e => setMovie(e.target.value)} 
-                required
-                className="py-2.5 px-4 border border-gray-300 rounded-lg text-base w-full mb-5 bg-white text-gray-900"
-              >
-                <option value="">-- Chọn phim --</option>
-                {mockMovies.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
-              </select>
-              <button 
-                type="button" 
-                onClick={handleNext} 
-                disabled={!movie}
-                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg py-2.5 px-6 text-base font-semibold cursor-pointer transition-all duration-200 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed hover:from-purple-600 hover:to-indigo-500 hover:-translate-y-0.5"
-              >
-                Tiếp tục
-              </button>
-            </div>
-          )}
-          {step === 2 && (
-            <div className="flex flex-col gap-4">
-              <label className="font-semibold mb-2 text-purple-600">Chọn rạp:</label>
-              <select 
-                value={cinema} 
-                onChange={e => setCinema(e.target.value)} 
-                required
-                className="py-2.5 px-4 border border-gray-300 rounded-lg text-base w-full mb-5 bg-white text-gray-900"
-              >
-                <option value="">-- Chọn rạp --</option>
-                {mockCinemas.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-              <div className="flex gap-4 justify-end">
-                <button 
-                  type="button" 
-                  onClick={handlePrev}
-                  className="bg-gray-200 text-gray-700 rounded-lg py-2.5 px-6 text-base font-semibold cursor-pointer transition-all duration-200 hover:bg-gray-300"
-                >
-                  Quay lại
-                </button>
-                <button 
-                  type="button" 
-                  onClick={handleNext} 
-                  disabled={!cinema}
-                  className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg py-2.5 px-6 text-base font-semibold cursor-pointer transition-all duration-200 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed hover:from-purple-600 hover:to-indigo-500 hover:-translate-y-0.5"
-                >
-                  Tiếp tục
-                </button>
+    <main className="container mx-auto max-w-3xl px-4 py-8 sm:py-12">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl sm:text-3xl">Đặt vé xem phim</CardTitle>
+          <CardDescription>Chọn phim, rạp và suất chiếu trước khi chọn ghế.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {error && (
+            <Alert variant="destructive" message="Không thể tải dữ liệu">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <span>{error}</span>
+                <Button variant="outline" size="sm" onClick={loadOptions}>
+                  <RefreshCw className="mr-2 size-4" /> Thử lại
+                </Button>
               </div>
-            </div>
+            </Alert>
           )}
-          {step === 3 && (
-            <div className="flex flex-col gap-4">
-              <label className="font-semibold mb-2 text-purple-600">Chọn suất chiếu:</label>
-              <select 
-                value={showtime} 
-                onChange={e => setShowtime(e.target.value)} 
-                required
-                className="py-2.5 px-4 border border-gray-300 rounded-lg text-base w-full mb-5 bg-white text-gray-900"
-              >
-                <option value="">-- Chọn suất chiếu --</option>
-                {mockShowtimes.map(s => <option key={s.id} value={s.id}>{s.time}</option>)}
-              </select>
-              <div className="flex gap-4 justify-end">
-                <button 
-                  type="button" 
-                  onClick={handlePrev}
-                  className="bg-gray-200 text-gray-700 rounded-lg py-2.5 px-6 text-base font-semibold cursor-pointer transition-all duration-200 hover:bg-gray-300"
-                >
-                  Quay lại
-                </button>
-                <button 
-                  type="button" 
-                  onClick={handleNext} 
-                  disabled={!showtime}
-                  className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg py-2.5 px-6 text-base font-semibold cursor-pointer transition-all duration-200 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed hover:from-purple-600 hover:to-indigo-500 hover:-translate-y-0.5"
-                >
-                  Tiếp tục
-                </button>
-              </div>
+
+          {loading ? (
+            <div className="flex min-h-48 items-center justify-center text-muted-foreground">
+              <Loader2 className="mr-2 size-5 animate-spin" /> Đang tải dữ liệu đặt vé...
             </div>
-          )}
-          {step === 4 && (
-            <div className="flex flex-col gap-4">
-              <label className="font-semibold mb-2 text-purple-600">Chọn ghế:</label>
-              <div className="flex flex-wrap gap-2 mb-5">
-                {mockSeats.map(seat => (
-                  <button
-                    type="button"
-                    key={seat.code}
-                    className={`rounded-md py-2 px-3.5 text-base font-medium cursor-pointer transition-all duration-200 ${
-                      selectedSeats.includes(seat.code)
-                        ? 'bg-red-500 text-white border-2 border-red-500'
-                        : 'bg-gray-50 border border-gray-300 text-gray-900 hover:bg-gray-100'
-                    } ${
-                      seat.booked ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : ''
-                    }`}
-                    onClick={() => handleSeatClick(seat.code)}
-                    disabled={seat.booked}
-                  >
-                    {seat.code}
-                  </button>
-                ))}
+          ) : (
+            <>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="booking-movie">Phim</Label>
+                  <Select value={movieId} onValueChange={setMovieId}>
+                    <SelectTrigger id="booking-movie"><SelectValue placeholder="Chọn phim đang chiếu" /></SelectTrigger>
+                    <SelectContent>
+                      {movies.map((movie) => (
+                        <SelectItem key={movie.id} value={String(movie.id)}>
+                          {movie.title || movie.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="booking-cinema">Rạp</Label>
+                  <Select value={cinemaId} onValueChange={setCinemaId}>
+                    <SelectTrigger id="booking-cinema"><SelectValue placeholder="Chọn rạp" /></SelectTrigger>
+                    <SelectContent>
+                      {cinemas.map((cinema) => (
+                        <SelectItem key={cinema.id} value={String(cinema.id)}>
+                          {cinema.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="flex gap-4 justify-end">
-                <button 
-                  type="button" 
-                  onClick={handlePrev}
-                  className="bg-gray-200 text-gray-700 rounded-lg py-2.5 px-6 text-base font-semibold cursor-pointer transition-all duration-200 hover:bg-gray-300"
+
+              <div className="space-y-2">
+                <Label htmlFor="booking-showtime">Suất chiếu</Label>
+                <Select
+                  value={showtimeId}
+                  onValueChange={setShowtimeId}
+                  disabled={!movieId || !cinemaId || loadingShowtimes}
                 >
-                  Quay lại
-                </button>
-                <button 
-                  type="submit" 
-                  disabled={selectedSeats.length === 0}
-                  className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg py-2.5 px-6 text-base font-semibold cursor-pointer transition-all duration-200 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed hover:from-purple-600 hover:to-indigo-500 hover:-translate-y-0.5"
-                >
-                  Xác nhận đặt vé
-                </button>
+                  <SelectTrigger id="booking-showtime">
+                    <SelectValue placeholder={loadingShowtimes ? 'Đang tải suất chiếu...' : 'Chọn suất chiếu'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {showtimes.map((showtime) => (
+                      <SelectItem key={showtime.id} value={String(showtime.id)}>
+                        {showtime.date || showtime.showtimeDate} · {showtime.startTime} · {showtime.roomName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {movieId && cinemaId && !loadingShowtimes && showtimes.length === 0 && !error && (
+                  <p className="text-sm text-muted-foreground">Hiện chưa có suất chiếu phù hợp.</p>
+                )}
               </div>
-            </div>
+
+              {selectedShowtime && (
+                <div className="grid gap-3 rounded-lg border bg-muted/40 p-4 text-sm sm:grid-cols-2">
+                  <span className="flex items-center gap-2"><CalendarDays className="size-4" /> {selectedShowtime.date || selectedShowtime.showtimeDate} · {selectedShowtime.startTime}</span>
+                  <span className="flex items-center gap-2"><MapPin className="size-4" /> {selectedShowtime.cinemaName || cinemas.find((item) => String(item.id) === cinemaId)?.name}</span>
+                </div>
+              )}
+
+              <Button className="w-full sm:w-auto" onClick={continueToSeats} disabled={!showtimeId}>
+                Tiếp tục chọn ghế
+              </Button>
+            </>
           )}
-        </form>
-      </div>
-    </div>
+        </CardContent>
+      </Card>
+    </main>
   );
 };
 
-export default Booking; 
+export default Booking;

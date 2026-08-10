@@ -29,7 +29,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
     const [loading, setLoading] = useState(true);
     const seatLayoutRef = useRef(null);
 
-    // Update seat status helper (nháº­n updates tá»« WebSocket)
+    // Update seat status helper (nhận updates từ WebSocket)
     const updateSeatStatus = useCallback((seatIds, status) => {
         setSeatLayout(prevLayout => {
             const newRows = prevLayout.rows.map(row => ({
@@ -63,7 +63,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
         });
     }, []);
 
-    // Handle WebSocket seat updates (chá»‰ nháº­n real-time updates)
+    // Handle WebSocket seat updates (chỉ nhận real-time updates)
     const handleSeatUpdate = useCallback((updateData) => {
         const { type, seatIds } = updateData;
 
@@ -98,7 +98,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
         }
     }, [updateSeatStatus]);
 
-    // Use Seat WebSocket hook (chá»‰ Ä‘á»ƒ nháº­n real-time updates)
+    // Use Seat WebSocket hook (chỉ để nhận real-time updates)
     const { isConnected: wsConnected } = useSeatWebSocket(showtimeId, handleSeatUpdate);
 
     useEffect(() => {
@@ -205,7 +205,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
             };
         });
 
-        // NhÃ³m gháº¿ theo rowLabel
+        // Nhóm ghế theo rowLabel
         const groupedByRow = layoutSeats.reduce((acc, seat) => {
             const rowKey = seat.rowLabel;
             if (!acc[rowKey]) {
@@ -215,7 +215,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
             return acc;
         }, {});
 
-        // Táº¡o rows array
+        // Tạo rows array
         const rows = Object.keys(groupedByRow)
             .sort((a, b) => a.localeCompare(b))
             .map(rowLabel => {
@@ -226,7 +226,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                 };
             });
 
-        // TÃ­nh toÃ¡n thá»‘ng kÃª
+        // Tính toán thống kê
         const totalSeats = layoutSeats.length;
         const vipSeats = layoutSeats.filter(s => s.type === 'vip').length;
         const bookedSeats = layoutSeats.filter(s => s.status === 'booked').length;
@@ -267,58 +267,58 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
 
     const getStatusText = (status) => {
         const statusTextMap = {
-            'available': 'CÃ²n trá»‘ng',
-            'held': 'Äang giá»¯',
-            'booked': 'ÄÃ£ Ä‘áº·t',
-            'unavailable': 'KhÃ´ng kháº£ dá»¥ng',
-            'maintenance': 'Báº£o trÃ¬',
-            'blocked': 'Bá»‹ cháº·n'
+            'available': 'Còn trống',
+            'held': 'Đang giữ',
+            'booked': 'Đã đặt',
+            'unavailable': 'Không khả dụng',
+            'maintenance': 'Bảo trì',
+            'blocked': 'Bị chặn'
         };
-        return statusTextMap[status] || 'KhÃ´ng xÃ¡c Ä‘á»‹nh';
+        return statusTextMap[status] || 'Không xác định';
     };
 
     const getSeatColor = (seat) => {
-        // MÃ u sáº¯c dá»±a trÃªn tráº¡ng thÃ¡i Ä‘áº·t vÃ©
+        // Màu sắc dựa trên trạng thái đặt vé
         switch (seat.status) {
             case 'booked':
-                return '#ff4d4f'; // MÃ u Ä‘á» - ÄÃ£ Ä‘áº·t
+                return '#ff4d4f'; // Màu đỏ - Đã đặt
             case 'held':
-                return '#faad14'; // MÃ u vÃ ng cam - Äang giá»¯
+                return '#faad14'; // Màu vàng cam - Đang giữ
             case 'unavailable':
             case 'maintenance':
             case 'blocked':
-                return '#d9d9d9'; // MÃ u xÃ¡m - KhÃ´ng kháº£ dá»¥ng
+                return '#d9d9d9'; // Màu xám - Không khả dụng
             case 'available':
             default:
-                // Khi available, mÃ u sáº¯c dá»±a vÃ o loáº¡i gháº¿
+                // Khi available, màu sắc dựa vào loại ghế
                 switch (seat.type) {
                     case 'vip':
-                        return '#faad14'; // MÃ u vÃ ng cho VIP
+                        return '#faad14'; // Màu vàng cho VIP
                     case 'couple':
-                        return '#eb2f96'; // MÃ u há»“ng cho gháº¿ Ä‘Ã´i
+                        return '#eb2f96'; // Màu hồng cho ghế đôi
                     case 'sweetbox':
-                        return '#722ed1'; // MÃ u tÃ­m cho sweetbox
+                        return '#722ed1'; // Màu tím cho sweetbox
                     case 'normal':
                     default:
-                        return '#52c41a'; // MÃ u xanh cho gháº¿ thÆ°á»ng
+                        return '#52c41a'; // Màu xanh cho ghế thường
                 }
         }
     };
 
     const getSeatIcon = (seat) => {
-        // Icon dá»±a trÃªn tráº¡ng thÃ¡i
+        // Icon dựa trên trạng thái
         switch (seat.status) {
             case 'booked':
-                return <User className="h-3 w-3" />; // ÄÃ£ Ä‘áº·t
+                return <User className="h-3 w-3" />; // Đã đặt
             case 'held':
-                return <Clock className="h-3 w-3" />; // Äang giá»¯
+                return <Clock className="h-3 w-3" />; // Đang giữ
             case 'unavailable':
             case 'maintenance':
             case 'blocked':
-                return <X className="h-3 w-3" />; // KhÃ´ng kháº£ dá»¥ng
+                return <X className="h-3 w-3" />; // Không khả dụng
             case 'available':
             default:
-                // Khi available, icon dá»±a vÃ o loáº¡i gháº¿
+                // Khi available, icon dựa vào loại ghế
                 switch (seat.type) {
                     case 'vip':
                         return <Star className="h-3 w-3" />;
@@ -336,9 +336,9 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
     if (loading) {
         return (
             <div className="text-center py-10">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-600" />
+                <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
                 <div className="mt-4">
-                    <p className="text-gray-600">Äang táº£i sÆ¡ Ä‘á»“ gháº¿...</p>
+                    <p className="text-muted-foreground">Đang tải sơ đồ ghế...</p>
                 </div>
             </div>
         );
@@ -351,7 +351,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                 <div className="mb-4 flex justify-end">
                     <Badge className="bg-green-500 text-white px-2 py-1 rounded text-sm flex items-center gap-1">
                         <Wifi className="h-3 w-3" />
-                        Äang káº¿t ná»‘i real-time
+                        Đang kết nối real-time
                     </Badge>
                 </div>
             )}
@@ -359,15 +359,15 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
             {/* Screen */}
             <div className="mb-6 text-center">
                 <div className="bg-gradient-to-r from-gray-300 to-gray-400from-gray-600to-gray-700 rounded-lg py-3 px-8 inline-block">
-                    <div className="text-gray-700text-gray-200 font-bold text-lg tracking-wider">MÃ€N HÃŒNH</div>
+                    <div className="text-gray-700text-gray-200 font-bold text-lg tracking-wider">MÀN HÌNH</div>
                 </div>
             </div>
 
             {/* Seat Layout */}
-            <div className="max-h-[600px] overflow-y-auto overflow-x-auto p-4 bg-gray-50bg-gray-800 rounded-lg border border-gray-200border-gray-700" ref={seatLayoutRef}>
+            <div className="max-h-[600px] overflow-y-auto overflow-x-auto p-4 bg-backgroundbg-gray-800 rounded-lg border border-borderborder-gray-700" ref={seatLayoutRef}>
                 {seatLayout.rows.length === 0 ? (
                     <div className="flex flex-col items-center justify-center min-h-[300px] py-10">
-                        <Empty description="ChÆ°a cÃ³ dá»¯ liá»‡u gháº¿ cho lá»‹ch chiáº¿u nÃ y" />
+                        <Empty description="Chưa có dữ liệu ghế cho lịch chiếu này" />
                     </div>
                 ) : (
                     <div className="flex flex-col items-center">
@@ -408,15 +408,15 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                                                         key={`seat-${seat.id}`}
                                                         title={
                                                             <div>
-                                                                <div><strong>Gháº¿ {seat.name || `${seat.row}${seat.number}`}</strong></div>
-                                                                <div>Loáº¡i: {
-                                                                    seat.type === 'normal' ? 'ThÆ°á»ng' :
+                                                                <div><strong>Ghế {seat.name || `${seat.row}${seat.number}`}</strong></div>
+                                                                <div>Loại: {
+                                                                    seat.type === 'normal' ? 'Thường' :
                                                                     seat.type === 'vip' ? 'VIP' :
-                                                                    seat.type === 'couple' ? 'ÄÃ´i' :
-                                                                    seat.type === 'sweetbox' ? 'Sweetbox' : 'ThÆ°á»ng'
+                                                                    seat.type === 'couple' ? 'Đôi' :
+                                                                    seat.type === 'sweetbox' ? 'Sweetbox' : 'Thường'
                                                                 }</div>
-                                                                <div>Tráº¡ng thÃ¡i: {getStatusText(seat.status)}</div>
-                                                                <div>Vá»‹ trÃ­: HÃ ng {seat.row}, Cá»™t {seat.col}</div>
+                                                                <div>Trạng thái: {getStatusText(seat.status)}</div>
+                                                                <div>Vị trí: Hàng {seat.row}, Cột {seat.col}</div>
                                                             </div>
                                                         }
                                                     >
@@ -439,7 +439,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                                                     </Tooltip>
                                                 );
                                             } else {
-                                                // Ã” trá»‘ng - khÃ´ng cÃ³ gháº¿
+                                                // Ô trống - không có ghế
                                                 return (
                                                     <div
                                                         key={`empty-${row.label}-${currentCol}`}
@@ -460,18 +460,18 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                 )}
             </div>
 
-            {/* Legend - ChÃº thÃ­ch mÃ u sáº¯c */}
-            <Card className="mt-4 bg-white rounded-lg border border-gray-200">
-                <div className="border-b border-gray-200 px-5 py-4 mb-0">
-                    <h3 className="text-gray-800 text-base font-semibold m-0">ChÃº thÃ­ch</h3>
+            {/* Legend - Chú thích màu sắc */}
+            <Card className="mt-4 bg-card rounded-lg border border-border">
+                <div className="border-b border-border px-5 py-4 mb-0">
+                    <h3 className="text-foreground text-base font-semibold m-0">Chú thích</h3>
                 </div>
                 <div className="p-5 flex flex-wrap gap-3">
-                    {/* Loáº¡i gháº¿ */}
+                    {/* Loại ghế */}
                     <div className="flex items-center gap-1">
                         <div className="w-3.5 h-3.5 bg-green-500 rounded flex items-center justify-center text-white">
                             <User className="h-2 w-2" />
                         </div>
-                        <span className="text-xs text-gray-700">ThÆ°á»ng</span>
+                        <span className="text-xs text-gray-700">Thường</span>
                     </div>
                     <div className="flex items-center gap-1">
                         <div className="w-3.5 h-3.5 bg-yellow-500 rounded flex items-center justify-center text-white">
@@ -483,30 +483,30 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                         <div className="w-3.5 h-3.5 bg-pink-500 rounded flex items-center justify-center text-white">
                             <Heart className="h-2 w-2" />
                         </div>
-                        <span className="text-xs text-gray-700">ÄÃ´i</span>
+                        <span className="text-xs text-gray-700">Đôi</span>
                     </div>
 
                     {/* Divider */}
                     <div className="w-px h-4 bg-gray-300 mx-1" />
 
-                    {/* Tráº¡ng thÃ¡i Ä‘áº·t vÃ© */}
+                    {/* Trạng thái đặt vé */}
                     <div className="flex items-center gap-1">
                         <div className="w-3.5 h-3.5 bg-green-500 rounded flex items-center justify-center text-white">
                             <User className="h-2 w-2" />
                         </div>
-                        <span className="text-xs text-gray-700">CÃ²n trá»‘ng</span>
+                        <span className="text-xs text-gray-700">Còn trống</span>
                     </div>
                     <div className="flex items-center gap-1">
                         <div className="w-3.5 h-3.5 bg-yellow-500 rounded flex items-center justify-center text-white">
                             <Clock className="h-2 w-2" />
                         </div>
-                        <span className="text-xs text-gray-700">Äang giá»¯</span>
+                        <span className="text-xs text-gray-700">Đang giữ</span>
                     </div>
                     <div className="flex items-center gap-1">
                         <div className="w-3.5 h-3.5 bg-red-500 rounded flex items-center justify-center text-white">
                             <User className="h-2 w-2" />
                         </div>
-                        <span className="text-xs text-gray-700">ÄÃ£ Ä‘áº·t</span>
+                        <span className="text-xs text-gray-700">Đã đặt</span>
                     </div>
                 </div>
             </Card>
@@ -519,7 +519,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                             <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1890ff' }}>
                                 {seatLayout.totalSeats}
                             </div>
-                            <div style={{ fontSize: '12px', color: '#8c8c8c' }}>Tá»•ng sá»‘ gháº¿</div>
+                            <div style={{ fontSize: '12px', color: '#8c8c8c' }}>Tổng số ghế</div>
                         </div>
                     </Card>
                 </Col>
@@ -529,7 +529,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                             <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#ff4d4f' }}>
                                 {seatLayout.bookedSeats}
                             </div>
-                            <div style={{ fontSize: '12px', color: '#8c8c8c' }}>ÄÃ£ Ä‘áº·t</div>
+                            <div style={{ fontSize: '12px', color: '#8c8c8c' }}>Đã đặt</div>
                         </div>
                     </Card>
                 </Col>
@@ -539,7 +539,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                             <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#52c41a' }}>
                                 {seatLayout.availableSeats}
                             </div>
-                            <div style={{ fontSize: '12px', color: '#8c8c8c' }}>CÃ²n trá»‘ng</div>
+                            <div style={{ fontSize: '12px', color: '#8c8c8c' }}>Còn trống</div>
                         </div>
                     </Card>
                 </Col>
@@ -551,7 +551,7 @@ const SeatViewer = ({ showtimeId, selectedScreen }) => {
                                     ? Math.round((seatLayout.bookedSeats / seatLayout.totalSeats) * 100)
                                     : 0}%
                             </div>
-                            <div style={{ fontSize: '12px', color: '#8c8c8c' }}>Tá»· lá»‡ Ä‘áº·t</div>
+                            <div style={{ fontSize: '12px', color: '#8c8c8c' }}>Tỷ lệ đặt</div>
                         </div>
                     </Card>
                 </Col>

@@ -19,7 +19,7 @@ export const TrailerModalProvider = ({ children }) => {
     setMovie(null);
   }, []);
 
-  // Xá»­ lÃ½ chuyá»ƒn Ä‘á»•i link YouTube sang embed vÃ  tá»± Ä‘á»™ng phÃ¡t
+  // Xử lý chuyển đổi link YouTube sang embed và tự động phát
   let trailerUrl = '';
   if (movie && movie.trailer) {
     trailerUrl = movie.trailer;

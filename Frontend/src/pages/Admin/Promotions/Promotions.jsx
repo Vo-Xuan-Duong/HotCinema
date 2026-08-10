@@ -75,19 +75,19 @@ const Promotions = () => {
     });
 
     const voucherTypes = [
-        { value: 'PERCENTAGE', label: 'Giáº£m giÃ¡ theo pháº§n trÄƒm', icon: <Percent className="h-4 w-4" /> },
-        { value: 'FIXED_AMOUNT', label: 'Giáº£m giÃ¡ cá»‘ Ä‘á»‹nh', icon: <Gift className="h-4 w-4" /> }
+        { value: 'PERCENTAGE', label: 'Giảm giá theo phần trăm', icon: <Percent className="h-4 w-4" /> },
+        { value: 'FIXED_AMOUNT', label: 'Giảm giá cố định', icon: <Gift className="h-4 w-4" /> }
     ];
 
-    // Status Ä‘Æ°á»£c tÃ­nh toÃ¡n tá»« isActive, startDate vÃ  endDate (khÃ´ng cÃ³ field status tá»« API)
+    // Status được tính toán từ isActive, startDate và endDate (không có field status từ API)
     const statusConfig = {
-        active: { label: 'Äang hoáº¡t Ä‘á»™ng', color: 'success', icon: <PlayCircle className="h-4 w-4" /> },
-        paused: { label: 'Táº¡m dá»«ng', color: 'warning', icon: <PauseCircle className="h-4 w-4" /> },
-        scheduled: { label: 'Chá» kÃ­ch hoáº¡t', color: 'processing', icon: <Clock className="h-4 w-4" /> },
-        expired: { label: 'Háº¿t háº¡n', color: 'error', icon: <Ban className="h-4 w-4" /> }
+        active: { label: 'Đang hoạt động', color: 'success', icon: <PlayCircle className="h-4 w-4" /> },
+        paused: { label: 'Tạm dừng', color: 'warning', icon: <PauseCircle className="h-4 w-4" /> },
+        scheduled: { label: 'Chờ kích hoạt', color: 'processing', icon: <Clock className="h-4 w-4" /> },
+        expired: { label: 'Hết hạn', color: 'error', icon: <Ban className="h-4 w-4" /> }
     };
 
-    // Helper function Ä‘á»ƒ tÃ­nh toÃ¡n status tá»« promotion data
+    // Helper function để tính toán status từ promotion data
     const calculateStatus = (promotion) => {
         if (!promotion) return 'expired';
 
@@ -107,13 +107,13 @@ const Promotions = () => {
     };
 
     const daysOfWeek = [
-        { value: 'monday', label: 'Thá»© 2' },
-        { value: 'tuesday', label: 'Thá»© 3' },
-        { value: 'wednesday', label: 'Thá»© 4' },
-        { value: 'thursday', label: 'Thá»© 5' },
-        { value: 'friday', label: 'Thá»© 6' },
-        { value: 'saturday', label: 'Thá»© 7' },
-        { value: 'sunday', label: 'Chá»§ nháº­t' }
+        { value: 'monday', label: 'Thứ 2' },
+        { value: 'tuesday', label: 'Thứ 3' },
+        { value: 'wednesday', label: 'Thứ 4' },
+        { value: 'thursday', label: 'Thứ 5' },
+        { value: 'friday', label: 'Thứ 6' },
+        { value: 'saturday', label: 'Thứ 7' },
+        { value: 'sunday', label: 'Chủ nhật' }
     ];
 
     useEffect(() => {
@@ -129,17 +129,17 @@ const Promotions = () => {
         try {
             setLoading(true);
 
-            // Load vouchers - API chá»‰ cÃ³ getAllVouchers vÃ  getActiveVouchers
+            // Tải danh sách khuyến mãi từ API chuẩn.
             let voucherResponse;
             if (activeTab === 'active') {
-                // Sá»­ dá»¥ng endpoint active promotions
+                // Sử dụng endpoint active promotions
                 voucherResponse = await promotionService.getActivePromotions(
                     currentPage - 1,
                     pageSize,
                     'name,asc'
                 );
             } else {
-                // Láº¥y táº¥t cáº£ vÃ  filter client-side cho cÃ¡c tab khÃ¡c
+                // Lấy tất cả và filter client-side cho các tab khác
                 voucherResponse = await promotionService.getAllPromotions(
                     currentPage - 1,
                     pageSize,
@@ -149,7 +149,7 @@ const Promotions = () => {
 
             // Load movies and cinemas
             const [movieResponse, cinemaResponse] = await Promise.all([
-                movieService.getAllMovies(0, 100),
+                movieService.listPage({ page: 0, size: 100 }),
                 cinemaService.getAllCinemas(0, 100)
             ]);
 
@@ -173,7 +173,7 @@ const Promotions = () => {
             calculateStats(Array.isArray(voucherData) ? voucherData : []);
 
         } catch (error) {
-            notification.error('Lá»—i khi táº£i dá»¯ liá»‡u voucher');
+            notification.error('Lỗi khi tải dữ liệu voucher');
             console.error('Error loading data:', error);
             setVouchers([]);
             setMovies([]);
@@ -252,15 +252,15 @@ const Promotions = () => {
 
         // Client-side validation
         if (!formValues.name || !formValues.code || !formValues.description) {
-            notification.error('Vui lÃ²ng Ä‘iá»n Ä‘áº§y Ä‘á»§ thÃ´ng tin báº¯t buá»™c');
+            notification.error('Vui lòng điền đầy đủ thông tin bắt buộc');
             return;
         }
         if (!formValues.startDate || !formValues.endDate) {
-            notification.error('Vui lÃ²ng chá»n ngÃ y báº¯t Ä‘áº§u vÃ  ngÃ y káº¿t thÃºc');
+            notification.error('Vui lòng chọn ngày bắt đầu và ngày kết thúc');
             return;
         }
         if (new Date(formValues.startDate) >= new Date(formValues.endDate)) {
-            notification.error('NgÃ y báº¯t Ä‘áº§u pháº£i trÆ°á»›c ngÃ y káº¿t thÃºc');
+            notification.error('Ngày bắt đầu phải trước ngày kết thúc');
             return;
         }
 
@@ -297,11 +297,11 @@ const Promotions = () => {
             if (editingVoucher) {
                 // Update existing promotion
                 await promotionService.updatePromotion(editingVoucher.id, voucherData);
-                notification.success('Cáº­p nháº­t voucher thÃ nh cÃ´ng');
+                notification.success('Cập nhật voucher thành công');
             } else {
                 // Create new promotion
                 await promotionService.createPromotion(voucherData);
-                notification.success('Táº¡o voucher thÃ nh cÃ´ng');
+                notification.success('Tạo voucher thành công');
             }
 
             setModalVisible(false);
@@ -321,7 +321,7 @@ const Promotions = () => {
             loadData(); // Reload data from API
 
         } catch (error) {
-            notification.error(error.response?.data?.message || 'CÃ³ lá»—i xáº£y ra khi lÆ°u voucher');
+            notification.error(error.response?.data?.message || 'Có lỗi xảy ra khi lưu voucher');
             console.error('Error saving voucher:', error);
         } finally {
             setLoading(false);
@@ -332,10 +332,10 @@ const Promotions = () => {
         try {
             setLoading(true);
             await promotionService.deletePromotion(voucher.id);
-            notification.success('XÃ³a voucher thÃ nh cÃ´ng');
+            notification.success('Xóa voucher thành công');
             loadData(); // Reload data from API
         } catch (error) {
-            notification.error(error.response?.data?.message || 'CÃ³ lá»—i xáº£y ra khi xÃ³a voucher');
+            notification.error(error.response?.data?.message || 'Có lỗi xảy ra khi xóa voucher');
             console.error('Error deleting voucher:', error);
         } finally {
             setLoading(false);
@@ -345,17 +345,17 @@ const Promotions = () => {
     const handleToggleStatus = useCallback(async (voucher) => {
         try {
             setLoading(true);
-            // Sá»­ dá»¥ng API activate/deactivate trá»±c tiáº¿p
+            // Sử dụng API activate/deactivate trực tiếp
             if (voucher.isActive === true) {
                 await promotionService.deactivatePromotion(voucher.id);
-                notification.success('Táº¡m dá»«ng promotion thÃ nh cÃ´ng');
+                notification.success('Tạm dừng promotion thành công');
             } else {
                 await promotionService.activatePromotion(voucher.id);
-                notification.success('KÃ­ch hoáº¡t promotion thÃ nh cÃ´ng');
+                notification.success('Kích hoạt promotion thành công');
             }
             loadData(); // Reload data from API
         } catch (error) {
-            notification.error(error.response?.data?.message || 'CÃ³ lá»—i xáº£y ra khi thay Ä‘á»•i tráº¡ng thÃ¡i');
+            notification.error(error.response?.data?.message || 'Có lỗi xảy ra khi thay đổi trạng thái');
             console.error('Error toggling status:', error);
         } finally {
             setLoading(false);
@@ -364,7 +364,7 @@ const Promotions = () => {
 
     const handleCopyCode = (code) => {
         navigator.clipboard.writeText(code);
-        notification.success('ÄÃ£ sao chÃ©p mÃ£ voucher');
+        notification.success('Đã sao chép mã voucher');
     };
 
     const handleViewVoucher = (voucher) => {
@@ -421,12 +421,12 @@ const Promotions = () => {
 
     const columns = [
         {
-            title: 'TÃªn voucher',
+            title: 'Tên voucher',
             dataIndex: 'name',
             key: 'name',
             render: (text, record) => (
                 <div className="flex flex-col gap-2">
-                    <strong className="text-gray-900">{text}</strong>
+                    <strong className="text-foreground">{text}</strong>
                     <div className="flex items-center gap-2">
                         <StatusBadge tone="blue">{record.code}</StatusBadge>
                         <TooltipProvider>
@@ -441,7 +441,7 @@ const Promotions = () => {
                                         <Copy className="h-4 w-4" />
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>Sao chÃ©p mÃ£</TooltipContent>
+                                <TooltipContent>Sao chép mã</TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
                     </div>
@@ -449,7 +449,7 @@ const Promotions = () => {
             )
         },
         {
-            title: 'Loáº¡i & GiÃ¡ trá»‹',
+            title: 'Loại & Giá trị',
             key: 'discount',
             render: (_, record) => {
                 // Check if it's percentage type (case-insensitive)
@@ -461,10 +461,10 @@ const Promotions = () => {
                         <StatusBadge tone={isPercentage ? 'green' : 'orange'}>
                             {isPercentage ? '%' : 'VND'}
                         </StatusBadge>
-                        <span className="font-semibold text-gray-900">
+                        <span className="font-semibold text-foreground">
                             {isPercentage
                                 ? `${record.discountValue}%`
-                                : `${Number(record.discountValue || 0).toLocaleString('vi-VN')}Ä‘`
+                                : `${Number(record.discountValue || 0).toLocaleString('vi-VN')}đ`
                             }
                         </span>
                     </div>
@@ -472,21 +472,21 @@ const Promotions = () => {
             }
         },
         {
-            title: 'Thá»i gian',
+            title: 'Thời gian',
             key: 'period',
             render: (_, record) => (
                 <div className="flex flex-col gap-1">
-                    <span className="text-gray-900">{dayjs(record.startDate).format('DD/MM/YYYY')}</span>
-                    <span className="text-gray-400 text-xs">Ä‘áº¿n</span>
-                    <span className="text-gray-900">{dayjs(record.endDate).format('DD/MM/YYYY')}</span>
+                    <span className="text-foreground">{dayjs(record.startDate).format('DD/MM/YYYY')}</span>
+                    <span className="text-gray-400 text-xs">đến</span>
+                    <span className="text-foreground">{dayjs(record.endDate).format('DD/MM/YYYY')}</span>
                 </div>
             )
         },
         {
-            title: 'Tráº¡ng thÃ¡i',
+            title: 'Trạng thái',
             key: 'status',
             render: (_, record) => {
-                // TÃ­nh toÃ¡n status tá»« isActive, startDate vÃ  endDate (khÃ´ng cÃ³ field status tá»« API)
+                // Tính toán status từ isActive, startDate và endDate (không có field status từ API)
                 const status = calculateStatus(record);
                 const config = statusConfig[status];
                 return (
@@ -498,7 +498,7 @@ const Promotions = () => {
             }
         },
         {
-            title: 'Sá»­ dá»¥ng',
+            title: 'Sử dụng',
             key: 'usage',
             render: (_, record) => {
                 const usedCount = record.usedCount || 0;
@@ -507,7 +507,7 @@ const Promotions = () => {
 
                 return (
                     <div className="flex flex-col gap-1" style={{ minWidth: 120 }}>
-                        <span className="text-gray-900">{usedCount}/{usageLimit}</span>
+                        <span className="text-foreground">{usedCount}/{usageLimit}</span>
                         <Progress
                             percent={percentage}
                             status={percentage >= 90 ? 'exception' : percentage >= 70 ? 'active' : 'normal'}
@@ -519,7 +519,7 @@ const Promotions = () => {
             }
         },
         {
-            title: 'Thao tÃ¡c',
+            title: 'Thao tác',
             key: 'actions',
             width: 200,
             align: 'center',
@@ -537,7 +537,7 @@ const Promotions = () => {
                                     <Eye className="h-4 w-4" />
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Xem chi tiáº¿t</TooltipContent>
+                            <TooltipContent>Xem chi tiết</TooltipContent>
                         </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -550,7 +550,7 @@ const Promotions = () => {
                                     <Edit className="h-4 w-4" />
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Chá»‰nh sá»­a</TooltipContent>
+                            <TooltipContent>Chỉnh sửa</TooltipContent>
                         </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -558,7 +558,7 @@ const Promotions = () => {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
-                                        if (window.confirm(record.isActive ? 'Báº¡n cÃ³ cháº¯c muá»‘n táº¡m dá»«ng voucher nÃ y?' : 'Báº¡n cÃ³ cháº¯c muá»‘n kÃ­ch hoáº¡t voucher nÃ y?')) {
+                                        if (window.confirm(record.isActive ? 'Bạn có chắc muốn tạm dừng voucher này?' : 'Bạn có chắc muốn kích hoạt voucher này?')) {
                                             handleToggleStatus(record);
                                         }
                                     }}
@@ -571,7 +571,7 @@ const Promotions = () => {
                                     )}
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>{record.isActive ? 'Táº¡m dá»«ng' : 'KÃ­ch hoáº¡t'}</TooltipContent>
+                            <TooltipContent>{record.isActive ? 'Tạm dừng' : 'Kích hoạt'}</TooltipContent>
                         </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -579,7 +579,7 @@ const Promotions = () => {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
-                                        if (window.confirm('Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a voucher nÃ y? HÃ nh Ä‘á»™ng nÃ y khÃ´ng thá»ƒ hoÃ n tÃ¡c.')) {
+                                        if (window.confirm('Bạn có chắc chắn muốn xóa voucher này? Hành động này không thể hoàn tác.')) {
                                             handleDeleteVoucher(record);
                                         }
                                     }}
@@ -588,7 +588,7 @@ const Promotions = () => {
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>XÃ³a</TooltipContent>
+                            <TooltipContent>Xóa</TooltipContent>
                         </Tooltip>
                     </div>
                 </TooltipProvider>
@@ -609,22 +609,22 @@ const Promotions = () => {
                             href: '/admin/dashboard'
                         },
                         {
-                            title: 'Quáº£n lÃ½ khuyáº¿n mÃ£i',
+                            title: 'Quản lý khuyến mãi',
                             icon: <Gift className="h-4 w-4" />
                         }
                     ]}
                 />
 
                 {/* Header */}
-                <Card className="p-6 bg-white rounded-xl shadow-md border border-gray-200 mb-6">
+                <Card className="p-6 bg-card rounded-xl shadow-md border border-border mb-6">
                     <div className="flex justify-between items-center flex-wrap gap-4">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-indigo-100 rounded-lg">
                                 <Gift className="h-6 w-6 text-indigo-600" />
                             </div>
                             <div>
-                                <h2 className="text-gray-900 m-0 text-2xl font-bold">Quáº£n lÃ½ Khuyáº¿n MÃ£i</h2>
-                                <p className="text-sm text-gray-500 mt-1">Quáº£n lÃ½ cÃ¡c chÆ°Æ¡ng trÃ¬nh khuyáº¿n mÃ£i vÃ  voucher trong há»‡ thá»‘ng</p>
+                                <h2 className="text-foreground m-0 text-2xl font-bold">Quản lý Khuyến Mãi</h2>
+                                <p className="text-sm text-muted-foreground mt-1">Quản lý các chương trình khuyến mãi và voucher trong hệ thống</p>
                             </div>
                         </div>
                         <Button
@@ -632,25 +632,25 @@ const Promotions = () => {
                             className="bg-indigo-600 hover:bg-indigo-700 text-white h-10 rounded-lg"
                         >
                             <Plus className="h-4 w-4 mr-2" />
-                            Táº¡o khuyáº¿n mÃ£i má»›i
+                            Tạo khuyến mãi mới
                         </Button>
                     </div>
                 </Card>
 
                 {/* Promotions Table */}
-                <Card className="bg-white rounded-xl shadow-md border border-gray-200">
+                <Card className="bg-card rounded-xl shadow-md border border-border">
                     <div className="p-6">
-                        <h3 className="text-lg font-semibold mb-4">Danh sÃ¡ch khuyáº¿n mÃ£i</h3>
+                        <h3 className="text-lg font-semibold mb-4">Danh sách khuyến mãi</h3>
                         {loading ? (
                             <div className="p-12 text-center">
                                 <Loader2 className="h-10 w-10 animate-spin mx-auto text-indigo-600 mb-4" />
-                                <p className="text-gray-500">Äang táº£i dá»¯ liá»‡u...</p>
+                                <p className="text-muted-foreground">Đang tải dữ liệu...</p>
                             </div>
                         ) : vouchers.length === 0 ? (
                             <div className="p-12 text-center">
                                 <Gift className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-                                <p className="text-gray-500 text-lg font-medium">KhÃ´ng cÃ³ khuyáº¿n mÃ£i nÃ o</p>
-                                <p className="text-gray-400 text-sm mt-2">HÃ£y táº¡o khuyáº¿n mÃ£i má»›i Ä‘á»ƒ báº¯t Ä‘áº§u</p>
+                                <p className="text-muted-foreground text-lg font-medium">Không có khuyến mãi nào</p>
+                                <p className="text-gray-400 text-sm mt-2">Hãy tạo khuyến mãi mới để bắt đầu</p>
                             </div>
                         ) : (
                             <>
@@ -661,9 +661,9 @@ const Promotions = () => {
                                     pageControls={false}
                                 />
                                 {pagination.total > 0 && (
-                                    <div className="mt-4 flex items-center justify-between flex-wrap gap-4 pt-4 border-t border-gray-200">
-                                        <div className="text-sm text-gray-600">
-                                            Hiá»ƒn thá»‹ {(pagination.current - 1) * pagination.pageSize + 1} - {Math.min(pagination.current * pagination.pageSize, pagination.total)} trong tá»•ng sá»‘ {pagination.total} khuyáº¿n mÃ£i
+                                    <div className="mt-4 flex items-center justify-between flex-wrap gap-4 pt-4 border-t border-border">
+                                        <div className="text-sm text-muted-foreground">
+                                            Hiển thị {(pagination.current - 1) * pagination.pageSize + 1} - {Math.min(pagination.current * pagination.pageSize, pagination.total)} trong tổng số {pagination.total} khuyến mãi
                                         </div>
                                         <Pagination
                                             page={pagination.current}
@@ -693,7 +693,7 @@ const Promotions = () => {
                                 )}
                             </div>
                             <span className="text-xl font-semibold">
-                                {editingVoucher ? "Chá»‰nh sá»­a voucher" : "Táº¡o voucher má»›i"}
+                                {editingVoucher ? "Chỉnh sửa voucher" : "Tạo voucher mới"}
                             </span>
                         </div>
                     }
@@ -721,10 +721,10 @@ const Promotions = () => {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    TÃªn voucher <span className="text-red-500">*</span>
+                                    Tên voucher <span className="text-red-500">*</span>
                                 </label>
                                 <Input
-                                    placeholder="VD: Giáº£m 20% vÃ© cuá»‘i tuáº§n"
+                                    placeholder="VD: Giảm 20% vé cuối tuần"
                                     value={formValues.name}
                                     onChange={(e) => setFormValues({ ...formValues, name: e.target.value })}
                                     className="h-10"
@@ -733,7 +733,7 @@ const Promotions = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    MÃ£ voucher <span className="text-red-500">*</span>
+                                    Mã voucher <span className="text-red-500">*</span>
                                 </label>
                                 <Input
                                     placeholder="VD: WEEKEND20"
@@ -747,11 +747,11 @@ const Promotions = () => {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                MÃ´ táº£ <span className="text-red-500">*</span>
+                                Mô tả <span className="text-red-500">*</span>
                             </label>
                             <Textarea
                                 rows={3}
-                                placeholder="MÃ´ táº£ chi tiáº¿t vá» voucher..."
+                                placeholder="Mô tả chi tiết về voucher..."
                                 value={formValues.description}
                                 onChange={(e) => setFormValues({ ...formValues, description: e.target.value })}
                                 required
@@ -761,15 +761,15 @@ const Promotions = () => {
                         <div className="grid grid-cols-3 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                                    <Gift className="h-4 w-4 text-gray-500" />
-                                    Loáº¡i voucher <span className="text-red-500">*</span>
+                                    <Gift className="h-4 w-4 text-muted-foreground" />
+                                    Loại voucher <span className="text-red-500">*</span>
                                 </label>
                                 <Select
                                     value={formValues.discountType}
                                     onValueChange={(value) => setFormValues({ ...formValues, discountType: value })}
                                 >
                                     <SelectTrigger className="h-10">
-                                        <SelectValue placeholder="Chá»n loáº¡i voucher" />
+                                        <SelectValue placeholder="Chọn loại voucher" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {voucherTypes.map(type => (
@@ -785,8 +785,8 @@ const Promotions = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                                    <Percent className="h-4 w-4 text-gray-500" />
-                                    GiÃ¡ trá»‹ giáº£m <span className="text-red-500">*</span>
+                                    <Percent className="h-4 w-4 text-muted-foreground" />
+                                    Giá trị giảm <span className="text-red-500">*</span>
                                 </label>
                                 <NumberStepper
                                     min={0}
@@ -801,7 +801,7 @@ const Promotions = () => {
                         <div className="grid grid-cols-3 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    GiÃ¡ trá»‹ Ä‘Æ¡n tá»‘i thiá»ƒu
+                                    Giá trị đơn tối thiểu
                                 </label>
                                 <NumberStepper
                                     min={0}
@@ -812,7 +812,7 @@ const Promotions = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Giáº£m tá»‘i Ä‘a
+                                    Giảm tối đa
                                 </label>
                                 <NumberStepper
                                     min={0}
@@ -823,7 +823,7 @@ const Promotions = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Giá»›i háº¡n sá»­ dá»¥ng
+                                    Giới hạn sử dụng
                                 </label>
                                 <NumberStepper
                                     min={1}
@@ -837,7 +837,7 @@ const Promotions = () => {
                         <div className="grid grid-cols-3 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Sá»‘ lÆ°á»£t Ä‘Ã£ sá»­ dá»¥ng
+                                    Số lượt đã sử dụng
                                 </label>
                                 <NumberStepper
                                     min={0}
@@ -851,8 +851,8 @@ const Promotions = () => {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                                    <Clock className="h-4 w-4 text-gray-500" />
-                                    NgÃ y báº¯t Ä‘áº§u <span className="text-red-500">*</span>
+                                    <Clock className="h-4 w-4 text-muted-foreground" />
+                                    Ngày bắt đầu <span className="text-red-500">*</span>
                                 </label>
                                 <Input
                                     type="datetime-local"
@@ -862,7 +862,7 @@ const Promotions = () => {
                                         setFormValues({ ...formValues, startDate: value });
                                         // Validate endDate
                                         if (formValues.endDate && new Date(value) >= new Date(formValues.endDate)) {
-                                            notification.error('NgÃ y báº¯t Ä‘áº§u pháº£i trÆ°á»›c ngÃ y káº¿t thÃºc');
+                                            notification.error('Ngày bắt đầu phải trước ngày kết thúc');
                                         }
                                     }}
                                     className="h-10"
@@ -871,8 +871,8 @@ const Promotions = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                                    <Clock className="h-4 w-4 text-gray-500" />
-                                    NgÃ y káº¿t thÃºc <span className="text-red-500">*</span>
+                                    <Clock className="h-4 w-4 text-muted-foreground" />
+                                    Ngày kết thúc <span className="text-red-500">*</span>
                                 </label>
                                 <Input
                                     type="datetime-local"
@@ -882,7 +882,7 @@ const Promotions = () => {
                                         setFormValues({ ...formValues, endDate: value });
                                         // Validate startDate
                                         if (formValues.startDate && new Date(value) <= new Date(formValues.startDate)) {
-                                            notification.error('NgÃ y káº¿t thÃºc pháº£i sau ngÃ y báº¯t Ä‘áº§u');
+                                            notification.error('Ngày kết thúc phải sau ngày bắt đầu');
                                         }
                                     }}
                                     className="h-10"
@@ -891,7 +891,7 @@ const Promotions = () => {
                             </div>
                         </div>
 
-                        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                        <div className="flex justify-end gap-3 pt-4 border-t border-border">
                             <Button
                                 variant="outline"
                                 onClick={() => {
@@ -912,7 +912,7 @@ const Promotions = () => {
                                 }}
                                 className="h-10"
                             >
-                                Há»§y
+                                Hủy
                             </Button>
                             <Button
                                 type="submit"
@@ -922,11 +922,11 @@ const Promotions = () => {
                                 {loading ? (
                                     <>
                                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        Äang xá»­ lÃ½...
+                                        Đang xử lý...
                                     </>
                                 ) : (
                                     <>
-                                        {editingVoucher ? 'Cáº­p nháº­t' : 'Táº¡o voucher'}
+                                        {editingVoucher ? 'Cập nhật' : 'Tạo voucher'}
                                     </>
                                 )}
                             </Button>
@@ -941,7 +941,7 @@ const Promotions = () => {
                             <div className="p-2 bg-indigo-100 rounded-lg">
                                 <Eye className="h-5 w-5 text-indigo-600" />
                             </div>
-                            <span className="text-xl font-semibold">Chi tiáº¿t voucher</span>
+                            <span className="text-xl font-semibold">Chi tiết voucher</span>
                         </div>
                     }
                     open={detailModalVisible}
@@ -954,7 +954,7 @@ const Promotions = () => {
                                 onClick={handleDetailModalCancel}
                                 className="h-10"
                             >
-                                ÄÃ³ng
+                                Đóng
                             </Button>
                             <Button
                                 className="bg-indigo-600 hover:bg-indigo-700 text-white h-10"
@@ -964,7 +964,7 @@ const Promotions = () => {
                                 }}
                             >
                                 <Edit className="h-4 w-4 mr-2" />
-                                Chá»‰nh sá»­a
+                                Chỉnh sửa
                             </Button>
                         </div>
                     }
@@ -989,24 +989,24 @@ const Promotions = () => {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <Card className="p-4">
-                                        <h4 className="font-semibold mb-3">ThÃ´ng tin cÆ¡ báº£n</h4>
+                                        <h4 className="font-semibold mb-3">Thông tin cơ bản</h4>
                                         <div className="space-y-2 text-sm">
                                             <div>
-                                                <span className="text-gray-500">MÃ´ táº£:</span>
+                                                <span className="text-muted-foreground">Mô tả:</span>
                                                 <p className="font-medium">{selectedVoucher.description || 'N/A'}</p>
                                             </div>
                                             <div>
-                                                <span className="text-gray-500">Loáº¡i:</span>
+                                                <span className="text-muted-foreground">Loại:</span>
                                                 <p className="font-medium">
                                                     {voucherTypes.find(t => t.value === selectedVoucher.discountType)?.label || 'N/A'}
                                                 </p>
                                             </div>
                                             <div>
-                                                <span className="text-gray-500">GiÃ¡ trá»‹:</span>
+                                                <span className="text-muted-foreground">Giá trị:</span>
                                                 <p className="font-semibold text-indigo-600">
                                                     {isPercentage
                                                         ? `${selectedVoucher.discountValue}%`
-                                                        : `${Number(selectedVoucher.discountValue || 0).toLocaleString('vi-VN')}Ä‘`
+                                                        : `${Number(selectedVoucher.discountValue || 0).toLocaleString('vi-VN')}đ`
                                                     }
                                                 </p>
                                             </div>
@@ -1014,22 +1014,22 @@ const Promotions = () => {
                                     </Card>
 
                                     <Card className="p-4">
-                                        <h4 className="font-semibold mb-3">Äiá»u kiá»‡n Ã¡p dá»¥ng</h4>
+                                        <h4 className="font-semibold mb-3">Điều kiện áp dụng</h4>
                                         <div className="space-y-2 text-sm">
                                             <div>
-                                                <span className="text-gray-500">GiÃ¡ trá»‹ Ä‘Æ¡n tá»‘i thiá»ƒu:</span>
+                                                <span className="text-muted-foreground">Giá trị đơn tối thiểu:</span>
                                                 <p className="font-medium">
-                                                    {Number(selectedVoucher.minPurchase || selectedVoucher.minPurchaseAmount || 0).toLocaleString('vi-VN')}Ä‘
+                                                    {Number(selectedVoucher.minPurchase || selectedVoucher.minPurchaseAmount || 0).toLocaleString('vi-VN')}đ
                                                 </p>
                                             </div>
                                             <div>
-                                                <span className="text-gray-500">Giáº£m tá»‘i Ä‘a:</span>
+                                                <span className="text-muted-foreground">Giảm tối đa:</span>
                                                 <p className="font-medium">
-                                                    {Number(selectedVoucher.maxDiscount || selectedVoucher.maxDiscountAmount || 0).toLocaleString('vi-VN')}Ä‘
+                                                    {Number(selectedVoucher.maxDiscount || selectedVoucher.maxDiscountAmount || 0).toLocaleString('vi-VN')}đ
                                                 </p>
                                             </div>
                                             <div>
-                                                <span className="text-gray-500">LÆ°á»£t sá»­ dá»¥ng:</span>
+                                                <span className="text-muted-foreground">Lượt sử dụng:</span>
                                                 <p className="font-medium">
                                                     {selectedVoucher.usedCount || 0}/{selectedVoucher.usageLimit || 0}
                                                 </p>
@@ -1039,7 +1039,7 @@ const Promotions = () => {
                                 </div>
 
                                 <Card className="p-4">
-                                    <h4 className="font-semibold mb-3">Thá»i gian Ã¡p dá»¥ng</h4>
+                                    <h4 className="font-semibold mb-3">Thời gian áp dụng</h4>
                                     <div className="flex items-center gap-2 text-sm">
                                         <Clock className="h-4 w-4 text-gray-400" />
                                         <span>
@@ -1053,11 +1053,11 @@ const Promotions = () => {
                                     selectedVoucher.applicableDays?.length > 0 ||
                                     selectedVoucher.timeRange) && (
                                         <Card className="p-4">
-                                            <h4 className="font-semibold mb-3">Äiá»u kiá»‡n bá»• sung</h4>
+                                            <h4 className="font-semibold mb-3">Điều kiện bổ sung</h4>
                                             <div className="space-y-2 text-sm">
                                                 {selectedVoucher.applicableMovies?.length > 0 && (
                                                     <div>
-                                                        <span className="text-gray-500">Ãp dá»¥ng cho phim:</span>
+                                                        <span className="text-muted-foreground">Áp dụng cho phim:</span>
                                                         <p className="font-medium">
                                                             {selectedVoucher.applicableMovies.map(id => movies.find(m => m.id === id)?.title).filter(Boolean).join(', ') || 'N/A'}
                                                         </p>
@@ -1065,7 +1065,7 @@ const Promotions = () => {
                                                 )}
                                                 {selectedVoucher.applicableCinemas?.length > 0 && (
                                                     <div>
-                                                        <span className="text-gray-500">Ãp dá»¥ng cho ráº¡p:</span>
+                                                        <span className="text-muted-foreground">Áp dụng cho rạp:</span>
                                                         <p className="font-medium">
                                                             {selectedVoucher.applicableCinemas.map(id => cinemas.find(c => c.id === id)?.name).filter(Boolean).join(', ') || 'N/A'}
                                                         </p>
@@ -1073,7 +1073,7 @@ const Promotions = () => {
                                                 )}
                                                 {selectedVoucher.applicableDays?.length > 0 && (
                                                     <div>
-                                                        <span className="text-gray-500">NgÃ y trong tuáº§n Ã¡p dá»¥ng:</span>
+                                                        <span className="text-muted-foreground">Ngày trong tuần áp dụng:</span>
                                                         <p className="font-medium">
                                                             {selectedVoucher.applicableDays.map(d => daysOfWeek.find(day => day.value === d)?.label).filter(Boolean).join(', ') || 'N/A'}
                                                         </p>
@@ -1081,7 +1081,7 @@ const Promotions = () => {
                                                 )}
                                                 {selectedVoucher.timeRange && (
                                                     <div>
-                                                        <span className="text-gray-500">Khung giá» Ã¡p dá»¥ng:</span>
+                                                        <span className="text-muted-foreground">Khung giờ áp dụng:</span>
                                                         <p className="font-medium">
                                                             {selectedVoucher.timeRange.start} - {selectedVoucher.timeRange.end}
                                                         </p>
@@ -1092,12 +1092,12 @@ const Promotions = () => {
                                     )}
 
                                 {(selectedVoucher.createdAt || selectedVoucher.createdBy) && (
-                                    <Card className="p-4 bg-gray-50">
-                                        <h4 className="font-semibold mb-3">ThÃ´ng tin táº¡o</h4>
+                                    <Card className="p-4 bg-background">
+                                        <h4 className="font-semibold mb-3">Thông tin tạo</h4>
                                         <div className="space-y-2 text-sm">
                                             {selectedVoucher.createdAt && (
                                                 <div>
-                                                    <span className="text-gray-500">NgÃ y táº¡o:</span>
+                                                    <span className="text-muted-foreground">Ngày tạo:</span>
                                                     <p className="font-medium">
                                                         {dayjs(selectedVoucher.createdAt).format('DD/MM/YYYY HH:mm')}
                                                     </p>
@@ -1105,7 +1105,7 @@ const Promotions = () => {
                                             )}
                                             {selectedVoucher.createdBy && (
                                                 <div>
-                                                    <span className="text-gray-500">NgÆ°á»i táº¡o:</span>
+                                                    <span className="text-muted-foreground">Người tạo:</span>
                                                     <p className="font-medium">{selectedVoucher.createdBy}</p>
                                                 </div>
                                             )}

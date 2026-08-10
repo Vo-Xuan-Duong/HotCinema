@@ -171,7 +171,7 @@ const LoginForm = ({ onSwitchToRegister, onClose }) => {
                                 placeholder="Email"
                                 value={formData.email}
                                 onChange={(e) => handleChange('email', e.target.value)}
-                                className="pl-10 h-10 rounded-lg border-gray-200 hover:border-primary/60 focus:border-primary transition-all"
+                                className="pl-10 h-10 rounded-lg border-border hover:border-primary/60 focus:border-primary transition-all"
                             />
                         </div>
                     </FormControl>
@@ -186,7 +186,7 @@ const LoginForm = ({ onSwitchToRegister, onClose }) => {
                             placeholder="Mật khẩu"
                             value={formData.password}
                             onChange={(e) => handleChange('password', e.target.value)}
-                            className="h-12 rounded-xl border-gray-200 bg-gray-50 hover:bg-white hover:border-primary/50 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-base"
+                            className="h-12 rounded-xl border-border bg-background hover:bg-card hover:border-primary/50 focus:bg-card focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-base"
                         />
                     </FormControl>
                     {errors.password && <FormMessage>{errors.password}</FormMessage>}
@@ -200,14 +200,14 @@ const LoginForm = ({ onSwitchToRegister, onClose }) => {
                                 checked={formData.rememberMe}
                                 onCheckedChange={(checked) => handleChange('rememberMe', checked)}
                             />
-                            <Label htmlFor="rememberMe" className="text-xs text-gray-600 cursor-pointer">
+                            <Label htmlFor="rememberMe" className="text-xs text-muted-foreground cursor-pointer">
                                 Ghi nhớ đăng nhập
                             </Label>
                         </div>
                         <Button
                             type="button"
                             variant="link"
-                            className="p-0 h-auto text-xs text-gray-600 hover:text-primary"
+                            className="p-0 h-auto text-xs text-muted-foreground hover:text-primary"
                             onClick={() => navigate('/forgot-password')}
                         >
                             Quên mật khẩu?
@@ -236,7 +236,7 @@ const LoginForm = ({ onSwitchToRegister, onClose }) => {
                 type="button"
                 variant="outline"
                 disabled={googleLoading}
-                className="w-full h-10 rounded-lg border-gray-200 text-gray-700 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all mb-4 text-sm"
+                className="w-full h-10 rounded-lg border-border text-gray-700 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all mb-4 text-sm"
                 onClick={() => handleSocialLogin('Google')}
             >
                 {googleLoading ? 'Đang xử lý...' : (
@@ -253,7 +253,7 @@ const LoginForm = ({ onSwitchToRegister, onClose }) => {
             </Button>
 
             <div className="text-center text-xs">
-                <span className="text-gray-600">Chưa có tài khoản? </span>
+                <span className="text-muted-foreground">Chưa có tài khoản? </span>
                 <Button
                     type="button"
                     variant="link"

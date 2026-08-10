@@ -88,7 +88,7 @@ const MovieForm = () => {
                     setMovieData(movie);
                 } catch (error) {
                     console.error('Error loading movie:', error);
-                    showNotification('error', 'Lá»—i', 'KhÃ´ng thá»ƒ táº£i thÃ´ng tin phim');
+                    showNotification('error', 'Lỗi', 'Không thể tải thông tin phim');
                     navigate('/admin/movies');
                 } finally {
                     setLoadingMovie(false);
@@ -195,7 +195,7 @@ const MovieForm = () => {
                 status: status
             };
 
-            // Chuáº©n bá»‹ data theo format MovieRequest
+            // Chuẩn bị data theo format MovieRequest
             const movieRequest = {
                 title: values.title,
                 originalTitle: values.originalTitle || values.title,
@@ -218,15 +218,15 @@ const MovieForm = () => {
 
             if (isEditMode) {
                 await movieService.updateMovie(id, movieRequest);
-                showNotification('success', 'ThÃ nh cÃ´ng', 'Cáº­p nháº­t phim thÃ nh cÃ´ng!');
+                showNotification('success', 'Thành công', 'Cập nhật phim thành công!');
             } else {
                 await movieService.createMovie(movieRequest);
-                showNotification('success', 'ThÃ nh cÃ´ng', 'ThÃªm phim má»›i thÃ nh cÃ´ng!');
+                showNotification('success', 'Thành công', 'Thêm phim mới thành công!');
             }
             navigate('/admin/movies');
         } catch (error) {
             console.error('Error creating movie:', error);
-            showNotification('error', 'Lá»—i', error.response?.data?.message || 'Lá»—i khi táº¡o phim');
+            showNotification('error', 'Lỗi', error.response?.data?.message || 'Lỗi khi tạo phim');
         } finally {
             setLoading(false);
         }
@@ -244,12 +244,12 @@ const MovieForm = () => {
                         href: '/admin/dashboard'
                     },
                     {
-                        title: 'Quáº£n lÃ½ phim',
+                        title: 'Quản lý phim',
                         icon: <Film className="h-4 w-4" />,
                         href: '/admin/movies'
                     },
                     {
-                        title: isEditMode ? `Chá»‰nh sá»­a phim : ${movieData?.title}` : 'ThÃªm phim má»›i'
+                        title: isEditMode ? `Chỉnh sửa phim : ${movieData?.title}` : 'Thêm phim mới'
                     }
                 ]}
             />
@@ -266,20 +266,20 @@ const MovieForm = () => {
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div>
-                        <h2 className="m-0 mb-2 text-gray-800 text-2xl font-bold">
-                            {isEditMode ? 'Chá»‰nh Sá»­a Phim' : 'ThÃªm Phim Má»›i'}
+                        <h2 className="m-0 mb-2 text-foreground text-2xl font-bold">
+                            {isEditMode ? 'Chỉnh Sửa Phim' : 'Thêm Phim Mới'}
                         </h2>
-                        <p className="text-gray-500 text-sm">ThÃªm phim má»›i vÃ o há»‡ thá»‘ng</p>
+                        <p className="text-muted-foreground text-sm">Thêm phim mới vào hệ thống</p>
                     </div>
                 </div>
             </div>
 
             {/* Form */}
-            <Card className="rounded-xl shadow-md border border-gray-200 p-6">
+            <Card className="rounded-xl shadow-md border border-border p-6">
                 {loadingMovie ? (
                     <div className="text-center py-8">
                         <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-gray-400" />
-                        <p className="text-gray-500">Äang táº£i thÃ´ng tin phim...</p>
+                        <p className="text-muted-foreground">Đang tải thông tin phim...</p>
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit}>
@@ -287,44 +287,44 @@ const MovieForm = () => {
                             {/* Left Column - Main Info */}
                             <div className="lg:col-span-2 space-y-6">
                                 <div>
-                                    <h4 className="mb-4 text-lg font-semibold">ThÃ´ng tin cÆ¡ báº£n</h4>
+                                    <h4 className="mb-4 text-lg font-semibold">Thông tin cơ bản</h4>
                                 </div>
 
                                 <div>
-                                    <label className="block mb-2 font-semibold">TÃªn Phim <span className="text-red-500">*</span></label>
+                                    <label className="block mb-2 font-semibold">Tên Phim <span className="text-red-500">*</span></label>
                                     <Input
                                         name="title"
-                                        placeholder="Nháº­p tÃªn phim"
+                                        placeholder="Nhập tên phim"
                                         defaultValue={movieData?.title || ''}
                                         required
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block mb-2 font-semibold">TÃªn Gá»‘c</label>
-                                    <p className="text-xs text-gray-500 mb-1">TÃªn phim gá»‘c (náº¿u khÃ¡c tÃªn tiáº¿ng Viá»‡t)</p>
+                                    <label className="block mb-2 font-semibold">Tên Gốc</label>
+                                    <p className="text-xs text-muted-foreground mb-1">Tên phim gốc (nếu khác tên tiếng Việt)</p>
                                     <Input
                                         name="originalTitle"
-                                        placeholder="TÃªn phim gá»‘c"
+                                        placeholder="Tên phim gốc"
                                         defaultValue={movieData?.originalTitle || ''}
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block mb-2 font-semibold">MÃ´ táº£</label>
+                                    <label className="block mb-2 font-semibold">Mô tả</label>
                                     <Textarea
                                         name="description"
                                         rows={4}
-                                        placeholder="Nháº­p mÃ´ táº£ vá» phim"
+                                        placeholder="Nhập mô tả về phim"
                                         maxLength={1000}
                                         defaultValue={movieData?.description || ''}
                                     />
-                                    <p className="text-xs text-gray-500 mt-1">Tá»‘i Ä‘a 1000 kÃ½ tá»±</p>
+                                    <p className="text-xs text-muted-foreground mt-1">Tối đa 1000 ký tự</p>
                                 </div>
 
                                 <div>
-                                    <label className="block mb-2 font-semibold">Thá»ƒ Loáº¡i <span className="text-red-500">*</span></label>
-                                    <p className="text-xs text-gray-500 mb-3">Chá»n cÃ¡c thá»ƒ loáº¡i cá»§a phim (cÃ³ thá»ƒ chá»n nhiá»u)</p>
+                                    <label className="block mb-2 font-semibold">Thể Loại <span className="text-red-500">*</span></label>
+                                    <p className="text-xs text-muted-foreground mb-3">Chọn các thể loại của phim (có thể chọn nhiều)</p>
 
                                     {/* Genres Select Dropdown */}
                                     <Popover open={genresPopoverOpen} onOpenChange={setGenresPopoverOpen}>
@@ -336,7 +336,7 @@ const MovieForm = () => {
                                             >
                                                 <div className="flex flex-wrap gap-1.5 flex-1 text-left">
                                                     {selectedGenres.length === 0 ? (
-                                                        <span className="text-gray-500">Chá»n thá»ƒ loáº¡i...</span>
+                                                        <span className="text-muted-foreground">Chọn thể loại...</span>
                                                     ) : (
                                                         selectedGenres.map(genreId => {
                                                             const genre = genres.find(g => g.id === genreId);
@@ -361,7 +361,7 @@ const MovieForm = () => {
                                                 {genres.length === 0 ? (
                                                     <div className="text-center py-8">
                                                         <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-gray-400" />
-                                                        <p className="text-sm text-gray-500">Äang táº£i thá»ƒ loáº¡i...</p>
+                                                        <p className="text-sm text-muted-foreground">Đang tải thể loại...</p>
                                                     </div>
                                                 ) : (
                                                     <div className="p-1">
@@ -370,7 +370,7 @@ const MovieForm = () => {
                                                             return (
                                                                 <label
                                                                     key={genre.id}
-                                                                    className="flex items-center space-x-2 px-2 py-1.5 rounded-md hover:bg-gray-50 cursor-pointer transition-colors"
+                                                                    className="flex items-center space-x-2 px-2 py-1.5 rounded-md hover:bg-background cursor-pointer transition-colors"
                                                                 >
                                                                     <Checkbox
                                                                         checked={isSelected}
@@ -393,14 +393,14 @@ const MovieForm = () => {
 
                                     {selectedGenres.length === 0 && (
                                         <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
-                                            <span>âš ï¸</span> Vui lÃ²ng chá»n Ã­t nháº¥t má»™t thá»ƒ loáº¡i
+                                            <span>âš ï¸</span> Vui lòng chọn ít nhất một thể loại
                                         </p>
                                     )}
                                 </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block mb-2 font-semibold">NgÃ y PhÃ¡t HÃ nh <span className="text-red-500">*</span></label>
+                                        <label className="block mb-2 font-semibold">Ngày Phát Hành <span className="text-red-500">*</span></label>
                                         <Input
                                             name="releaseDate"
                                             type="date"
@@ -410,11 +410,11 @@ const MovieForm = () => {
                                     </div>
 
                                     <div>
-                                        <label className="block mb-2 font-semibold">Thá»i LÆ°á»£ng (phÃºt) <span className="text-red-500">*</span></label>
+                                        <label className="block mb-2 font-semibold">Thời Lượng (phút) <span className="text-red-500">*</span></label>
                                         <NumberStepper
                                             name="durationMinutes"
                                             min={1}
-                                            placeholder="VÃ­ dá»¥: 120"
+                                            placeholder="Ví dụ: 120"
                                             defaultValue={movieData?.durationMinutes || 0}
                                             required
                                         />
@@ -423,19 +423,19 @@ const MovieForm = () => {
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block mb-2 font-semibold">NgÃ´n Ngá»¯</label>
+                                        <label className="block mb-2 font-semibold">Ngôn Ngữ</label>
                                         <Input
                                             name="language"
-                                            placeholder="VÃ­ dá»¥: Tiáº¿ng Viá»‡t, English"
+                                            placeholder="Ví dụ: Tiếng Việt, English"
                                             defaultValue={movieData?.language || ''}
                                         />
                                     </div>
 
                                     <div>
-                                        <label className="block mb-2 font-semibold">Phá»¥ Äá»</label>
+                                        <label className="block mb-2 font-semibold">Phụ Đề</label>
                                         <Input
                                             name="subtitle"
-                                            placeholder="VÃ­ dá»¥: Tiáº¿ng Viá»‡t, English"
+                                            placeholder="Ví dụ: Tiếng Việt, English"
                                             defaultValue={movieData?.subtitle || ''}
                                         />
                                     </div>
@@ -443,46 +443,46 @@ const MovieForm = () => {
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block mb-2 font-semibold">PhÃ¢n Loáº¡i</label>
+                                        <label className="block mb-2 font-semibold">Phân Loại</label>
                                         <Select
                                             value={rating}
                                             onValueChange={setRating}
                                         >
                                             <SelectTrigger>
-                                                <SelectValue placeholder="Chá»n phÃ¢n loáº¡i" />
+                                                <SelectValue placeholder="Chọn phân loại" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="G">G - Má»i lá»©a tuá»•i</SelectItem>
-                                                <SelectItem value="PG">PG - CÃ³ sá»± hÆ°á»›ng dáº«n cá»§a phá»¥ huynh</SelectItem>
-                                                <SelectItem value="PG13">PG-13 - KhÃ´ng khuyáº¿n khÃ­ch cho tráº» dÆ°á»›i 13 tuá»•i</SelectItem>
-                                                <SelectItem value="R">R - Háº¡n cháº¿ cho tráº» dÆ°á»›i 17 tuá»•i</SelectItem>
-                                                <SelectItem value="NC17">NC-17 - Chá»‰ dÃ nh cho ngÆ°á»i tá»« 17 tuá»•i trá»Ÿ lÃªn</SelectItem>
+                                                <SelectItem value="G">G - Mọi lứa tuổi</SelectItem>
+                                                <SelectItem value="PG">PG - Có sự hướng dẫn của phụ huynh</SelectItem>
+                                                <SelectItem value="PG13">PG-13 - Không khuyến khích cho trẻ dưới 13 tuổi</SelectItem>
+                                                <SelectItem value="R">R - Hạn chế cho trẻ dưới 17 tuổi</SelectItem>
+                                                <SelectItem value="NC17">NC-17 - Chỉ dành cho người từ 17 tuổi trở lên</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
 
                                     <div>
-                                        <label className="block mb-2 font-semibold">Äáº¡o Diá»…n</label>
+                                        <label className="block mb-2 font-semibold">Đạo Diễn</label>
                                         <Input
                                             name="director"
-                                            placeholder="Nháº­p tÃªn Ä‘áº¡o diá»…n"
+                                            placeholder="Nhập tên đạo diễn"
                                             defaultValue={movieData?.director || ''}
                                         />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block mb-2 font-semibold">Diá»…n ViÃªn</label>
-                                    <p className="text-xs text-gray-500 mb-1">Nháº­p tÃªn cÃ¡c diá»…n viÃªn phÃ¢n cÃ¡ch báº±ng dáº¥u pháº©y</p>
+                                    <label className="block mb-2 font-semibold">Diễn Viên</label>
+                                    <p className="text-xs text-muted-foreground mb-1">Nhập tên các diễn viên phân cách bằng dấu phẩy</p>
                                     <Input
                                         name="actors"
-                                        placeholder="VÃ­ dá»¥: Diá»…n viÃªn 1, Diá»…n viÃªn 2, Diá»…n viÃªn 3"
+                                        placeholder="Ví dụ: Diễn viên 1, Diễn viên 2, Diễn viên 3"
                                         defaultValue={movieData?.actors && Array.isArray(movieData.actors) ? movieData.actors.join(', ') : (movieData?.actors || '')}
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block mb-2 font-semibold">Tráº¡ng ThÃ¡i <span className="text-red-500">*</span></label>
+                                    <label className="block mb-2 font-semibold">Trạng Thái <span className="text-red-500">*</span></label>
                                     <Select
                                         value={status}
                                         onValueChange={setStatus}
@@ -491,9 +491,9 @@ const MovieForm = () => {
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="NOW_SHOWING">Äang chiáº¿u</SelectItem>
-                                            <SelectItem value="COMING_SOON">Sáº¯p chiáº¿u</SelectItem>
-                                            <SelectItem value="ENDED">ÄÃ£ káº¿t thÃºc</SelectItem>
+                                            <SelectItem value="NOW_SHOWING">Đang chiếu</SelectItem>
+                                            <SelectItem value="COMING_SOON">Sắp chiếu</SelectItem>
+                                            <SelectItem value="ENDED">Đã kết thúc</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -506,12 +506,12 @@ const MovieForm = () => {
 
                                 <div>
                                     <label className="block mb-2 font-semibold">Poster URL</label>
-                                    <p className="text-xs text-gray-500 mb-1">URL hÃ¬nh áº£nh poster cá»§a phim</p>
+                                    <p className="text-xs text-muted-foreground mb-1">URL hình ảnh poster của phim</p>
                                     <div className="relative">
                                         <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                                         <Input
                                             name="posterUrl"
-                                            placeholder="Nháº­p URL hÃ¬nh áº£nh poster"
+                                            placeholder="Nhập URL hình ảnh poster"
                                             onChange={handlePosterUrlChange}
                                             className="pl-10"
                                             defaultValue={movieData?.posterUrl || ''}
@@ -521,12 +521,12 @@ const MovieForm = () => {
 
                                 <div>
                                     <label className="block mb-2 font-semibold">Backdrop URL</label>
-                                    <p className="text-xs text-gray-500 mb-1">URL hÃ¬nh ná»n cá»§a phim</p>
+                                    <p className="text-xs text-muted-foreground mb-1">URL hình nền của phim</p>
                                     <div className="relative">
                                         <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                                         <Input
                                             name="backdropUrl"
-                                            placeholder="Nháº­p URL hÃ¬nh ná»n"
+                                            placeholder="Nhập URL hình nền"
                                             onChange={handleBackdropUrlChange}
                                             className="pl-10"
                                             defaultValue={movieData?.backdropUrl || ''}
@@ -536,10 +536,10 @@ const MovieForm = () => {
 
                                 <div>
                                     <label className="block mb-2 font-semibold">Trailer URL</label>
-                                    <p className="text-xs text-gray-500 mb-1">URL video trailer (YouTube, Vimeo, etc.)</p>
+                                    <p className="text-xs text-muted-foreground mb-1">URL video trailer (YouTube, Vimeo, etc.)</p>
                                     <Input
                                         name="trailerUrl"
-                                        placeholder="Nháº­p URL trailer"
+                                        placeholder="Nhập URL trailer"
                                         onChange={handleTrailerUrlChange}
                                         defaultValue={movieData?.trailerUrl || ''}
                                     />
@@ -549,7 +549,7 @@ const MovieForm = () => {
                             {/* Right Column - Preview */}
                             <div className="lg:col-span-1">
                                 <div className="sticky top-4">
-                                    <h4 className="mb-4 text-lg font-semibold">Xem trÆ°á»›c</h4>
+                                    <h4 className="mb-4 text-lg font-semibold">Xem trước</h4>
 
                                     {previewPoster && (
                                         <div className="mb-4">
@@ -597,8 +597,8 @@ const MovieForm = () => {
                                     {!previewPoster && !previewBackdrop && !previewTrailer && (
                                         <div className="text-center py-8 text-gray-400">
                                             <ImageIcon className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-                                            <p className="text-sm text-gray-500">
-                                                Nháº­p URL Ä‘á»ƒ xem trÆ°á»›c
+                                            <p className="text-sm text-muted-foreground">
+                                                Nhập URL để xem trước
                                             </p>
                                         </div>
                                     )}
@@ -615,7 +615,7 @@ const MovieForm = () => {
                                 onClick={() => navigate('/admin/movies')}
                                 disabled={loading}
                             >
-                                Há»§y
+                                Hủy
                             </Button>
                             <Button
                                 type="submit"
@@ -625,12 +625,12 @@ const MovieForm = () => {
                                 {loading ? (
                                     <>
                                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        Äang xá»­ lÃ½...
+                                        Đang xử lý...
                                     </>
                                 ) : (
                                     <>
                                         <Save className="h-4 w-4 mr-2" />
-                                        {isEditMode ? 'Cáº­p Nháº­t' : 'ThÃªm Phim'}
+                                        {isEditMode ? 'Cập Nhật' : 'Thêm Phim'}
                                     </>
                                 )}
                             </Button>

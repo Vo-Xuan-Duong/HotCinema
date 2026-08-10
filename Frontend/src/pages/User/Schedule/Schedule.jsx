@@ -1,5 +1,5 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
-import { AlertCircle, Search, MapPin, Target } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { AlertCircle, Search, MapPin, Target, Calendar, Clock, Film, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,7 +21,7 @@ const Schedule = () => {
     const notification = useNotification();
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState(dayjs());
-    const [selectedCity, setSelectedCity] = useState(null); // LÆ°u slug cá»§a region
+    const [selectedCity, setSelectedCity] = useState(null); 
     const [selectedCinemaId, setSelectedCinemaId] = useState(null);
 
     const [cities, setCities] = useState([]);
@@ -59,7 +59,6 @@ const Schedule = () => {
     const loadInitialData = async () => {
         try {
             setLoading(true);
-
             const regionsData = await regionService.getRegionsAllNoPage();
             const regionsArray = Array.isArray(regionsData) ? regionsData :
                 (regionsData?.data ? regionsData.data :
@@ -68,17 +67,14 @@ const Schedule = () => {
             setCities(regionsArray);
 
             if (regionsArray && regionsArray.length > 0) {
-                const defaultRegion = regionsArray.find(r => r.name?.includes('Há»“ ChÃ­ Minh') || r.slug === 'ho-chi-minh') || regionsArray[0];
-                // Sá»­ dá»¥ng slug thay vÃ¬ id
+                const defaultRegion = regionsArray.find(r => r.name?.includes('Hồ Chí Minh') || r.slug === 'ho-chi-minh') || regionsArray[0];
                 setSelectedCity(defaultRegion.slug || defaultRegion.id);
                 await loadCinemasForCity(defaultRegion.slug || defaultRegion.id);
             } else {
-                notification.warning('KhÃ´ng cÃ³ dá»¯ liá»‡u khu vá»±c. Vui lÃ²ng kiá»ƒm tra káº¿t ná»‘i backend.');
+                notification.warning('Không có dữ liệu khu vực.');
             }
-
         } catch (error) {
             console.error('Error loading initial data:', error);
-            notification.error(`KhÃ´ng thá»ƒ táº£i dá»¯ liá»‡u: ${error.message}`);
         } finally {
             setLoading(false);
         }
@@ -92,11 +88,7 @@ const Schedule = () => {
 
     const loadCinemasForCity = async (regionSlug, page = 0) => {
         try {
-            const cinemasData = await cinemaService.getCinemasByRegion(regionSlug, {
-                page,
-                size: cinemaPageSize
-            });
-
+            const cinemasData = await cinemaService.getCinemasByRegion(regionSlug, { page, size: cinemaPageSize });
             let cinemasArray;
             let totalItems = 0;
 
@@ -120,7 +112,6 @@ const Schedule = () => {
             setCinemaPage(page);
             setCinemas(cinemasArray);
 
-            // Chá»‰ tá»± Ä‘á»™ng chá»n ráº¡p Ä‘áº§u tiÃªn khi á»Ÿ trang Ä‘áº§u tiÃªn
             if (page === 0 && cinemasArray && cinemasArray.length > 0) {
                 setSelectedCinemaId(cinemasArray[0].id);
                 await loadShowtimes(cinemasArray[0].id, selectedDate.format('YYYY-MM-DD'));
@@ -128,10 +119,7 @@ const Schedule = () => {
                 setSelectedCinemaId(null);
                 setShowtimes([]);
             } else {
-                // Khi Ä‘á»•i trang, khÃ´ng tá»± Ä‘á»™ng chá»n ráº¡p má»›i
-                // Giá»¯ nguyÃªn selectedCinemaId náº¿u ráº¡p Ä‘Ã³ váº«n cÃ²n trong danh sÃ¡ch
                 if (selectedCinemaId && !cinemasArray.find(c => c.id === selectedCinemaId)) {
-                    // Náº¿u ráº¡p Ä‘Ã£ chá»n khÃ´ng cÃ²n trong trang má»›i, chá»n ráº¡p Ä‘áº§u tiÃªn
                     if (cinemasArray.length > 0) {
                         setSelectedCinemaId(cinemasArray[0].id);
                         await loadShowtimes(cinemasArray[0].id, selectedDate.format('YYYY-MM-DD'));
@@ -143,7 +131,6 @@ const Schedule = () => {
             }
         } catch (error) {
             console.error('Error loading cinemas:', error);
-            notification.error(`KhÃ´ng thá»ƒ táº£i danh sÃ¡ch ráº¡p: ${error.message}`);
             if (page === 0) {
                 setCinemas([]);
                 setSelectedCinemaId(null);
@@ -161,11 +148,7 @@ const Schedule = () => {
 
     const loadShowtimes = async (cinemaId, date, page = 0) => {
         try {
-            const showtimesData = await showtimeService.getShowtimesByDateAndCinema(date, cinemaId, {
-                page,
-                size: 20
-            });
-
+            const showtimesData = await showtimeService.getShowtimesByDateAndCinema(date, cinemaId, { page, size: 20 });
             let showtimesArray;
             let totalItems = 0;
 
@@ -235,7 +218,7 @@ const Schedule = () => {
         setSelectedCinemaId(null);
         setShowtimes([]);
         setCinemaPage(0);
-        setCinemaSearchText(''); // Reset search khi Ä‘á»•i khu vá»±c
+        setCinemaSearchText(''); 
     };
 
     const handleCinemaSelect = (cinemaId) => {
@@ -261,9 +244,7 @@ const Schedule = () => {
     const selectedCinema = Array.isArray(cinemas) ? cinemas.find(c => c.id === selectedCinemaId) : null;
 
     const filteredCinemas = useMemo(() => {
-        if (!cinemaSearchText.trim()) {
-            return cinemas;
-        }
+        if (!cinemaSearchText.trim()) return cinemas;
         const searchLower = cinemaSearchText.toLowerCase().trim();
         return cinemas.filter(cinema =>
             cinema.name?.toLowerCase().includes(searchLower) ||
@@ -272,270 +253,290 @@ const Schedule = () => {
     }, [cinemas, cinemaSearchText]);
 
     if (loading) {
-        return <ContentLoader message="Äang táº£i lá»‹ch chiáº¿u..." />;
+        return <ContentLoader message="Đang tải lịch chiếu..." />;
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 pt-8 pb-6 overflow-x-hidden">
-            <div className="max-w-[1200px] mx-auto px-6 mb-16 pt-16">
-                <div className="bg-white border border-gray-200 rounded-2xl shadow-lg p-8 md:p-9">
-                    <h2 className="text-center text-3xl font-bold mb-5 text-gray-900">
-                        Lá»‹ch chiáº¿u phim
-                    </h2>
+        <div className="min-h-screen bg-background relative overflow-x-hidden">
+            {/* Cinematic Background */}
+            <div className="absolute top-0 left-0 right-0 h-[60vh] bg-gradient-to-b from-primary/10 via-background to-background z-0 pointer-events-none"></div>
+            <div className="absolute -top-[20%] -left-[10%] w-[70vw] h-[70vw] bg-primary/10 rounded-full blur-[150px] mix-blend-screen animate-pulse pointer-events-none z-0"></div>
+            <div className="absolute top-[10%] -right-[10%] w-[50vw] h-[50vw] bg-blue-500/10 rounded-full blur-[120px] mix-blend-screen animate-pulse delay-1000 pointer-events-none z-0"></div>
 
-                    <Card className="mb-6 rounded-xl shadow-md border border-gray-200">
-                        <div className="flex justify-between items-center flex-wrap gap-5 p-4">
-                            <div className="flex items-center gap-4 flex-wrap">
-                                <div className="flex flex-col gap-2">
-                                    <p className="text-sm font-semibold text-gray-700 flex items-center">
-                                        <MapPin className="mr-1.5 h-4 w-4" />
-                                        ThÃ nh phá»‘
-                                    </p>
-                                    <Select
-                                        value={selectedCity || ''}
-                                        onValueChange={handleCityChange}
-                                    >
-                                        <SelectTrigger className="w-[250px]">
-                                            <SelectValue placeholder="Chá»n khu vá»±c" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {Array.isArray(cities) && cities.map(region => (
-                                                <SelectItem key={region.id} value={region.slug || region.id.toString()}>
-                                                    {region.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => {
-                                        if (navigator.geolocation) {
-                                            navigator.geolocation.getCurrentPosition(
-                                                (position) => {
-                                                    notification.success('ÄÃ£ láº¥y vá»‹ trÃ­ cá»§a báº¡n');
-                                                },
-                                                (error) => {
-                                                    notification.warning('KhÃ´ng thá»ƒ láº¥y vá»‹ trÃ­. Vui lÃ²ng cho phÃ©p truy cáº­p vá»‹ trÃ­.');
-                                                }
-                                            );
-                                        } else {
-                                            notification.error('TrÃ¬nh duyá»‡t khÃ´ng há»— trá»£ geolocation');
-                                        }
-                                    }}
-                                    className="h-10 flex items-center gap-1.5 rounded-lg"
-                                >
-                                    <Target className="h-4 w-4" />
-                                    Gáº§n báº¡n
-                                </Button>
-                            </div>
-                        </div>
-                    </Card>
+            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mb-20 pt-28 relative z-10">
+                {/* Hero Title */}
+                <div className="text-center mb-12">
+                    <h1 className="text-4xl md:text-6xl font-black mb-4 tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white via-primary/80 to-primary">
+                        LỊCH CHIẾU PHIM
+                    </h1>
+                    <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+                        Chọn rạp và suất chiếu yêu thích để tận hưởng không gian điện ảnh tuyệt đỉnh
+                    </p>
+                </div>
 
-                    <div className="flex gap-6 items-start flex-col lg:flex-row">
-                        <Card className="w-full lg:w-80 rounded-xl shadow-md border border-gray-200 flex flex-col min-h-[600px]">
-                            <div className="mb-4 p-4">
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <div className="flex flex-col xl:flex-row gap-8">
+                    {/* Left Column: Location & Cinemas (Modern Horizontal/Vertical Flow) */}
+                    <div className="w-full xl:w-[400px] flex flex-col gap-6 flex-shrink-0">
+                        {/* Filter Glass Panel */}
+                        <div className="bg-card/30 backdrop-blur-3xl border border-white/10 dark:border-white/5 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none"></div>
+                            <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-foreground relative z-10">
+                                <MapPin className="text-primary w-5 h-5" />
+                                Khu Vực
+                            </h3>
+                            <Select value={selectedCity || ''} onValueChange={handleCityChange}>
+                                <SelectTrigger className="w-full h-12 bg-background/50 border-white/10 rounded-xl text-md focus:ring-primary relative z-10">
+                                    <SelectValue placeholder="Chọn khu vực" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-card border-white/10">
+                                    {Array.isArray(cities) && cities.map(region => (
+                                        <SelectItem key={region.id} value={region.slug || region.id.toString()}>
+                                            {region.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <div className="mt-6 relative z-10">
+                                <div className="relative group">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                     <Input
-                                        placeholder="TÃ¬m theo tÃªn ráº¡p ..."
+                                        placeholder="Tìm rạp chiếu phim..."
                                         value={cinemaSearchText}
                                         onChange={(e) => setCinemaSearchText(e.target.value)}
-                                        className="pl-10 h-10 rounded-lg"
+                                        className="pl-12 h-12 rounded-xl bg-background/50 border-white/10 focus-visible:ring-primary transition-all duration-300"
                                     />
                                 </div>
                             </div>
-                            <div className="flex-1 overflow-y-auto flex flex-col gap-1.5 px-4 pb-4">
+                        </div>
+
+                        {/* Cinema List Modern Grid */}
+                        <div className="bg-card/20 backdrop-blur-xl border border-white/5 rounded-3xl p-4 shadow-xl flex flex-col h-[500px] xl:h-[calc(100vh-350px)]">
+                            <h3 className="text-lg font-bold mb-4 px-2 flex items-center gap-2">
+                                <Film className="w-5 h-5 text-primary" />
+                                Danh Sách Rạp
+                            </h3>
+                            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 flex flex-col gap-3">
                                 {!Array.isArray(cinemas) || cinemas.length === 0 ? (
-                                    <div className="py-10 text-center text-gray-500">
-                                        <p>KhÃ´ng cÃ³ ráº¡p nÃ o</p>
+                                    <div className="py-10 text-center text-muted-foreground flex flex-col items-center gap-2">
+                                        <AlertCircle className="w-8 h-8 opacity-50" />
+                                        <p>Không có rạp nào</p>
                                     </div>
                                 ) : filteredCinemas.length === 0 ? (
-                                    <div className="py-10 text-center text-gray-500">
-                                        <p>KhÃ´ng tÃ¬m tháº¥y ráº¡p phÃ¹ há»£p</p>
+                                    <div className="py-10 text-center text-muted-foreground flex flex-col items-center gap-2">
+                                        <Search className="w-8 h-8 opacity-50" />
+                                        <p>Không tìm thấy rạp phù hợp</p>
                                     </div>
                                 ) : (
                                     filteredCinemas.map(cinema => (
                                         <div
                                             key={cinema.id}
-                                            className={`flex justify-between items-center p-3 text-sm rounded-lg cursor-pointer transition-all duration-300 mb-2 border ${selectedCinemaId === cinema.id
-                                                ? 'bg-gradient-to-r from-primary to-red-700 text-white border-primary shadow-lg font-semibold'
-                                                : 'bg-gray-50 text-gray-900 border-transparent hover:bg-gray-100 hover:translate-x-1 hover:border-gray-200 hover:shadow-md'
+                                            className={`group relative overflow-hidden rounded-2xl p-4 cursor-pointer transition-all duration-300 border ${selectedCinemaId === cinema.id
+                                                ? 'bg-gradient-to-br from-primary/20 to-red-900/40 border-primary/50 shadow-[0_0_20px_rgba(229,9,20,0.15)]'
+                                                : 'bg-background/40 border-white/5 hover:bg-white/5 hover:border-white/10'
                                                 }`}
                                             onClick={() => handleCinemaSelect(cinema.id)}
                                         >
-                                            <div className="flex-1 flex flex-col gap-1 min-w-0">
-                                                <span className="font-semibold overflow-hidden text-ellipsis whitespace-nowrap leading-tight">
-                                                    {cinema.name}
-                                                </span>
-                                                {cinema.address && (
-                                                    <span className={`text-xs overflow-hidden text-ellipsis whitespace-nowrap leading-tight ${selectedCinemaId === cinema.id ? 'text-white/85' : 'text-gray-500'
-                                                        }`}>
-                                                        {cinema.address}
-                                                    </span>
-                                                )}
+                                            {selectedCinemaId === cinema.id && (
+                                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary shadow-[0_0_10px_rgba(229,9,20,0.8)]"></div>
+                                            )}
+                                            <div className="flex justify-between items-center relative z-10">
+                                                <div className="flex-1 min-w-0 pr-2">
+                                                    <h4 className={`font-bold text-base truncate transition-colors ${selectedCinemaId === cinema.id ? 'text-primary' : 'text-foreground group-hover:text-primary/80'}`}>
+                                                        {cinema.name}
+                                                    </h4>
+                                                    {cinema.address && (
+                                                        <p className="text-xs text-muted-foreground truncate mt-1">
+                                                            {cinema.address}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <ChevronRight className={`w-5 h-5 transition-transform duration-300 ${selectedCinemaId === cinema.id ? 'text-primary translate-x-1' : 'text-muted-foreground opacity-30 group-hover:opacity-100 group-hover:translate-x-1'}`} />
                                             </div>
-                                            <span className={`ml-2 text-xl ${selectedCinemaId === cinema.id ? 'opacity-100' : 'opacity-40'
-                                                }`}>â€º</span>
                                         </div>
                                     ))
                                 )}
                             </div>
                             {totalCinemas > cinemaPageSize && (
-                                <div className="mt-3 pt-3 border-t border-gray-200 text-center px-4 pb-4">
+                                <div className="mt-4 pt-4 border-t border-white/10 flex justify-center">
                                     <Pagination
                                         page={cinemaPage + 1}
                                         totalItems={totalCinemas}
                                         itemsPerPage={cinemaPageSize}
                                         onPageChange={(page) => {
                                             loadCinemasForCity(selectedCity, page - 1);
-                                            // Scroll to top of cinema list
-                                            const cinemaList = document.querySelector('.flex-1.overflow-y-auto');
-                                            if (cinemaList) {
-                                                cinemaList.scrollTo({ top: 0, behavior: 'smooth' });
-                                            }
+                                            const cinemaList = document.querySelector('.custom-scrollbar');
+                                            if (cinemaList) cinemaList.scrollTo({ top: 0, behavior: 'smooth' });
                                         }}
                                         allowPageSizeChange={false}
-                                        showTotal={(total, range) =>
-                                            `${range[0]}-${range[1]} / ${total} ráº¡p`
-                                        }
                                     />
                                 </div>
                             )}
-                        </Card>
+                        </div>
+                    </div>
 
-                        <Card className="flex-1 min-w-0 rounded-xl shadow-md border border-gray-200">
-                            <div className="p-5">
-                                {selectedCinema && (
-                                    <Card className="mb-5 rounded-lg shadow-sm border border-gray-200">
-                                        <div className="flex items-center gap-3 flex-wrap p-4">
-                                            <div className="flex-1 flex flex-col gap-2">
-                                                <h4 className="m-0 font-bold text-gray-900 text-lg">
-                                                    {selectedCinema.name}
-                                                </h4>
-                                                <p className="text-sm text-gray-500 flex items-center">
-                                                    <MapPin className="mr-1 h-4 w-4" />
-                                                    {selectedCinema.address || 'Äá»‹a chá»‰ Ä‘ang cáº­p nháº­t'}
-                                                </p>
-                                            </div>
-                                            <Button
-                                                variant="outline"
-                                                onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedCinema.address || '')}`, '_blank')}
-                                                className="h-auto flex items-center gap-1.5 rounded-lg"
-                                            >
-                                                <MapPin className="h-4 w-4 mr-1" />
-                                                Báº£n Ä‘á»“
-                                            </Button>
-                                        </div>
-                                    </Card>
-                                )}
-
-                                <div className="flex gap-2.5 overflow-x-auto pb-4 mb-3 border-b-2 border-gray-200">
-                                    {Array.isArray(availableDates) && availableDates.map((d, idx) => {
-                                        const isSelected = selectedDate.format('DD/MM') === d.fullDate.format('DD/MM');
-                                        return (
-                                            <div
-                                                key={idx}
-                                                className={`min-w-[60px] rounded-lg p-2 text-center cursor-pointer transition-all duration-300 text-sm leading-tight flex-shrink-0 ${isSelected
-                                                    ? 'bg-gradient-to-br from-primary to-red-700 border-2 border-primary shadow-lg transform -translate-y-0.5 text-white'
-                                                    : 'bg-gray-50 border border-gray-200 text-gray-900 hover:border-primary hover:bg-primary/5 hover:-translate-y-0.5'
-                                                    }`}
-                                                onClick={() => handleDateChange(d.fullDate)}
-                                            >
-                                                <div className={`text-lg font-bold leading-none mb-1 ${isSelected ? 'text-white' : 'text-gray-900'
-                                                    }`}>
-                                                    {d.dayNumber}
-                                                </div>
-                                                <div className={`text-xs uppercase font-semibold ${isSelected ? 'text-white font-bold' : 'text-gray-500'
-                                                    }`}>
-                                                    {d.isToday ? 'HÃ´m nay' : d.fullDate.format('dd')}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-
-                                <div className="flex flex-col gap-0">
-                                    {showtimes.length === 0 ? (
-                                        <Card className="my-5 rounded-xl text-center border border-gray-200">
-                                            <div className="py-10 px-5 flex flex-col items-center justify-center gap-2">
-                                                <AlertCircle className="h-12 w-12 text-gray-400 mb-4" />
-                                                <h4 className="text-gray-500 text-lg font-semibold">KhÃ´ng cÃ³ suáº¥t chiáº¿u</h4>
-                                                <p className="text-gray-400">Vui lÃ²ng chá»n ngÃ y khÃ¡c hoáº·c ráº¡p khÃ¡c</p>
-                                            </div>
-                                        </Card>
-                                    ) : (
-                                        Array.isArray(showtimes) && showtimes.map((item, index) => {
-                                            const movie = item.movie;
-                                            if (!movie) return null;
-
-                                            return (
-                                                <div
-                                                    key={movie.id || index}
-                                                    className="flex gap-5 p-4 rounded-xl mb-4 bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5"
-                                                >
-                                                    <div className="w-[140px] h-[200px] rounded-xl overflow-hidden flex-shrink-0 shadow-lg relative transition-all duration-300 hover:scale-[1.02] hover:shadow-xl">
-                                                        <img
-                                                            src={movie.posterUrl || 'https://via.placeholder.com/150x220?text=No+Image'}
-                                                            alt={movie.title}
-                                                            className="w-full h-full object-cover block transition-transform duration-300 hover:scale-105"
-                                                        />
-                                                    </div>
-                                                    <div className="flex-1 flex flex-col gap-4 min-w-0">
-                                                        <div className="flex flex-col gap-2">
-                                                            <div className="text-xl font-bold text-gray-900 leading-tight m-0">
-                                                                {movie.title}
-                                                            </div>
-                                                            <div className="text-sm text-gray-500 font-medium leading-relaxed">
-                                                                {movie.duration || '120 phÃºt'} â€¢ {movie.genre || 'Phim'}
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex gap-2.5 flex-wrap">
-                                                            {Array.isArray(item.showtimes) && item.showtimes.map((showtime, idx) => (
-                                                                <button
-                                                                    key={showtime.id || idx}
-                                                                    className="bg-white border-2 border-primary text-primary px-3 py-1.5 rounded-lg text-sm cursor-pointer transition-all duration-300 shadow-sm hover:shadow-lg min-w-[75px] text-center flex flex-col items-center justify-center gap-0.5 relative overflow-hidden font-semibold hover:bg-gradient-to-br hover:from-primary hover:to-red-700 hover:text-white hover:-translate-y-1 hover:border-primary active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                                    onClick={() => handleBooking(
-                                                                        movie.id,
-                                                                        showtime.id,
-                                                                        showtime
-                                                                    )}
-                                                                    disabled={showtime.status === 'CANCELLED' || showtime.status === 'SOLD_OUT'}
-                                                                    title={`${showtime.roomName || 'PhÃ²ng chiáº¿u'} - ${showtime.formatType || '2D'} - ${showtime.price?.toLocaleString('vi-VN') || '0'}Ä‘`}
-                                                                >
-                                                                    <div className="text-sm font-bold leading-tight">
-                                                                        {showtime.startTime?.substring(0, 5) || '--:--'}
-                                                                    </div>
-                                                                    {showtime.formatType && (
-                                                                        <div className="text-[9px] font-medium opacity-75 leading-tight">
-                                                                            {showtime.formatType}
-                                                                        </div>
-                                                                    )}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })
-                                    )}
-                                </div>
-
-                                {totalShowtimes > 20 && (
-                                    <div className="flex justify-center items-center mt-8 pb-5 border-t border-gray-200 pt-6">
-                                        <Pagination
-                                            page={showtimePage + 1}
-                                            totalItems={totalShowtimes}
-                                            itemsPerPage={20}
-                                            onPageChange={(page) => {
-                                                loadShowtimes(selectedCinemaId, selectedDate.format('YYYY-MM-DD'), page - 1);
-                                            }}
-                                            allowPageSizeChange={false}
-                                        />
-                                    </div>
-                                )}
+                    {/* Right Column: Dates & Showtimes */}
+                    <div className="flex-1 flex flex-col gap-6 min-w-0">
+                        {/* Dates Selector - Premium Horizontal Scroll */}
+                        <div className="bg-card/20 backdrop-blur-xl border border-white/5 rounded-3xl p-4 shadow-xl">
+                            <div className="flex items-center gap-2 mb-4 px-2">
+                                <Calendar className="w-5 h-5 text-primary" />
+                                <h3 className="text-lg font-bold">Chọn Ngày</h3>
                             </div>
-                        </Card>
+                            <div className="flex gap-3 overflow-x-auto pb-4 custom-scrollbar">
+                                {Array.isArray(availableDates) && availableDates.map((d, idx) => {
+                                    const isSelected = selectedDate.format('DD/MM') === d.fullDate.format('DD/MM');
+                                    return (
+                                        <div
+                                            key={idx}
+                                            className={`min-w-[80px] sm:min-w-[100px] h-24 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 flex-shrink-0 relative overflow-hidden group ${isSelected
+                                                ? 'bg-gradient-to-br from-primary to-red-600 shadow-[0_10px_25px_rgba(229,9,20,0.3)] border-none transform -translate-y-1'
+                                                : 'bg-background/60 border border-white/10 hover:border-primary/50 hover:bg-primary/5'
+                                                }`}
+                                            onClick={() => handleDateChange(d.fullDate)}
+                                        >
+                                            {/* Glow effect on hover */}
+                                            <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity blur-xl"></div>
+                                            
+                                            <span className={`text-sm font-medium z-10 ${isSelected ? 'text-white/90' : 'text-muted-foreground'}`}>
+                                                {d.month}
+                                            </span>
+                                            <span className={`text-3xl font-black z-10 tracking-tighter ${isSelected ? 'text-white' : 'text-foreground'}`}>
+                                                {d.dayNumber}
+                                            </span>
+                                            <span className={`text-xs uppercase font-bold z-10 tracking-widest mt-1 ${isSelected ? 'text-white/90' : 'text-muted-foreground group-hover:text-primary'}`}>
+                                                {d.isToday ? 'HÔM NAY' : d.fullDate.format('dd')}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Cinema Info Header */}
+                        {selectedCinema && (
+                            <div className="flex items-center justify-between gap-4 bg-primary/5 border border-primary/20 rounded-2xl p-5 backdrop-blur-md">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-foreground mb-1">{selectedCinema.name}</h2>
+                                    <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                                        <MapPin className="w-4 h-4 text-primary" />
+                                        {selectedCinema.address || 'Đang cập nhật'}
+                                    </p>
+                                </div>
+                                <Button
+                                    variant="default"
+                                    onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedCinema.address || '')}`, '_blank')}
+                                    className="hidden sm:flex rounded-xl font-semibold shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
+                                >
+                                    Chỉ Đường
+                                </Button>
+                            </div>
+                        )}
+
+                        {/* Showtimes List */}
+                        <div className="flex flex-col gap-5">
+                            {showtimes.length === 0 ? (
+                                <div className="bg-card/20 backdrop-blur-xl border border-white/5 rounded-3xl py-20 px-5 flex flex-col items-center justify-center text-center">
+                                    <div className="w-24 h-24 bg-background/50 rounded-full flex items-center justify-center mb-6 shadow-inner border border-white/5">
+                                        <Film className="w-10 h-10 text-muted-foreground opacity-50" />
+                                    </div>
+                                    <h4 className="text-2xl font-bold mb-2">Hôm nay chưa có suất chiếu</h4>
+                                    <p className="text-muted-foreground max-w-sm">Vui lòng chọn ngày khác hoặc thử tìm rạp khác trong khu vực của bạn.</p>
+                                </div>
+                            ) : (
+                                Array.isArray(showtimes) && showtimes.map((item, index) => {
+                                    const movie = item.movie;
+                                    if (!movie) return null;
+
+                                    return (
+                                        <div
+                                            key={movie.id || index}
+                                            className="group bg-card/40 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-xl transition-all duration-500 hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] hover:border-white/20 flex flex-col sm:flex-row relative"
+                                        >
+                                            {/* Movie Poster Image (Absolute blurred background) */}
+                                            <div 
+                                                className="absolute inset-0 z-0 opacity-10 blur-3xl scale-110 transition-opacity duration-500 group-hover:opacity-20"
+                                                style={{ backgroundImage: `url(${movie.posterUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                                            />
+
+                                            {/* Movie Poster */}
+                                            <div className="sm:w-[220px] shrink-0 relative z-10 overflow-hidden bg-black">
+                                                <div className="aspect-[2/3] w-full relative">
+                                                    <img
+                                                        src={movie.posterUrl || '/brand-placeholder.svg'}
+                                                        alt={movie.title}
+                                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                                    />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                                                </div>
+                                            </div>
+
+                                            {/* Movie Info & Showtimes */}
+                                            <div className="flex-1 p-6 sm:p-8 flex flex-col relative z-10">
+                                                <div className="mb-6">
+                                                    <h3 className="text-2xl sm:text-3xl font-bold leading-tight mb-3 group-hover:text-primary transition-colors">
+                                                        {movie.title}
+                                                    </h3>
+                                                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground font-medium">
+                                                        <span className="flex items-center gap-1.5 bg-background/50 px-3 py-1 rounded-full border border-white/5">
+                                                            <Clock className="w-4 h-4 text-primary" />
+                                                            {movie.duration || '120 phút'}
+                                                        </span>
+                                                        <span className="flex items-center gap-1.5 bg-background/50 px-3 py-1 rounded-full border border-white/5">
+                                                            <Film className="w-4 h-4 text-primary" />
+                                                            {movie.genre || 'Phim rạp'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-auto">
+                                                    <div className="text-sm font-semibold mb-3 text-white/80 uppercase tracking-wider flex items-center gap-2">
+                                                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                                                        Suất Chiếu
+                                                    </div>
+                                                    <div className="flex gap-3 flex-wrap">
+                                                        {Array.isArray(item.showtimes) && item.showtimes.map((showtime, idx) => (
+                                                            <button
+                                                                key={showtime.id || idx}
+                                                                className="relative overflow-hidden bg-background/80 backdrop-blur-md border border-white/10 text-foreground px-4 py-2.5 rounded-xl cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_20px_rgba(229,9,20,0.2)] hover:border-primary/50 group/btn disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                onClick={() => handleBooking(movie.id, showtime.id, showtime)}
+                                                                disabled={showtime.status === 'CANCELLED' || showtime.status === 'SOLD_OUT'}
+                                                            >
+                                                                {/* Button Hover Gradient */}
+                                                                <div className="absolute inset-0 bg-gradient-to-br from-primary to-red-600 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300 z-0"></div>
+                                                                
+                                                                <div className="relative z-10 flex flex-col items-center">
+                                                                    <span className="text-lg font-bold group-hover/btn:text-white transition-colors">
+                                                                        {showtime.startTime?.substring(0, 5) || '--:--'}
+                                                                    </span>
+                                                                    {showtime.formatType && (
+                                                                        <span className="text-[10px] font-black tracking-widest text-primary group-hover/btn:text-white/80 transition-colors mt-0.5">
+                                                                            {showtime.formatType}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+
+                        {totalShowtimes > 20 && (
+                            <div className="flex justify-center items-center mt-8 pb-5">
+                                <Pagination
+                                    page={showtimePage + 1}
+                                    totalItems={totalShowtimes}
+                                    itemsPerPage={20}
+                                    onPageChange={(page) => loadShowtimes(selectedCinemaId, selectedDate.format('YYYY-MM-DD'), page - 1)}
+                                    allowPageSizeChange={false}
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

@@ -328,7 +328,7 @@ const PeopleDetail = () => {
                         {relatedPosts.length > 0 ? (
                             <div className="mt-4 grid gap-3">
                                 {relatedPosts.map((post, index) => (
-                                    <article className="bg-white/45 border border-[#1f3555]/10 rounded-lg px-3 py-2.5" key={`${post.id || post.title}-${index}`}>
+                                    <article className="bg-card/45 border border-[#1f3555]/10 rounded-lg px-3 py-2.5" key={`${post.id || post.title}-${index}`}>
                                         {post.link ? (
                                             <a href={post.link} target="_blank" rel="noreferrer" className="m-0 text-[0.95rem] sm:text-[1rem] leading-[1.35] text-[#1f3555] font-semibold no-underline hover:underline">{post.title}</a>
                                         ) : (

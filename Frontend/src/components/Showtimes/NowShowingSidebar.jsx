@@ -76,7 +76,7 @@ const NowShowingSidebar = ({ currentMovieId }) => {
         {[1, 2, 3, 4, 5].map((star) => (
           <span
             key={star}
-            className={`text-[11px] transition-colors duration-200 ${star <= fullStars ? 'text-yellow-400' : star === fullStars + 1 && hasHalfStar ? 'text-yellow-400 relative after:content-["★"] after:absolute after:left-0 after:top-0 after:text-gray-600 after:clip-path-[polygon(0_0,50%_0,50%_100%,0_100%)]' : 'text-gray-600'}`}
+            className={`text-[11px] transition-colors duration-200 ${star <= fullStars ? 'text-yellow-400' : star === fullStars + 1 && hasHalfStar ? 'text-yellow-400 relative after:content-["★"] after:absolute after:left-0 after:top-0 after:text-muted-foreground after:clip-path-[polygon(0_0,50%_0,50%_100%,0_100%)]' : 'text-muted-foreground'}`}
           >
             ★
           </span>
@@ -93,7 +93,7 @@ const NowShowingSidebar = ({ currentMovieId }) => {
 
   return (
     <aside className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] overflow-hidden mt-4 text-white h-[600px] sticky top-8 flex flex-col max-h-[600px] md:w-full md:static md:mt-4 md:h-[500px] md:max-h-[500px] sm:w-[500px] sm:h-[450px] sm:max-h-[450px]">
-      <div className="p-6 border-b border-white/10 bg-white/5 flex-shrink-0 md:p-4 sm:p-3">
+      <div className="p-6 border-b border-white/10 bg-card/5 flex-shrink-0 md:p-4 sm:p-3">
         <h3 className="text-xl font-bold m-0 mb-2 flex items-center gap-2 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent md:text-lg sm:text-base">
           {icons.movie} Phim đang chiếu
         </h3>
@@ -105,12 +105,12 @@ const NowShowingSidebar = ({ currentMovieId }) => {
       {loading ? (
         <Loading text="Đang tải phim..." />
       ) : (
-        <div className="p-2 flex flex-col gap-2 overflow-y-auto flex-1 scroll-smooth min-h-0 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.3)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-track]:rounded-sm [&::-webkit-scrollbar-track]:my-1 [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-sm [&::-webkit-scrollbar-thumb]:border [&::-webkit-scrollbar-thumb]:border-white/10 [&::-webkit-scrollbar-thumb]:transition-colors [&::-webkit-scrollbar-thumb]:duration-300 hover:[&::-webkit-scrollbar-thumb]:bg-white/40 [&::-webkit-scrollbar-corner]:bg-transparent md:p-4 sm:p-3 sm:gap-3">
+        <div className="p-2 flex flex-col gap-2 overflow-y-auto flex-1 scroll-smooth min-h-0 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.3)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-card/5 [&::-webkit-scrollbar-track]:rounded-sm [&::-webkit-scrollbar-track]:my-1 [&::-webkit-scrollbar-thumb]:bg-card/20 [&::-webkit-scrollbar-thumb]:rounded-sm [&::-webkit-scrollbar-thumb]:border [&::-webkit-scrollbar-thumb]:border-white/10 [&::-webkit-scrollbar-thumb]:transition-colors [&::-webkit-scrollbar-thumb]:duration-300 hover:[&::-webkit-scrollbar-thumb]:bg-card/40 [&::-webkit-scrollbar-corner]:bg-transparent md:p-4 sm:p-3 sm:gap-3">
           {movies.map((movie) => (
             <Link
               key={movie.id}
               to={`/movies/${movie.id}`}
-              className={`flex gap-2 p-2 bg-white/5 rounded-xl no-underline text-inherit transition-all duration-300 border border-white/10 relative overflow-hidden items-center min-h-[100px] hover:bg-white/8 hover:border-white/20 hover:translate-x-1 hover:shadow-[0_4px_15px_rgba(0,0,0,0.3)] sm:min-h-[70px] sm:p-1.5 ${currentMovieId === movie.id ? 'bg-gradient-to-br from-indigo-500/10 to-purple-600/10 border-indigo-500' : ''} ${hoveredMovie === movie.id ? 'bg-white/8 border-white/20 translate-x-1 shadow-[0_4px_15px_rgba(0,0,0,0.3)]' : ''}`}
+              className={`flex gap-2 p-2 bg-card/5 rounded-xl no-underline text-inherit transition-all duration-300 border border-white/10 relative overflow-hidden items-center min-h-[100px] hover:bg-card/8 hover:border-white/20 hover:translate-x-1 hover:shadow-[0_4px_15px_rgba(0,0,0,0.3)] sm:min-h-[70px] sm:p-1.5 ${currentMovieId === movie.id ? 'bg-gradient-to-br from-indigo-500/10 to-purple-600/10 border-indigo-500' : ''} ${hoveredMovie === movie.id ? 'bg-card/8 border-white/20 translate-x-1 shadow-[0_4px_15px_rgba(0,0,0,0.3)]' : ''}`}
               onMouseEnter={() => setHoveredMovie(movie.id)}
               onMouseLeave={() => setHoveredMovie(null)}
             >
@@ -132,7 +132,7 @@ const NowShowingSidebar = ({ currentMovieId }) => {
                 <h4 className="text-sm font-semibold m-0 text-white leading-snug line-clamp-3 break-words max-w-full sm:text-xs">{movie.title}</h4>
 
                 <div className="flex flex-wrap gap-2 text-xs text-gray-300 min-w-0 max-w-full py-3 px-2 sm:text-[11px] sm:py-2">
-                  <span className="bg-white/8 text-white rounded-md px-2.5 py-0.5 text-xs font-medium max-w-[110px] overflow-hidden text-ellipsis whitespace-nowrap inline-block sm:text-[11px] sm:px-1.5 sm:py-0.5">{movie.genre}</span>
+                  <span className="bg-card/8 text-white rounded-md px-2.5 py-0.5 text-xs font-medium max-w-[110px] overflow-hidden text-ellipsis whitespace-nowrap inline-block sm:text-[11px] sm:px-1.5 sm:py-0.5">{movie.genre}</span>
                   <span className="text-[11px] text-gray-400 flex items-center gap-1 sm:text-[10px]">
                     {icons.clock} {formatDuration(movie.durationMinutes || movie.duration)}
                   </span>

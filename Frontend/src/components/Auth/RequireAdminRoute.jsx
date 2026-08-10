@@ -9,7 +9,7 @@ const RequireAdminRoute = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-[40vh] flex items-center justify-center bg-gray-50 text-gray-500 text-sm">
+      <div className="min-h-[40vh] flex items-center justify-center bg-background text-muted-foreground text-sm">
         Đang kiểm tra phiên đăng nhập...
       </div>
     );

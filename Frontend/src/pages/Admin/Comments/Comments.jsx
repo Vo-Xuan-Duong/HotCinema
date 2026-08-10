@@ -73,18 +73,18 @@ const Comments = () => {
         try {
             setLoading(true);
 
-            // Gá»i API Ä‘á»ƒ láº¥y danh sÃ¡ch reviews
+            // Gọi API để lấy danh sách reviews
             const response = await reviewService.getAllReviews({
-                page: currentPage - 1, // Backend sá»­ dá»¥ng page index tá»« 0
+                page: currentPage - 1, // Backend sử dụng page index từ 0
                 size: pageSize,
                 sort: 'createdAt,desc'
             });
 
-            // Xá»­ lÃ½ response tá»« API
+            // Xử lý response từ API
             const reviewsData = response?.content || response?.data?.content || response?.data || [];
             const totalElements = response?.totalElements || response?.data?.totalElements || reviewsData.length;
 
-            // Map dá»¯ liá»‡u tá»« ReviewResponse sang format hiá»‡n táº¡i
+            // Map dữ liệu từ ReviewResponse sang format hiện tại
             const mappedComments = reviewsData.map(review => ({
                 id: review.id,
                 comment: review.comment,
@@ -94,12 +94,12 @@ const Comments = () => {
                 avatarUrl: review.avatarUrl,
                 createdAt: review.createdAt,
                 replies: review.replies || [],
-                // Giá»¯ láº¡i cÃ¡c field cÅ© Ä‘á»ƒ tÆ°Æ¡ng thÃ­ch (náº¿u API khÃ´ng tráº£ vá»)
+                // Giữ các trường cần thiết nếu API không trả về.
                 userName: review.fullName,
                 userAvatar: review.avatarUrl,
-                movieId: review.movieId || null, // CÃ³ thá»ƒ cáº§n fetch thÃªm tá»« movie service
-                movieTitle: review.movieTitle || 'N/A', // CÃ³ thá»ƒ cáº§n fetch thÃªm tá»« movie service
-                status: review.status || 'pending', // CÃ³ thá»ƒ cáº§n thÃªm field status vÃ o ReviewResponse
+                movieId: review.movieId || null, // Có thể cần fetch thêm từ movie service
+                movieTitle: review.movieTitle || 'N/A', // Có thể cần fetch thêm từ movie service
+                status: review.status || 'pending', // Có thể cần thêm field status vào ReviewResponse
                 likes: review.likes || 0,
                 reports: review.reports || 0,
                 isReported: (review.reports || 0) > 0,
@@ -108,7 +108,7 @@ const Comments = () => {
 
             setComments(mappedComments);
 
-            // Cáº­p nháº­t pagination
+            // Cập nhật pagination
             setPagination(prev => ({
                 ...prev,
                 total: totalElements,
@@ -118,11 +118,11 @@ const Comments = () => {
 
             // Load movies for filter
             try {
-                const movieResponse = await movieService.getAllMovies({ page: 0, size: 100 });
+                const movieResponse = await movieService.listPage({ page: 0, size: 100 });
                 const movieData = movieResponse?.content || movieResponse?.data?.content || movieResponse?.data || [];
                 setMovies(Array.isArray(movieData) ? movieData : []);
 
-                // Náº¿u reviews khÃ´ng cÃ³ movieTitle, map tá»« movies list
+                // Nếu reviews không có movieTitle, map từ movies list
                 if (mappedComments.some(c => !c.movieTitle || c.movieTitle === 'N/A')) {
                     const commentsWithMovies = mappedComments.map(comment => {
                         if (!comment.movieTitle || comment.movieTitle === 'N/A') {
@@ -141,7 +141,7 @@ const Comments = () => {
             }
         } catch (error) {
             console.error('Error loading comments:', error);
-            notification.error('Lá»—i khi táº£i danh sÃ¡ch bÃ¬nh luáº­n');
+            notification.error('Lỗi khi tải danh sách bình luận');
             // Fallback to empty array on error
             setComments([]);
             setPagination(prev => ({ ...prev, total: 0 }));
@@ -194,10 +194,10 @@ const Comments = () => {
 
             // Reload comments to get updated data
             await loadComments(pagination.current, pagination.pageSize);
-            notification.success('ÄÃ£ duyá»‡t bÃ¬nh luáº­n');
+            notification.success('Đã duyệt bình luận');
         } catch (error) {
             console.error('Error approving comment:', error);
-            notification.error(error?.response?.data?.message || 'Lá»—i khi duyá»‡t bÃ¬nh luáº­n');
+            notification.error(error?.response?.data?.message || 'Lỗi khi duyệt bình luận');
         }
     };
 
@@ -207,10 +207,10 @@ const Comments = () => {
 
             // Reload comments to get updated data
             await loadComments(pagination.current, pagination.pageSize);
-            notification.success('ÄÃ£ tá»« chá»‘i bÃ¬nh luáº­n');
+            notification.success('Đã từ chối bình luận');
         } catch (error) {
             console.error('Error rejecting comment:', error);
-            notification.error(error?.response?.data?.message || 'Lá»—i khi tá»« chá»‘i bÃ¬nh luáº­n');
+            notification.error(error?.response?.data?.message || 'Lỗi khi từ chối bình luận');
         }
     };
 
@@ -220,10 +220,10 @@ const Comments = () => {
 
             // Reload comments to get updated data
             await loadComments(pagination.current, pagination.pageSize);
-            notification.success('ÄÃ£ xÃ³a bÃ¬nh luáº­n');
+            notification.success('Đã xóa bình luận');
         } catch (error) {
             console.error('Error deleting comment:', error);
-            notification.error(error?.response?.data?.message || 'Lá»—i khi xÃ³a bÃ¬nh luáº­n');
+            notification.error(error?.response?.data?.message || 'Lỗi khi xóa bình luận');
         }
     };
 
@@ -282,16 +282,16 @@ const Comments = () => {
 
     const getStatusText = (status) => {
         switch (status) {
-            case 'approved': return 'ÄÃ£ duyá»‡t';
-            case 'pending': return 'Chá» duyá»‡t';
-            case 'rejected': return 'ÄÃ£ tá»« chá»‘i';
+            case 'approved': return 'Đã duyệt';
+            case 'pending': return 'Chờ duyệt';
+            case 'rejected': return 'Đã từ chối';
             default: return status;
         }
     };
 
     const columns = [
         {
-            title: 'NgÆ°á»i dÃ¹ng',
+            title: 'Người dùng',
             key: 'user',
             width: 200,
             render: (_, record) => (
@@ -299,13 +299,13 @@ const Comments = () => {
                     <Avatar className="h-10 w-10">
                         <AvatarImage src={record.avatarUrl || record.userAvatar} />
                         <AvatarFallback className="bg-gray-200">
-                            <User className="h-5 w-5 text-gray-500" />
+                            <User className="h-5 w-5 text-muted-foreground" />
                         </AvatarFallback>
                     </Avatar>
                     <div>
                         <span className="font-semibold">{record.fullName || record.userName}</span>
                         <br />
-                        <span className="text-gray-500 text-xs">
+                        <span className="text-muted-foreground text-xs">
                             ID: {record.userId}
                         </span>
                     </div>
@@ -328,19 +328,19 @@ const Comments = () => {
             ),
         },
         {
-            title: 'ÄÃ¡nh giÃ¡',
+            title: 'Đánh giá',
             dataIndex: 'rating',
             key: 'rating',
             width: 120,
             render: (rating) => (
                 <div className="flex items-center gap-2">
                     <StarRating readOnly value={rating} stars={5} className="text-yellow-400" />
-                    <span className="text-sm text-gray-600">{rating}/5</span>
+                    <span className="text-sm text-muted-foreground">{rating}/5</span>
                 </div>
             ),
         },
         {
-            title: 'BÃ¬nh luáº­n',
+            title: 'Bình luận',
             dataIndex: 'comment',
             key: 'comment',
             render: (comment) => (
@@ -350,14 +350,14 @@ const Comments = () => {
             ),
         },
         {
-            title: 'NgÃ y táº¡o',
+            title: 'Ngày tạo',
             dataIndex: 'createdAt',
             key: 'createdAt',
             width: 140,
             render: (date) => formatDate(date),
         },
         {
-            title: 'Thao tÃ¡c',
+            title: 'Thao tác',
             key: 'actions',
             width: 250,
             render: (_, record) => (
@@ -375,7 +375,7 @@ const Comments = () => {
                                     <span className="text-xs font-medium">Xem</span>
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Xem chi tiáº¿t</TooltipContent>
+                            <TooltipContent>Xem chi tiết</TooltipContent>
                         </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -384,16 +384,16 @@ const Comments = () => {
                                     variant="destructive"
                                     className="h-8 px-3 bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md transition-all"
                                     onClick={() => {
-                                        if (window.confirm('Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a bÃ¬nh luáº­n nÃ y?')) {
+                                        if (window.confirm('Bạn có chắc chắn muốn xóa bình luận này?')) {
                                             handleDeleteComment(record.id);
                                         }
                                     }}
                                 >
                                     <Trash2 className="h-4 w-4 mr-1.5" />
-                                    <span className="text-xs font-medium">XÃ³a</span>
+                                    <span className="text-xs font-medium">Xóa</span>
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>XÃ³a bÃ¬nh luáº­n</TooltipContent>
+                            <TooltipContent>Xóa bình luận</TooltipContent>
                         </Tooltip>
                     </div>
                 </TooltipProvider>
@@ -402,10 +402,10 @@ const Comments = () => {
     ];
 
     const tabItems = [
-        { key: 'all', label: `Táº¥t cáº£ (${comments.length})`, icon: <MessageSquare /> },
-        { key: 'pending', label: `Chá» duyá»‡t (${comments.filter(c => c.status === 'pending').length})`, icon: <Filter /> },
-        { key: 'approved', label: `ÄÃ£ duyá»‡t (${comments.filter(c => c.status === 'approved').length})`, icon: <Check /> },
-        { key: 'rejected', label: `ÄÃ£ tá»« chá»‘i (${comments.filter(c => c.status === 'rejected').length})`, icon: <X /> }
+        { key: 'all', label: `Tất cả (${comments.length})`, icon: <MessageSquare /> },
+        { key: 'pending', label: `Chờ duyệt (${comments.filter(c => c.status === 'pending').length})`, icon: <Filter /> },
+        { key: 'approved', label: `Đã duyệt (${comments.filter(c => c.status === 'approved').length})`, icon: <Check /> },
+        { key: 'rejected', label: `Đã từ chối (${comments.filter(c => c.status === 'rejected').length})`, icon: <X /> }
     ];
 
     return (
@@ -420,39 +420,39 @@ const Comments = () => {
                         href: '/admin/dashboard'
                     },
                     {
-                        title: 'Quáº£n lÃ½ bÃ¬nh luáº­n',
+                        title: 'Quản lý bình luận',
                         icon: <MessageSquare className="h-4 w-4" />
                     }
                 ]}
             />
 
             {/* Header */}
-            <Card className="mb-6 shadow-lg border-0 bg-white">
+            <Card className="mb-6 shadow-lg border-0 bg-card">
                 <div className="p-6">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="p-3 bg-indigo-100 rounded-lg">
                             <MessageSquare className="h-6 w-6 text-indigo-600" />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-bold text-gray-900 m-0">
-                                Quáº£n lÃ½ BÃ¬nh luáº­n
+                            <h2 className="text-2xl font-bold text-foreground m-0">
+                                Quản lý Bình luận
                             </h2>
-                            <p className="text-gray-500 text-sm m-0 mt-1">
-                                Quáº£n lÃ½ vÃ  duyá»‡t cÃ¡c bÃ¬nh luáº­n tá»« ngÆ°á»i dÃ¹ng
+                            <p className="text-muted-foreground text-sm m-0 mt-1">
+                                Quản lý và duyệt các bình luận từ người dùng
                             </p>
                         </div>
                     </div>
 
                     {/* Filters */}
-                    <div className="flex flex-wrap gap-4 items-end bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <div className="flex flex-wrap gap-4 items-end bg-background p-4 rounded-lg border border-border">
                         <div className="flex-1 min-w-[250px]">
                             <label className="text-sm font-medium text-gray-700 mb-2 block">
-                                TÃ¬m kiáº¿m
+                                Tìm kiếm
                             </label>
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                                 <Input
-                                    placeholder="TÃ¬m kiáº¿m bÃ¬nh luáº­n, ngÆ°á»i dÃ¹ng, phim..."
+                                    placeholder="Tìm kiếm bình luận, người dùng, phim..."
                                     value={searchText}
                                     onChange={(e) => setSearchText(e.target.value)}
                                     className="pl-10 h-10"
@@ -463,7 +463,7 @@ const Comments = () => {
                         <div className="w-[220px]">
                             <label className="text-sm font-medium text-gray-700 mb-2 block flex items-center gap-1">
                                 <Video className="h-4 w-4" />
-                                Lá»c theo phim
+                                Lọc theo phim
                             </label>
                             <div className="relative">
                                 <Select
@@ -471,10 +471,10 @@ const Comments = () => {
                                     onValueChange={setMovieFilter}
                                 >
                                     <SelectTrigger className="h-10 w-full">
-                                        <SelectValue placeholder="Táº¥t cáº£ phim" />
+                                        <SelectValue placeholder="Tất cả phim" />
                                     </SelectTrigger>
                                     <SelectContent position="popper" className="z-[9999]">
-                                        <SelectItem value="all">Táº¥t cáº£ phim</SelectItem>
+                                        <SelectItem value="all">Tất cả phim</SelectItem>
                                         {movies.length > 0 ? movies.map(movie => (
                                             <SelectItem key={movie.id} value={movie.id.toString()}>
                                                 {movie.title}
@@ -492,7 +492,7 @@ const Comments = () => {
                         <div className="w-[200px]">
                             <label className="text-sm font-medium text-gray-700 mb-2 block flex items-center gap-1">
                                 <Filter className="h-4 w-4" />
-                                Lá»c theo tráº¡ng thÃ¡i
+                                Lọc theo trạng thái
                             </label>
                             <div className="relative">
                                 <Select
@@ -500,13 +500,13 @@ const Comments = () => {
                                     onValueChange={setStatusFilter}
                                 >
                                     <SelectTrigger className="h-10 w-full">
-                                        <SelectValue placeholder="Táº¥t cáº£" />
+                                        <SelectValue placeholder="Tất cả" />
                                     </SelectTrigger>
                                     <SelectContent position="popper" className="z-[9999]">
-                                        <SelectItem value="all">Táº¥t cáº£</SelectItem>
-                                        <SelectItem value="pending">Chá» duyá»‡t</SelectItem>
-                                        <SelectItem value="approved">ÄÃ£ duyá»‡t</SelectItem>
-                                        <SelectItem value="rejected">ÄÃ£ tá»« chá»‘i</SelectItem>
+                                        <SelectItem value="all">Tất cả</SelectItem>
+                                        <SelectItem value="pending">Chờ duyệt</SelectItem>
+                                        <SelectItem value="approved">Đã duyệt</SelectItem>
+                                        <SelectItem value="rejected">Đã từ chối</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -516,18 +516,18 @@ const Comments = () => {
             </Card>
 
             {/* Comments Table */}
-            <Card className="shadow-lg border-0 bg-white">
+            <Card className="shadow-lg border-0 bg-card">
                 <div className="p-6">
                     {loading ? (
                         <div className="p-12 text-center">
                             <Loader2 className="h-10 w-10 text-indigo-600 animate-spin mx-auto mb-4" />
-                            <p className="text-gray-500">Äang táº£i dá»¯ liá»‡u...</p>
+                            <p className="text-muted-foreground">Đang tải dữ liệu...</p>
                         </div>
                     ) : filteredComments.length === 0 ? (
                         <div className="text-center py-12">
                             <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                            <p className="text-gray-500 text-lg font-medium">KhÃ´ng tÃ¬m tháº¥y bÃ¬nh luáº­n nÃ o</p>
-                            <p className="text-gray-400 text-sm mt-2">Thá»­ thay Ä‘á»•i bá»™ lá»c Ä‘á»ƒ tÃ¬m kiáº¿m</p>
+                            <p className="text-muted-foreground text-lg font-medium">Không tìm thấy bình luận nào</p>
+                            <p className="text-gray-400 text-sm mt-2">Thử thay đổi bộ lọc để tìm kiếm</p>
                         </div>
                     ) : (
                         <>
@@ -536,12 +536,12 @@ const Comments = () => {
                                 data={getPaginatedComments()}
                                 getRowId="id"
                                 pageControls={false}
-                                className="overflow-x-auto border border-gray-200 rounded-lg"
+                                className="overflow-x-auto border border-border rounded-lg"
                             />
                             {pagination.total > 0 && (
-                                <div className="mt-4 flex items-center justify-between flex-wrap gap-4 pt-4 border-t border-gray-200">
-                                    <div className="text-sm text-gray-600">
-                                        Hiá»ƒn thá»‹ {(pagination.current - 1) * pagination.pageSize + 1} - {Math.min(pagination.current * pagination.pageSize, pagination.total)} trong tá»•ng sá»‘ {pagination.total} bÃ¬nh luáº­n
+                                <div className="mt-4 flex items-center justify-between flex-wrap gap-4 pt-4 border-t border-border">
+                                    <div className="text-sm text-muted-foreground">
+                                        Hiển thị {(pagination.current - 1) * pagination.pageSize + 1} - {Math.min(pagination.current * pagination.pageSize, pagination.total)} trong tổng số {pagination.total} bình luận
                                     </div>
                                     <Pagination
                                         page={pagination.current}
@@ -561,7 +561,7 @@ const Comments = () => {
 
             {/* Comment Detail Modal */}
             <ResponsiveDialog
-                heading="Chi tiáº¿t bÃ¬nh luáº­n"
+                heading="Chi tiết bình luận"
                 open={showDetailModal}
                 onClose={() => {
                     setShowDetailModal(false);
@@ -573,33 +573,33 @@ const Comments = () => {
                 {selectedComment && (
                     <div>
                         {/* User Info */}
-                        <Card className="mb-4 border border-gray-200 shadow-sm">
+                        <Card className="mb-4 border border-border shadow-sm">
                             <div className="p-4">
-                                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-200">
+                                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-border">
                                     <User className="h-5 w-5 text-indigo-600" />
-                                    <h3 className="font-semibold text-gray-900 m-0">ThÃ´ng tin ngÆ°á»i dÃ¹ng</h3>
+                                    <h3 className="font-semibold text-foreground m-0">Thông tin người dùng</h3>
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <Avatar className="h-16 w-16">
                                         <AvatarImage src={selectedComment.avatarUrl || selectedComment.userAvatar} />
                                         <AvatarFallback className="bg-gray-200">
-                                            <User className="h-8 w-8 text-gray-500" />
+                                            <User className="h-8 w-8 text-muted-foreground" />
                                         </AvatarFallback>
                                     </Avatar>
                                     <div>
-                                        <h4 className="text-lg font-semibold m-0 text-gray-900">{selectedComment.fullName || selectedComment.userName}</h4>
-                                        <span className="text-gray-500 text-sm">ID: {selectedComment.userId}</span>
+                                        <h4 className="text-lg font-semibold m-0 text-foreground">{selectedComment.fullName || selectedComment.userName}</h4>
+                                        <span className="text-muted-foreground text-sm">ID: {selectedComment.userId}</span>
                                     </div>
                                 </div>
                             </div>
                         </Card>
 
                         {/* Movie Info */}
-                        <Card className="mb-4 border border-gray-200 shadow-sm">
+                        <Card className="mb-4 border border-border shadow-sm">
                             <div className="p-4">
-                                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-200">
+                                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-border">
                                     <Video className="h-5 w-5 text-indigo-600" />
-                                    <h3 className="font-semibold text-gray-900 m-0">ThÃ´ng tin phim</h3>
+                                    <h3 className="font-semibold text-foreground m-0">Thông tin phim</h3>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <span className="font-semibold text-gray-700">Phim:</span>
@@ -618,64 +618,64 @@ const Comments = () => {
                         </Card>
 
                         {/* Comment Content */}
-                        <Card className="mb-4 border border-gray-200 shadow-sm">
+                        <Card className="mb-4 border border-border shadow-sm">
                             <div className="p-4">
-                                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-200">
+                                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-border">
                                     <MessageSquare className="h-5 w-5 text-indigo-600" />
-                                    <h3 className="font-semibold text-gray-900 m-0">Ná»™i dung bÃ¬nh luáº­n</h3>
+                                    <h3 className="font-semibold text-foreground m-0">Nội dung bình luận</h3>
                                 </div>
                                 <div className="flex flex-col gap-4">
                                     <div className="flex items-center gap-3">
-                                        <span className="font-semibold text-gray-700">ÄÃ¡nh giÃ¡:</span>
+                                        <span className="font-semibold text-gray-700">Đánh giá:</span>
                                         <StarRating readOnly value={selectedComment.rating} stars={5} className="text-yellow-400" />
-                                        <span className="ml-2 text-gray-600 font-medium">{selectedComment.rating}/5</span>
+                                        <span className="ml-2 text-muted-foreground font-medium">{selectedComment.rating}/5</span>
                                     </div>
                                     <div>
-                                        <span className="font-semibold text-gray-700 block mb-2">BÃ¬nh luáº­n:</span>
+                                        <span className="font-semibold text-gray-700 block mb-2">Bình luận:</span>
                                         <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-l-4 border-indigo-500">
                                             <p className="m-0 text-gray-700 leading-relaxed">{selectedComment.comment}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className="font-semibold text-gray-700">NgÃ y táº¡o:</span>
-                                        <span className="text-gray-600">{formatDate(selectedComment.createdAt)}</span>
+                                        <span className="font-semibold text-gray-700">Ngày tạo:</span>
+                                        <span className="text-muted-foreground">{formatDate(selectedComment.createdAt)}</span>
                                     </div>
                                 </div>
                             </div>
                         </Card>
 
                         {/* Status & Stats */}
-                        <Card className="mb-4 border border-gray-200 shadow-sm">
+                        <Card className="mb-4 border border-border shadow-sm">
                             <div className="p-4">
-                                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-200">
+                                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-border">
                                     <AlertTriangle className="h-5 w-5 text-indigo-600" />
-                                    <h3 className="font-semibold text-gray-900 m-0">Tráº¡ng thÃ¡i & Thá»‘ng kÃª</h3>
+                                    <h3 className="font-semibold text-foreground m-0">Trạng thái & Thống kê</h3>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <span className="text-sm text-gray-600 block mb-1">Tráº¡ng thÃ¡i</span>
+                                        <span className="text-sm text-muted-foreground block mb-1">Trạng thái</span>
                                         <StatusBadge tone={getStatusColor(selectedComment.status)}>
                                             {getStatusText(selectedComment.status)}
                                         </StatusBadge>
                                     </div>
                                     <div>
-                                        <span className="text-sm text-gray-600 block mb-1">LÆ°á»£t thÃ­ch</span>
+                                        <span className="text-sm text-muted-foreground block mb-1">Lượt thích</span>
                                         <div className="flex items-center gap-2">
                                             <Heart className="h-4 w-4 text-red-500" />
-                                            <span className="font-semibold text-gray-900">{selectedComment.likes}</span>
+                                            <span className="font-semibold text-foreground">{selectedComment.likes}</span>
                                         </div>
                                     </div>
                                     <div>
-                                        <span className="text-sm text-gray-600 block mb-1">LÆ°á»£t bÃ¡o cÃ¡o</span>
+                                        <span className="text-sm text-muted-foreground block mb-1">Lượt báo cáo</span>
                                         <div className="flex items-center gap-2">
                                             <AlertTriangle className="h-4 w-4 text-orange-500" />
-                                            <span className="font-semibold text-gray-900">{selectedComment.reports}</span>
+                                            <span className="font-semibold text-foreground">{selectedComment.reports}</span>
                                         </div>
                                     </div>
                                 </div>
                                 {selectedComment.reportReasons && selectedComment.reportReasons.length > 0 && (
-                                    <div className="mt-4 pt-4 border-t border-gray-200">
-                                        <span className="text-sm text-gray-600 block mb-2">LÃ½ do bÃ¡o cÃ¡o:</span>
+                                    <div className="mt-4 pt-4 border-t border-border">
+                                        <span className="text-sm text-muted-foreground block mb-2">Lý do báo cáo:</span>
                                         <div className="flex flex-wrap gap-2">
                                             {selectedComment.reportReasons.map((reason, index) => (
                                                 <StatusBadge key={index} tone="red">{reason}</StatusBadge>
@@ -687,7 +687,7 @@ const Comments = () => {
                         </Card>
 
                         {/* Actions */}
-                        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                        <div className="flex justify-end gap-3 pt-4 border-t border-border">
                             {selectedComment.status === 'pending' && (
                                 <>
                                     <Button
@@ -698,7 +698,7 @@ const Comments = () => {
                                         }}
                                     >
                                         <Check className="h-4 w-4 mr-2" />
-                                        Duyá»‡t bÃ¬nh luáº­n
+                                        Duyệt bình luận
                                     </Button>
                                     <Button
                                         variant="destructive"
@@ -709,7 +709,7 @@ const Comments = () => {
                                         }}
                                     >
                                         <X className="h-4 w-4 mr-2" />
-                                        Tá»« chá»‘i
+                                        Từ chối
                                     </Button>
                                 </>
                             )}
@@ -717,14 +717,14 @@ const Comments = () => {
                                 variant="destructive"
                                 className="shadow-md hover:shadow-lg transition-all"
                                 onClick={() => {
-                                    if (window.confirm('Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a bÃ¬nh luáº­n nÃ y?')) {
+                                    if (window.confirm('Bạn có chắc chắn muốn xóa bình luận này?')) {
                                         handleDeleteComment(selectedComment.id);
                                         setShowDetailModal(false);
                                     }
                                 }}
                             >
                                 <Trash2 className="h-4 w-4 mr-2" />
-                                XÃ³a bÃ¬nh luáº­n
+                                Xóa bình luận
                             </Button>
                         </div>
                     </div>

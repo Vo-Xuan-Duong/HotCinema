@@ -60,7 +60,7 @@ const Schedules = () => {
     const [schedules, setSchedules] = useState([]);
     const [movies, setMovies] = useState([]);
     const [cinemas, setCinemas] = useState([]);
-    const [rooms, setRooms] = useState([]); // Danh sÃ¡ch phÃ²ng chiáº¿u
+    const [rooms, setRooms] = useState([]); // Danh sách phòng chiếu
     const [loading, setLoading] = useState(true);
     const [moviesLoading, setMoviesLoading] = useState(false);
     const [cinemasLoading, setCinemasLoading] = useState(false);
@@ -88,7 +88,7 @@ const Schedules = () => {
         loadCinemas();
     }, []);
 
-    // Auto-fill form khi má»Ÿ edit modal vÃ  Ä‘Ã£ cÃ³ rooms
+    // Auto-fill form khi mở edit modal và đã có rooms
     useEffect(() => {
         console.log('useEffect triggered:', {
             showEditModal,
@@ -98,7 +98,7 @@ const Schedules = () => {
         });
 
         if (showEditModal && selectedSchedule) {
-            // TÃ¬m movieId vÃ  cinemaId tá»« danh sÃ¡ch
+            // Tìm movieId và cinemaId từ danh sách
             const movie = movies.find(m => m.title === selectedSchedule.movieTitle);
             const cinema = cinemas.find(c => c.name === selectedSchedule.cinemaName);
 
@@ -112,8 +112,8 @@ const Schedules = () => {
                 status: selectedSchedule.status
             });
 
-            // Format date vÃ  time cho Input type="date" vÃ  type="time"
-            // Input type="date" cáº§n format "YYYY-MM-DD", Input type="time" cáº§n format "HH:mm"
+            // Format date và time cho Input type="date" và type="time"
+            // Input type="date" cần format "YYYY-MM-DD", Input type="time" cần format "HH:mm"
             const formattedDate = selectedSchedule.showDate
                 ? (typeof selectedSchedule.showDate === 'string'
                     ? selectedSchedule.showDate.split('T')[0]
@@ -121,7 +121,7 @@ const Schedules = () => {
                 : null;
             const formattedTime = selectedSchedule.startTime
                 ? (typeof selectedSchedule.startTime === 'string'
-                    ? selectedSchedule.startTime.substring(0, 5) // Láº¥y "HH:mm" tá»« "HH:mm:ss"
+                    ? selectedSchedule.startTime.substring(0, 5) // Lấy "HH:mm" từ "HH:mm:ss"
                     : dayjs(selectedSchedule.startTime, 'HH:mm:ss').format('HH:mm'))
                 : null;
 
@@ -139,14 +139,14 @@ const Schedules = () => {
         }
     }, [showEditModal, selectedSchedule, rooms, movies, cinemas]);
 
-    // Reload khi currentPage hoáº·c pageSize thay Ä‘á»•i
+    // Reload khi currentPage hoặc pageSize thay đổi
     useEffect(() => {
         if (currentPage !== 1 || pageSize !== 10) {
             loadSchedules(currentPage, pageSize);
         }
     }, [currentPage, pageSize]);
 
-    // Reset vá» trang 1 khi filter thay Ä‘á»•i
+    // Reset về trang 1 khi filter thay đổi
     useEffect(() => {
         if (currentPage !== 1) {
             setCurrentPage(1);
@@ -177,7 +177,7 @@ const Schedules = () => {
                     total = data.length;
                 }
             } else {
-                // Call API vá»›i tham sá»‘ phÃ¢n trang (page báº¯t Ä‘áº§u tá»« 0)
+                // Call API với tham số phân trang (page bắt đầu từ 0)
                 const response = await showtimeService.getAllShowtimes(page - 1, size);
 
                 if (response?.data?.content) {
@@ -199,7 +199,7 @@ const Schedules = () => {
             setTotalElements(total);
         } catch (error) {
             console.error('Error loading schedules:', error);
-            notification.error('Lá»—i khi táº£i lá»‹ch chiáº¿u');
+            notification.error('Lỗi khi tải lịch chiếu');
         } finally {
             setLoading(false);
         }
@@ -208,11 +208,11 @@ const Schedules = () => {
     const loadMovies = async () => {
         try {
             setMoviesLoading(true);
-            // Láº¥y danh sÃ¡ch phim Ä‘ang chiáº¿u (Now Showing)
+            // Lấy danh sách phim đang chiếu (Now Showing)
             const response = await movieService.getNowShowing();
             console.log('Now Showing Movies API response:', response);
 
-            // Xá»­ lÃ½ response - cÃ³ thá»ƒ lÃ  pagination hoáº·c array trá»±c tiáº¿p
+            // Xử lý response - có thể là pagination hoặc array trực tiếp
             let moviesData = [];
             if (response?.data?.content) {
                 // Paginated response: { data: { content: [], totalElements, ... } }
@@ -235,11 +235,11 @@ const Schedules = () => {
             setMovies(activeMovies);
 
             if (activeMovies.length === 0) {
-                notification.warning('KhÃ´ng cÃ³ phim Ä‘ang chiáº¿u nÃ o. Vui lÃ²ng thÃªm phim Ä‘ang chiáº¿u trÆ°á»›c.');
+                notification.warning('Không có phim đang chiếu nào. Vui lòng thêm phim đang chiếu trước.');
             }
         } catch (error) {
             console.error('Error loading now showing movies:', error);
-            notification.error('Lá»—i khi táº£i danh sÃ¡ch phim Ä‘ang chiáº¿u: ' + (error.response?.data?.message || error.message));
+            notification.error('Lỗi khi tải danh sách phim đang chiếu: ' + (error.response?.data?.message || error.message));
             setMovies([]);
         } finally {
             setMoviesLoading(false);
@@ -252,7 +252,7 @@ const Schedules = () => {
             const response = await cinemaService.getAllCinemas();
             console.log('Cinemas API response:', response);
 
-            // Xá»­ lÃ½ response - cÃ³ thá»ƒ lÃ  pagination hoáº·c array trá»±c tiáº¿p
+            // Xử lý response - có thể là pagination hoặc array trực tiếp
             let cinemasData = [];
             if (response?.data?.content) {
                 // Paginated response: { data: { content: [], totalElements, ... } }
@@ -275,18 +275,18 @@ const Schedules = () => {
             setCinemas(activeCinemas);
 
             if (activeCinemas.length === 0) {
-                notification.warning('KhÃ´ng cÃ³ ráº¡p nÃ o Ä‘ang hoáº¡t Ä‘á»™ng. Vui lÃ²ng thÃªm ráº¡p trÆ°á»›c.');
+                notification.warning('Không có rạp nào đang hoạt động. Vui lòng thêm rạp trước.');
             }
         } catch (error) {
             console.error('Error loading cinemas:', error);
-            notification.error('Lá»—i khi táº£i danh sÃ¡ch ráº¡p: ' + (error.response?.data?.message || error.message));
+            notification.error('Lỗi khi tải danh sách rạp: ' + (error.response?.data?.message || error.message));
             setCinemas([]);
         } finally {
             setCinemasLoading(false);
         }
     };
 
-    // Load danh sÃ¡ch phÃ²ng chiáº¿u khi chá»n ráº¡p
+    // Load danh sách phòng chiếu khi chọn rạp
     const loadRoomsByCinema = async (cinemaId) => {
         if (!cinemaId) {
             setRooms([]);
@@ -298,7 +298,7 @@ const Schedules = () => {
             const response = await cinemaService.getRoomsByCinemaId(cinemaId);
             console.log('Rooms API response:', response);
 
-            // Xá»­ lÃ½ response
+            // Xử lý response
             let roomsData = [];
             if (Array.isArray(response?.data)) {
                 roomsData = response.data;
@@ -313,31 +313,31 @@ const Schedules = () => {
             setRooms(activeRooms);
 
             if (activeRooms.length === 0) {
-                notification.warning('Ráº¡p nÃ y chÆ°a cÃ³ phÃ²ng chiáº¿u nÃ o.');
+                notification.warning('Rạp này chưa có phòng chiếu nào.');
             }
         } catch (error) {
             console.error('Error loading rooms:', error);
-            notification.error('Lá»—i khi táº£i danh sÃ¡ch phÃ²ng chiáº¿u: ' + (error.response?.data?.message || error.message));
+            notification.error('Lỗi khi tải danh sách phòng chiếu: ' + (error.response?.data?.message || error.message));
             setRooms([]);
         } finally {
             setRoomsLoading(false);
         }
     };
 
-    // Xá»­ lÃ½ khi thay Ä‘á»•i ráº¡p
+    // Xử lý khi thay đổi rạp
     const handleCinemaChange = (cinemaId) => {
-        // Reset phÃ²ng chiáº¿u Ä‘Ã£ chá»n
+        // Reset phòng chiếu đã chọn
         // Form values will be reset via form state
-        // Load danh sÃ¡ch phÃ²ng cá»§a ráº¡p má»›i
+        // Load danh sách phòng của rạp mới
         loadRoomsByCinema(cinemaId);
     };
 
-    // Xá»­ lÃ½ khi thay Ä‘á»•i phÃ²ng chiáº¿u
+    // Xử lý khi thay đổi phòng chiếu
     const handleRoomChange = (roomName) => {
-        // TÃ¬m thÃ´ng tin phÃ²ng Ä‘Ã£ chá»n
+        // Tìm thông tin phòng đã chọn
         const selectedRoom = rooms.find(r => r.name === roomName);
         if (selectedRoom) {
-            // LÆ°u roomId Ä‘á»ƒ submit (khÃ´ng tá»± Ä‘á»™ng set format ná»¯a)
+            // Lưu roomId để submit (không tự động set format nữa)
             // Form values will be set via form state
         }
     };
@@ -372,21 +372,21 @@ const Schedules = () => {
             console.log('handleEditSchedule called with:', schedule);
             setSelectedSchedule(schedule);
 
-            // TÃ¬m cinemaId tá»« cinemaName
+            // Tìm cinemaId từ cinemaName
             const cinema = cinemas.find(c => c.name === schedule.cinemaName);
 
-            // Load phÃ²ng chiáº¿u cá»§a ráº¡p Ä‘Ã£ chá»n
+            // Load phòng chiếu của rạp đã chọn
             if (cinema?.id) {
                 console.log('Loading rooms for cinema:', cinema.id);
                 await loadRoomsByCinema(cinema.id);
             }
 
-            // Má»Ÿ modal - useEffect sáº½ tá»± Ä‘á»™ng set form values
+            // Mở modal - useEffect sẽ tự động set form values
             console.log('Opening edit modal...');
             setShowEditModal(true);
         } catch (error) {
             console.error('Error in handleEditSchedule:', error);
-            notification.error('Lá»—i khi táº£i thÃ´ng tin lá»‹ch chiáº¿u');
+            notification.error('Lỗi khi tải thông tin lịch chiếu');
         }
     };
 
@@ -402,12 +402,12 @@ const Schedules = () => {
     const handleDeleteSchedule = async (scheduleId) => {
         try {
             await showtimeService.deleteShowtime(scheduleId);
-            notification.success('XÃ³a lá»‹ch chiáº¿u thÃ nh cÃ´ng!');
-            // Reload trang hiá»‡n táº¡i, náº¿u trang hiá»‡n táº¡i khÃ´ng cÃ²n dá»¯ liá»‡u thÃ¬ vá» trang 1
+            notification.success('Xóa lịch chiếu thành công!');
+            // Reload trang hiện tại, nếu trang hiện tại không còn dữ liệu thì về trang 1
             await loadSchedules(currentPage, pageSize);
         } catch (error) {
             console.error('Error deleting schedule:', error);
-            notification.error('Lá»—i khi xÃ³a lá»‹ch chiáº¿u');
+            notification.error('Lỗi khi xóa lịch chiếu');
         }
     };
 
@@ -415,67 +415,67 @@ const Schedules = () => {
         try {
             await showtimeService.updateShowtimeStatus(scheduleId, newStatus);
             const statusTextMap = {
-                'UPCOMING': 'sáº¯p chiáº¿u',
-                'AVAILABLE': 'cÃ²n vÃ©',
-                'ALMOST_FULL': 'sáº¯p háº¿t chá»—',
-                'FULL': 'háº¿t chá»—',
-                'SALES_ENDED': 'dá»«ng bÃ¡n vÃ©',
-                'COMPLETED': 'Ä‘Ã£ káº¿t thÃºc',
-                'CANCELLED': 'há»§y',
-                'POSTPONED': 'táº¡m hoÃ£n'
+                'UPCOMING': 'sắp chiếu',
+                'AVAILABLE': 'còn vé',
+                'ALMOST_FULL': 'sắp hết chỗ',
+                'FULL': 'hết chỗ',
+                'SALES_ENDED': 'dừng bán vé',
+                'COMPLETED': 'đã kết thúc',
+                'CANCELLED': 'hủy',
+                'POSTPONED': 'tạm hoãn'
             };
-            const statusText = statusTextMap[newStatus] || 'cáº­p nháº­t';
-            notification.success(`ÄÃ£ ${statusText} lá»‹ch chiáº¿u!`);
+            const statusText = statusTextMap[newStatus] || 'cập nhật';
+            notification.success(`Đã ${statusText} lịch chiếu!`);
             await loadSchedules();
         } catch (error) {
             console.error('Error updating status:', error);
-            notification.error('Lá»—i khi cáº­p nháº­t tráº¡ng thÃ¡i');
+            notification.error('Lỗi khi cập nhật trạng thái');
         }
     };
 
     const handleSubmit = async (values) => {
         try {
-            // TÃ¬m theaterId tá»« screenName Ä‘Ã£ chá»n
+            // Tìm theaterId từ screenName đã chọn
             const selectedRoom = rooms.find(r => r.name === values.screenName);
             if (!selectedRoom) {
-                notification.error('KhÃ´ng tÃ¬m tháº¥y thÃ´ng tin phÃ²ng chiáº¿u');
+                notification.error('Không tìm thấy thông tin phòng chiếu');
                 return;
             }
 
-            // TÃ¬m movie Ä‘á»ƒ láº¥y durationMinutes
+            // Tìm movie để lấy durationMinutes
             const selectedMovie = movies.find(m => m.id === values.movieId);
             if (!selectedMovie) {
-                notification.error('KhÃ´ng tÃ¬m tháº¥y thÃ´ng tin phim');
+                notification.error('Không tìm thấy thông tin phim');
                 return;
             }
 
-            // Chuáº©n bá»‹ data theo format backend yÃªu cáº§u
-            // Input type="date" tráº£ vá» string "YYYY-MM-DD", Input type="time" tráº£ vá» "HH:mm"
+            // Chuẩn bị data theo format backend yêu cầu
+            // Input type="date" trả về string "YYYY-MM-DD", Input type="time" trả về "HH:mm"
             const showDate = typeof values.date === 'string' ? values.date : dayjs(values.date).format('YYYY-MM-DD');
             const startTime = typeof values.time === 'string' ? `${values.time}:00` : dayjs(values.time).format('HH:mm:ss');
 
-            // TÃ­nh toÃ¡n endTime tá»« startTime + movie duration (phÃºt)
-            const durationMinutes = selectedMovie.durationMinutes || 120; // Máº·c Ä‘á»‹nh 120 phÃºt náº¿u khÃ´ng cÃ³
+            // Tính toán endTime từ startTime + movie duration (phút)
+            const durationMinutes = selectedMovie.durationMinutes || 120; // Mặc định 120 phút nếu không có
             const startTimeObj = dayjs(`${showDate} ${startTime}`);
             const endTime = startTimeObj.add(durationMinutes, 'minute').format('HH:mm:ss');
 
             const scheduleData = {
                 movieId: values.movieId,
-                theaterId: selectedRoom.id, // Äá»•i tá»« roomId sang theaterId
+                theaterId: selectedRoom.id, // Đổi từ roomId sang theaterId
                 format: values.format, // Format enum: TWO_D, THREE_D, IMAX, IMAX_3D, FOUR_DX, SCREEN_X
                 audioType: values.audioType, // AudioType enum: SUBTITLE, DUBBED, ORIGINAL
                 showDate: showDate, // LocalDate
                 startTime: startTime, // LocalTime
-                endTime: endTime, // LocalTime - tÃ­nh tá»« startTime + duration
-                basePrice: values.price, // BigDecimal - Ä‘á»•i tá»« ticketPrice
-                status: values.status || 'AVAILABLE' // ShowtimeStatus enum - máº·c Ä‘á»‹nh: CÃ²n vÃ©
+                endTime: endTime, // LocalTime - tính từ startTime + duration
+                basePrice: values.price, // BigDecimal - đổi từ ticketPrice
+                status: values.status || 'AVAILABLE' // ShowtimeStatus enum - mặc định: Còn vé
             };
 
             console.log('Submitting schedule data:', scheduleData);
 
             if (showEditModal) {
                 await showtimeService.updateShowtime(selectedSchedule.id, scheduleData);
-                notification.success('Cáº­p nháº­t lá»‹ch chiáº¿u thÃ nh cÃ´ng!');
+                notification.success('Cập nhật lịch chiếu thành công!');
                 setShowEditModal(false);
                 setFormValues({
                     movieId: '',
@@ -489,10 +489,10 @@ const Schedules = () => {
                     status: 'AVAILABLE'
                 });
                 setSelectedSchedule(null);
-                await loadSchedules(currentPage, pageSize); // Reload trang hiá»‡n táº¡i
+                await loadSchedules(currentPage, pageSize); // Reload trang hiện tại
             } else {
                 await showtimeService.createShowtime(scheduleData);
-                notification.success('ThÃªm lá»‹ch chiáº¿u thÃ nh cÃ´ng!');
+                notification.success('Thêm lịch chiếu thành công!');
                 setShowAddModal(false);
                 setFormValues({
                     movieId: '',
@@ -506,12 +506,12 @@ const Schedules = () => {
                     status: 'AVAILABLE'
                 });
                 setSelectedSchedule(null);
-                setCurrentPage(1); // Reset vá» trang 1 khi thÃªm má»›i
+                setCurrentPage(1); // Reset về trang 1 khi thêm mới
                 await loadSchedules(1, pageSize);
             }
         } catch (error) {
             console.error('Error saving schedule:', error);
-            notification.error(error.response?.data?.message || 'Lá»—i khi lÆ°u lá»‹ch chiáº¿u');
+            notification.error(error.response?.data?.message || 'Lỗi khi lưu lịch chiếu');
         }
     };
 
@@ -531,14 +531,14 @@ const Schedules = () => {
 
     const getStatusText = (status) => {
         switch (status) {
-            case 'UPCOMING': return 'Sáº¯p chiáº¿u';
-            case 'AVAILABLE': return 'CÃ²n vÃ©';
-            case 'ALMOST_FULL': return 'Sáº¯p háº¿t chá»—';
-            case 'FULL': return 'Háº¿t chá»—';
-            case 'SALES_ENDED': return 'Dá»«ng bÃ¡n vÃ©';
-            case 'COMPLETED': return 'ÄÃ£ káº¿t thÃºc';
-            case 'CANCELLED': return 'ÄÃ£ há»§y';
-            case 'POSTPONED': return 'Táº¡m hoÃ£n';
+            case 'UPCOMING': return 'Sắp chiếu';
+            case 'AVAILABLE': return 'Còn vé';
+            case 'ALMOST_FULL': return 'Sắp hết chỗ';
+            case 'FULL': return 'Hết chỗ';
+            case 'SALES_ENDED': return 'Dừng bán vé';
+            case 'COMPLETED': return 'Đã kết thúc';
+            case 'CANCELLED': return 'Đã hủy';
+            case 'POSTPONED': return 'Tạm hoãn';
             default: return status;
         }
     };
@@ -582,9 +582,9 @@ const Schedules = () => {
 
     const getAudioTypeLabel = (audioType) => {
         const audioLabels = {
-            'SUBTITLE': 'Phá»¥ Ä‘á»',
-            'DUBBED': 'Lá»“ng tiáº¿ng',
-            'ORIGINAL': 'NguyÃªn gá»‘c'
+            'SUBTITLE': 'Phụ đề',
+            'DUBBED': 'Lồng tiếng',
+            'ORIGINAL': 'Nguyên gốc'
         };
         return audioLabels[audioType] || audioType || 'N/A';
     };
@@ -596,7 +596,7 @@ const Schedules = () => {
         const diffMinutes = end.diff(start, 'minute');
         const hours = Math.floor(diffMinutes / 60);
         const minutes = diffMinutes % 60;
-        return `${hours} giá» ${minutes} phÃºt`;
+        return `${hours} giờ ${minutes} phút`;
     };
 
     const renderShowtimeSeatGrid = (showtimeSeatsData) => {
@@ -667,11 +667,11 @@ const Schedules = () => {
                                             }
                                         }
 
-                                        let statusText = 'KhÃ´ng kháº£ dá»¥ng';
+                                        let statusText = 'Không khả dụng';
                                         if (seat.isActive) {
-                                            if (isBooked) statusText = 'ÄÃ£ Ä‘áº·t';
-                                            else if (isReserved) statusText = 'Äang giá»¯';
-                                            else statusText = 'CÃ²n trá»‘ng';
+                                            if (isBooked) statusText = 'Đã đặt';
+                                            else if (isReserved) statusText = 'Đang giữ';
+                                            else statusText = 'Còn trống';
                                         }
 
                                         return (
@@ -705,10 +705,10 @@ const Schedules = () => {
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                     <div className="space-y-1">
-                                                        <div>Gháº¿: {seat.rowLabel}{seat.seatNumber}</div>
-                                                        <div>Loáº¡i: {seat.seatType}</div>
-                                                        <div>Tráº¡ng thÃ¡i: {statusText}</div>
-                                                        <div>GiÃ¡: {seat.price?.toLocaleString('vi-VN')} VNÄ</div>
+                                                        <div>Ghế: {seat.rowLabel}{seat.seatNumber}</div>
+                                                        <div>Loại: {seat.seatType}</div>
+                                                        <div>Trạng thái: {statusText}</div>
+                                                        <div>Giá: {seat.price?.toLocaleString('vi-VN')} VNĐ</div>
                                                     </div>
                                                 </TooltipContent>
                                             </Tooltip>
@@ -724,20 +724,20 @@ const Schedules = () => {
     };
 
     const saveSeatLayout = async (seatData) => {
-        // SeatManager sáº½ tá»± Ä‘á»™ng lÆ°u, chá»‰ cáº§n Ä‘Ã³ng modal
-        notification.success('Cáº­p nháº­t sÆ¡ Ä‘á»“ gháº¿ thÃ nh cÃ´ng');
+        // SeatManager sẽ tự động lưu, chỉ cần đóng modal
+        notification.success('Cập nhật sơ đồ ghế thành công');
     };
 
-    // TÃ­nh toÃ¡n thá»‘ng kÃª (hiá»ƒn thá»‹ tá»« trang hiá»‡n táº¡i)
+    // Tính toán thống kê (hiển thị từ trang hiện tại)
     const stats = {
-        totalSchedules: totalElements, // Tá»•ng sá»‘ tá»« backend
+        totalSchedules: totalElements, // Tổng số từ backend
         activeSchedules: schedules.filter(s => s.status === 'OPEN_FOR_BOOKING' || s.status === 'ONGOING').length,
         totalRevenue: schedules.reduce((sum, s) => sum + (s.price * s.seatsBooked), 0),
         avgBookingRate: schedules.length > 0 ?
             schedules.reduce((sum, s) => sum + getBookingRate(s.seatsBooked, s.totalSeats), 0) / schedules.length : 0
     };
 
-    // Filter phÃ­a client cho status, dateRange vÃ  searchText
+    // Filter phía client cho status, dateRange và searchText
     // Backend API filters are used for movieId and cinemaId in loadSchedules
     const filteredSchedules = schedules.filter(schedule => {
         const movieTitle = getMovieTitle(schedule.movieId).toLowerCase();
@@ -764,28 +764,28 @@ const Schedules = () => {
     // Batch operations
     const handleBatchDelete = async () => {
         if (selectedRowKeys.length === 0) {
-            notification.warning('Vui lÃ²ng chá»n Ã­t nháº¥t má»™t lá»‹ch chiáº¿u Ä‘á»ƒ xÃ³a');
+            notification.warning('Vui lòng chọn ít nhất một lịch chiếu để xóa');
             return;
         }
 
-        if (window.confirm(`Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a ${selectedRowKeys.length} lá»‹ch chiáº¿u Ä‘Ã£ chá»n?`)) {
+        if (window.confirm(`Bạn có chắc chắn muốn xóa ${selectedRowKeys.length} lịch chiếu đã chọn?`)) {
             try {
                 await Promise.all(
                     selectedRowKeys.map(id => showtimeService.deleteShowtime(id))
                 );
-                notification.success(`ÄÃ£ xÃ³a ${selectedRowKeys.length} lá»‹ch chiáº¿u`);
+                notification.success(`Đã xóa ${selectedRowKeys.length} lịch chiếu`);
                 setSelectedRowKeys([]);
                 await loadSchedules();
             } catch (error) {
                 console.error('Error batch deleting:', error);
-                notification.error('Lá»—i khi xÃ³a hÃ ng loáº¡t');
+                notification.error('Lỗi khi xóa hàng loạt');
             }
         }
     };
 
     const handleBatchStatusChange = async (newStatus) => {
         if (selectedRowKeys.length === 0) {
-            notification.warning('Vui lÃ²ng chá»n Ã­t nháº¥t má»™t lá»‹ch chiáº¿u');
+            notification.warning('Vui lòng chọn ít nhất một lịch chiếu');
             return;
         }
 
@@ -793,12 +793,12 @@ const Schedules = () => {
             await Promise.all(
                 selectedRowKeys.map(id => showtimeService.updateShowtimeStatus(id, newStatus))
             );
-            notification.success(`ÄÃ£ cáº­p nháº­t tráº¡ng thÃ¡i cho ${selectedRowKeys.length} lá»‹ch chiáº¿u`);
+            notification.success(`Đã cập nhật trạng thái cho ${selectedRowKeys.length} lịch chiếu`);
             setSelectedRowKeys([]);
             await loadSchedules();
         } catch (error) {
             console.error('Error batch status update:', error);
-            notification.error('Lá»—i khi cáº­p nháº­t tráº¡ng thÃ¡i hÃ ng loáº¡t');
+            notification.error('Lỗi khi cập nhật trạng thái hàng loạt');
         }
     };
 
@@ -833,19 +833,19 @@ const Schedules = () => {
             ),
         },
         {
-            title: 'Ráº¡p chiáº¿u',
+            title: 'Rạp chiếu',
             key: 'cinema',
             width: 180,
             ellipsis: true,
             render: (_, record) => (
                 <div className="flex flex-col gap-1">
                     <span>{record.cinemaName}</span>
-                    <span className="text-gray-500 text-sm">{record.roomName}</span>
+                    <span className="text-muted-foreground text-sm">{record.roomName}</span>
                 </div>
             ),
         },
         {
-            title: 'NgÃ y & Giá»',
+            title: 'Ngày & Giờ',
             key: 'datetime',
             width: 150,
             align: 'center',
@@ -864,7 +864,7 @@ const Schedules = () => {
             ),
         },
         {
-            title: 'GiÃ¡ vÃ©',
+            title: 'Giá vé',
             dataIndex: 'price',
             key: 'price',
             width: 120,
@@ -872,12 +872,12 @@ const Schedules = () => {
             // sorter: (a, b) => a.price - b.price,
             render: (price) => (
                 <span className="font-semibold text-orange-500">
-                    {price?.toLocaleString('vi-VN')} VNÄ
+                    {price?.toLocaleString('vi-VN')} VNĐ
                 </span>
             ),
         },
         {
-            title: 'Äáº·t vÃ©',
+            title: 'Đặt vé',
             key: 'booking',
             width: 110,
             align: 'center',
@@ -886,38 +886,38 @@ const Schedules = () => {
                 const rate = getBookingRate(record.seatsBooked, record.totalSeats);
                 return (
                     <div className="flex flex-col gap-1">
-                        <span>{record.seatsBooked}/{record.totalSeats} gháº¿</span>
+                        <span>{record.seatsBooked}/{record.totalSeats} ghế</span>
                         <StatusBadge tone={getBookingRateColor(rate)}>{rate}%</StatusBadge>
                     </div>
                 );
             },
         },
         {
-            title: 'Tráº¡ng thÃ¡i',
+            title: 'Trạng thái',
             key: 'status',
             width: 140,
             align: 'center',
             filters: [
-                { text: 'Sáº¯p chiáº¿u', value: 'UPCOMING' },
-                { text: 'CÃ²n vÃ©', value: 'AVAILABLE' },
-                { text: 'Sáº¯p háº¿t chá»—', value: 'ALMOST_FULL' },
-                { text: 'Háº¿t chá»—', value: 'FULL' },
-                { text: 'Dá»«ng bÃ¡n vÃ©', value: 'SALES_ENDED' },
-                { text: 'ÄÃ£ káº¿t thÃºc', value: 'COMPLETED' },
-                { text: 'ÄÃ£ há»§y', value: 'CANCELLED' },
-                { text: 'Táº¡m hoÃ£n', value: 'POSTPONED' },
+                { text: 'Sắp chiếu', value: 'UPCOMING' },
+                { text: 'Còn vé', value: 'AVAILABLE' },
+                { text: 'Sắp hết chỗ', value: 'ALMOST_FULL' },
+                { text: 'Hết chỗ', value: 'FULL' },
+                { text: 'Dừng bán vé', value: 'SALES_ENDED' },
+                { text: 'Đã kết thúc', value: 'COMPLETED' },
+                { text: 'Đã hủy', value: 'CANCELLED' },
+                { text: 'Tạm hoãn', value: 'POSTPONED' },
             ],
             onFilter: (value, record) => record.status === value,
             render: (_, record) => {
                 const statusConfig = {
-                    'UPCOMING': { color: 'cyan', text: 'Sáº¯p chiáº¿u' },
-                    'AVAILABLE': { color: 'success', text: 'CÃ²n vÃ©' },
-                    'ALMOST_FULL': { color: 'orange', text: 'Sáº¯p háº¿t chá»—' },
-                    'FULL': { color: 'error', text: 'Háº¿t chá»—' },
-                    'SALES_ENDED': { color: 'warning', text: 'Dá»«ng bÃ¡n vÃ©' },
-                    'COMPLETED': { color: 'default', text: 'ÄÃ£ káº¿t thÃºc' },
-                    'CANCELLED': { color: 'error', text: 'ÄÃ£ há»§y' },
-                    'POSTPONED': { color: 'warning', text: 'Táº¡m hoÃ£n' }
+                    'UPCOMING': { color: 'cyan', text: 'Sắp chiếu' },
+                    'AVAILABLE': { color: 'success', text: 'Còn vé' },
+                    'ALMOST_FULL': { color: 'orange', text: 'Sắp hết chỗ' },
+                    'FULL': { color: 'error', text: 'Hết chỗ' },
+                    'SALES_ENDED': { color: 'warning', text: 'Dừng bán vé' },
+                    'COMPLETED': { color: 'default', text: 'Đã kết thúc' },
+                    'CANCELLED': { color: 'error', text: 'Đã hủy' },
+                    'POSTPONED': { color: 'warning', text: 'Tạm hoãn' }
                 };
                 const config = statusConfig[record.status] || { color: 'default', text: record.status };
                 return (
@@ -928,7 +928,7 @@ const Schedules = () => {
             },
         },
         {
-            title: 'Thao tÃ¡c',
+            title: 'Thao tác',
             key: 'actions',
             width: 300,
             align: 'center',
@@ -946,7 +946,7 @@ const Schedules = () => {
                                     <Eye className="h-4 w-4" />
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Xem chi tiáº¿t</TooltipContent>
+                            <TooltipContent>Xem chi tiết</TooltipContent>
                         </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -958,7 +958,7 @@ const Schedules = () => {
                                     <Grid className="h-4 w-4" />
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Danh sÃ¡ch gháº¿</TooltipContent>
+                            <TooltipContent>Danh sách ghế</TooltipContent>
                         </Tooltip>
                         <Button
                             variant="ghost"
@@ -966,20 +966,20 @@ const Schedules = () => {
                             onClick={() => handleEditSchedule(record)}
                         >
                             <Edit className="h-4 w-4 mr-1" />
-                            Sá»­a
+                            Sửa
                         </Button>
                         <Button
                             variant="ghost"
                             size="sm"
                             className="text-red-600"
                             onClick={() => {
-                                if (window.confirm('Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a lá»‹ch chiáº¿u nÃ y?')) {
+                                if (window.confirm('Bạn có chắc chắn muốn xóa lịch chiếu này?')) {
                                     handleDeleteSchedule(record.id);
                                 }
                             }}
                         >
                             <Trash2 className="h-4 w-4 mr-1" />
-                            XÃ³a
+                            Xóa
                         </Button>
                     </div>
                 </TooltipProvider>
@@ -1000,22 +1000,22 @@ const Schedules = () => {
                             href: '/admin/dashboard'
                         },
                         {
-                            title: 'Quáº£n lÃ½ Lá»‹ch chiáº¿u',
+                            title: 'Quản lý Lịch chiếu',
                             icon: <Calendar className="h-4 w-4" />
                         }
                     ]}
                 />
 
                 {/* Header */}
-                <Card className="p-6 bg-white rounded-xl shadow-md border border-gray-200 mb-6">
+                <Card className="p-6 bg-card rounded-xl shadow-md border border-border mb-6">
                     <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-indigo-100 rounded-lg">
                                 <Calendar className="h-6 w-6 text-indigo-600" />
                             </div>
                             <div>
-                                <h2 className="text-gray-900 m-0 text-2xl font-bold">Quáº£n lÃ½ Lá»‹ch chiáº¿u</h2>
-                                <p className="text-sm text-gray-500 mt-1">Quáº£n lÃ½ vÃ  theo dÃµi lá»‹ch chiáº¿u phim</p>
+                                <h2 className="text-foreground m-0 text-2xl font-bold">Quản lý Lịch chiếu</h2>
+                                <p className="text-sm text-muted-foreground mt-1">Quản lý và theo dõi lịch chiếu phim</p>
                             </div>
                         </div>
                         <Button
@@ -1024,7 +1024,7 @@ const Schedules = () => {
                             className="rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white"
                         >
                             <Plus className="h-4 w-4 mr-2" />
-                            ThÃªm Lá»‹ch chiáº¿u
+                            Thêm Lịch chiếu
                         </Button>
                     </div>
 
@@ -1034,7 +1034,7 @@ const Schedules = () => {
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                                 <Input
-                                    placeholder="TÃ¬m kiáº¿m lá»‹ch chiáº¿u..."
+                                    placeholder="Tìm kiếm lịch chiếu..."
                                     value={searchText}
                                     onChange={(e) => setSearchText(e.target.value)}
                                     className="rounded-lg pl-10"
@@ -1046,7 +1046,7 @@ const Schedules = () => {
                                 mode="range"
                                 className="w-full rounded-lg"
                                 displayFormat="DD/MM/YYYY"
-                                placeholder={['Tá»« ngÃ y', 'Äáº¿n ngÃ y']}
+                                placeholder={['Từ ngày', 'Đến ngày']}
                                 value={dateRange}
                                 onValueChange={setDateRange}
                             />
@@ -1057,10 +1057,10 @@ const Schedules = () => {
                                 onValueChange={setMovieFilter}
                             >
                                 <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Lá»c theo phim" />
+                                    <SelectValue placeholder="Lọc theo phim" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Táº¥t cáº£ phim</SelectItem>
+                                    <SelectItem value="all">Tất cả phim</SelectItem>
                                     {movies.map(movie => (
                                         <SelectItem key={movie.id} value={movie.id.toString()}>
                                             {movie.title}
@@ -1075,10 +1075,10 @@ const Schedules = () => {
                                 onValueChange={setCinemaFilter}
                             >
                                 <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Lá»c theo ráº¡p" />
+                                    <SelectValue placeholder="Lọc theo rạp" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Táº¥t cáº£ ráº¡p</SelectItem>
+                                    <SelectItem value="all">Tất cả rạp</SelectItem>
                                     {cinemas.map(cinema => (
                                         <SelectItem key={cinema.id} value={cinema.id.toString()}>
                                             {cinema.name}
@@ -1093,16 +1093,16 @@ const Schedules = () => {
                                 onValueChange={setStatusFilter}
                             >
                                 <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Lá»c theo tráº¡ng thÃ¡i" />
+                                    <SelectValue placeholder="Lọc theo trạng thái" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Táº¥t cáº£ tráº¡ng thÃ¡i</SelectItem>
-                                    <SelectItem value="DRAFT">NhÃ¡p</SelectItem>
-                                    <SelectItem value="OPEN_FOR_BOOKING">Má»Ÿ bÃ¡n vÃ©</SelectItem>
-                                    <SelectItem value="BOOKING_CLOSED">ÄÃ£ Ä‘Ã³ng Ä‘áº·t vÃ©</SelectItem>
-                                    <SelectItem value="ONGOING">Äang chiáº¿u</SelectItem>
-                                    <SelectItem value="FINISHED">ÄÃ£ káº¿t thÃºc</SelectItem>
-                                    <SelectItem value="CANCELED">ÄÃ£ há»§y</SelectItem>
+                                    <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                                    <SelectItem value="DRAFT">Nháp</SelectItem>
+                                    <SelectItem value="OPEN_FOR_BOOKING">Mở bán vé</SelectItem>
+                                    <SelectItem value="BOOKING_CLOSED">Đã đóng đặt vé</SelectItem>
+                                    <SelectItem value="ONGOING">Đang chiếu</SelectItem>
+                                    <SelectItem value="FINISHED">Đã kết thúc</SelectItem>
+                                    <SelectItem value="CANCELED">Đã hủy</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -1115,10 +1115,10 @@ const Schedules = () => {
                         variant="default"
                         title={
                             <div className="flex flex-wrap items-center gap-2">
-                                <span className="font-semibold">Äang lá»c:</span>
+                                <span className="font-semibold">Đang lọc:</span>
                                 {searchText && (
                                     <StatusBadge tone="blue" className="flex items-center gap-1">
-                                        Tá»« khÃ³a: {searchText}
+                                        Từ khóa: {searchText}
                                         <button
                                             onClick={() => setSearchText('')}
                                             className="ml-1 hover:bg-blue-200 rounded-full p-0.5 transition-colors"
@@ -1129,7 +1129,7 @@ const Schedules = () => {
                                 )}
                                 {dateRange && (
                                     <StatusBadge tone="cyan" className="flex items-center gap-1">
-                                        Tá»« {dayjs(dateRange[0]).format('DD/MM')} Ä‘áº¿n {dayjs(dateRange[1]).format('DD/MM')}
+                                        Từ {dayjs(dateRange[0]).format('DD/MM')} đến {dayjs(dateRange[1]).format('DD/MM')}
                                         <button
                                             onClick={() => setDateRange(null)}
                                             className="ml-1 hover:bg-cyan-200 rounded-full p-0.5 transition-colors"
@@ -1151,7 +1151,7 @@ const Schedules = () => {
                                 )}
                                 {cinemaFilter !== 'all' && (
                                     <StatusBadge tone="orange" className="flex items-center gap-1">
-                                        Ráº¡p: {getCinemaName(parseInt(cinemaFilter))}
+                                        Rạp: {getCinemaName(parseInt(cinemaFilter))}
                                         <button
                                             onClick={() => setCinemaFilter('all')}
                                             className="ml-1 hover:bg-orange-200 rounded-full p-0.5 transition-colors"
@@ -1162,7 +1162,7 @@ const Schedules = () => {
                                 )}
                                 {statusFilter !== 'all' && (
                                     <StatusBadge tone="purple" className="flex items-center gap-1">
-                                        Tráº¡ng thÃ¡i: {getStatusText(statusFilter)}
+                                        Trạng thái: {getStatusText(statusFilter)}
                                         <button
                                             onClick={() => setStatusFilter('all')}
                                             className="ml-1 hover:bg-purple-200 rounded-full p-0.5 transition-colors"
@@ -1171,7 +1171,7 @@ const Schedules = () => {
                                         </button>
                                     </StatusBadge>
                                 )}
-                                <span className="text-gray-500">â†’ TÃ¬m tháº¥y {filteredSchedules.length} káº¿t quáº£</span>
+                                <span className="text-muted-foreground">→ Tìm thấy {filteredSchedules.length} kết quả</span>
                             </div>
                         }
                         onClose={() => {
@@ -1204,7 +1204,7 @@ const Schedules = () => {
                                     showSizeChanger: true,
                                     showQuickJumper: true,
                                     pageSizeOptions: ['5', '10', '20', '50', '100'],
-                                    showTotal: (total, range) => `Hiá»ƒn thá»‹ ${(currentPage - 1) * pageSize + 1}-${Math.min(currentPage * pageSize, total)} trong tá»•ng sá»‘ ${total} lá»‹ch chiáº¿u`,
+                                    showTotal: (total, range) => `Hiển thị ${(currentPage - 1) * pageSize + 1}-${Math.min(currentPage * pageSize, total)} trong tổng số ${total} lịch chiếu`,
                                     onChange: (page, size) => {
                                         setCurrentPage(page);
                                         if (size !== pageSize) {
@@ -1228,7 +1228,7 @@ const Schedules = () => {
                             <div className="p-2 bg-indigo-100 rounded-lg">
                                 <Plus className="h-5 w-5 text-indigo-600" />
                             </div>
-                            <span className="text-xl font-semibold">ThÃªm Lá»‹ch chiáº¿u</span>
+                            <span className="text-xl font-semibold">Thêm Lịch chiếu</span>
                         </div>
                     }
                     open={showAddModal}
@@ -1257,11 +1257,11 @@ const Schedules = () => {
                     {(movies.length === 0 || cinemas.length === 0) && (
                         <Alert
                             variant="default"
-                            title="Thiáº¿u dá»¯ liá»‡u"
+                            title="Thiếu dữ liệu"
                             description={
                                 <div className="space-y-1">
-                                    {movies.length === 0 && <div>â€¢ ChÆ°a cÃ³ phim nÃ o. Vui lÃ²ng thÃªm phim trÆ°á»›c.</div>}
-                                    {cinemas.length === 0 && <div>â€¢ ChÆ°a cÃ³ ráº¡p nÃ o. Vui lÃ²ng thÃªm ráº¡p trÆ°á»›c.</div>}
+                                    {movies.length === 0 && <div>• Chưa có phim nào. Vui lòng thêm phim trước.</div>}
+                                    {cinemas.length === 0 && <div>• Chưa có rạp nào. Vui lòng thêm rạp trước.</div>}
                                 </div>
                             }
                             className="mb-4 bg-yellow-50 border-yellow-200"
@@ -1272,35 +1272,35 @@ const Schedules = () => {
                             e.preventDefault();
                             // Validate required fields
                             if (!formValues.movieId) {
-                                notification.error('Vui lÃ²ng chá»n phim');
+                                notification.error('Vui lòng chọn phim');
                                 return;
                             }
                             if (!formValues.cinemaId) {
-                                notification.error('Vui lÃ²ng chá»n ráº¡p');
+                                notification.error('Vui lòng chọn rạp');
                                 return;
                             }
                             if (!formValues.screenName) {
-                                notification.error('Vui lÃ²ng chá»n phÃ²ng chiáº¿u');
+                                notification.error('Vui lòng chọn phòng chiếu');
                                 return;
                             }
                             if (!formValues.format) {
-                                notification.error('Vui lÃ²ng chá»n Ä‘á»‹nh dáº¡ng phim');
+                                notification.error('Vui lòng chọn định dạng phim');
                                 return;
                             }
                             if (!formValues.audioType) {
-                                notification.error('Vui lÃ²ng chá»n loáº¡i Ã¢m thanh');
+                                notification.error('Vui lòng chọn loại âm thanh');
                                 return;
                             }
                             if (!formValues.date) {
-                                notification.error('Vui lÃ²ng chá»n ngÃ y');
+                                notification.error('Vui lòng chọn ngày');
                                 return;
                             }
                             if (!formValues.time) {
-                                notification.error('Vui lÃ²ng chá»n giá»');
+                                notification.error('Vui lòng chọn giờ');
                                 return;
                             }
                             if (!formValues.price) {
-                                notification.error('Vui lÃ²ng nháº­p giÃ¡ vÃ©');
+                                notification.error('Vui lòng nhập giá vé');
                                 return;
                             }
                             handleSubmit(formValues);
@@ -1310,7 +1310,7 @@ const Schedules = () => {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                                    <Film className="h-4 w-4 text-gray-500" />
+                                    <Film className="h-4 w-4 text-muted-foreground" />
                                     Phim <span className="text-red-500">*</span>
                                 </label>
                                 <Select
@@ -1319,7 +1319,7 @@ const Schedules = () => {
                                     disabled={moviesLoading || movies.length === 0}
                                 >
                                     <SelectTrigger className="h-10">
-                                        <SelectValue placeholder={moviesLoading ? "Äang táº£i..." : movies.length === 0 ? "KhÃ´ng cÃ³ phim" : "Chá»n phim"} />
+                                        <SelectValue placeholder={moviesLoading ? "Đang tải..." : movies.length === 0 ? "Không có phim" : "Chọn phim"} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {movies.map(movie => (
@@ -1332,8 +1332,8 @@ const Schedules = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                                    <Building2 className="h-4 w-4 text-gray-500" />
-                                    Ráº¡p chiáº¿u <span className="text-red-500">*</span>
+                                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                                    Rạp chiếu <span className="text-red-500">*</span>
                                 </label>
                                 <Select
                                     value={formValues.cinemaId?.toString()}
@@ -1344,7 +1344,7 @@ const Schedules = () => {
                                     disabled={cinemasLoading || cinemas.length === 0}
                                 >
                                     <SelectTrigger className="h-10">
-                                        <SelectValue placeholder={cinemasLoading ? "Äang táº£i..." : cinemas.length === 0 ? "KhÃ´ng cÃ³ ráº¡p" : "Chá»n ráº¡p"} />
+                                        <SelectValue placeholder={cinemasLoading ? "Đang tải..." : cinemas.length === 0 ? "Không có rạp" : "Chọn rạp"} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {cinemas.map(cinema => (
@@ -1360,8 +1360,8 @@ const Schedules = () => {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                                    <Video className="h-4 w-4 text-gray-500" />
-                                    PhÃ²ng chiáº¿u <span className="text-red-500">*</span>
+                                    <Video className="h-4 w-4 text-muted-foreground" />
+                                    Phòng chiếu <span className="text-red-500">*</span>
                                 </label>
                                 <Select
                                     value={formValues.screenName}
@@ -1372,7 +1372,7 @@ const Schedules = () => {
                                     disabled={roomsLoading || rooms.length === 0}
                                 >
                                     <SelectTrigger className="h-10">
-                                        <SelectValue placeholder={roomsLoading ? "Äang táº£i..." : rooms.length === 0 ? "Chá»n ráº¡p trÆ°á»›c" : "Chá»n phÃ²ng chiáº¿u"} />
+                                        <SelectValue placeholder={roomsLoading ? "Đang tải..." : rooms.length === 0 ? "Chọn rạp trước" : "Chọn phòng chiếu"} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {rooms.map(room => (
@@ -1385,15 +1385,15 @@ const Schedules = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                                    <Settings className="h-4 w-4 text-gray-500" />
-                                    Äá»‹nh dáº¡ng phim <span className="text-red-500">*</span>
+                                    <Settings className="h-4 w-4 text-muted-foreground" />
+                                    Định dạng phim <span className="text-red-500">*</span>
                                 </label>
                                 <Select
                                     value={formValues.format}
                                     onValueChange={(value) => setFormValues({ ...formValues, format: value })}
                                 >
                                     <SelectTrigger className="h-10">
-                                        <SelectValue placeholder="Chá»n Ä‘á»‹nh dáº¡ng phim" />
+                                        <SelectValue placeholder="Chọn định dạng phim" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="TWO_D">2D</SelectItem>
@@ -1409,20 +1409,20 @@ const Schedules = () => {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                                <PlayCircle className="h-4 w-4 text-gray-500" />
-                                Loáº¡i Ã¢m thanh <span className="text-red-500">*</span>
+                                <PlayCircle className="h-4 w-4 text-muted-foreground" />
+                                Loại âm thanh <span className="text-red-500">*</span>
                             </label>
                             <Select
                                 value={formValues.audioType}
                                 onValueChange={(value) => setFormValues({ ...formValues, audioType: value })}
                             >
                                 <SelectTrigger className="h-10">
-                                    <SelectValue placeholder="Chá»n loáº¡i Ã¢m thanh" />
+                                    <SelectValue placeholder="Chọn loại âm thanh" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="SUBTITLE">Phá»¥ Ä‘á»</SelectItem>
-                                    <SelectItem value="DUBBED">Lá»“ng tiáº¿ng</SelectItem>
-                                    <SelectItem value="ORIGINAL">NguyÃªn gá»‘c</SelectItem>
+                                    <SelectItem value="SUBTITLE">Phụ đề</SelectItem>
+                                    <SelectItem value="DUBBED">Lồng tiếng</SelectItem>
+                                    <SelectItem value="ORIGINAL">Nguyên gốc</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -1430,8 +1430,8 @@ const Schedules = () => {
                         <div className="grid grid-cols-3 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                                    <Calendar className="h-4 w-4 text-gray-500" />
-                                    NgÃ y chiáº¿u <span className="text-red-500">*</span>
+                                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                                    Ngày chiếu <span className="text-red-500">*</span>
                                 </label>
                                 <Input
                                     type="date"
@@ -1442,8 +1442,8 @@ const Schedules = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                                    <Clock className="h-4 w-4 text-gray-500" />
-                                    Giá» chiáº¿u <span className="text-red-500">*</span>
+                                    <Clock className="h-4 w-4 text-muted-foreground" />
+                                    Giờ chiếu <span className="text-red-500">*</span>
                                 </label>
                                 <Input
                                     type="time"
@@ -1454,8 +1454,8 @@ const Schedules = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                                    <DollarSign className="h-4 w-4 text-gray-500" />
-                                    GiÃ¡ vÃ© (VNÄ) <span className="text-red-500">*</span>
+                                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                                    Giá vé (VNĐ) <span className="text-red-500">*</span>
                                 </label>
                                 <NumberStepper
                                     value={formValues.price}
@@ -1468,30 +1468,30 @@ const Schedules = () => {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                                <PauseCircle className="h-4 w-4 text-gray-500" />
-                                Tráº¡ng thÃ¡i
+                                <PauseCircle className="h-4 w-4 text-muted-foreground" />
+                                Trạng thái
                             </label>
                             <Select
                                 value={formValues.status}
                                 onValueChange={(value) => setFormValues({ ...formValues, status: value })}
                             >
                                 <SelectTrigger className="h-10">
-                                    <SelectValue placeholder="Chá»n tráº¡ng thÃ¡i" />
+                                    <SelectValue placeholder="Chọn trạng thái" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="UPCOMING">Sáº¯p chiáº¿u</SelectItem>
-                                    <SelectItem value="AVAILABLE">CÃ²n vÃ©</SelectItem>
-                                    <SelectItem value="ALMOST_FULL">Sáº¯p háº¿t chá»—</SelectItem>
-                                    <SelectItem value="FULL">Háº¿t chá»—</SelectItem>
-                                    <SelectItem value="SALES_ENDED">Dá»«ng bÃ¡n vÃ©</SelectItem>
-                                    <SelectItem value="COMPLETED">ÄÃ£ káº¿t thÃºc</SelectItem>
-                                    <SelectItem value="CANCELLED">ÄÃ£ há»§y</SelectItem>
-                                    <SelectItem value="POSTPONED">Táº¡m hoÃ£n</SelectItem>
+                                    <SelectItem value="UPCOMING">Sắp chiếu</SelectItem>
+                                    <SelectItem value="AVAILABLE">Còn vé</SelectItem>
+                                    <SelectItem value="ALMOST_FULL">Sắp hết chỗ</SelectItem>
+                                    <SelectItem value="FULL">Hết chỗ</SelectItem>
+                                    <SelectItem value="SALES_ENDED">Dừng bán vé</SelectItem>
+                                    <SelectItem value="COMPLETED">Đã kết thúc</SelectItem>
+                                    <SelectItem value="CANCELLED">Đã hủy</SelectItem>
+                                    <SelectItem value="POSTPONED">Tạm hoãn</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
 
-                        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                        <div className="flex justify-end gap-3 pt-4 border-t border-border">
                             <Button
                                 variant="outline"
                                 onClick={() => {
@@ -1511,7 +1511,7 @@ const Schedules = () => {
                                 }}
                                 className="h-10"
                             >
-                                Há»§y
+                                Hủy
                             </Button>
                             <Button
                                 type="submit"
@@ -1519,7 +1519,7 @@ const Schedules = () => {
                                 disabled={movies.length === 0 || cinemas.length === 0}
                             >
                                 <Plus className="h-4 w-4 mr-2" />
-                                ThÃªm Lá»‹ch chiáº¿u
+                                Thêm Lịch chiếu
                             </Button>
                         </div>
                     </form>
@@ -1527,7 +1527,7 @@ const Schedules = () => {
 
                 {/* Edit Schedule Modal */}
                 <ResponsiveDialog
-                    heading="Chá»‰nh sá»­a Lá»‹ch chiáº¿u"
+                    heading="Chỉnh sửa Lịch chiếu"
                     open={showEditModal}
                     onClose={() => {
                         setShowEditModal(false);
@@ -1543,7 +1543,7 @@ const Schedules = () => {
                             status: 'AVAILABLE'
                         });
                         setSelectedSchedule(null);
-                        setRooms([]); // Reset danh sÃ¡ch phÃ²ng
+                        setRooms([]); // Reset danh sách phòng
                     }}
                     actions={null}
                     maxWidth={800}
@@ -1557,35 +1557,35 @@ const Schedules = () => {
                             e.preventDefault();
                             // Validate required fields
                             if (!formValues.movieId) {
-                                notification.error('Vui lÃ²ng chá»n phim');
+                                notification.error('Vui lòng chọn phim');
                                 return;
                             }
                             if (!formValues.cinemaId) {
-                                notification.error('Vui lÃ²ng chá»n ráº¡p');
+                                notification.error('Vui lòng chọn rạp');
                                 return;
                             }
                             if (!formValues.screenName) {
-                                notification.error('Vui lÃ²ng chá»n phÃ²ng chiáº¿u');
+                                notification.error('Vui lòng chọn phòng chiếu');
                                 return;
                             }
                             if (!formValues.format) {
-                                notification.error('Vui lÃ²ng chá»n Ä‘á»‹nh dáº¡ng phim');
+                                notification.error('Vui lòng chọn định dạng phim');
                                 return;
                             }
                             if (!formValues.audioType) {
-                                notification.error('Vui lÃ²ng chá»n loáº¡i Ã¢m thanh');
+                                notification.error('Vui lòng chọn loại âm thanh');
                                 return;
                             }
                             if (!formValues.date) {
-                                notification.error('Vui lÃ²ng chá»n ngÃ y');
+                                notification.error('Vui lòng chọn ngày');
                                 return;
                             }
                             if (!formValues.time) {
-                                notification.error('Vui lÃ²ng chá»n giá»');
+                                notification.error('Vui lòng chọn giờ');
                                 return;
                             }
                             if (!formValues.price) {
-                                notification.error('Vui lÃ²ng nháº­p giÃ¡ vÃ©');
+                                notification.error('Vui lòng nhập giá vé');
                                 return;
                             }
                             handleSubmit(formValues);
@@ -1603,7 +1603,7 @@ const Schedules = () => {
                                     disabled={moviesLoading || movies.length === 0}
                                 >
                                     <SelectTrigger>
-                                        <SelectValue placeholder={moviesLoading ? "Äang táº£i..." : movies.length === 0 ? "KhÃ´ng cÃ³ phim" : "Chá»n phim"} />
+                                        <SelectValue placeholder={moviesLoading ? "Đang tải..." : movies.length === 0 ? "Không có phim" : "Chọn phim"} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {movies.map(movie => (
@@ -1616,7 +1616,7 @@ const Schedules = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Ráº¡p chiáº¿u <span className="text-red-500">*</span>
+                                    Rạp chiếu <span className="text-red-500">*</span>
                                 </label>
                                 <Select
                                     value={formValues.cinemaId?.toString()}
@@ -1627,7 +1627,7 @@ const Schedules = () => {
                                     disabled={cinemasLoading || cinemas.length === 0}
                                 >
                                     <SelectTrigger>
-                                        <SelectValue placeholder={cinemasLoading ? "Äang táº£i..." : cinemas.length === 0 ? "KhÃ´ng cÃ³ ráº¡p" : "Chá»n ráº¡p"} />
+                                        <SelectValue placeholder={cinemasLoading ? "Đang tải..." : cinemas.length === 0 ? "Không có rạp" : "Chọn rạp"} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {cinemas.map(cinema => (
@@ -1643,7 +1643,7 @@ const Schedules = () => {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    PhÃ²ng chiáº¿u <span className="text-red-500">*</span>
+                                    Phòng chiếu <span className="text-red-500">*</span>
                                 </label>
                                 <Select
                                     value={formValues.screenName}
@@ -1654,7 +1654,7 @@ const Schedules = () => {
                                     disabled={roomsLoading || rooms.length === 0}
                                 >
                                     <SelectTrigger>
-                                        <SelectValue placeholder={roomsLoading ? "Äang táº£i..." : rooms.length === 0 ? "Chá»n ráº¡p trÆ°á»›c" : "Chá»n phÃ²ng chiáº¿u"} />
+                                        <SelectValue placeholder={roomsLoading ? "Đang tải..." : rooms.length === 0 ? "Chọn rạp trước" : "Chọn phòng chiếu"} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {rooms.map(room => (
@@ -1667,14 +1667,14 @@ const Schedules = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Äá»‹nh dáº¡ng phim <span className="text-red-500">*</span>
+                                    Định dạng phim <span className="text-red-500">*</span>
                                 </label>
                                 <Select
                                     value={formValues.format}
                                     onValueChange={(value) => setFormValues({ ...formValues, format: value })}
                                 >
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Chá»n Ä‘á»‹nh dáº¡ng phim" />
+                                        <SelectValue placeholder="Chọn định dạng phim" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="TWO_D">2D</SelectItem>
@@ -1690,19 +1690,19 @@ const Schedules = () => {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Loáº¡i Ã¢m thanh <span className="text-red-500">*</span>
+                                Loại âm thanh <span className="text-red-500">*</span>
                             </label>
                             <Select
                                 value={formValues.audioType}
                                 onValueChange={(value) => setFormValues({ ...formValues, audioType: value })}
                             >
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Chá»n loáº¡i Ã¢m thanh" />
+                                    <SelectValue placeholder="Chọn loại âm thanh" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="SUBTITLE">Phá»¥ Ä‘á»</SelectItem>
-                                    <SelectItem value="DUBBED">Lá»“ng tiáº¿ng</SelectItem>
-                                    <SelectItem value="ORIGINAL">NguyÃªn gá»‘c</SelectItem>
+                                    <SelectItem value="SUBTITLE">Phụ đề</SelectItem>
+                                    <SelectItem value="DUBBED">Lồng tiếng</SelectItem>
+                                    <SelectItem value="ORIGINAL">Nguyên gốc</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -1710,7 +1710,7 @@ const Schedules = () => {
                         <div className="grid grid-cols-3 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    NgÃ y chiáº¿u <span className="text-red-500">*</span>
+                                    Ngày chiếu <span className="text-red-500">*</span>
                                 </label>
                                 <Input
                                     type="date"
@@ -1721,7 +1721,7 @@ const Schedules = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Giá» chiáº¿u <span className="text-red-500">*</span>
+                                    Giờ chiếu <span className="text-red-500">*</span>
                                 </label>
                                 <Input
                                     type="time"
@@ -1732,7 +1732,7 @@ const Schedules = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    GiÃ¡ vÃ© (VNÄ) <span className="text-red-500">*</span>
+                                    Giá vé (VNĐ) <span className="text-red-500">*</span>
                                 </label>
                                 <NumberStepper
                                     value={formValues.price}
@@ -1745,24 +1745,24 @@ const Schedules = () => {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Tráº¡ng thÃ¡i
+                                Trạng thái
                             </label>
                             <Select
                                 value={formValues.status}
                                 onValueChange={(value) => setFormValues({ ...formValues, status: value })}
                             >
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Chá»n tráº¡ng thÃ¡i" />
+                                    <SelectValue placeholder="Chọn trạng thái" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="UPCOMING">Sáº¯p chiáº¿u</SelectItem>
-                                    <SelectItem value="AVAILABLE">CÃ²n vÃ©</SelectItem>
-                                    <SelectItem value="ALMOST_FULL">Sáº¯p háº¿t chá»—</SelectItem>
-                                    <SelectItem value="FULL">Háº¿t chá»—</SelectItem>
-                                    <SelectItem value="SALES_ENDED">Dá»«ng bÃ¡n vÃ©</SelectItem>
-                                    <SelectItem value="COMPLETED">ÄÃ£ káº¿t thÃºc</SelectItem>
-                                    <SelectItem value="CANCELLED">ÄÃ£ há»§y</SelectItem>
-                                    <SelectItem value="POSTPONED">Táº¡m hoÃ£n</SelectItem>
+                                    <SelectItem value="UPCOMING">Sắp chiếu</SelectItem>
+                                    <SelectItem value="AVAILABLE">Còn vé</SelectItem>
+                                    <SelectItem value="ALMOST_FULL">Sắp hết chỗ</SelectItem>
+                                    <SelectItem value="FULL">Hết chỗ</SelectItem>
+                                    <SelectItem value="SALES_ENDED">Dừng bán vé</SelectItem>
+                                    <SelectItem value="COMPLETED">Đã kết thúc</SelectItem>
+                                    <SelectItem value="CANCELLED">Đã hủy</SelectItem>
+                                    <SelectItem value="POSTPONED">Tạm hoãn</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -1787,13 +1787,13 @@ const Schedules = () => {
                                     setRooms([]);
                                 }}
                             >
-                                Há»§y
+                                Hủy
                             </Button>
                             <Button
                                 type="submit"
                                 className="bg-indigo-600 hover:bg-indigo-700 text-white"
                             >
-                                Cáº­p nháº­t
+                                Cập nhật
                             </Button>
                         </div>
                     </form>
@@ -1801,7 +1801,7 @@ const Schedules = () => {
 
                 {/* Detail Modal */}
                 <ResponsiveDialog
-                    heading="Chi tiáº¿t Lá»‹ch chiáº¿u"
+                    heading="Chi tiết Lịch chiếu"
                     open={showDetailModal}
                     onClose={() => {
                         setShowDetailModal(false);
@@ -1816,7 +1816,7 @@ const Schedules = () => {
                                     setSelectedSchedule(null);
                                 }}
                             >
-                                ÄÃ³ng
+                                Đóng
                             </Button>
                             <Button
                                 className="bg-indigo-600 hover:bg-indigo-700 text-white"
@@ -1825,7 +1825,7 @@ const Schedules = () => {
                                     handleEditSchedule(selectedSchedule);
                                 }}
                             >
-                                Chá»‰nh sá»­a
+                                Chỉnh sửa
                             </Button>
                         </div>
                     }
@@ -1845,14 +1845,14 @@ const Schedules = () => {
                                 description={
                                     <div className="flex flex-col gap-2 mt-2">
                                         <div className="flex items-center gap-2">
-                                            <Building2 className="h-4 w-4 text-gray-500" />
+                                            <Building2 className="h-4 w-4 text-muted-foreground" />
                                             <span>{selectedSchedule.cinemaName} - {selectedSchedule.roomName}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <Calendar className="h-4 w-4 text-gray-500" />
+                                            <Calendar className="h-4 w-4 text-muted-foreground" />
                                             <span>{dayjs(selectedSchedule.showDate).format('DD/MM/YYYY')}</span>
                                             <span className="mx-2">|</span>
-                                            <Clock className="h-4 w-4 text-gray-500" />
+                                            <Clock className="h-4 w-4 text-muted-foreground" />
                                             <span>{selectedSchedule.startTime} - {selectedSchedule.endTime}</span>
                                         </div>
                                     </div>
@@ -1863,23 +1863,23 @@ const Schedules = () => {
                             {/* Main Info Grid */}
                             <div className="grid grid-cols-1 gap-4">
                                 {/* Movie & Cinema Info */}
-                                <Card className="p-4 border border-gray-200">
-                                    <h4 className="font-semibold text-gray-900 mb-4">ThÃ´ng tin cÆ¡ báº£n</h4>
+                                <Card className="p-4 border border-border">
+                                    <h4 className="font-semibold text-foreground mb-4">Thông tin cơ bản</h4>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <p className="text-sm text-gray-500 mb-1">Phim:</p>
-                                            <p className="font-semibold text-gray-900">{selectedSchedule.movieTitle}</p>
+                                            <p className="text-sm text-muted-foreground mb-1">Phim:</p>
+                                            <p className="font-semibold text-foreground">{selectedSchedule.movieTitle}</p>
                                         </div>
                                         <div>
-                                            <p className="text-sm text-gray-500 mb-1">Ráº¡p chiáº¿u:</p>
-                                            <p className="font-semibold text-gray-900">{selectedSchedule.cinemaName}</p>
+                                            <p className="text-sm text-muted-foreground mb-1">Rạp chiếu:</p>
+                                            <p className="font-semibold text-foreground">{selectedSchedule.cinemaName}</p>
                                         </div>
                                         <div>
-                                            <p className="text-sm text-gray-500 mb-1">PhÃ²ng chiáº¿u:</p>
-                                            <p className="font-semibold text-gray-900">{selectedSchedule.roomName}</p>
+                                            <p className="text-sm text-muted-foreground mb-1">Phòng chiếu:</p>
+                                            <p className="font-semibold text-foreground">{selectedSchedule.roomName}</p>
                                         </div>
                                         <div>
-                                            <p className="text-sm text-gray-500 mb-1">Äá»‹nh dáº¡ng phim:</p>
+                                            <p className="text-sm text-muted-foreground mb-1">Định dạng phim:</p>
                                             <div className="flex gap-2">
                                                 <StatusBadge tone="blue">{getFormatLabel(selectedSchedule.format)}</StatusBadge>
                                                 {selectedSchedule.audioType && <StatusBadge tone="cyan">{getAudioTypeLabel(selectedSchedule.audioType)}</StatusBadge>}
@@ -1890,42 +1890,42 @@ const Schedules = () => {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     {/* Showtime Info */}
-                                    <Card className="p-4 border border-gray-200">
-                                        <h4 className="font-semibold text-gray-900 mb-4">ThÃ´ng tin chiáº¿u phim</h4>
+                                    <Card className="p-4 border border-border">
+                                        <h4 className="font-semibold text-foreground mb-4">Thông tin chiếu phim</h4>
                                         <div className="flex flex-col gap-3">
                                             <div>
-                                                <p className="text-sm text-gray-500 mb-1">NgÃ y chiáº¿u:</p>
+                                                <p className="text-sm text-muted-foreground mb-1">Ngày chiếu:</p>
                                                 <StatusBadge tone="cyan">
                                                     <Calendar className="h-3 w-3 mr-1" />
                                                     {dayjs(selectedSchedule.showDate).format('DD/MM/YYYY')}
                                                 </StatusBadge>
                                             </div>
                                             <div>
-                                                <p className="text-sm text-gray-500 mb-1">Giá» chiáº¿u:</p>
+                                                <p className="text-sm text-muted-foreground mb-1">Giờ chiếu:</p>
                                                 <StatusBadge tone="green">
                                                     <Clock className="h-3 w-3 mr-1" />
                                                     {selectedSchedule.startTime} - {selectedSchedule.endTime}
                                                 </StatusBadge>
                                             </div>
                                             <div>
-                                                <p className="text-sm text-gray-500 mb-1">Thá»i lÆ°á»£ng:</p>
-                                                <p className="font-semibold text-gray-900">{calculateDuration(selectedSchedule.startTime, selectedSchedule.endTime)}</p>
+                                                <p className="text-sm text-muted-foreground mb-1">Thời lượng:</p>
+                                                <p className="font-semibold text-foreground">{calculateDuration(selectedSchedule.startTime, selectedSchedule.endTime)}</p>
                                             </div>
                                         </div>
                                     </Card>
 
                                     {/* Pricing & Status */}
-                                    <Card className="p-4 border border-gray-200">
-                                        <h4 className="font-semibold text-gray-900 mb-4">GiÃ¡ vÃ© & Tráº¡ng thÃ¡i</h4>
+                                    <Card className="p-4 border border-border">
+                                        <h4 className="font-semibold text-foreground mb-4">Giá vé & Trạng thái</h4>
                                         <div className="flex flex-col gap-3">
                                             <div>
-                                                <p className="text-sm text-gray-500 mb-1">GiÃ¡ vÃ©:</p>
+                                                <p className="text-sm text-muted-foreground mb-1">Giá vé:</p>
                                                 <p className="font-semibold text-lg text-orange-500">
-                                                    {selectedSchedule.price?.toLocaleString('vi-VN')} VNÄ
+                                                    {selectedSchedule.price?.toLocaleString('vi-VN')} VNĐ
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-sm text-gray-500 mb-1">Tráº¡ng thÃ¡i:</p>
+                                                <p className="text-sm text-muted-foreground mb-1">Trạng thái:</p>
                                                 <StatusBadge
                                                     tone={getStatusTagColor(selectedSchedule.status)}
                                                     className="text-sm px-3 py-1"
@@ -1938,19 +1938,19 @@ const Schedules = () => {
                                 </div>
 
                                 {/* Booking Metrics */}
-                                <Card className="p-4 border border-gray-200">
-                                    <h4 className="font-semibold text-gray-900 mb-4">Thá»‘ng kÃª Ä‘áº·t vÃ©</h4>
+                                <Card className="p-4 border border-border">
+                                    <h4 className="font-semibold text-foreground mb-4">Thống kê đặt vé</h4>
                                     <div className="grid grid-cols-3 gap-4">
                                         <div>
                                             <Metric
-                                                label="Tá»•ng sá»‘ gháº¿"
+                                                label="Tổng số ghế"
                                                 value={selectedSchedule.totalSeats}
                                                 leading={<Users className="h-4 w-4" />}
                                             />
                                         </div>
                                         <div>
                                             <Metric
-                                                label="ÄÃ£ Ä‘áº·t"
+                                                label="Đã đặt"
                                                 value={selectedSchedule.seatsBooked}
                                                 valueCss={{ color: '#3f8600' }}
                                                 leading={<Users className="h-4 w-4" />}
@@ -1958,7 +1958,7 @@ const Schedules = () => {
                                         </div>
                                         <div>
                                             <Metric
-                                                label="Tá»· lá»‡ Ä‘áº·t vÃ©"
+                                                label="Tỷ lệ đặt vé"
                                                 value={getBookingRate(selectedSchedule.seatsBooked, selectedSchedule.totalSeats)}
                                                 trailing="%"
                                                 valueCss={{

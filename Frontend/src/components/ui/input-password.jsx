@@ -30,9 +30,9 @@ const InputPassword = React.forwardRef(({ className, prefix, ...props }, ref) =>
         aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
       >
         {showPassword ? (
-          <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
+          <EyeOff className="h-5 w-5 text-gray-400 hover:text-muted-foreground transition-colors" />
         ) : (
-          <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
+          <Eye className="h-5 w-5 text-gray-400 hover:text-muted-foreground transition-colors" />
         )}
       </button>
     </div>

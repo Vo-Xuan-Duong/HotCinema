@@ -4,6 +4,7 @@ import { authService } from '@/services/authService.js';
 import {
     getUserInfo,
     getAccessToken,
+    getRefreshToken,
     saveAuthData
 } from '@/utils/authStorage.js';
 
@@ -67,8 +68,8 @@ const login = async (...args) => {
         const res = await authService.login(payload);
 
         // Extract token and user from response
-        const token = res?.data?.accessToken || res?.token;
-        const user = res?.user;
+        const token = res?.token;
+        const user = res?.user || state.user;
 
         // authService.login already calls api.setAuthToken which saves to localStorage
         // So we DON'T need to save again here, just handle rememberEmail
@@ -101,12 +102,10 @@ const login = async (...args) => {
         setState({ user: null, token: null, isAuthenticated: false, isLoading: false, error: message });
 
         // Throw error with complete info
-        throw {
-            message: message,
-            status: status,
-            response: err?.response,
-            data: err?.response?.data || err?.data
-        };
+        const loginError = new Error(message);
+        loginError.status = status;
+        loginError.response = err?.response;
+        throw loginError;
     }
 };
 
@@ -115,19 +114,11 @@ const register = async (userData) => {
     try {
         const res = await authService.register(userData);
 
-        const token = res?.token;
-        const user = res?.user;
-
-        // Save to localStorage and set in API client - ONE PLACE
-        if (token) {
-            api.setAuthToken(token, null, user);
-        }
-
-        // Update state immediately
+        // Registration requires OTP verification before authentication.
         setState({
-            user: user,
-            token: token,
-            isAuthenticated: true,
+            user: null,
+            token: null,
+            isAuthenticated: false,
             isLoading: false,
             error: null
         });
@@ -163,7 +154,7 @@ const updateProfile = async (userData) => {
 
         // Update user info via apiClient (which will save to localStorage)
         if (user && state.token) {
-            api.setAuthToken(state.token, null, user);
+            api.setAuthToken(state.token, getRefreshToken(), user);
         }
 
         // Update state immediately
@@ -186,8 +177,8 @@ const loginWithGoogle = async (googleToken) => {
     try {
         const res = await authService.loginWithGoogle(googleToken);
 
-        const token = res?.data?.accessToken || res?.token;
-        const user = res?.user || res?.data?.userAuth;
+        const token = res?.token;
+        const user = res?.user;
 
         // Update state immediately after persisting
         setState({
@@ -206,30 +197,14 @@ const loginWithGoogle = async (googleToken) => {
 
         setState({ user: null, token: null, isAuthenticated: false, isLoading: false, error: message });
 
-        throw {
-            message: message,
-            status: status,
-            response: err?.response,
-            data: err?.response?.data || err?.data
-        };
+        const googleError = new Error(message);
+        googleError.status = status;
+        googleError.response = err?.response;
+        throw googleError;
     }
 };
 
 const clearError = () => setState({ error: null });
-
-const setMockUser = (mockUser, token = 'mock-jwt-token-' + Date.now()) => {
-    // Save to localStorage via api.setAuthToken - ONE PLACE
-    api.setAuthToken(token, null, mockUser);
-
-    // Update state immediately
-    setState({
-        user: mockUser,
-        token,
-        isAuthenticated: true,
-        isLoading: false,
-        error: null
-    });
-};
 
 // Hook
 export const useAuth = () => {
@@ -245,7 +220,7 @@ export const useAuth = () => {
 
         if (token && user) {
             // Set token in API client immediately
-            api.setAuthToken(token);
+            api.setAuthToken(token, getRefreshToken(), user);
 
             // Update state with user info immediately (optimistic)
             setState({
@@ -294,7 +269,6 @@ export const useAuth = () => {
             updateProfile,
             updateUser: updateProfile,
             clearError,
-            setMockUser,
         }),
         []
     );

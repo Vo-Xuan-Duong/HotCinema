@@ -1,5 +1,6 @@
 ﻿import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,7 @@ import { SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/compone
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import useNotification from '@/hooks/useNotification';
+import concessionService from '@/services/concessionService';
 
 const FoodBeverage = () => {
   const navigate = useNavigate();
@@ -41,6 +43,7 @@ const FoodBeverage = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const notification = useNotification();
+  const [loading, setLoading] = useState(true);
   const [formValues, setFormValues] = useState({
     name: '',
     category: '',
@@ -51,54 +54,21 @@ const FoodBeverage = () => {
     image: '',
     isPopular: false
   });
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      name: 'Báº¯p rang bÆ¡',
-      category: 'food',
-      price: 25000,
-      originalPrice: 30000,
-      stock: 50,
-      rating: 4.5,
-      sales: 120,
-      image: 'https://via.placeholder.com/100x100?text=Popcorn',
-      description: 'Báº¯p rang bÆ¡ thÆ¡m ngon, giÃ²n tan',
-      isPopular: true
-    },
-    {
-      id: 2,
-      name: 'Coca Cola',
-      category: 'drink',
-      price: 15000,
-      originalPrice: 15000,
-      stock: 100,
-      rating: 4.2,
-      sales: 200,
-      image: 'https://via.placeholder.com/100x100?text=Cola',
-      description: 'NÆ°á»›c ngá»t Coca Cola mÃ¡t láº¡nh',
-      isPopular: false
-    },
-    {
-      id: 3,
-      name: 'Combo Phim + Báº¯p + NÆ°á»›c',
-      category: 'combo',
-      price: 45000,
-      originalPrice: 60000,
-      stock: 30,
-      rating: 4.8,
-      sales: 80,
-      image: 'https://via.placeholder.com/100x100?text=Combo',
-      description: 'Combo tiáº¿t kiá»‡m cho 2 ngÆ°á»i',
-      isPopular: true
-    }
-  ]);
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    concessionService.list({ page: 0, size: 100 })
+      .then(setProducts)
+      .catch((error) => notification.error(error.message || 'Không thể tải danh sách sản phẩm.'))
+      .finally(() => setLoading(false));
+  }, [notification]);
 
   const stats = [
-    { title: 'Tá»•ng sáº£n pháº©m', value: products.length, icon: <Coffee className="h-6 w-6" /> },
-    { title: 'Doanh thu thÃ¡ng', value: '15.2M', icon: <DollarSign className="h-6 w-6" /> },
-    { title: 'ÄÆ¡n hÃ ng', value: products.reduce((a, b) => a + b.sales, 0), icon: <ShoppingCart className="h-6 w-6" /> },
+    { title: 'Tổng sản phẩm', value: products.length, icon: <Coffee className="h-6 w-6" /> },
+    { title: 'Doanh thu tháng', value: '15.2M', icon: <DollarSign className="h-6 w-6" /> },
+    { title: 'Đơn hàng', value: products.reduce((a, b) => a + b.sales, 0), icon: <ShoppingCart className="h-6 w-6" /> },
     {
-      title: 'Tá»· lá»‡ bÃ¡n',
+      title: 'Tỷ lệ bán',
       value:
         products.length > 0
           ? Math.round((products.filter(p => p.sales > 0).length / products.length) * 100) + '%'
@@ -144,28 +114,33 @@ const FoodBeverage = () => {
     setIsDetailModalVisible(true);
   };
 
-  const handleDeleteProduct = (id) => {
-    setProducts(products.filter(item => item.id !== id));
-    notification.success('ÄÃ£ xÃ³a sáº£n pháº©m!');
+  const handleDeleteProduct = async (id) => {
+    try {
+      await concessionService.delete(id);
+      setProducts(products.filter(item => item.id !== id));
+      notification.success('Đã xóa sản phẩm!');
+    } catch (error) {
+      notification.error(error.message || 'Không thể xóa sản phẩm.');
+    }
   };
 
-  const handleModalOk = (e) => {
+  const handleModalOk = async (e) => {
     e?.preventDefault();
     // Validation
     if (!formValues.name?.trim()) {
-      notification.error('Vui lÃ²ng nháº­p tÃªn sáº£n pháº©m!');
+      notification.error('Vui lòng nhập tên sản phẩm!');
       return;
     }
     if (!formValues.category) {
-      notification.error('Vui lÃ²ng chá»n danh má»¥c!');
+      notification.error('Vui lòng chọn danh mục!');
       return;
     }
     if (!formValues.price || formValues.price <= 0) {
-      notification.error('Vui lÃ²ng nháº­p giÃ¡ bÃ¡n há»£p lá»‡!');
+      notification.error('Vui lòng nhập giá bán hợp lệ!');
       return;
     }
     if (!formValues.stock || formValues.stock < 0) {
-      notification.error('Vui lÃ²ng nháº­p sá»‘ lÆ°á»£ng tá»“n kho há»£p lá»‡!');
+      notification.error('Vui lòng nhập số lượng tồn kho hợp lệ!');
       return;
     }
 
@@ -175,7 +150,7 @@ const FoodBeverage = () => {
     } else if (Array.isArray(imageUrl) && imageUrl.length > 0 && imageUrl[0].thumbUrl) {
       imageUrl = imageUrl[0].thumbUrl;
     } else if (typeof imageUrl !== 'string' || !imageUrl) {
-      imageUrl = 'https://via.placeholder.com/100x100?text=Image';
+      imageUrl = '/brand-placeholder.svg';
     }
     const newProduct = {
       name: formValues.name.trim(),
@@ -190,12 +165,19 @@ const FoodBeverage = () => {
       rating: isEditMode && selectedProduct ? selectedProduct.rating : 4.0,
       sales: isEditMode && selectedProduct ? selectedProduct.sales : 0
     };
-    if (isEditMode && selectedProduct) {
-      setProducts(products.map(item => item.id === selectedProduct.id ? newProduct : item));
-      notification.success('Cáº­p nháº­t sáº£n pháº©m thÃ nh cÃ´ng!');
-    } else {
-      setProducts([newProduct, ...products]);
-      notification.success('ThÃªm sáº£n pháº©m thÃ nh cÃ´ng!');
+    try {
+      if (isEditMode && selectedProduct) {
+        const saved = await concessionService.update(selectedProduct.id, newProduct);
+        setProducts(products.map(item => item.id === selectedProduct.id ? saved : item));
+        notification.success('Cập nhật sản phẩm thành công!');
+      } else {
+        const saved = await concessionService.create(newProduct);
+        setProducts([saved, ...products]);
+        notification.success('Thêm sản phẩm thành công!');
+      }
+    } catch (error) {
+      notification.error(error.message || 'Không thể lưu sản phẩm.');
+      return;
     }
     setIsModalVisible(false);
     setSelectedProduct(null);
@@ -235,25 +217,25 @@ const FoodBeverage = () => {
 
   const columns = [
     {
-      title: 'Sáº£n pháº©m',
+      title: 'Sản phẩm',
       dataIndex: 'name',
       key: 'name',
       render: (text, record) => (
         <div className="flex items-center gap-3">
           <img
-            src={record.image || 'https://via.placeholder.com/60x60?text=Image'}
+            src={record.image || '/brand-placeholder.svg'}
             alt={text}
             className="w-16 h-16 rounded-lg object-cover"
             onError={(e) => {
-              e.target.src = 'https://via.placeholder.com/60x60?text=Image';
+              e.target.src = '/brand-placeholder.svg';
             }}
           />
           <div>
-            <div className="font-semibold text-gray-800">{text}</div>
-            <div className="text-xs text-gray-500">{record.description}</div>
+            <div className="font-semibold text-foreground">{text}</div>
+            <div className="text-xs text-muted-foreground">{record.description}</div>
             {record.isPopular && (
               <Badge className="bg-yellow-500 text-white text-xs mt-1">
-                Phá»• biáº¿n
+                Phổ biến
               </Badge>
             )}
           </div>
@@ -261,13 +243,13 @@ const FoodBeverage = () => {
       )
     },
     {
-      title: 'Danh má»¥c',
+      title: 'Danh mục',
       dataIndex: 'category',
       key: 'category',
       render: (category) => {
         const categoryConfig = {
-          food: { color: 'orange', text: 'Äá»“ Äƒn', icon: <Coffee className="h-3 w-3" /> },
-          drink: { color: 'blue', text: 'Äá»“ uá»‘ng', icon: <Coffee className="h-3 w-3" /> },
+          food: { color: 'orange', text: 'Đồ ăn', icon: <Coffee className="h-3 w-3" /> },
+          drink: { color: 'blue', text: 'Đồ uống', icon: <Coffee className="h-3 w-3" /> },
           combo: { color: 'green', text: 'Combo', icon: <Flame className="h-3 w-3" /> }
         };
         const config = categoryConfig[category] || { color: 'default', text: category };
@@ -279,28 +261,28 @@ const FoodBeverage = () => {
       }
     },
     {
-      title: 'GiÃ¡',
+      title: 'Giá',
       key: 'price',
       render: (_, record) => (
         <div className="space-y-1">
           <div className="font-semibold text-red-600">
-            {record.price.toLocaleString('vi-VN')}Ä‘
+            {record.price.toLocaleString('vi-VN')}đ
           </div>
           {record.originalPrice > record.price && (
-            <div className="line-through text-xs text-gray-500">
-              {record.originalPrice.toLocaleString('vi-VN')}Ä‘
+            <div className="line-through text-xs text-muted-foreground">
+              {record.originalPrice.toLocaleString('vi-VN')}đ
             </div>
           )}
         </div>
       )
     },
     {
-      title: 'Tá»“n kho',
+      title: 'Tồn kho',
       dataIndex: 'stock',
       key: 'stock',
       render: (stock) => (
         <div>
-          <div className="font-semibold text-gray-800">{stock}</div>
+          <div className="font-semibold text-foreground">{stock}</div>
           <Progress
             value={Math.min((stock / 100) * 100, 100)}
             className="mt-1 h-2"
@@ -309,7 +291,7 @@ const FoodBeverage = () => {
       )
     },
     {
-      title: 'ÄÃ¡nh giÃ¡',
+      title: 'Đánh giá',
       key: 'rating',
       render: (_, record) => (
         <div>
@@ -319,14 +301,14 @@ const FoodBeverage = () => {
             precision={0.5}
             className="text-yellow-400"
           />
-          <div className="text-xs text-gray-500">
-            {record.rating}/5 ({record.sales} Ä‘Ã£ bÃ¡n)
+          <div className="text-xs text-muted-foreground">
+            {record.rating}/5 ({record.sales} đã bán)
           </div>
         </div>
       )
     },
     {
-      title: 'Thao tÃ¡c',
+      title: 'Thao tác',
       key: 'actions',
       render: (_, record) => (
         <TooltipProvider>
@@ -337,7 +319,7 @@ const FoodBeverage = () => {
                   <Eye className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Xem chi tiáº¿t</TooltipContent>
+              <TooltipContent>Xem chi tiết</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -345,7 +327,7 @@ const FoodBeverage = () => {
                   <Edit className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Chá»‰nh sá»­a</TooltipContent>
+              <TooltipContent>Chỉnh sửa</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -354,7 +336,7 @@ const FoodBeverage = () => {
                   size="sm"
                   className="text-red-600"
                   onClick={() => {
-                    if (window.confirm('Báº¡n cÃ³ cháº¯c muá»‘n xÃ³a sáº£n pháº©m nÃ y?')) {
+                    if (window.confirm('Bạn có chắc muốn xóa sản phẩm này?')) {
                       handleDeleteProduct(record.id);
                     }
                   }}
@@ -362,7 +344,7 @@ const FoodBeverage = () => {
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>XÃ³a</TooltipContent>
+              <TooltipContent>Xóa</TooltipContent>
             </Tooltip>
           </div>
         </TooltipProvider>
@@ -382,7 +364,7 @@ const FoodBeverage = () => {
             href: '/admin/dashboard'
           },
           {
-            title: 'Quáº£n lÃ½ Ä‘á»“ Äƒn & Ä‘á»“ uá»‘ng',
+            title: 'Quản lý đồ ăn & đồ uống',
             icon: <Coffee className="h-4 w-4" />
           }
         ]}
@@ -390,21 +372,21 @@ const FoodBeverage = () => {
 
       <div className="mb-6">
         <h2 className="m-0 text-2xl font-bold">
-          Quáº£n lÃ½ Ä‘á»“ Äƒn & Ä‘á»“ uá»‘ng
+          Quản lý đồ ăn & đồ uống
         </h2>
-        <p className="text-gray-600 mt-1">
-          Quáº£n lÃ½ menu, inventory vÃ  doanh thu F&B
+        <p className="text-muted-foreground mt-1">
+          Quản lý menu, inventory và doanh thu F&B
         </p>
       </div>
 
       {/* Quick stats */}
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 mb-6">
         {stats.map((stat, index) => (
-          <Card key={index} className="rounded-xl shadow-md border border-gray-200 p-4">
+          <Card key={index} className="rounded-xl shadow-md border border-border p-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm text-gray-500">{stat.title}</div>
-                <div className="mt-1 text-xl font-semibold text-gray-900">{stat.value}</div>
+                <div className="text-sm text-muted-foreground">{stat.title}</div>
+                <div className="mt-1 text-xl font-semibold text-foreground">{stat.value}</div>
               </div>
               <div className="text-2xl text-red-600">
                 {stat.icon}
@@ -414,15 +396,15 @@ const FoodBeverage = () => {
         ))}
       </div>
 
-      <Card className="rounded-xl shadow-md border border-gray-200 p-4">
+      <Card className="rounded-xl shadow-md border border-border p-4">
         <div className="flex justify-between items-center mb-4">
-          <h4 className="m-0 text-lg font-semibold">Danh sÃ¡ch sáº£n pháº©m</h4>
+          <h4 className="m-0 text-lg font-semibold">Danh sách sản phẩm</h4>
           <Button
             onClick={handleCreateProduct}
             className="rounded-lg"
           >
             <Plus className="h-4 w-4 mr-2" />
-            ThÃªm sáº£n pháº©m
+            Thêm sản phẩm
           </Button>
         </div>
 
@@ -432,10 +414,11 @@ const FoodBeverage = () => {
           sections={[
             {
               key: 'all',
-              label: 'Táº¥t cáº£',
+              label: 'Tất cả',
               children: (
                 <DataTable
                   fields={columns}
+                  loading={loading}
                   rows={products}
                   getRowId="id"
                 />
@@ -443,10 +426,11 @@ const FoodBeverage = () => {
             },
             {
               key: 'food',
-              label: 'Äá»“ Äƒn',
+              label: 'Đồ ăn',
               children: (
                 <DataTable
                   fields={columns}
+                  loading={loading}
                   rows={products.filter(p => p.category === 'food')}
                   getRowId="id"
                 />
@@ -454,10 +438,11 @@ const FoodBeverage = () => {
             },
             {
               key: 'drink',
-              label: 'Äá»“ uá»‘ng',
+              label: 'Đồ uống',
               children: (
                 <DataTable
                   fields={columns}
+                  loading={loading}
                   rows={products.filter(p => p.category === 'drink')}
                   getRowId="id"
                 />
@@ -469,6 +454,7 @@ const FoodBeverage = () => {
               children: (
                 <DataTable
                   fields={columns}
+                  loading={loading}
                   rows={products.filter(p => p.category === 'combo')}
                   getRowId="id"
                 />
@@ -479,7 +465,7 @@ const FoodBeverage = () => {
       </Card>
 
       <ResponsiveDialog
-        heading={isEditMode ? 'Chá»‰nh sá»­a sáº£n pháº©m' : 'ThÃªm sáº£n pháº©m má»›i'}
+        heading={isEditMode ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'}
         open={isModalVisible}
         onClose={handleModalCancel}
         maxWidth={600}
@@ -489,28 +475,28 @@ const FoodBeverage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                TÃªn sáº£n pháº©m <span className="text-red-500">*</span>
+                Tên sản phẩm <span className="text-red-500">*</span>
               </label>
               <Input
-                placeholder="Nháº­p tÃªn sáº£n pháº©m"
+                placeholder="Nhập tên sản phẩm"
                 value={formValues.name}
                 onChange={(e) => setFormValues(prev => ({ ...prev, name: e.target.value }))}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Danh má»¥c <span className="text-red-500">*</span>
+                Danh mục <span className="text-red-500">*</span>
               </label>
               <Select
                 value={formValues.category}
                 onValueChange={(value) => setFormValues(prev => ({ ...prev, category: value }))}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Chá»n danh má»¥c" />
+                  <SelectValue placeholder="Chọn danh mục" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="food">Äá»“ Äƒn</SelectItem>
-                  <SelectItem value="drink">Äá»“ uá»‘ng</SelectItem>
+                  <SelectItem value="food">Đồ ăn</SelectItem>
+                  <SelectItem value="drink">Đồ uống</SelectItem>
                   <SelectItem value="combo">Combo</SelectItem>
                 </SelectContent>
               </Select>
@@ -520,10 +506,10 @@ const FoodBeverage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                GiÃ¡ bÃ¡n <span className="text-red-500">*</span>
+                Giá bán <span className="text-red-500">*</span>
               </label>
               <NumberStepper
-                placeholder="Nháº­p giÃ¡"
+                placeholder="Nhập giá"
                 value={formValues.price}
                 onValueChange={(value) => setFormValues(prev => ({ ...prev, price: value || '' }))}
                 className="w-full"
@@ -531,10 +517,10 @@ const FoodBeverage = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                GiÃ¡ gá»‘c
+                Giá gốc
               </label>
               <NumberStepper
-                placeholder="Nháº­p giÃ¡ gá»‘c"
+                placeholder="Nhập giá gốc"
                 value={formValues.originalPrice}
                 onValueChange={(value) => setFormValues(prev => ({ ...prev, originalPrice: value || '' }))}
                 className="w-full"
@@ -545,10 +531,10 @@ const FoodBeverage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tá»“n kho <span className="text-red-500">*</span>
+                Tồn kho <span className="text-red-500">*</span>
               </label>
               <NumberStepper
-                placeholder="Nháº­p sá»‘ lÆ°á»£ng"
+                placeholder="Nhập số lượng"
                 value={formValues.stock}
                 onValueChange={(value) => setFormValues(prev => ({ ...prev, stock: value || '' }))}
                 className="w-full"
@@ -556,25 +542,25 @@ const FoodBeverage = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sáº£n pháº©m phá»• biáº¿n
+                Sản phẩm phổ biến
               </label>
               <div className="flex items-center space-x-2 pt-2">
                 <Checkbox
                   checked={formValues.isPopular}
                   onCheckedChange={(checked) => setFormValues(prev => ({ ...prev, isPopular: checked }))}
                 />
-                <span className="text-sm text-gray-700">KÃ­ch hoáº¡t</span>
+                <span className="text-sm text-gray-700">Kích hoạt</span>
               </div>
             </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              MÃ´ táº£
+              Mô tả
             </label>
             <Textarea
               rows={3}
-              placeholder="Nháº­p mÃ´ táº£ sáº£n pháº©m"
+              placeholder="Nhập mô tả sản phẩm"
               value={formValues.description}
               onChange={(e) => setFormValues(prev => ({ ...prev, description: e.target.value }))}
             />
@@ -582,11 +568,11 @@ const FoodBeverage = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              HÃ¬nh áº£nh
+              Hình ảnh
             </label>
             <div className="flex items-center gap-4">
               <Input
-                placeholder="Nháº­p URL hÃ¬nh áº£nh"
+                placeholder="Nhập URL hình ảnh"
                 value={formValues.image}
                 onChange={(e) => setFormValues(prev => ({ ...prev, image: e.target.value }))}
               />
@@ -594,7 +580,7 @@ const FoodBeverage = () => {
                 <img
                   src={formValues.image}
                   alt="Preview"
-                  className="w-20 h-20 rounded-lg object-cover border border-gray-200"
+                  className="w-20 h-20 rounded-lg object-cover border border-border"
                   onError={(e) => {
                     e.target.style.display = 'none';
                   }}
@@ -609,17 +595,17 @@ const FoodBeverage = () => {
               variant="outline"
               onClick={handleModalCancel}
             >
-              Há»§y
+              Hủy
             </Button>
             <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700">
-              {isEditMode ? 'Cáº­p nháº­t' : 'ThÃªm'}
+              {isEditMode ? 'Cập nhật' : 'Thêm'}
             </Button>
           </div>
         </form>
       </ResponsiveDialog>
 
       <ResponsiveDialog
-        heading="Chi tiáº¿t sáº£n pháº©m"
+        heading="Chi tiết sản phẩm"
         open={isDetailModalVisible}
         onClose={handleDetailModalCancel}
         maxWidth={500}
@@ -628,48 +614,48 @@ const FoodBeverage = () => {
         {selectedProduct && (
           <div className="text-center p-4">
             <img
-              src={selectedProduct.image || 'https://via.placeholder.com/100x100?text=Image'}
+              src={selectedProduct.image || '/brand-placeholder.svg'}
               alt={selectedProduct.name}
-              className="w-24 h-24 rounded-lg object-cover mx-auto mb-4 border border-gray-200"
+              className="w-24 h-24 rounded-lg object-cover mx-auto mb-4 border border-border"
               onError={(e) => {
-                e.target.src = 'https://via.placeholder.com/100x100?text=Image';
+                e.target.src = '/brand-placeholder.svg';
               }}
             />
-            <h4 className="text-xl font-bold text-gray-900 mb-2">{selectedProduct.name}</h4>
-            <p className="text-gray-600 mb-4">{selectedProduct.description}</p>
+            <h4 className="text-xl font-bold text-foreground mb-2">{selectedProduct.name}</h4>
+            <p className="text-muted-foreground mb-4">{selectedProduct.description}</p>
             <Separator className="my-4" />
             <DetailList
               columns={1}
               items={[
                 {
-                  label: 'Danh má»¥c',
-                  children: selectedProduct.category === 'food' ? 'Äá»“ Äƒn' : selectedProduct.category === 'drink' ? 'Äá»“ uá»‘ng' : 'Combo'
+                  label: 'Danh mục',
+                  children: selectedProduct.category === 'food' ? 'Đồ ăn' : selectedProduct.category === 'drink' ? 'Đồ uống' : 'Combo'
                 },
                 {
-                  label: 'GiÃ¡ bÃ¡n',
-                  children: `${selectedProduct.price.toLocaleString('vi-VN')}Ä‘`
+                  label: 'Giá bán',
+                  children: `${selectedProduct.price.toLocaleString('vi-VN')}đ`
                 },
                 {
-                  label: 'GiÃ¡ gá»‘c',
-                  children: `${selectedProduct.originalPrice.toLocaleString('vi-VN')}Ä‘`
+                  label: 'Giá gốc',
+                  children: `${selectedProduct.originalPrice.toLocaleString('vi-VN')}đ`
                 },
                 {
-                  label: 'Tá»“n kho',
+                  label: 'Tồn kho',
                   children: selectedProduct.stock
                 },
                 {
-                  label: 'Phá»• biáº¿n',
-                  children: selectedProduct.isPopular ? 'CÃ³' : 'KhÃ´ng'
+                  label: 'Phổ biến',
+                  children: selectedProduct.isPopular ? 'Có' : 'Không'
                 },
                 {
-                  label: 'ÄÃ¡nh giÃ¡',
-                  children: `${selectedProduct.rating}/5 (${selectedProduct.sales} Ä‘Ã£ bÃ¡n)`
+                  label: 'Đánh giá',
+                  children: `${selectedProduct.rating}/5 (${selectedProduct.sales} đã bán)`
                 }
               ]}
             />
             <div className="flex justify-end gap-2 mt-6">
               <Button variant="outline" onClick={handleDetailModalCancel}>
-                ÄÃ³ng
+                Đóng
               </Button>
               <Button
                 className="bg-indigo-600 hover:bg-indigo-700"
@@ -679,7 +665,7 @@ const FoodBeverage = () => {
                 }}
               >
                 <Edit className="h-4 w-4 mr-2" />
-                Chá»‰nh sá»­a
+                Chỉnh sửa
               </Button>
             </div>
           </div>

@@ -51,7 +51,7 @@ const HeroSlider = ({ movies }) => {
         {heroMovies.map((_, i) => (
           <button
             key={i}
-            className={`w-1.5 h-1.5 rounded-full border-0 cursor-pointer transition-all duration-300 outline-none hover:bg-white/80 sm:w-1.25 sm:h-1.25 ${i === index ? 'bg-[#e50914] scale-110' : 'bg-white/50'}`}
+            className={`w-1.5 h-1.5 rounded-full border-0 cursor-pointer transition-all duration-300 outline-none hover:bg-card/80 sm:w-1.25 sm:h-1.25 ${i === index ? 'bg-[#e50914] scale-110' : 'bg-card/50'}`}
             onClick={() => goTo(i)}
             aria-label={`Chuyển đến phim ${i + 1}`}
           />

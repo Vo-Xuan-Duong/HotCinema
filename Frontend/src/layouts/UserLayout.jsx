@@ -10,10 +10,10 @@ import { AuthModalProvider, useAuthModal } from '@/context/AuthModalContext';
 import { setAuthErrorCallback } from '@/utils/apiClient';
 import ScrollToTop from '@/components/ScrollToTop';
 
-// Memoized Header Ä‘á»ƒ trÃ¡nh re-render khÃ´ng cáº§n thiáº¿t
+// Memoized Header để tránh re-render không cần thiết
 const MemoizedHeader = React.memo(Header);
 
-// Memoized Footer Ä‘á»ƒ trÃ¡nh re-render khÃ´ng cáº§n thiáº¿t
+// Memoized Footer để tránh re-render không cần thiết
 const MemoizedFooter = React.memo(Footer);
 
 const UserLayoutContent = () => {
@@ -37,13 +37,13 @@ const UserLayoutContent = () => {
     <TrailerModalProvider>
       <ScrollToTop />
       <div className="flex min-h-dvh flex-col bg-background text-foreground">
-        {/* Header chá»‰ re-render khi cáº§n thiáº¿t */}
+        {/* Header chỉ re-render khi cần thiết */}
         <MemoizedHeader />
-        {/* Chá»‰ pháº§n nÃ y sáº½ re-render khi route thay Ä‘á»•i */}
+        {/* Chỉ phần này sẽ re-render khi route thay đổi */}
         <main key={location.pathname} className="min-w-0 flex-1 bg-background">
           <Outlet />
         </main>
-        {/* Footer khÃ´ng re-render khi route thay Ä‘á»•i */}
+        {/* Footer không re-render khi route thay đổi */}
         <MemoizedFooter />
 
         {/* Global Auth Modal */}

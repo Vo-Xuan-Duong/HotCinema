@@ -35,20 +35,6 @@ const cinemaService = {
   },
 
   /**
-   * Lấy rạp theo thành phố (deprecated - sử dụng getCinemasByRegion thay thế)
-   * @param {number} cityId - ID của thành phố
-   * @param {Object} params - Query parameters (page, size)
-   * @returns {Promise<Array>} Danh sách rạp trong thành phố
-   * @deprecated Sử dụng getCinemasByRegion với region name thay thế
-   */
-  getCinemasByCity: async (cityId, params = {}) => {
-    // Tạm thời giữ lại để tương thích ngược, nhưng nên chuyển sang getCinemasByRegion
-    return apiClient.get(ENDPOINTS.CINEMAS, {
-      params: { cityId, ...params }
-    });
-  },
-
-  /**
    * Lấy rạp theo region slug (khu vực)
    * @param {string} slug - Slug của region (ví dụ: "ho-chi-minh", "ha-noi")
    * @param {Object} params - Query parameters (page, size, sort)

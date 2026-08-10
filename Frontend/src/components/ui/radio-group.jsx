@@ -37,7 +37,7 @@ const RadioButton = ({
         "flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all",
         checked
           ? "border-primary bg-primary/5"
-          : "border-gray-200 hover:border-primary/50",
+          : "border-border hover:border-primary/50",
         className
       )}
       onClick={onChange}

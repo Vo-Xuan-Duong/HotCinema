@@ -73,7 +73,7 @@ const MovieSlider = ({ movies, title, showMoreButton = false, onShowMore }) => {
       <div className="max-w-[1400px] mx-auto relative w-full box-border">
         {title && (
           <div className="mb-10 text-left relative">
-            <h2 className="text-[2.8rem] font-extrabold text-gray-900 m-0 mb-2 bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-400 bg-clip-text text-transparent leading-tight tracking-tight md:text-4xl sm:text-3xl">
+            <h2 className="text-[2.8rem] font-extrabold text-foreground m-0 mb-2 bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-400 bg-clip-text text-transparent leading-tight tracking-tight md:text-4xl sm:text-3xl">
               {title}
             </h2>
             <div className="w-20 h-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-sm mt-2 animate-[slideIn_0.6s_ease-out]"></div>

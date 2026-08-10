@@ -84,12 +84,12 @@ const MovieDetail = () => {
             if (movieData) {
                 setMovie(movieData);
             } else {
-                notification.error('KhÃ´ng tÃ¬m tháº¥y phim');
+                notification.error('Không tìm thấy phim');
                 navigate('/admin/movies');
             }
         } catch (error) {
             console.error('Error loading movie detail:', error);
-            notification.error('Lá»—i khi táº£i thÃ´ng tin phim');
+            notification.error('Lỗi khi tải thông tin phim');
             navigate('/admin/movies');
         } finally {
             setLoading(false);
@@ -103,11 +103,11 @@ const MovieDetail = () => {
     const handleDeleteMovie = async () => {
         try {
             await movieService.deleteMovie(movie.id);
-            notification.success('XÃ³a phim thÃ nh cÃ´ng!');
+            notification.success('Xóa phim thành công!');
             navigate('/admin/movies');
         } catch (error) {
             console.error('Error deleting movie:', error);
-            notification.error(error.response?.data?.message || 'Lá»—i khi xÃ³a phim');
+            notification.error(error.response?.data?.message || 'Lỗi khi xóa phim');
         }
     };
 
@@ -123,11 +123,11 @@ const MovieDetail = () => {
         return (
             <Alert
                 variant="destructive"
-                title="KhÃ´ng tÃ¬m tháº¥y phim"
-                description="Phim báº¡n Ä‘ang tÃ¬m kiáº¿m khÃ´ng tá»“n táº¡i hoáº·c Ä‘Ã£ bá»‹ xÃ³a."
+                title="Không tìm thấy phim"
+                description="Phim bạn đang tìm kiếm không tồn tại hoặc đã bị xóa."
                 action={
                     <Button onClick={() => navigate('/admin/movies')}>
-                        Quay láº¡i danh sÃ¡ch
+                        Quay lại danh sách
                     </Button>
                 }
             />
@@ -146,26 +146,26 @@ const MovieDetail = () => {
                         href: '/admin/dashboard'
                     },
                     {
-                        title: 'Quáº£n lÃ½ phim',
+                        title: 'Quản lý phim',
                         icon: <Film className="h-4 w-4" />,
                         href: '/admin/movies'
                     },
                     {
-                        title: movie ? `Chi tiáº¿t: ${movie.title}` : 'Chi tiáº¿t phim'
+                        title: movie ? `Chi tiết: ${movie.title}` : 'Chi tiết phim'
                     }
                 ]}
             />
 
             {/* Header */}
-            <Card className="mb-6 rounded-xl shadow-md border border-gray-200 p-6">
+            <Card className="mb-6 rounded-xl shadow-md border border-border p-6">
                 <div className="flex justify-between items-center flex-wrap gap-4">
                     <div className="flex items-center gap-4">
                         <div>
-                            <h2 className="m-0 mb-1 text-gray-800 text-2xl font-bold">
+                            <h2 className="m-0 mb-1 text-foreground text-2xl font-bold">
                                 {movie.title}
                             </h2>
                             {movie.originalTitle && movie.originalTitle !== movie.title && (
-                                <p className="text-sm text-gray-500">
+                                <p className="text-sm text-muted-foreground">
                                     {movie.originalTitle}
                                 </p>
                             )}
@@ -177,19 +177,19 @@ const MovieDetail = () => {
                             className="bg-blue-500 hover:bg-blue-600 text-white"
                         >
                             <Edit className="h-4 w-4 mr-2" />
-                            Sá»­a
+                            Sửa
                         </Button>
                         <Button
                             variant="destructive"
                             onClick={() => {
-                                if (window.confirm('Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xÃ³a phim nÃ y?')) {
+                                if (window.confirm('Bạn có chắc chắn muốn xóa phim này?')) {
                                     handleDeleteMovie();
                                 }
                             }}
                             className="bg-red-500 hover:bg-red-600 text-white"
                         >
                             <Trash2 className="h-4 w-4 mr-2" />
-                            XÃ³a
+                            Xóa
                         </Button>
                     </div> */}
                 </div>
@@ -199,7 +199,7 @@ const MovieDetail = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {/* Left Column - Poster */}
                 <div className="md:col-span-1">
-                    <Card className="rounded-xl shadow-md border border-gray-200">
+                    <Card className="rounded-xl shadow-md border border-border">
                         <img
                             src={movie.posterUrl || movie.posterPath || movie.poster || "data:image/png;base64,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"}
                             alt={movie.title}
@@ -210,13 +210,13 @@ const MovieDetail = () => {
 
                 {/* Right Column - Info */}
                 <div className="md:col-span-3">
-                    <Card className="rounded-xl shadow-md border border-gray-200">
-                        <div className="border-b border-gray-200 px-5 py-4 mb-0">
-                            <h3 className="text-base font-semibold m-0">ThÃ´ng tin phim</h3>
+                    <Card className="rounded-xl shadow-md border border-border">
+                        <div className="border-b border-border px-5 py-4 mb-0">
+                            <h3 className="text-base font-semibold m-0">Thông tin phim</h3>
                         </div>
                         <div className="p-5">
                             <DetailList columns={2}>
-                                <DetailItem label={<span className="flex items-center gap-1"><Star className="h-4 w-4" /> ÄÃ¡nh giÃ¡</span>}>
+                                <DetailItem label={<span className="flex items-center gap-1"><Star className="h-4 w-4" /> Đánh giá</span>}>
                                     <div className="flex items-center gap-2">
                                         <StarRating readOnly value={(movie.averageRating || movie.voteAverage || 0) / 2} precision={0.5} />
                                         <span className="font-bold text-base text-blue-600">
@@ -224,18 +224,18 @@ const MovieDetail = () => {
                                         </span>
                                     </div>
                                 </DetailItem>
-                                <DetailItem label={<span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> NgÃ y phÃ¡t hÃ nh</span>}>
+                                <DetailItem label={<span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> Ngày phát hành</span>}>
                                     {movie.releaseDate ? dayjs(movie.releaseDate).format('DD/MM/YYYY') : '-'}
                                 </DetailItem>
-                                <DetailItem label={<span className="flex items-center gap-1"><Clock className="h-4 w-4" /> Thá»i lÆ°á»£ng</span>}>
-                                    {movie.durationMinutes || movie.durationFormatted || movie.runtime || movie.duration || 0} {movie.durationFormatted ? '' : 'phÃºt'}
+                                <DetailItem label={<span className="flex items-center gap-1"><Clock className="h-4 w-4" /> Thời lượng</span>}>
+                                    {movie.durationMinutes || movie.durationFormatted || movie.runtime || movie.duration || 0} {movie.durationFormatted ? '' : 'phút'}
                                 </DetailItem>
-                                <DetailItem label="Tráº¡ng thÃ¡i">
+                                <DetailItem label="Trạng thái">
                                     {(() => {
                                         const statusMap = {
-                                            'NOW_SHOWING': { text: 'Äang chiáº¿u', color: 'green' },
-                                            'COMING_SOON': { text: 'Sáº¯p chiáº¿u', color: 'orange' },
-                                            'ENDED': { text: 'ÄÃ£ káº¿t thÃºc', color: 'gray' }
+                                            'NOW_SHOWING': { text: 'Đang chiếu', color: 'green' },
+                                            'COMING_SOON': { text: 'Sắp chiếu', color: 'orange' },
+                                            'ENDED': { text: 'Đã kết thúc', color: 'gray' }
                                         };
                                         const status = movie.status || (movie.isActive ? 'NOW_SHOWING' : 'COMING_SOON');
                                         const statusInfo = statusMap[status] || { text: status || 'N/A', color: 'gray' };
@@ -243,25 +243,25 @@ const MovieDetail = () => {
                                     })()}
                                 </DetailItem>
                                 {movie.rating && (
-                                    <DetailItem label="PhÃ¢n loáº¡i">
+                                    <DetailItem label="Phân loại">
                                         <StatusBadge tone="purple">{movie.rating}</StatusBadge>
                                     </DetailItem>
                                 )}
                                 {movie.language && (
-                                    <DetailItem label={<span className="flex items-center gap-1"><Globe className="h-4 w-4" /> NgÃ´n ngá»¯</span>}>
+                                    <DetailItem label={<span className="flex items-center gap-1"><Globe className="h-4 w-4" /> Ngôn ngữ</span>}>
                                         {movie.language}
                                     </DetailItem>
                                 )}
                                 {movie.subtitle && (
-                                    <DetailItem label="Phá»¥ Ä‘á»">
+                                    <DetailItem label="Phụ đề">
                                         {movie.subtitle}
                                     </DetailItem>
                                 )}
-                                <DetailItem label={<span className="flex items-center gap-1"><Users className="h-4 w-4" /> Äáº¡o diá»…n</span>}>
+                                <DetailItem label={<span className="flex items-center gap-1"><Users className="h-4 w-4" /> Đạo diễn</span>}>
                                     {movie.director || '-'}
                                 </DetailItem>
                                 {movie.actors && Array.isArray(movie.actors) && movie.actors.length > 0 && (
-                                    <DetailItem label="Diá»…n viÃªn" wide>
+                                    <DetailItem label="Diễn viên" wide>
                                         <div className="flex flex-wrap gap-2">
                                             {movie.actors.map((actor, index) => (
                                                 <StatusBadge key={index} tone="cyan">{typeof actor === 'string' ? actor : actor.name}</StatusBadge>
@@ -269,7 +269,7 @@ const MovieDetail = () => {
                                         </div>
                                     </DetailItem>
                                 )}
-                                <DetailItem label="Thá»ƒ loáº¡i" wide>
+                                <DetailItem label="Thể loại" wide>
                                     <div className="flex flex-wrap gap-2">
                                         {Array.isArray(movie.genres)
                                             ? movie.genres.map((genre, index) => (
@@ -298,7 +298,7 @@ const MovieDetail = () => {
                                     <Separator className="my-4" />
                                     <div>
                                         <h5 className="flex items-center gap-2 font-semibold mb-2">
-                                            <FileText className="h-4 w-4" /> MÃ´ táº£
+                                            <FileText className="h-4 w-4" /> Mô tả
                                         </h5>
                                         <p className="mt-2 mb-0 whitespace-pre-wrap text-gray-700">
                                             {movie.description || movie.overview}
@@ -313,9 +313,9 @@ const MovieDetail = () => {
 
             {/* Backdrop Image */}
             {(movie.backdropUrl || movie.backdropPath || movie.backgroundImage) && (
-                <Card className="mt-6 rounded-xl shadow-md border border-gray-200">
-                    <div className="border-b border-gray-200 px-5 py-4 mb-0">
-                        <h3 className="text-base font-semibold m-0">HÃ¬nh ná»n</h3>
+                <Card className="mt-6 rounded-xl shadow-md border border-border">
+                    <div className="border-b border-border px-5 py-4 mb-0">
+                        <h3 className="text-base font-semibold m-0">Hình nền</h3>
                     </div>
                     <div className="p-5">
                         <img
@@ -329,9 +329,9 @@ const MovieDetail = () => {
 
             {/* Cast */}
             {movie.cast && movie.cast.length > 0 && (
-                <Card className="mt-6 rounded-xl shadow-md border border-gray-200">
-                    <div className="border-b border-gray-200 px-5 py-4 mb-0">
-                        <h3 className="text-base font-semibold m-0">Diá»…n viÃªn</h3>
+                <Card className="mt-6 rounded-xl shadow-md border border-border">
+                    <div className="border-b border-border px-5 py-4 mb-0">
+                        <h3 className="text-base font-semibold m-0">Diễn viên</h3>
                     </div>
                     <div className="p-5">
                         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
@@ -344,7 +344,7 @@ const MovieDetail = () => {
                                     />
                                     <div className="p-3">
                                         <h4 className="font-semibold text-sm mb-1">{actor.name}</h4>
-                                        <p className="text-xs text-gray-500">{actor.character || 'Diá»…n viÃªn'}</p>
+                                        <p className="text-xs text-muted-foreground">{actor.character || 'Diễn viên'}</p>
                                     </div>
                                 </Card>
                             ))}

@@ -19,7 +19,11 @@ const Empty = ({
       {image || (
         <Inbox className="mb-4 h-16 w-16 text-muted-foreground/35" />
       )}
-      <p className="text-sm text-muted-foreground">{description}</p>
+      {React.isValidElement(description) ? (
+        <div className="text-sm text-muted-foreground">{description}</div>
+      ) : (
+        <p className="text-sm text-muted-foreground">{description}</p>
+      )}
     </div>
   )
 }

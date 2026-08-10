@@ -39,7 +39,7 @@ const SearchResults = () => {
         setLoading(true);
         try {
             const [moviesResponse, allCinemas] = await Promise.all([
-                movieService.getAllMovies(),
+                movieService.listPage(),
                 cinemaService.getAllCinemas()
             ]);
 
@@ -102,9 +102,9 @@ const SearchResults = () => {
     };
 
     return (
-        <div className="p-6 min-h-[calc(100vh-140px)] bg-gray-50">
+        <div className="p-6 min-h-[calc(100vh-140px)] bg-background">
             <div className="max-w-[1200px] mx-auto">
-                <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+                <div className="bg-card p-6 rounded-lg shadow-md mb-6">
                     <div className="grid grid-cols-1 md:grid-cols-[1fr_200px] gap-4 items-center">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -130,13 +130,13 @@ const SearchResults = () => {
                 {loading ? (
                     <ContentLoader message="Đang tìm kiếm..." />
                 ) : (
-                    <div className="bg-white p-6 rounded-lg shadow-md">
+                    <div className="bg-card p-6 rounded-lg shadow-md">
                         {searchQuery && (
-                            <div className="mb-6 pb-4 border-b border-gray-200">
-                                <h3 className="text-gray-900 text-xl font-bold mb-2">
+                            <div className="mb-6 pb-4 border-b border-border">
+                                <h3 className="text-foreground text-xl font-bold mb-2">
                                     Kết quả tìm kiếm cho "{searchQuery}"
                                 </h3>
-                                <p className="text-gray-600">
+                                <p className="text-muted-foreground">
                                     Tìm thấy {results.total} kết quả
                                 </p>
                             </div>
@@ -148,7 +148,7 @@ const SearchResults = () => {
                             <>
                                 {results.movies.length > 0 && (
                                     <div className="mb-8 last:mb-0">
-                                        <h4 className="text-gray-900 text-lg font-bold mb-4">
+                                        <h4 className="text-foreground text-lg font-bold mb-4">
                                             Phim ({results.movies.length})
                                         </h4>
                                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -165,7 +165,7 @@ const SearchResults = () => {
 
                                 {results.cinemas.length > 0 && (
                                     <div className="mb-8 last:mb-0">
-                                        <h4 className="text-gray-900 text-lg font-bold mb-4">
+                                        <h4 className="text-foreground text-lg font-bold mb-4">
                                             Rạp chiếu ({results.cinemas.length})
                                         </h4>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -177,7 +177,7 @@ const SearchResults = () => {
                                                 >
                                                     <div className="p-4">
                                                         <h5 className="text-primary text-lg font-semibold mb-2">{cinema.name}</h5>
-                                                        <div className="text-gray-600 space-y-1 text-sm">
+                                                        <div className="text-muted-foreground space-y-1 text-sm">
                                                             <div>{cinema.address}</div>
                                                             <div>{cinema.district}</div>
                                                             <div>

@@ -22,14 +22,14 @@ const Register = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="flex min-h-screen bg-card">
       {/* Left Form Section */}
       <div className="w-full lg:w-1/2 flex flex-col relative overflow-y-auto">
         {/* Back Button */}
         <div className="absolute top-6 left-6 z-10">
           <button 
             onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-gray-500 hover:text-primary transition-colors font-medium text-sm bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm"
+            className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors font-medium text-sm bg-card/80 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm"
           >
             <ChevronLeft className="w-4 h-4" />
             Trở về trang chủ
@@ -39,10 +39,10 @@ const Register = () => {
         <div className="flex-1 flex items-center justify-center p-8 sm:p-12 lg:p-16 w-full max-w-[600px] mx-auto min-h-screen">
           <div className="w-full py-12">
             <div className="mb-8">
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-3 tracking-tight">
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-3 tracking-tight">
                 Tạo tài khoản mới ✨
               </h2>
-              <p className="text-gray-500 text-base">
+              <p className="text-muted-foreground text-base">
                 Gia nhập cộng đồng HotCinemas để không bỏ lỡ bất kỳ siêu phẩm điện ảnh nào.
               </p>
             </div>
