@@ -77,6 +77,10 @@ a[class*="border-input"] {
 :where([class~="pt-20"]) { padding-top: 4.5rem !important; }
 :where([class~="pb-16"]) { padding-bottom: 2.25rem !important; }
 :where([class~="pb-12"]) { padding-bottom: 1.75rem !important; }
+:where([class~="py-16"]) {
+  padding-top: 2.25rem !important;
+  padding-bottom: 2.25rem !important;
+}
 :where([class~="py-12"]) {
   padding-top: 1.75rem !important;
   padding-bottom: 1.75rem !important;
@@ -89,6 +93,7 @@ a[class*="border-input"] {
   padding-top: 1.25rem !important;
   padding-bottom: 1.25rem !important;
 }
+:where([class~="p-8"]) { padding: 1.25rem !important; }
 :where([class~="p-6"]) { padding: 1rem !important; }
 :where([class~="p-5"]) { padding: 1rem !important; }
 :where([class~="pt-6"]) { padding-top: 1rem !important; }
@@ -105,6 +110,10 @@ a[class*="border-input"] {
 :where([class~="mt-10"]) { margin-top: 1.5rem !important; }
 :where([class~="mb-8"]) { margin-bottom: 1.125rem !important; }
 :where([class~="mt-8"]) { margin-top: 1.125rem !important; }
+:where([class~="my-8"]) {
+  margin-top: 1.125rem !important;
+  margin-bottom: 1.125rem !important;
+}
 :where([class~="mb-6"]) { margin-bottom: 0.875rem !important; }
 :where([class~="mt-6"]) { margin-top: 0.875rem !important; }
 
