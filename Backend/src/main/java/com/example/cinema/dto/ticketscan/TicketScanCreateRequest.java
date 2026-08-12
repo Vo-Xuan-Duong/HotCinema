@@ -1,5 +1,7 @@
 package com.example.cinema.dto.ticketscan;
 
+import jakarta.validation.constraints.*;
+
 import java.util.UUID;
 
 import com.example.cinema.entity.Ticket;
@@ -18,10 +20,15 @@ import java.time.ZonedDateTime;
 @AllArgsConstructor
 public class TicketScanCreateRequest {
 
+    @NotNull
+
     private Ticket ticket;
     private java.util.UUID cinemaId;
     private java.util.UUID scannedById;
+    @NotNull
     private TicketScanResult result;
+    @NotNull
     private ZonedDateTime scannedAt;
+    @NotBlank
     private String deviceInfo;
 }

@@ -1,5 +1,7 @@
 package com.example.cinema.dto.employeecinema;
 
+import jakarta.validation.constraints.*;
+
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -18,8 +20,12 @@ public class EmployeeCinemaCreateRequest {
 
     private java.util.UUID userId;
     private java.util.UUID cinemaId;
+    @NotNull
     private EmployeePosition position;
+    @NotNull
     private Boolean isActive;
+    @NotNull
     private ZonedDateTime assignedAt;
+    @NotNull
     private ZonedDateTime endedAt;
 }

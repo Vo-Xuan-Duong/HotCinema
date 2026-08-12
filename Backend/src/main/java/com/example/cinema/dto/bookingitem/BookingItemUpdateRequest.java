@@ -1,5 +1,7 @@
 package com.example.cinema.dto.bookingitem;
 
+import jakarta.validation.constraints.*;
+
 import java.util.UUID;
 
 import java.math.BigDecimal;
@@ -17,8 +19,12 @@ public class BookingItemUpdateRequest {
 
     private java.util.UUID bookingId;
     private java.util.UUID productId;
+    @NotBlank
     private String productName;
+    @NotNull
     private Integer quantity;
+    @NotNull
     private BigDecimal unitPrice;
+    @NotNull
     private BigDecimal totalPrice;
 }

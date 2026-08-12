@@ -1,5 +1,7 @@
 package com.example.cinema.dto.notification;
 
+import jakarta.validation.constraints.*;
+
 import java.util.UUID;
 
 import com.example.cinema.entity.enums.NotificationType;
@@ -18,9 +20,14 @@ import java.time.ZonedDateTime;
 public class NotificationCreateRequest {
 
     private java.util.UUID userId;
+    @NotNull
     private NotificationType type;
+    @NotBlank
     private String title;
+    @NotBlank
     private String content;
+    @NotNull
     private Boolean isRead;
+    @NotNull
     private ZonedDateTime readAt;
 }

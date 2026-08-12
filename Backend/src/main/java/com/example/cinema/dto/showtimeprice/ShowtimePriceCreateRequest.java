@@ -1,5 +1,7 @@
 package com.example.cinema.dto.showtimeprice;
 
+import jakarta.validation.constraints.*;
+
 import java.util.UUID;
 
 import java.math.BigDecimal;
@@ -17,5 +19,6 @@ public class ShowtimePriceCreateRequest {
 
     private java.util.UUID showtimeId;
     private java.util.UUID seatTypeId;
+    @NotNull
     private BigDecimal price;
 }

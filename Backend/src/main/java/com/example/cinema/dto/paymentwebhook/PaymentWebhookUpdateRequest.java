@@ -1,5 +1,7 @@
 package com.example.cinema.dto.paymentwebhook;
 
+import jakarta.validation.constraints.*;
+
 import com.example.cinema.entity.enums.PaymentProvider;
 
 import lombok.AllArgsConstructor;
@@ -15,11 +17,19 @@ import java.time.ZonedDateTime;
 @AllArgsConstructor
 public class PaymentWebhookUpdateRequest {
 
+    @NotNull
+
     private PaymentProvider provider;
+    @NotBlank
     private String externalEventId;
+    @NotBlank
     private String payload;
+    @NotBlank
     private String signature;
+    @NotNull
     private Boolean verified;
+    @NotNull
     private Boolean processed;
+    @NotNull
     private ZonedDateTime processedAt;
 }

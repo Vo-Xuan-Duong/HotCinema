@@ -1,5 +1,7 @@
 package com.example.cinema.dto.product;
 
+import jakarta.validation.constraints.*;
+
 import java.util.UUID;
 
 import com.example.cinema.entity.enums.ProductStatus;
@@ -16,9 +18,14 @@ import lombok.NoArgsConstructor;
 public class ProductCreateRequest {
 
     private java.util.UUID categoryId;
+    @NotBlank
     private String code;
+    @NotBlank
     private String name;
+    @NotBlank
     private String description;
+    @NotBlank
     private String imageUrl;
+    @NotNull
     private ProductStatus status;
 }

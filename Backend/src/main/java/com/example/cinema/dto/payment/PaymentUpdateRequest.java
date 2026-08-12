@@ -1,5 +1,7 @@
 package com.example.cinema.dto.payment;
 
+import jakarta.validation.constraints.*;
+
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -19,17 +21,30 @@ import lombok.NoArgsConstructor;
 public class PaymentUpdateRequest {
 
     private java.util.UUID bookingId;
+    @NotNull
     private PaymentProvider provider;
+    @NotBlank
     private String paymentMethod;
+    @NotNull
     private BigDecimal amount;
+    @NotBlank
     private String currency;
+    @NotNull
     private PaymentStatus status;
+    @NotBlank
     private String idempotencyKey;
+    @NotBlank
     private String providerOrderId;
+    @NotBlank
     private String providerTransactionId;
+    @NotBlank
     private String requestId;
+    @NotBlank
     private String paymentUrl;
+    @NotBlank
     private String failureCode;
+    @NotBlank
     private String failureMessage;
+    @NotNull
     private ZonedDateTime paidAt;
 }

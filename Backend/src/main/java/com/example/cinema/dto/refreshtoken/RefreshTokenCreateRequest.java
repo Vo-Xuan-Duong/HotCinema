@@ -1,5 +1,7 @@
 package com.example.cinema.dto.refreshtoken;
 
+import jakarta.validation.constraints.*;
+
 import java.util.UUID;
 
 import lombok.AllArgsConstructor;
@@ -16,9 +18,14 @@ import java.time.ZonedDateTime;
 public class RefreshTokenCreateRequest {
 
     private java.util.UUID userId;
+    @NotBlank
     private String tokenHash;
+    @NotNull
     private ZonedDateTime expiresAt;
+    @NotNull
     private ZonedDateTime revokedAt;
+    @NotBlank
     private String ipAddress;
+    @NotBlank
     private String userAgent;
 }

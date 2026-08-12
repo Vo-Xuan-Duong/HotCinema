@@ -1,0 +1,23 @@
+package com.example.cinema.exception;
+
+import lombok.Getter;
+import org.springframework.http.HttpStatus;
+
+@Getter
+public enum ErrorCode {
+    RESOURCE_NOT_FOUND("RESOURCE_NOT_FOUND", "Resource not found", HttpStatus.NOT_FOUND),
+    BAD_REQUEST("BAD_REQUEST", "Bad request", HttpStatus.BAD_REQUEST),
+    INTERNAL_SERVER_ERROR("INTERNAL_SERVER_ERROR", "Internal server error", HttpStatus.INTERNAL_SERVER_ERROR),
+    DATA_INTEGRITY_VIOLATION("DATA_INTEGRITY_VIOLATION", "Data integrity violation", HttpStatus.CONFLICT);
+
+    private final String code;
+    private final String defaultMessage;
+    private final HttpStatus httpStatus;
+
+    ErrorCode(String code, String defaultMessage, HttpStatus httpStatus) {
+        this.code = code;
+        this.defaultMessage = defaultMessage;
+        this.httpStatus = httpStatus;
+    }
+
+}

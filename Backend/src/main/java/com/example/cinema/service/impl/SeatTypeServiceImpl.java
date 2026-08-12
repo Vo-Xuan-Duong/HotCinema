@@ -5,9 +5,13 @@ import com.example.cinema.repository.SeatTypeRepository;
 import com.example.cinema.service.SeatTypeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -19,24 +23,27 @@ public class SeatTypeServiceImpl implements SeatTypeService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<SeatType> findAll() {
-        return repository.findAll();
+    public Page<SeatType> findAll(Pageable pageable) {
+        return repository.findAll(pageable);
     }
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "seattypes", key = "#id")
     public Optional<SeatType> findById(UUID id) {
         return repository.findById(id);
     }
 
     @Override
     @Transactional
+    @CacheEvict(value = "seattypes", key = "#result.id")
     public SeatType save(SeatType entity) {
         return repository.save(entity);
     }
 
     @Override
     @Transactional
+    @CacheEvict(value = "seattypes", key = "#id")
     public void deleteById(UUID id) {
         repository.deleteById(id);
     }
