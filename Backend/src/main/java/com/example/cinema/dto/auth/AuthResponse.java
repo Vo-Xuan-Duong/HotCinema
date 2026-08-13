@@ -1,4 +1,7 @@
 package com.example.cinema.dto.auth;
 
-public record AuthResponse() {
+public record AuthResponse(
+        String accessToken,
+        String refreshToken
+) {
 }

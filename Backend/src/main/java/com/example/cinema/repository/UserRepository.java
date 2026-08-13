@@ -17,4 +17,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Page<User> findAllByIsDeletedFalse(Pageable pageable);
 
     Optional<User> findByIdAndIsDeletedFalse(UUID id);
+
+    boolean existsByEmail(String email);
 }

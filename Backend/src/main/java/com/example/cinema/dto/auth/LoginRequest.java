@@ -1,4 +1,6 @@
 package com.example.cinema.dto.auth;
 
-public class LoginRequest {
+import com.example.cinema.service.AuthService;
+
+public record LoginRequest(String email, String password){
 }
