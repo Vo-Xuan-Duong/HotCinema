@@ -1,496 +1,765 @@
-# 🎬 HotCinemas - Hệ Thống Quản Lý Rạp Chiếu Phim
+# 🎬 HotCinema
 
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.3-brightgreen.svg)](https://spring.io/projects/spring-boot)
-[![React](https://img.shields.io/badge/React-19.1.0-blue.svg)](https://reactjs.org/)
-[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://www.oracle.com/java/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Latest-blue.svg)](https://www.postgresql.org/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.0-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Java](https://img.shields.io/badge/Java-25-orange.svg)](https://www.oracle.com/java/)
+[![React](https://img.shields.io/badge/React-19.1.0-blue.svg)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-7.0.0-646CFF.svg)](https://vite.dev/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-336791.svg)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-Cache-DC382D.svg)](https://redis.io/)
 
-HotCinemas là một hệ thống quản lý rạp chiếu phim toàn diện, được xây dựng với kiến trúc hiện đại, hỗ trợ đặt vé trực tuyến, thanh toán điện tử, và quản lý rạp chiếu phim một cách chuyên nghiệp.
+HotCinema là hệ thống đặt vé và quản lý rạp chiếu phim được phát triển theo hướng gần production, gồm **Java Spring Boot backend**, **React frontend**, **PostgreSQL** và **Redis**.
 
-## 📋 Mục Lục
+Mục tiêu nghiệp vụ chính:
 
-- [Tính Năng](#-tính-năng)
-- [Công Nghệ Sử Dụng](#-công-nghệ-sử-dụng)
-- [Cấu Trúc Dự Án](#-cấu-trúc-dự-án)
-- [Yêu Cầu Hệ Thống](#-yêu-cầu-hệ-thống)
-- [Cài Đặt](#-cài-đặt)
-- [Cấu Hình](#-cấu-hình)
-- [Chạy Ứng Dụng](#-chạy-ứng-dụng)
-- [API Documentation](#-api-documentation)
-- [Tính Năng Chi Tiết](#-tính-năng-chi-tiết)
-- [Đóng Góp](#-đóng-góp)
-- [License](#-license)
+```text
+Chọn phim
+   ↓
+Chọn rạp
+   ↓
+Chọn ngày
+   ↓
+Chọn suất chiếu
+   ↓
+Chọn ghế
+   ↓
+Chọn combo bắp / nước
+   ↓
+Thanh toán
+   ↓
+Nhận vé / QR Code
+```
 
-## ✨ Tính Năng
+> **Trạng thái dự án:** đang phát triển. Domain model và CRUD nền tảng đã tương đối đầy đủ, nhưng các business flow quan trọng như seat hold, checkout orchestration, payment callback, ticket/QR và authorization theo ownership vẫn đang được hoàn thiện.
 
-### 👥 Người Dùng
-- ✅ **Đăng ký/Đăng nhập** với xác thực OTP qua email
-- ✅ **Xem danh sách phim** với bộ lọc và tìm kiếm nâng cao
-- ✅ **Chi tiết phim** với trailer, đánh giá, bình luận
-- ✅ **Xem lịch chiếu** theo rạp, theo phim, theo ngày
-- ✅ **Đặt vé trực tuyến** với chọn ghế trực quan
-- ✅ **Thanh toán** qua MoMo, VNPay, chuyển khoản, tiền mặt
-- ✅ **Quản lý đặt vé** - xem lịch sử, chi tiết, hủy vé
-- ✅ **Giỏ hàng** - lưu vé tạm thời trước khi thanh toán
-- ✅ **Thông báo real-time** qua WebSocket
-- ✅ **Hỗ trợ chat** trực tuyến
-- ✅ **Dark/Light mode** - giao diện tối/sáng
-- ✅ **Responsive design** - tối ưu cho mọi thiết bị
+---
 
-### 🔧 Quản Trị Viên
-- ✅ **Dashboard** với thống kê và biểu đồ
-- ✅ **Quản lý phim** - CRUD đầy đủ, upload poster
-- ✅ **Quản lý rạp** - thêm/sửa rạp, phòng chiếu
-- ✅ **Quản lý lịch chiếu** - tạo, cập nhật, xóa suất chiếu
-- ✅ **Quản lý ghế** - cấu hình sơ đồ ghế, loại ghế
-- ✅ **Quản lý đặt vé** - xem, duyệt, hủy đặt vé
-- ✅ **Quản lý người dùng** - phân quyền, kích hoạt/tắt tài khoản
-- ✅ **Quản lý bình luận** - duyệt, xóa bình luận
-- ✅ **Quản lý khuyến mãi** - tạo mã giảm giá, voucher
-- ✅ **Báo cáo doanh thu** - thống kê theo thời gian
-- ✅ **Quản lý nhân viên** - phân quyền nhân viên
-- ✅ **Cài đặt hệ thống** - cấu hình toàn hệ thống
+## 📌 Trạng thái hiện tại
 
-## 🛠️ Công Nghệ Sử Dụng
+| Khu vực | Trạng thái | Ghi chú |
+|---|---|---|
+| Domain / Entity model | ✅ Nền tảng tốt | Movie, Cinema, Auditorium, Seat, Showtime, Booking, Payment, Ticket, Promotion... |
+| Repository / Mapper / CRUD Service | ✅ Có | Phần lớn domain đã có CRUD cơ bản |
+| Authentication service | 🟡 Đang hoàn thiện | Login service, password validation, access token và refresh token đã có |
+| JWT access token generation | ✅ Có | HS256, access token mặc định 15 phút |
+| Refresh token generation | ✅ Có | Mặc định 7 ngày; rotation/revocation flow chưa hoàn thiện |
+| UserDetails / Roles | ✅ Có | Load user theo email và map role sang `ROLE_*` |
+| Auth HTTP endpoints | 🟡 Chưa nối hoàn chỉnh | `AuthController` hiện chưa expose login/register |
+| Bearer JWT validation | 🟡 Chưa hoàn thiện | Cần nối `JwtDecoder` / Resource Server vào `SecurityFilterChain` |
+| Role authorization | 🟡 Cơ bản | Có Spring Security nhưng rule nghiệp vụ chưa hoàn chỉnh |
+| Resource ownership | ❌ Chưa có | Ví dụ customer chỉ được xem booking của chính mình |
+| Booking orchestration | ❌ Chưa có | Booking hiện chủ yếu là CRUD |
+| Seat hold / concurrency | ❌ Chưa có | Chưa có cơ chế chống double-booking hoàn chỉnh |
+| Pricing engine | ❌ Chưa có | Cần tính giá ghế, suất chiếu, combo, promotion ở backend |
+| Payment orchestration | ❌ Chưa có | Payment/Webhook hiện chưa có flow provider chuẩn |
+| Ticket / QR lifecycle | ❌ Chưa hoàn thiện | Cần generate sau payment success và validate khi scan |
+| Flyway migration | 🟡 Dependency có | Hiện `spring.flyway.enabled=false`, Hibernate vẫn dùng `ddl-auto=update` |
+| Automated tests | 🔴 Rất ít | Cần bổ sung auth, booking, payment, concurrency, ticket tests |
+| CI/CD | 🟡 Có workflow | Cần tiếp tục chuẩn hóa build/test pipeline |
+
+---
+
+## 🧱 Kiến trúc mục tiêu
+
+Backend không nên dừng ở mô hình CRUD thuần:
+
+```text
+Controller
+   ↓
+Application / Use-case Service
+   ├── Domain Services
+   ├── Integration Services
+   │      ├── Payment Provider
+   │      ├── Redis
+   │      └── Notification
+   └── Repositories
+          ↓
+      PostgreSQL
+```
+
+Ví dụ booking flow mục tiêu:
+
+```text
+BookingController
+      ↓
+BookingApplicationService / CheckoutService
+      ├── SeatAvailabilityService
+      ├── SeatHoldService
+      ├── PricingService
+      ├── PromotionService
+      ├── PaymentService
+      └── TicketService
+```
+
+Mục tiêu là chuyển dần từ:
+
+```text
+Controller → Generic CRUD Service → repository.save()
+```
+
+sang:
+
+```text
+Controller → Business Use Case → Domain Rules → Repository / Integration
+```
+
+---
+
+## 🛠 Công nghệ sử dụng
 
 ### Backend
-- **Framework**: Spring Boot 3.5.3
-- **Language**: Java 21
-- **Build Tool**: Maven
-- **Database**: PostgreSQL
-- **Cache**: Redis
-- **Security**: Spring Security + JWT
-- **Documentation**: Swagger/OpenAPI 3
-- **WebSocket**: Spring WebSocket (STOMP)
-- **File Storage**: Cloudinary
-- **Payment**: MoMo Payment Gateway
-- **Email**: Spring Mail (Gmail SMTP)
-- **PDF Generation**: OpenHTMLToPDF
-- **QR Code**: ZXing
+
+| Thành phần | Công nghệ |
+|---|---|
+| Framework | Spring Boot 4.1.0 |
+| Language | Java 25 |
+| Build | Maven / Maven Wrapper |
+| REST API | Spring Web |
+| Security | Spring Security |
+| JWT | Spring Security OAuth2 Resource Server / JOSE |
+| Persistence | Spring Data JPA / Hibernate |
+| Database | PostgreSQL |
+| Migration | Flyway |
+| Cache | Redis / Spring Cache |
+| Mapping | MapStruct 1.5.5.Final |
+| Validation | Jakarta Validation / Spring Validation |
+| API Docs | springdoc OpenAPI |
+| Boilerplate | Lombok |
 
 ### Frontend
-- **Framework**: React 19.1.0
-- **Build Tool**: Vite 7.0.0
-- **UI Library**: Ant Design 5.26.6
-- **Routing**: React Router DOM 6.30.1
-- **HTTP Client**: Axios 1.10.0
-- **WebSocket**: STOMP.js + SockJS
-- **Charts**: Recharts 3.1.0
-- **Icons**: React Icons, Lucide React, Ant Design Icons
-- **Date/Time**: Day.js, Moment.js
-- **QR Code**: qrcode
-- **Carousel**: Swiper 11.2.10
 
-## 📁 Cấu Trúc Dự Án
+| Thành phần | Công nghệ |
+|---|---|
+| Framework | React 19.1.0 |
+| Build tool | Vite 7 |
+| Routing | React Router DOM 6 |
+| HTTP | Axios |
+| UI primitives | Radix UI |
+| Styling utilities | Tailwind CSS, CVA, clsx, tailwind-merge |
+| Forms | React Hook Form |
+| Animation | Framer Motion |
+| Charts | Recharts |
+| Icons | Lucide React, React Icons |
+| QR | qrcode |
+| Testing | Vitest + jsdom |
+| Lint | ESLint |
 
-```
-hotcinemas/
-├── Backend/                    # Spring Boot Backend
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/com/example/hotcinemas_be/
-│   │   │   │   ├── config/          # Cấu hình (Security, Redis, WebSocket, ...)
-│   │   │   │   ├── controllers/      # REST Controllers
-│   │   │   │   ├── dtos/            # Data Transfer Objects
-│   │   │   │   ├── enums/           # Enumeration classes
-│   │   │   │   ├── exceptions/      # Exception handling
-│   │   │   │   ├── jwts/            # JWT utilities
-│   │   │   │   ├── mappers/         # Entity-DTO mappers
-│   │   │   │   ├── models/          # JPA entities
-│   │   │   │   ├── repositorys/     # Data repositories
-│   │   │   │   ├── services/        # Business logic
-│   │   │   │   └── specifications/  # JPA Specifications
-│   │   │   └── resources/
-│   │   │       ├── application.properties
-│   │   │       └── db/              # Database scripts
-│   │   └── test/                    # Test classes
+---
+
+## 📁 Cấu trúc dự án
+
+```text
+HotCinema/
+├── .github/
+│   └── workflows/              # CI workflows
+│
+├── Backend/
+│   ├── src/main/java/com/example/cinema/
+│   │   ├── common/             # Common response / shared models
+│   │   ├── config/             # Security, JWT, application configuration
+│   │   ├── controller/         # REST controllers
+│   │   ├── dto/                # Request / response DTOs
+│   │   ├── entity/             # JPA entities
+│   │   │   └── enums/
+│   │   ├── exception/          # Application exceptions / global handler
+│   │   ├── mapper/             # MapStruct mappers
+│   │   ├── repository/         # Spring Data repositories
+│   │   ├── security/           # UserDetails, JWT, security handlers
+│   │   └── service/
+│   │       └── impl/           # Service implementations
+│   │
+│   ├── src/main/resources/
+│   │   └── application.properties
+│   ├── src/test/
 │   ├── pom.xml
-│   └── README.md
+│   └── mvnw
 │
-├── Frontend/                   # React Frontend
+├── Frontend/
 │   ├── src/
-│   │   ├── components/        # React components
-│   │   │   ├── Auth/          # Authentication components
-│   │   │   ├── Booking/       # Booking components
-│   │   │   ├── Movie/         # Movie components
-│   │   │   ├── Cinema/        # Cinema components
-│   │   │   ├── Admin/         # Admin components
-│   │   │   └── ...
-│   │   ├── pages/             # Page components
-│   │   │   ├── User/          # User pages
-│   │   │   ├── Admin/         # Admin pages
-│   │   │   └── Auth/          # Auth pages
-│   │   ├── services/          # API services
-│   │   ├── context/           # React Context (Auth, Theme, ...)
-│   │   ├── hooks/             # Custom hooks
-│   │   ├── utils/             # Utility functions
-│   │   ├── layouts/           # Layout components
-│   │   ├── styles/            # Global styles
-│   │   └── data/              # Mock data (JSON)
-│   ├── public/                # Static files
+│   ├── public/
+│   ├── scripts/
 │   ├── package.json
-│   ├── vite.config.js
-│   └── README.md
+│   └── vite.config.*
 │
-└── README.md                   # File này
+├── docker-compose.yml
+└── README.md
 ```
 
-## 💻 Yêu Cầu Hệ Thống
+---
 
-### Backend
-- **Java**: JDK 21 hoặc cao hơn
-- **Maven**: 3.6+ (hoặc sử dụng Maven Wrapper)
-- **PostgreSQL**: 12+ 
-- **Redis**: 6.0+
-- **IDE**: IntelliJ IDEA, Eclipse, hoặc VS Code (với Java extensions)
+## 👤 Vai trò người dùng mục tiêu
 
-### Frontend
-- **Node.js**: 18.0+ hoặc cao hơn
-- **npm**: 9.0+ hoặc **yarn** 1.22+
-- **Browser**: Chrome, Firefox, Edge, Safari (phiên bản mới nhất)
+HotCinema được định hướng hỗ trợ các role sau:
 
-## 🚀 Cài Đặt
+| Role | Trách nhiệm |
+|---|---|
+| Guest | Xem phim, rạp, suất chiếu, tình trạng ghế |
+| Customer | Đặt vé, thanh toán, xem booking/ticket cá nhân |
+| Staff | Hỗ trợ bán vé tại quầy, scan ticket |
+| Theater Manager | Quản lý rạp, phòng, ghế, suất chiếu thuộc phạm vi rạp |
+| Admin | Quản lý user, role và dữ liệu toàn hệ thống |
 
-### 1. Clone Repository
+> Authorization theo role và ownership vẫn cần được hoàn thiện ở backend trước khi xem là production-ready.
 
-```bash
-git clone <repository-url>
-cd hotcinemas
+---
+
+## 🔐 Authentication hiện tại
+
+Backend hiện đã có phần service-level authentication:
+
+```text
+LoginRequest(email, password)
+        ↓
+AuthenticationManager
+        ↓
+DaoAuthenticationProvider
+        ↓
+CustomUserDetailsService
+        ↓
+PasswordEncoder
+        ↓
+User + Roles
+        ↓
+JwtTokenService
+        ↓
+AuthResponse(accessToken, refreshToken)
 ```
 
-### 2. Cài Đặt Backend
+Access token hiện chứa các claim chính:
 
-```bash
-cd Backend
-
-# Sử dụng Maven Wrapper (khuyến nghị)
-./mvnw clean install
-
-# Hoặc sử dụng Maven đã cài đặt
-mvn clean install
+```text
+iss
+sub = userId
+jti
+email
+roles
+token_type = access
+exp
 ```
 
-### 3. Cài Đặt Frontend
+Refresh token sử dụng cùng JWT encoder nhưng có:
 
-```bash
-cd Frontend
-
-# Cài đặt dependencies
-npm install
-
-# Hoặc sử dụng yarn
-yarn install
+```text
+token_type = refresh
 ```
 
-### 4. Cài Đặt Database
+Thời gian mặc định:
 
-1. Tạo database PostgreSQL:
-```sql
-CREATE DATABASE hotcinemas;
+| Token | TTL |
+|---|---:|
+| Access Token | 900 giây / 15 phút |
+| Refresh Token | 604800 giây / 7 ngày |
+
+### Việc authentication còn phải làm
+
+```text
+HTTP Login Endpoint
+      ↓
+Issue Access Token
+      ↓
+Client sends Authorization: Bearer <token>
+      ↓
+JwtDecoder
+      ↓
+Validate signature / issuer / expiry
+      ↓
+Convert roles → GrantedAuthority
+      ↓
+SecurityContext
+      ↓
+Protected API
 ```
 
-2. Cấu hình trong `Backend/src/main/resources/application.properties`:
+Các phần còn thiếu quan trọng:
+
+- expose `login`, `register`, `refresh`, `logout`, `me` từ `AuthController`;
+- nối JWT decoder vào `SecurityFilterChain`;
+- chuẩn hóa public/private routes;
+- refresh token rotation/revocation;
+- logout invalidation;
+- resource ownership authorization;
+- auth integration tests.
+
+---
+
+## 🎟 Booking flow mục tiêu
+
+Booking không được để client tự gửi trạng thái hoặc tổng tiền rồi lưu trực tiếp.
+
+Flow mục tiêu:
+
+```text
+Customer
+   ↓
+Choose Showtime
+   ↓
+Select Seats
+   ↓
+Validate Availability
+   ↓
+Hold Seats
+   ↓
+Calculate Price
+   ↓
+Add Products / Combos
+   ↓
+Apply Promotion
+   ↓
+Create Booking
+   ↓
+Create Payment
+   ↓
+Payment Provider
+   ↓
+Webhook / IPN
+   ↓
+Confirm Payment
+   ↓
+Finalize Seats
+   ↓
+Generate Ticket / QR
+```
+
+### Booking state đề xuất
+
+```text
+PENDING
+   ├──→ PAYMENT_FAILED
+   ├──→ EXPIRED
+   ├──→ CANCELLED
+   └──→ PAID
+          ↓
+      CONFIRMED
+          ↓
+      COMPLETED
+```
+
+Refund flow có thể mở rộng với:
+
+```text
+REFUND_PENDING → REFUNDED
+```
+
+---
+
+## 💺 Seat hold và chống double-booking
+
+Đây là một trong các phần backend quan trọng nhất cần triển khai.
+
+State mục tiêu:
+
+```text
+AVAILABLE → HELD → BOOKED
+```
+
+Seat hold nên có tối thiểu:
+
+```text
+id
+showtime_id
+seat_id
+user_id
+booking_id
+expires_at
+created_at
+```
+
+Các nguyên tắc bắt buộc:
+
+- seat hold phải atomic;
+- một ghế trong cùng showtime không thể được hold/book đồng thời bởi hai booking;
+- hold phải có thời gian hết hạn;
+- payment success chuyển seat thành `BOOKED`;
+- hold hết hạn phải release;
+- database constraint phải là lớp bảo vệ cuối cùng;
+- cần concurrency integration test.
+
+Test mục tiêu:
+
+```text
+20 requests cùng giữ 1 ghế
+        ↓
+chỉ đúng 1 request thành công
+```
+
+---
+
+## 💳 Payment flow mục tiêu
+
+Payment và webhook không nên được expose dưới dạng generic CRUD.
+
+Flow chuẩn:
+
+```text
+POST /payment/initiate
+        ↓
+Create payment request
+        ↓
+Payment Provider
+        ↓
+Provider callback / webhook
+        ↓
+Verify signature
+        ↓
+Validate booking + amount
+        ↓
+Idempotency check
+        ↓
+Persist transaction / webhook event
+        ↓
+Update Payment
+        ↓
+Update Booking
+        ↓
+Finalize Seats
+        ↓
+Generate Ticket
+```
+
+Webhook phải hỗ trợ retry an toàn. Cùng một provider transaction/event ID không được tạo nhiều ticket hoặc xác nhận booking nhiều lần.
+
+MoMo là payment provider ưu tiên đầu tiên của dự án.
+
+---
+
+## 🧮 Pricing và Promotion
+
+Tổng tiền phải được tính lại hoàn toàn ở backend.
+
+```text
+Seat base price
++ Seat type surcharge
++ Showtime pricing
++ Products / combos
+- Promotion discount
++ Applicable fees
+= Final total
+```
+
+Backend không được tin `totalAmount` do frontend gửi lên.
+
+---
+
+## 🎫 Ticket / QR
+
+Ticket chỉ được phát hành sau khi payment được xác nhận thành công.
+
+QR không nên chỉ chứa raw ticket ID. Nên sử dụng signed/tokenized payload để có thể xác minh tính hợp lệ.
+
+Scan flow mục tiêu:
+
+```text
+Scan QR
+   ↓
+Validate signature
+   ↓
+Validate ticket
+   ↓
+Validate showtime
+   ↓
+Validate ticket status
+   ↓
+Mark as used
+```
+
+Scan lần hai phải trả trạng thái `already used` thay vì tiếp tục cho phép vào rạp.
+
+---
+
+## ⚙️ Cấu hình backend
+
+File hiện tại:
+
+```text
+Backend/src/main/resources/application.properties
+```
+
+### Database
+
+Mặc định development hiện tại:
+
 ```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/hotcinemas
-spring.datasource.username=your_username
-spring.datasource.password=your_password
+spring.datasource.url=jdbc:postgresql://localhost:5432/cinema
+spring.datasource.username=postgres
+spring.datasource.password=123456
 ```
 
-3. Database sẽ tự động tạo schema khi chạy ứng dụng (với `spring.jpa.hibernate.ddl-auto=update`)
+Có thể override bằng environment variables của Spring Boot:
 
-### 5. Cài Đặt Redis
-
-**Windows:**
-- Tải Redis từ: https://github.com/microsoftarchive/redis/releases
-- Hoặc sử dụng WSL2 với Redis
-
-**Linux/Mac:**
 ```bash
-# Ubuntu/Debian
-sudo apt-get install redis-server
-
-# Mac (Homebrew)
-brew install redis
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/cinema
+SPRING_DATASOURCE_USERNAME=postgres
+SPRING_DATASOURCE_PASSWORD=your_password
 ```
 
-Khởi động Redis:
+> Không sử dụng credential development mặc định trong staging/production.
+
+### Redis
+
+```properties
+spring.data.redis.host=localhost
+spring.data.redis.port=6379
+```
+
+Có thể override:
+
+```bash
+SPRING_DATA_REDIS_HOST=localhost
+SPRING_DATA_REDIS_PORT=6379
+```
+
+### JWT
+
+Các property hiện hỗ trợ:
+
+```properties
+app.security.jwt.secret=${JWT_SECRET:hotcinema-dev-secret-key-change-before-production-2026}
+app.security.jwt.issuer=${JWT_ISSUER:hotcinema}
+app.security.jwt.access-token-seconds=${JWT_ACCESS_TOKEN_SECONDS:900}
+app.security.jwt.refresh-token-seconds=${JWT_REFRESH_TOKEN_SECONDS:604800}
+```
+
+Production bắt buộc cấu hình secret riêng:
+
+```bash
+JWT_SECRET=<strong-random-secret-at-least-32-bytes>
+JWT_ISSUER=hotcinema
+JWT_ACCESS_TOKEN_SECONDS=900
+JWT_REFRESH_TOKEN_SECONDS=604800
+```
+
+Không commit production secret vào Git.
+
+---
+
+## 🗄 Database migration
+
+Hiện tại project vẫn đang dùng:
+
+```properties
+spring.jpa.hibernate.ddl-auto=update
+spring.flyway.enabled=false
+```
+
+Đây chỉ nên là trạng thái development tạm thời.
+
+Target:
+
+```properties
+spring.jpa.hibernate.ddl-auto=validate
+spring.flyway.enabled=true
+```
+
+Migration structure mục tiêu:
+
+```text
+Backend/src/main/resources/db/migration/
+├── V1__initial_schema.sql
+├── V2__seed_roles.sql
+├── V3__seed_seat_types.sql
+├── V4__booking_constraints.sql
+└── ...
+```
+
+---
+
+## 🚀 Chạy local
+
+### Yêu cầu
+
+Backend:
+
+```text
+JDK 25
+PostgreSQL
+Redis
+```
+
+Frontend:
+
+```text
+Node.js 18+
+npm
+```
+
+### 1. Clone repository
+
+```bash
+git clone https://github.com/Vo-Xuan-Duong/HotCinema.git
+cd HotCinema
+```
+
+### 2. Tạo database
+
+```sql
+CREATE DATABASE cinema;
+```
+
+### 3. Chạy Redis
+
+Nếu đã cài Redis local:
+
 ```bash
 redis-server
 ```
 
-## ⚙️ Cấu Hình
+Hoặc chỉ chạy Redis bằng Docker:
 
-### Backend Configuration
-
-Chỉnh sửa file `Backend/src/main/resources/application.properties`:
-
-```properties
-# Database
-spring.datasource.url=jdbc:postgresql://localhost:5432/hotcinemas
-spring.datasource.username=postgres
-spring.datasource.password=your_password
-
-# JWT
-jwt.secret.access=your_access_secret_key_min_256_bits
-jwt.secret.refresh=your_refresh_secret_key_min_256_bits
-jwt.expiration.access=86400000  # 24 hours
-jwt.expiration.refresh=604800000 # 7 days
-jwt.issuer=hotcinemas
-
-# Redis
-spring.data.redis.host=localhost
-spring.data.redis.port=6379
-
-# CORS (thêm domain frontend của bạn)
-cors_allowed_origins=http://localhost:5173,http://localhost:3000
-
-# Email (Gmail)
-spring.mail.host=smtp.gmail.com
-spring.mail.port=587
-spring.mail.username=your_email@gmail.com
-spring.mail.password=your_app_password  # App Password từ Google Account
-
-# Cloudinary
-cloudinary.url=cloudinary://api_key:api_secret@cloud_name
-
-# MoMo Payment (Test Environment)
-momo.partnerCode=your_partner_code
-momo.accessKey=your_access_key
-momo.secretKey=your_secret_key
-momo.endPoint=https://test-payment.momo.vn/v2/gateway/api/create
-momo.redirectUrl=http://localhost:5173/booking/callback
-momo.ipnUrl=http://your-domain.com/api/v1/payments/momo-callback
+```bash
+docker run --name hotcinema-redis -p 6379:6379 -d redis:7-alpine
 ```
 
-### Frontend Configuration
+### 4. Chạy backend
 
-Chỉnh sửa file `Frontend/src/utils/apiClient.js`:
+Windows:
 
-```javascript
-const API_BASE_URL = 'http://localhost:8080/api/v1';
+```powershell
+cd Backend
+.\mvnw.cmd spring-boot:run
 ```
 
-## 🏃 Chạy Ứng Dụng
-
-### Chạy Backend
+Linux / macOS:
 
 ```bash
 cd Backend
-
-# Sử dụng Maven Wrapper
 ./mvnw spring-boot:run
-
-# Hoặc chạy JAR file
-java -jar target/hotcinemas_be-0.0.1-SNAPSHOT.jar
 ```
 
-Backend sẽ chạy tại: `http://localhost:8080`
+Backend mặc định:
 
-### Chạy Frontend
+```text
+http://localhost:8080
+```
+
+### 5. Chạy frontend
 
 ```bash
 cd Frontend
-
-# Development mode
+npm install
 npm run dev
-
-# Hoặc sử dụng yarn
-yarn dev
 ```
 
-Frontend sẽ chạy tại: `http://localhost:5173`
+Vite mặc định:
 
-### Chạy Cả Hai (Windows)
-
-Sử dụng script có sẵn:
-```bash
-# Từ thư mục Frontend
-start-dev.bat
+```text
+http://localhost:5173
 ```
-
-### Chạy Cả Hai (Linux/Mac)
-
-```bash
-# Từ thư mục Frontend
-./start-dev.sh
-```
-
-## 📚 API Documentation
-
-Khi backend đang chạy, truy cập:
-
-- **Swagger UI**: http://localhost:8080/swagger-ui.html
-- **OpenAPI JSON**: http://localhost:8080/api-docs
-
-### Các Endpoint Chính
-
-#### Authentication
-- `POST /api/v1/auth/register` - Đăng ký tài khoản
-- `POST /api/v1/auth/login` - Đăng nhập
-- `POST /api/v1/auth/refresh` - Làm mới token
-- `POST /api/v1/auth/verify-otp` - Xác thực OTP
-- `POST /api/v1/auth/forgot-password` - Quên mật khẩu
-- `POST /api/v1/auth/reset-password` - Đặt lại mật khẩu
-
-#### Movies
-- `GET /api/v1/movies` - Danh sách phim (có phân trang, lọc, tìm kiếm)
-- `GET /api/v1/movies/{id}` - Chi tiết phim
-- `POST /api/v1/movies` - Tạo phim mới (Admin)
-- `PUT /api/v1/movies/{id}` - Cập nhật phim (Admin)
-- `DELETE /api/v1/movies/{id}` - Xóa phim (Admin)
-
-#### Cinemas
-- `GET /api/v1/cinemas` - Danh sách rạp
-- `GET /api/v1/cinemas/{id}` - Chi tiết rạp
-- `POST /api/v1/cinemas` - Tạo rạp mới (Admin)
-- `PUT /api/v1/cinemas/{id}` - Cập nhật rạp (Admin)
-
-#### Showtimes
-- `GET /api/v1/showtimes` - Danh sách lịch chiếu
-- `GET /api/v1/showtimes/{id}` - Chi tiết lịch chiếu
-- `POST /api/v1/showtimes` - Tạo lịch chiếu (Admin)
-- `PUT /api/v1/showtimes/{id}` - Cập nhật lịch chiếu (Admin)
-
-#### Bookings
-- `GET /api/v1/bookings` - Danh sách đặt vé
-- `GET /api/v1/bookings/{id}` - Chi tiết đặt vé
-- `POST /api/v1/bookings` - Tạo đặt vé mới
-- `PUT /api/v1/bookings/{id}/cancel` - Hủy đặt vé
-
-#### Payments
-- `POST /api/v1/payments` - Tạo thanh toán
-- `GET /api/v1/payments/{id}` - Chi tiết thanh toán
-- `POST /api/v1/payments/momo-callback` - Callback từ MoMo
-
-#### Users
-- `GET /api/v1/users` - Danh sách người dùng (Admin)
-- `GET /api/v1/users/{id}` - Chi tiết người dùng
-- `PUT /api/v1/users/{id}` - Cập nhật thông tin
-- `PUT /api/v1/users/{id}/password` - Đổi mật khẩu
-
-Xem chi tiết đầy đủ tại Swagger UI.
-
-## 🎯 Tính Năng Chi Tiết
-
-### Đặt Vé
-1. Chọn phim và suất chiếu
-2. Chọn ghế trên sơ đồ trực quan
-3. Xem lại thông tin và giá
-4. Chọn phương thức thanh toán
-5. Thanh toán và nhận vé (PDF + QR Code)
-
-### Quản Lý Rạp
-- Quản lý thông tin rạp (tên, địa chỉ, hình ảnh)
-- Quản lý phòng chiếu (loại phòng: 2D, 3D, IMAX, VIP)
-- Cấu hình sơ đồ ghế (số hàng, số ghế, hàng VIP)
-- Quản lý giá vé theo loại phòng và ghế
-
-### Thống Kê & Báo Cáo
-- Doanh thu theo ngày/tuần/tháng/năm
-- Số lượng vé bán ra
-- Phim phổ biến nhất
-- Rạp có doanh thu cao nhất
-- Biểu đồ trực quan với Recharts
-
-### Real-time Features
-- Thông báo đặt vé thành công
-- Cập nhật trạng thái ghế real-time
-- Chat hỗ trợ trực tuyến
-- Thông báo khuyến mãi
-
-## 🔒 Bảo Mật
-
-- **JWT Authentication**: Access token và Refresh token
-- **Password Encryption**: BCrypt
-- **CORS Configuration**: Chỉ cho phép domain được cấu hình
-- **Input Validation**: Jakarta Bean Validation
-- **SQL Injection Protection**: JPA/Hibernate
-- **XSS Protection**: Input sanitization
-- **Rate Limiting**: Redis-based (có thể cấu hình)
-
-## 🧪 Testing
-
-### Backend Tests
-```bash
-cd Backend
-./mvnw test
-```
-
-### Frontend Tests
-```bash
-cd Frontend
-npm test
-```
-
-## 📦 Build Production
-
-### Backend
-```bash
-cd Backend
-./mvnw clean package -DskipTests
-# JAR file sẽ được tạo tại: target/hotcinemas_be-0.0.1-SNAPSHOT.jar
-```
-
-### Frontend
-```bash
-cd Frontend
-npm run build
-# Build files sẽ được tạo tại: dist/
-```
-
-## 🐛 Troubleshooting
-
-### Backend không kết nối được database
-- Kiểm tra PostgreSQL đã chạy chưa
-- Kiểm tra thông tin kết nối trong `application.properties`
-- Kiểm tra firewall/port 5432
-
-### Frontend không kết nối được API
-- Kiểm tra backend đã chạy chưa (http://localhost:8080)
-- Kiểm tra CORS configuration trong backend
-- Kiểm tra `API_BASE_URL` trong `apiClient.js`
-
-### Redis connection error
-- Kiểm tra Redis đã chạy chưa: `redis-cli ping` (phải trả về PONG)
-- Kiểm tra host và port trong `application.properties`
-
-### JWT token expired
-- Token sẽ tự động refresh khi gần hết hạn
-- Nếu refresh token hết hạn, cần đăng nhập lại
-
-## 🤝 Đóng Góp
-
-Chúng tôi hoan nghênh mọi đóng góp! Vui lòng làm theo các bước sau:
-
-1. Fork repository
-2. Tạo feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Mở Pull Request
-
-### Code Style
-
-- **Backend**: Tuân thủ Java Code Conventions
-- **Frontend**: Sử dụng ESLint configuration có sẵn
-- **Commit Messages**: Sử dụng tiếng Việt hoặc tiếng Anh, mô tả rõ ràng
-
-## 📄 License
-
-Dự án này được phân phối dưới giấy phép MIT. Xem file `LICENSE` để biết thêm chi tiết.
-
-## 📞 Liên Hệ & Hỗ Trợ
-
-- **Email**: support@hotcinemas.com
-- **Issues**: Tạo issue trên GitHub repository
-- **Documentation**: Xem thêm tại [Backend/README.md](Backend/README.md)
-
-## 🙏 Lời Cảm Ơn
-
-Cảm ơn tất cả các contributors đã đóng góp cho dự án này!
 
 ---
 
-**HotCinemas Team** © 2025
+## 🐳 Docker
 
-Made with ❤️ using Spring Boot & React
+Repository có `docker-compose.yml` cho backend application và Redis.
+
+```bash
+docker compose up --build
+```
+
+Hiện compose chưa khai báo PostgreSQL service, vì vậy backend vẫn cần kết nối tới một PostgreSQL instance phù hợp thông qua cấu hình datasource.
+
+---
+
+## 🧪 Kiểm tra frontend
+
+Frontend đã có các script:
+
+```bash
+npm run lint
+npm test
+npm run build
+npm run check
+```
+
+`npm run check` thực hiện chuỗi kiểm tra UI audit, lint, test và build.
+
+---
+
+## 📚 API Documentation
+
+Backend sử dụng springdoc OpenAPI.
+
+Khi backend chạy thành công, Swagger UI theo cấu hình mặc định thường được truy cập tại:
+
+```text
+http://localhost:8080/swagger-ui/index.html
+```
+
+OpenAPI JSON:
+
+```text
+http://localhost:8080/v3/api-docs
+```
+
+> API surface hiện vẫn đang được chuẩn hóa. Không nên coi các generic CRUD endpoint hiện tại là contract cuối cùng của hệ thống.
+
+---
+
+## 🗺 Backend roadmap
+
+Ưu tiên backend hiện tại:
+
+| Priority | Work item | Mục tiêu |
+|---|---|---|
+| P0 | Authentication HTTP API | Login/register/refresh/logout/me hoạt động end-to-end |
+| P0 | JWT request authentication | Bearer token được verify ở mọi protected API |
+| P0 | Flyway | Migration-first database |
+| P0 | Booking orchestration | Checkout use case thay cho generic CRUD |
+| P0 | Seat hold | Atomic hold + timeout + chống double booking |
+| P0 | Pricing | Backend tính toàn bộ giá booking |
+| P0 | MoMo payment | Initiate + callback + signature + idempotency |
+| P1 | Authorization | Role + resource ownership |
+| P1 | Ticket / QR | Issue, validate, scan, prevent reuse |
+| P1 | Tests | Integration + concurrency + security tests |
+| P1 | CI | Compile + test backend, lint/test/build frontend |
+| P2 | Observability | Logging, audit, metrics, health checks |
+| P2 | Deployment | Environment config, container hardening, production setup |
+
+---
+
+## 🎯 Development principles
+
+1. Không thêm generic CRUD chỉ vì entity tồn tại.
+2. Ưu tiên business use case end-to-end.
+3. Backend là nguồn sự thật cho giá, trạng thái booking và payment.
+4. Không tin dữ liệu nhạy cảm do client gửi lên.
+5. Mọi payment webhook phải verify signature và idempotent.
+6. Seat booking phải có concurrency control ở cả application và database layer.
+7. Authorization phải kiểm tra cả role và ownership.
+8. Database schema production phải quản lý bằng migration.
+9. Business-critical flow phải có integration test.
+10. Secret và credential production không được commit vào repository.
+
+---
+
+## 🔜 Bước backend tiếp theo
+
+Bước tiếp theo nên hoàn thiện authentication end-to-end theo thứ tự:
+
+```text
+AuthController
+   ↓
+POST /api/v1/auth/login
+POST /api/v1/auth/register
+POST /api/v1/auth/refresh
+POST /api/v1/auth/logout
+GET  /api/v1/auth/me
+   ↓
+JwtDecoder
+   ↓
+Bearer Token Authentication
+   ↓
+SecurityContext
+   ↓
+Role / Ownership Authorization
+```
+
+Sau khi authentication chạy hoàn chỉnh, chuyển sang **Seat Hold + Booking Application Service** trước khi tích hợp payment.
+
+---
+
+## 📄 License
+
+Chưa xác định license chính thức cho repository này.
+
+---
+
+**HotCinema** — Cinema booking platform built with Spring Boot, React, PostgreSQL and Redis.
