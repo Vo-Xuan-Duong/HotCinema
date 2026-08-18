@@ -52,7 +52,7 @@ const notificationService = {
     const notificationId = normalizeResourceId(id);
     if (MOCK_API_ENABLED) {
       return normalizeNotification(unwrapApiData(
-        await apiClient.post(`${ENDPOINTS.NOTIFICATIONS}/${notificationId}/read`),
+        await apiClient.put(`${ENDPOINTS.NOTIFICATIONS}/${notificationId}/read`),
       ));
     }
 
@@ -73,7 +73,7 @@ const notificationService = {
 
   async markAllAsRead() {
     if (MOCK_API_ENABLED) {
-      return unwrapApiData(await apiClient.post(`${ENDPOINTS.NOTIFICATIONS}/read-all`));
+      return unwrapApiData(await apiClient.put(`${ENDPOINTS.NOTIFICATIONS}/read-all`));
     }
 
     try {
@@ -108,6 +108,9 @@ const notificationService = {
   },
 
   async create(payload) {
+    if (MOCK_API_ENABLED) {
+      throw createCapabilityError('gửi notification trực tiếp cho một user trong mock mode; mock hiện chỉ hỗ trợ broadcast');
+    }
     const isRead = Boolean(payload?.isRead ?? payload?.read);
     return normalizeNotification(unwrapApiData(await apiClient.post(ENDPOINTS.NOTIFICATIONS, {
       userId: normalizeResourceId(payload?.userId),
