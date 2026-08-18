@@ -1,6 +1,7 @@
 import { apiClient } from '@/utils/apiClient';
 import { unwrapApiArray, unwrapApiData } from '@/utils/apiResponse';
 import { ENDPOINTS } from '@/utils/constants';
+import { MOCK_API_ENABLED } from '@/mocks/mockConfig';
 import { isEndpointUnavailable, rethrowCapabilityError } from '@/utils/backendCapability';
 import { normalizeResourceId, sameResourceId } from '@/utils/resourceId';
 
@@ -42,12 +43,24 @@ const paymentService = {
   async createPayment(data = {}) {
     const paymentMethod = String(data.paymentMethod || data.provider || '').trim().toUpperCase();
     const payload = {
-      ...data,
       bookingId: normalizeResourceId(data.bookingId),
       paymentMethod,
       provider: data.provider || providerForMethod(paymentMethod),
+      returnUrl: data.returnUrl,
+      cancelUrl: data.cancelUrl,
     };
-    return normalizePayment(unwrapApiData(await apiClient.post(base, payload)));
+
+    if (MOCK_API_ENABLED) {
+      return normalizePayment(unwrapApiData(await apiClient.post(base, payload)));
+    }
+
+    try {
+      // Payment amount/status/provider transaction IDs are server-owned. The
+      // frontend only requests initiation for a booking and selected provider.
+      return normalizePayment(unwrapApiData(await apiClient.post(`${base}/initiate`, payload)));
+    } catch (error) {
+      rethrowCapabilityError('khởi tạo thanh toán an toàn', error);
+    }
   },
 
   async listPage(params = { page: 0, size: 10, sort: 'createdAt,desc' }) {
@@ -130,9 +143,8 @@ const paymentService = {
     try {
       return normalizePayment(unwrapApiData(await apiClient.patch(`${base}/${id}/status`, { status: normalizedStatus })));
     } catch (error) {
-      if (!isEndpointUnavailable(error)) throw error;
-      const current = await this.getPaymentById(id);
-      return normalizePayment(unwrapApiData(await apiClient.put(`${base}/${id}`, { ...current, status: normalizedStatus })));
+      // Never fall back to generic PUT: payment status is provider/server-owned.
+      rethrowCapabilityError('cập nhật trạng thái thanh toán', error);
     }
   },
 
@@ -141,12 +153,7 @@ const paymentService = {
     try {
       return normalizePayment(unwrapApiData(await apiClient.patch(`${base}/${id}/transaction-id`, { transactionId })));
     } catch (error) {
-      if (!isEndpointUnavailable(error)) throw error;
-      const current = await this.getPaymentById(id);
-      return normalizePayment(unwrapApiData(await apiClient.put(`${base}/${id}`, {
-        ...current,
-        providerTransactionId: transactionId,
-      })));
+      rethrowCapabilityError('cập nhật mã giao dịch thanh toán', error);
     }
   },
 
