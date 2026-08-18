@@ -44,7 +44,7 @@ const Reports = () => {
       const [summaryResult, dailyResult, bookingResult] = await Promise.all([
         revenueService.getSummary(params),
         revenueService.getByDate(params),
-        bookingService.listPage({ page: 0, size: 8, sort: 'bookingDate,desc' }),
+        bookingService.listPage({ page: 0, size: 8, sort: 'createdAt,desc' }),
       ]);
       setSummary(summaryResult || {});
       setDailyRevenue(Array.isArray(dailyResult) ? dailyResult : []);
@@ -105,7 +105,7 @@ const Reports = () => {
     <section className="space-y-6">
       <AdminPageHeader
         title="Báo cáo doanh thu"
-        description="Dữ liệu tổng hợp trực tiếp từ revenue API trong khoảng thời gian đã chọn."
+        description="Ưu tiên revenue endpoint khi backend có hỗ trợ; nếu thiếu, service tổng hợp từ Booking/Payment CRUD và chỉ hiển thị các chỉ số có thể suy ra an toàn."
         breadcrumbs={[
           { title: 'Dashboard', href: '/admin/dashboard' },
           { title: 'Báo cáo' },
@@ -142,9 +142,7 @@ const Reports = () => {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Doanh thu theo ngày</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle className="text-lg">Doanh thu theo ngày</CardTitle></CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex min-h-40 items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Đang tải dữ liệu...</div>
@@ -157,14 +155,13 @@ const Reports = () => {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Đặt vé gần đây</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle className="text-lg">Đặt vé gần đây</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           {loading ? (
             <div className="flex min-h-32 items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Đang tải...</div>
           ) : bookings.length ? bookings.map((booking) => {
             const status = booking.bookingStatus || booking.status || 'PENDING';
+            const bookedAt = booking.createdAt || booking.bookingDate;
             return (
               <article key={booking.id} className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
@@ -176,7 +173,7 @@ const Reports = () => {
                 </div>
                 <div className="sm:text-right">
                   <p className="font-semibold">{currency.format(Number(booking.finalAmount || booking.totalAmount || booking.totalPrice || 0))}</p>
-                  <p className="text-xs text-muted-foreground">{booking.bookingDate ? dayjs(booking.bookingDate).format('DD/MM/YYYY HH:mm') : '—'}</p>
+                  <p className="text-xs text-muted-foreground">{bookedAt ? dayjs(bookedAt).format('DD/MM/YYYY HH:mm') : '—'}</p>
                 </div>
               </article>
             );
