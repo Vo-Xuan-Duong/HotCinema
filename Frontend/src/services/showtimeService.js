@@ -14,75 +14,112 @@ const pageContent = (response) => {
   return unwrapApiArray(response);
 };
 
+const dateOf = (showtime) => String(showtime?.date ?? showtime?.showDate ?? showtime?.startTime ?? '').slice(0, 10);
+
+const enrichRealShowtimes = async (rows = []) => {
+  if (MOCK_API_ENABLED || !rows.length) return rows;
+  const [moviesResponse, auditoriumsResponse, cinemasResponse] = await Promise.all([
+    apiClient.get(ENDPOINTS.MOVIES, { params: { page: 0, size: 500 } }),
+    apiClient.get(ENDPOINTS.AUDITORIUMS, { params: { page: 0, size: 500 } }),
+    apiClient.get(ENDPOINTS.CINEMAS, { params: { page: 0, size: 500 } }),
+  ]);
+  const movies = pageContent(moviesResponse);
+  const auditoriums = pageContent(auditoriumsResponse);
+  const cinemas = pageContent(cinemasResponse);
+  const movieMap = new Map(movies.map((item) => [String(item.id), item]));
+  const auditoriumMap = new Map(auditoriums.map((item) => [String(item.id), item]));
+  const cinemaMap = new Map(cinemas.map((item) => [String(item.id), item]));
+
+  return rows.map((item) => {
+    const movie = movieMap.get(String(item.movieId ?? item.movie?.id)) || item.movie || null;
+    const auditorium = auditoriumMap.get(String(item.auditoriumId ?? item.auditorium?.id)) || item.auditorium || null;
+    const cinema = cinemaMap.get(String(auditorium?.cinemaId ?? item.cinemaId ?? item.cinema?.id)) || item.cinema || null;
+    return {
+      ...item,
+      movie,
+      auditorium,
+      cinema,
+      movieId: item.movieId ?? movie?.id,
+      movieTitle: item.movieTitle || movie?.title || movie?.name,
+      moviePoster: item.moviePoster || movie?.posterUrl || movie?.poster,
+      auditoriumId: item.auditoriumId ?? auditorium?.id,
+      roomId: item.roomId ?? auditorium?.id,
+      roomName: item.roomName || auditorium?.name,
+      cinemaId: item.cinemaId ?? cinema?.id,
+      cinemaName: item.cinemaName || cinema?.name,
+      cinemaAddress: item.cinemaAddress || cinema?.address,
+      date: item.date || item.showDate || dateOf(item),
+      showDate: item.showDate || item.date || dateOf(item),
+      price: Number(item.price ?? item.basePrice ?? 0),
+      formatType: item.formatType || item.format,
+    };
+  });
+};
+
 class ShowtimeService {
   async getAllShowtimes(paramsOrPage = {}, size) {
     const params = typeof paramsOrPage === 'number'
       ? { page: paramsOrPage, size: size ?? 10 }
       : (paramsOrPage || {});
-    return unwrapApiData(await apiClient.get(SHOWTIME_BASE, { params }));
+    const data = unwrapApiData(await apiClient.get(SHOWTIME_BASE, { params }));
+    if (MOCK_API_ENABLED) return data;
+    if (Array.isArray(data)) return enrichRealShowtimes(data);
+    if (Array.isArray(data?.content)) return { ...data, content: await enrichRealShowtimes(data.content) };
+    return data;
   }
 
   async getShowtimesByDate(date, params = {}) {
-    return this.getAllShowtimes({ ...params, date });
+    const result = await this.getAllShowtimes({ ...params, page: 0, size: 500 });
+    const rows = Array.isArray(result) ? result : result?.content || [];
+    return rows.filter((item) => dateOf(item) === String(date));
   }
 
   async getShowtimesByCinema(cinemaId, params = {}) {
-    return this.getAllShowtimes({ ...params, cinemaId: normalizeResourceId(cinemaId) });
+    const id = normalizeResourceId(cinemaId);
+    const result = await this.getAllShowtimes({ ...params, page: 0, size: 500 });
+    const rows = Array.isArray(result) ? result : result?.content || [];
+    return rows.filter((item) => sameResourceId(item.cinemaId ?? item.cinema?.id, id));
   }
 
   async getShowtimesByMovie(movieId, params = {}) {
-    return this.getAllShowtimes({ ...params, movieId: normalizeResourceId(movieId) });
+    const id = normalizeResourceId(movieId);
+    const result = await this.getAllShowtimes({ ...params, page: 0, size: 500 });
+    const rows = Array.isArray(result) ? result : result?.content || [];
+    return rows.filter((item) => sameResourceId(item.movieId ?? item.movie?.id, id));
   }
 
   async getShowtimesByDateAndCinema(date, cinemaId, params = {}) {
     const id = normalizeResourceId(cinemaId);
-    try {
+    if (MOCK_API_ENABLED) {
       return unwrapApiData(await apiClient.get(`${SHOWTIME_BASE}/cinema/${id}/date/${date}`, { params }));
-    } catch (error) {
-      if (!endpointUnavailable(error)) throw error;
-      const result = await this.getAllShowtimes({ ...params, page: 0, size: 500 });
-      const rows = Array.isArray(result) ? result : result?.content || [];
-      return rows.filter((item) => (
-        sameResourceId(item.cinemaId ?? item.cinema?.id, id)
-        && String(item.date ?? item.showDate ?? item.startTime ?? '').slice(0, 10) === String(date)
-      ));
     }
+    const rows = await this.getShowtimesByCinema(id, params);
+    return rows.filter((item) => dateOf(item) === String(date));
   }
 
   async getCinemaShowtimesByMovieAndDate(movieId, date, params = {}) {
     const id = normalizeResourceId(movieId);
-    try {
+    if (MOCK_API_ENABLED) {
       return unwrapApiData(await apiClient.get(`${SHOWTIME_BASE}/movie/${id}/date/${date}`, { params }));
-    } catch (error) {
-      if (!endpointUnavailable(error)) throw error;
-      const result = await this.getAllShowtimes({ ...params, page: 0, size: 500 });
-      const rows = Array.isArray(result) ? result : result?.content || [];
-      return rows.filter((item) => (
-        sameResourceId(item.movieId ?? item.movie?.id, id)
-        && String(item.date ?? item.showDate ?? item.startTime ?? '').slice(0, 10) === String(date)
-      ));
     }
+    const rows = await this.getShowtimesByMovie(id, params);
+    return rows.filter((item) => dateOf(item) === String(date));
   }
 
   async getShowtimesWithFilters(filters = {}) {
-    try {
-      return unwrapApiData(await apiClient.post(`${SHOWTIME_BASE}/filters`, filters));
-    } catch (error) {
-      if (!endpointUnavailable(error)) throw error;
-      const result = await this.getAllShowtimes({ page: 0, size: 500 });
-      let rows = Array.isArray(result) ? result : result?.content || [];
-      if (filters.movieId) rows = rows.filter((item) => sameResourceId(item.movieId ?? item.movie?.id, filters.movieId));
-      if (filters.cinemaId) rows = rows.filter((item) => sameResourceId(item.cinemaId ?? item.cinema?.id, filters.cinemaId));
-      if (filters.date || filters.showDate) {
-        const date = String(filters.date || filters.showDate);
-        rows = rows.filter((item) => String(item.date ?? item.showDate ?? item.startTime ?? '').slice(0, 10) === date);
-      }
-      return rows;
-    }
+    if (MOCK_API_ENABLED) return unwrapApiData(await apiClient.post(`${SHOWTIME_BASE}/filters`, filters));
+    const result = await this.getAllShowtimes({ page: 0, size: 500 });
+    let rows = Array.isArray(result) ? result : result?.content || [];
+    if (filters.movieId) rows = rows.filter((item) => sameResourceId(item.movieId ?? item.movie?.id, filters.movieId));
+    if (filters.cinemaId) rows = rows.filter((item) => sameResourceId(item.cinemaId ?? item.cinema?.id, filters.cinemaId));
+    const wantedDate = filters.date || filters.showDate || filters.fromDate;
+    if (wantedDate) rows = rows.filter((item) => dateOf(item) >= String(wantedDate));
+    return rows;
   }
 
   async getShowtimeById(id) {
-    return unwrapApiData(await apiClient.get(`${SHOWTIME_BASE}/${normalizeResourceId(id)}`));
+    const data = unwrapApiData(await apiClient.get(`${SHOWTIME_BASE}/${normalizeResourceId(id)}`));
+    return MOCK_API_ENABLED ? data : (await enrichRealShowtimes(data ? [data] : []))[0] || data;
   }
 
   async createShowtime(data) {
@@ -114,20 +151,14 @@ class ShowtimeService {
       return unwrapApiArray(await apiClient.get(`${SHOWTIME_BASE}/${normalizedShowtimeId}/seats`));
     } catch (error) {
       if (MOCK_API_ENABLED || !endpointUnavailable(error)) throw error;
-
-      // Current backend exposes generic ShowtimeSeat and Seat CRUD resources.
-      // Join them client-side as a compatibility fallback until the dedicated
-      // seat-layout use-case endpoint is implemented server-side.
       const [showtimeSeatsResponse, seatsResponse] = await Promise.all([
         apiClient.get(SHOWTIME_SEAT_BASE, { params: { page: 0, size: 500 } }),
         apiClient.get(ENDPOINTS.SEATS, { params: { page: 0, size: 1000 } }),
       ]);
-
       const showtimeSeats = pageContent(showtimeSeatsResponse)
         .filter((item) => sameResourceId(item.showtimeId ?? item.showtime?.id, normalizedShowtimeId));
       const seats = pageContent(seatsResponse);
       const seatById = new Map(seats.map((seat) => [String(seat.id), seat]));
-
       return showtimeSeats.map((item) => {
         const seat = seatById.get(String(item.seatId ?? item.seat?.id)) || item.seat || {};
         return {
@@ -148,10 +179,8 @@ class ShowtimeService {
   }
 
   async lockSeats(showtimeId, seatIds, userId) {
-    const showtime = normalizeResourceId(showtimeId);
-    const seat = normalizeResourceId(seatIds);
     return unwrapApiData(await apiClient.post(
-      `${SHOWTIME_BASE}/${showtime}/lock-seat/${seat}`,
+      `${SHOWTIME_BASE}/${normalizeResourceId(showtimeId)}/lock-seat/${normalizeResourceId(seatIds)}`,
       null,
       { params: userId ? { userId: normalizeResourceId(userId) } : undefined },
     ));
@@ -164,34 +193,26 @@ class ShowtimeService {
   }
 
   getUpcomingDates(days = 7) {
-    const dates = [];
-    for (let i = 0; i < days; i += 1) {
+    return Array.from({ length: days }, (_, index) => {
       const date = new Date();
-      date.setDate(date.getDate() + i);
-      dates.push({
+      date.setDate(date.getDate() + index);
+      return {
         value: date.toISOString().split('T')[0],
         label: date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
         fullLabel: date.toLocaleDateString('vi-VN', { year: 'numeric', month: 'long', day: 'numeric' }),
-        isToday: i === 0,
-      });
-    }
-    return dates;
+        isToday: index === 0,
+      };
+    });
   }
 
-  formatTime(timeString) {
-    return timeString;
-  }
-
+  formatTime(timeString) { return timeString; }
   formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    return new Date(dateString).toLocaleDateString('vi-VN', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
     });
   }
 }
 
+export { enrichRealShowtimes };
 export const showtimeService = new ShowtimeService();
 export default showtimeService;
