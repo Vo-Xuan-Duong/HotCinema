@@ -9,8 +9,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { unwrapApiArray } from '@/utils/apiResponse';
 import { normalizeResourceId, sameResourceId } from '@/utils/resourceId';
+
+const BOOKABLE_STATUSES = new Set(['OPEN', 'AVAILABLE']);
+const localToday = () => {
+  const date = new Date();
+  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+};
+
+const formatTime = (value) => {
+  if (!value) return '—';
+  const text = String(value);
+  if (/^\d{2}:\d{2}/.test(text)) return text.slice(0, 5);
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? text : date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+};
 
 const Booking = () => {
   const navigate = useNavigate();
@@ -30,11 +43,13 @@ const Booking = () => {
     try {
       const [movieResult, cinemaResult] = await Promise.all([
         movieService.getNowShowingPage({ page: 0, size: 100 }),
-        cinemaService.getAllCinemasNoPagination(),
+        cinemaService.getPublicCinemas({ page: 0, size: 500 }),
       ]);
-      setMovies(unwrapApiArray(movieResult));
-      setCinemas(Array.isArray(cinemaResult) ? cinemaResult : unwrapApiArray(cinemaResult));
+      setMovies(Array.isArray(movieResult) ? movieResult : movieResult?.content || []);
+      setCinemas(Array.isArray(cinemaResult) ? cinemaResult : cinemaResult?.content || []);
     } catch (requestError) {
+      setMovies([]);
+      setCinemas([]);
       setError(requestError?.message || 'Không thể tải danh sách phim và rạp.');
     } finally {
       setLoading(false);
@@ -59,9 +74,14 @@ const Booking = () => {
         const result = await showtimeService.getShowtimesWithFilters({
           movieId: normalizeResourceId(movieId),
           cinemaId: normalizeResourceId(cinemaId),
-          fromDate: new Date().toISOString().slice(0, 10),
+          fromDate: localToday(),
         });
-        if (active) setShowtimes(Array.isArray(result) ? result : result?.content || []);
+        if (active) {
+          const rows = (Array.isArray(result) ? result : result?.content || [])
+            .filter((item) => BOOKABLE_STATUSES.has(String(item.status || '').toUpperCase()))
+            .sort((left, right) => String(left.startTime || '').localeCompare(String(right.startTime || '')));
+          setShowtimes(rows);
+        }
       } catch (requestError) {
         if (active) {
           setShowtimes([]);
@@ -81,7 +101,7 @@ const Booking = () => {
   );
 
   const continueToSeats = () => {
-    if (!selectedShowtime) return;
+    if (!selectedShowtime || !BOOKABLE_STATUSES.has(String(selectedShowtime.status || '').toUpperCase())) return;
     navigate(`/booking/seats/${selectedShowtime.id}`, {
       state: {
         movieTitle: selectedShowtime.movieTitle || selectedShowtime.movie?.title,
@@ -102,7 +122,7 @@ const Booking = () => {
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl sm:text-3xl">Đặt vé xem phim</CardTitle>
-          <CardDescription>Chọn phim, rạp và suất chiếu trước khi chọn ghế.</CardDescription>
+          <CardDescription>Chọn phim NOW_SHOWING, rạp ACTIVE và suất OPEN trước khi chọn ghế.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {error && (
@@ -129,30 +149,30 @@ const Booking = () => {
                 <div className="space-y-2">
                   <Label htmlFor="booking-cinema">Rạp</Label>
                   <Select value={cinemaId} onValueChange={setCinemaId}>
-                    <SelectTrigger id="booking-cinema"><SelectValue placeholder="Chọn rạp" /></SelectTrigger>
+                    <SelectTrigger id="booking-cinema"><SelectValue placeholder="Chọn rạp đang hoạt động" /></SelectTrigger>
                     <SelectContent>{cinemas.map((cinema) => <SelectItem key={cinema.id} value={String(cinema.id)}>{cinema.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="booking-showtime">Suất chiếu</Label>
+                <Label htmlFor="booking-showtime">Suất chiếu đang mở bán</Label>
                 <Select value={showtimeId} onValueChange={setShowtimeId} disabled={!movieId || !cinemaId || loadingShowtimes}>
-                  <SelectTrigger id="booking-showtime"><SelectValue placeholder={loadingShowtimes ? 'Đang tải suất chiếu...' : 'Chọn suất chiếu'} /></SelectTrigger>
+                  <SelectTrigger id="booking-showtime"><SelectValue placeholder={loadingShowtimes ? 'Đang tải suất chiếu...' : 'Chọn suất OPEN'} /></SelectTrigger>
                   <SelectContent>
                     {showtimes.map((showtime) => (
                       <SelectItem key={showtime.id} value={String(showtime.id)}>
-                        {String(showtime.date || showtime.showDate || showtime.startTime || '').slice(0, 10)} · {String(showtime.startTime || '').slice(11, 16) || showtime.startTime} · {showtime.roomName || showtime.auditorium?.name || 'Phòng chiếu'}
+                        {String(showtime.date || showtime.showDate || showtime.startTime || '').slice(0, 10)} · {formatTime(showtime.startTime)} · {showtime.roomName || showtime.auditorium?.name || 'Phòng chiếu'}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {movieId && cinemaId && !loadingShowtimes && showtimes.length === 0 && !error && <p className="text-sm text-muted-foreground">Hiện chưa có suất chiếu phù hợp.</p>}
+                {movieId && cinemaId && !loadingShowtimes && showtimes.length === 0 && !error && <p className="text-sm text-muted-foreground">Hiện chưa có suất OPEN phù hợp.</p>}
               </div>
 
               {selectedShowtime && (
                 <div className="grid gap-3 rounded-lg border bg-muted/40 p-4 text-sm sm:grid-cols-2">
-                  <span className="flex items-center gap-2"><CalendarDays className="size-4" />{String(selectedShowtime.date || selectedShowtime.showDate || selectedShowtime.startTime || '').slice(0, 10)} · {String(selectedShowtime.startTime || '').slice(11, 16) || selectedShowtime.startTime}</span>
+                  <span className="flex items-center gap-2"><CalendarDays className="size-4" />{String(selectedShowtime.date || selectedShowtime.showDate || selectedShowtime.startTime || '').slice(0, 10)} · {formatTime(selectedShowtime.startTime)}</span>
                   <span className="flex items-center gap-2"><MapPin className="size-4" />{selectedShowtime.cinemaName || cinemas.find((item) => sameResourceId(item.id, cinemaId))?.name}</span>
                 </div>
               )}
