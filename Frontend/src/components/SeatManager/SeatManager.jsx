@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  Accessibility,
   Ban,
-  Clock3,
   Heart,
   Loader2,
   Lock,
@@ -12,9 +12,9 @@ import {
   Star,
   Trash2,
   User,
-  UserCheck,
   XCircle,
 } from 'lucide-react';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -38,6 +38,7 @@ import {
   toApiSeatType,
 } from '@/lib/seatPresentation';
 import { cn } from '@/lib/utils';
+import { MOCK_API_ENABLED } from '@/mocks/mockConfig';
 import seatService from '@/services/seatService';
 import { unwrapApiArray } from '@/utils/apiResponse';
 
@@ -45,16 +46,28 @@ const EMPTY_LAYOUT = {
   rows: [],
   totalSeats: 0,
   vipSeats: 0,
-  blockedSeats: 0,
-  availableSeats: 0,
-  bookedSeats: 0,
+  disabledSeats: 0,
+  maintenanceSeats: 0,
+  activeSeats: 0,
+  duplicateCount: 0,
 };
 
-const numberToRowLabel = (rowNumber) => {
-  const value = Number(rowNumber);
-  if (!Number.isFinite(value) || value < 1) return 'A';
+const FALLBACK_SEAT_TYPES = [
+  { value: 'REGULAR', code: 'REGULAR', label: 'Ghế thường', uiType: 'normal' },
+  { value: 'VIP', code: 'VIP', label: 'Ghế VIP', uiType: 'vip' },
+  { value: 'COUPLE', code: 'COUPLE', label: 'Ghế đôi', uiType: 'couple' },
+  { value: 'SWEETBOX', code: 'SWEETBOX', label: 'Sweetbox', uiType: 'sweetbox' },
+  { value: 'WHEELCHAIR', code: 'WHEELCHAIR', label: 'Xe lăn', uiType: 'wheelchair' },
+];
 
-  let current = value;
+const PHYSICAL_STATUS_OPTIONS = [
+  { value: 'available', label: 'Hoạt động' },
+  { value: 'blocked', label: 'Vô hiệu hóa' },
+  { value: 'maintenance', label: 'Bảo trì' },
+];
+
+const numberToRowLabel = (rowNumber) => {
+  let current = Math.max(1, Number(rowNumber) || 1);
   let label = '';
   while (current > 0) {
     const remainder = (current - 1) % 26;
@@ -64,29 +77,48 @@ const numberToRowLabel = (rowNumber) => {
   return label || 'A';
 };
 
-const getSeatRowLabel = (seat) => {
-  const nameMatch = seat?.name?.match(/^([A-Z]+)\d+$/i);
-  if (nameMatch) return nameMatch[1].toUpperCase();
-  return numberToRowLabel(seat?.row);
+const rowLabelToNumber = (label) => {
+  const normalized = String(label || '').trim().toUpperCase();
+  if (!normalized) return 1;
+  return [...normalized].reduce((value, char) => (value * 26) + (char.charCodeAt(0) - 64), 0) || 1;
+};
+
+const physicalStatusForUi = (seat) => {
+  const raw = String(seat?.physicalStatus || seat?.seatStatus || seat?.status || '').toUpperCase();
+  if (raw === 'MAINTENANCE') return 'maintenance';
+  if (['DISABLED', 'INACTIVE', 'BLOCKED', 'UNAVAILABLE'].includes(raw)) return 'blocked';
+
+  const normalized = normalizeSeatStatus(raw);
+  if (normalized === 'maintenance') return 'maintenance';
+  if (['blocked', 'unavailable'].includes(normalized)) return 'blocked';
+
+  // HELD/BOOKED are ShowtimeSeat states. In this physical-seat manager they
+  // must not be persisted or presented as master-seat lifecycle states.
+  return 'available';
 };
 
 const normalizeSeat = (seat) => {
-  const rowLabel = getSeatRowLabel(seat);
-  const nameMatch = seat?.name?.match(/^[A-Z]+(\d+)$/i);
-  const seatNumber = Number(seat?.col) || Number(nameMatch?.[1]) || 0;
-  const parsedRowIndex = Number(seat?.row);
+  const displayName = seat?.displayName || seat?.name || '';
+  const nameMatch = String(displayName).match(/^([A-Z]+)\s*(\d+)$/i);
+  const rowIndex = Number(seat?.rowIndex ?? seat?.row ?? seat?.yPosition) || rowLabelToNumber(seat?.rowLabel || nameMatch?.[1]);
+  const rowLabel = String(seat?.rowLabel || nameMatch?.[1] || numberToRowLabel(rowIndex)).toUpperCase();
+  const seatNumber = Number(seat?.seatNumber ?? seat?.number ?? seat?.col ?? seat?.xPosition ?? nameMatch?.[2]) || 1;
+  const type = normalizeSeatType(seat?.seatType || seat?.type);
+  const status = physicalStatusForUi(seat);
 
   return {
     ...seat,
     id: seat.id,
-    name: seat.name || `${rowLabel}${seatNumber}`,
+    name: displayName || `${rowLabel}${seatNumber}`,
+    displayName: displayName || `${rowLabel}${seatNumber}`,
     row: rowLabel,
     rowLabel,
-    rowIndex: Number.isFinite(parsedRowIndex) ? parsedRowIndex : 0,
+    rowIndex,
     number: seatNumber,
-    col: Number(seat.col) || seatNumber,
-    type: normalizeSeatType(seat.seatType || seat.type),
-    status: normalizeSeatStatus(seat.seatStatus || seat.status),
+    seatNumber,
+    col: Number(seat?.col ?? seat?.xPosition ?? seatNumber) || seatNumber,
+    type,
+    status,
   };
 };
 
@@ -108,10 +140,10 @@ const buildSeatLayout = (rawSeats) => {
   }, {});
 
   const rows = Object.entries(groupedRows)
-    .sort(([left], [right]) => left.localeCompare(right))
+    .sort(([, leftSeats], [, rightSeats]) => (leftSeats[0]?.rowIndex || 0) - (rightSeats[0]?.rowIndex || 0))
     .map(([label, rowSeats]) => ({
       label,
-      rowIndex: rowSeats[0]?.rowIndex ?? 0,
+      rowIndex: rowSeats[0]?.rowIndex || rowLabelToNumber(label),
       seats: rowSeats.sort((left, right) => left.col - right.col),
     }));
 
@@ -119,22 +151,20 @@ const buildSeatLayout = (rawSeats) => {
     rows,
     totalSeats: seats.length,
     vipSeats: seats.filter((seat) => seat.type === 'vip').length,
-    blockedSeats: seats.filter((seat) => seat.status === 'blocked').length,
-    availableSeats: seats.filter((seat) => seat.status === 'available').length,
-    bookedSeats: seats.filter((seat) => seat.status === 'booked').length,
+    disabledSeats: seats.filter((seat) => seat.status === 'blocked').length,
+    maintenanceSeats: seats.filter((seat) => seat.status === 'maintenance').length,
+    activeSeats: seats.filter((seat) => seat.status === 'available').length,
     duplicateCount,
   };
 };
 
-const SeatIcon = ({ seat, className = 'h-3 w-3' }) => {
-  if (seat.status === 'blocked') return <Lock className={className} />;
-  if (seat.status === 'booked') return <UserCheck className={className} />;
-  if (seat.status === 'held') return <Clock3 className={className} />;
-  if (seat.status === 'unavailable') return <XCircle className={className} />;
-  if (seat.status === 'maintenance') return <Settings className={className} />;
-  if (seat.type === 'vip') return <Star className={className} />;
-  if (seat.type === 'couple' || seat.type === 'sweetbox') return <Heart className={className} />;
-  return <User className={className} />;
+const SeatIcon = ({ seat }) => {
+  if (seat.status === 'blocked') return <Lock className="h-3 w-3" />;
+  if (seat.status === 'maintenance') return <Settings className="h-3 w-3" />;
+  if (seat.type === 'vip') return <Star className="h-3 w-3" />;
+  if (seat.type === 'couple' || seat.type === 'sweetbox') return <Heart className="h-3 w-3" />;
+  if (seat.type === 'wheelchair') return <Accessibility className="h-3 w-3" />;
+  return <User className="h-3 w-3" />;
 };
 
 const LegendItem = ({ visualClassName, icon, label }) => (
@@ -147,13 +177,14 @@ const LegendItem = ({ visualClassName, icon, label }) => (
 const SeatManager = ({ selectedScreen }) => {
   const notification = useNotification();
   const [seatLayout, setSeatLayout] = useState(EMPTY_LAYOUT);
+  const [seatTypes, setSeatTypes] = useState(FALLBACK_SEAT_TYPES);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedSeat, setSelectedSeat] = useState(null);
   const [showSeatEditModal, setShowSeatEditModal] = useState(false);
   const [seatEditFormValues, setSeatEditFormValues] = useState({
     name: '',
-    type: 'normal',
+    seatTypeValue: 'REGULAR',
     status: 'available',
   });
 
@@ -162,6 +193,31 @@ const SeatManager = ({ selectedScreen }) => {
     const columns = allSeats.map((seat) => Number(seat.col) || 0);
     return columns.length ? Math.max(...columns) : 0;
   }, [allSeats]);
+
+  const loadSeatTypes = async () => {
+    if (MOCK_API_ENABLED) {
+      setSeatTypes(FALLBACK_SEAT_TYPES);
+      return;
+    }
+
+    try {
+      const rows = await seatService.getAllSeatTypes();
+      if (!Array.isArray(rows) || rows.length === 0) {
+        setSeatTypes(FALLBACK_SEAT_TYPES);
+        return;
+      }
+      setSeatTypes(rows.map((type) => ({
+        value: String(type.id),
+        code: String(type.code || type.name || 'REGULAR').toUpperCase(),
+        label: type.name || type.code || String(type.id),
+        uiType: normalizeSeatType(type.code || type.name),
+      })));
+    } catch (error) {
+      console.error('Error loading seat types:', error);
+      setSeatTypes(FALLBACK_SEAT_TYPES);
+      notification.warning('Không tải được cấu hình loại ghế; sẽ dùng danh sách hiển thị mặc định.');
+    }
+  };
 
   const loadSeats = async (screen = selectedScreen, { quiet = false } = {}) => {
     if (!screen?.id) {
@@ -172,23 +228,22 @@ const SeatManager = ({ selectedScreen }) => {
     if (!quiet) setLoading(true);
     try {
       const response = await seatService.getSeatsByRoomId(screen.id);
-      const seats = unwrapApiArray(response);
-      const layout = buildSeatLayout(seats);
+      const layout = buildSeatLayout(unwrapApiArray(response));
       setSeatLayout(layout);
-
       if (layout.duplicateCount > 0) {
         notification.warning(`Phát hiện ${layout.duplicateCount} ghế có tọa độ trùng nhau.`);
       }
     } catch (error) {
       console.error('Error loading seats:', error);
       setSeatLayout(EMPTY_LAYOUT);
-      notification.error(error.response?.data?.message || 'Không thể tải danh sách ghế');
+      notification.error(error.response?.data?.message || error.message || 'Không thể tải danh sách ghế');
     } finally {
       if (!quiet) setLoading(false);
     }
   };
 
   useEffect(() => {
+    loadSeatTypes();
     loadSeats(selectedScreen);
     // selectedScreen.id is the data dependency for this manager.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -210,107 +265,88 @@ const SeatManager = ({ selectedScreen }) => {
     }
   };
 
+  const createSeatAt = async (rowLabel, rowIndex, col) => {
+    if (!selectedScreen?.id) return false;
+    const name = `${rowLabel}${col}`;
+    return runSeatAction(
+      () => seatService.createSeat({
+        auditoriumId: selectedScreen.id,
+        theaterId: selectedScreen.id,
+        name,
+        displayName: name,
+        seatType: 'REGULAR',
+        seatStatus: 'ACTIVE',
+        row: rowIndex,
+        col,
+      }),
+      `Đã thêm ghế ${name}.`,
+    );
+  };
+
   const generateDefaultSeatLayout = async () => {
     if (!selectedScreen?.id) return;
     const rowsCount = Number(selectedScreen.rowsCount) || 10;
     const seatsPerRow = Number(selectedScreen.seatsPerRow) || 12;
-
     await runSeatAction(
       () => seatService.createBulkSeatsForRoom(selectedScreen.id, rowsCount, seatsPerRow),
-      `Đã tạo sơ đồ ${rowsCount} hàng × ${seatsPerRow} ghế.`
+      `Đã tạo sơ đồ ${rowsCount} hàng × ${seatsPerRow} ghế.`,
     );
-  };
-
-  const createSeatAt = async (rowLabel, rowIndex, col) => {
-    if (!selectedScreen?.id) return false;
-    const name = `${rowLabel}${col}`;
-
-    return runSeatAction(
-      () => seatService.createSeat({
-        theaterId: selectedScreen.id,
-        name,
-        seatType: 'REGULAR',
-        seatStatus: 'AVAILABLE',
-        row: rowIndex,
-        col,
-      }),
-      `Đã thêm ghế ${name}.`
-    );
-  };
-
-  const resolveRowIndex = (row) => {
-    const parsed = Number(row?.rowIndex);
-    return Number.isFinite(parsed) ? parsed : row.label.charCodeAt(0) - 64;
   };
 
   const handleAddSeatAtPosition = async (row, col) => {
-    if (row.seats.some((seat) => seat.col === col)) {
-      notification.warning(`Cột ${col} trong hàng ${row.label} đã có ghế.`);
-      return;
-    }
-    await createSeatAt(row.label, resolveRowIndex(row), col);
+    if (row.seats.some((seat) => seat.col === col)) return;
+    await createSeatAt(row.label, row.rowIndex, col);
   };
 
   const handleAddSeat = async (row) => {
     const maxCol = row.seats.length ? Math.max(...row.seats.map((seat) => seat.col)) : 0;
-    await createSeatAt(row.label, resolveRowIndex(row), maxCol + 1);
+    await createSeatAt(row.label, row.rowIndex, maxCol + 1);
   };
 
   const handleAddRow = async () => {
     if (!selectedScreen?.id) return;
+    const maxRowIndex = seatLayout.rows.length
+      ? Math.max(...seatLayout.rows.map((row) => Number(row.rowIndex) || 0))
+      : 0;
+    const rowIndex = maxRowIndex + 1;
+    const rowLabel = numberToRowLabel(rowIndex);
+    const seatsPerRow = Number(selectedScreen.seatsPerRow) || Math.max(totalColumns, 10);
 
-    const existingLabels = new Set(seatLayout.rows.map((row) => row.label));
-    let rowNumber = 1;
-    let label = 'A';
-    while (existingLabels.has(label)) {
-      rowNumber += 1;
-      label = numberToRowLabel(rowNumber);
-    }
-
-    const rowIndexes = seatLayout.rows
-      .map((row) => Number(row.rowIndex))
-      .filter(Number.isFinite);
-    const maxExistingRowIndex = rowIndexes.length ? Math.max(...rowIndexes) : 0;
-    const rowIndex = maxExistingRowIndex + 1;
-    const seatsPerRow = Number(selectedScreen.seatsPerRow) || 10;
-
-    await runSeatAction(
-      async () => {
-        for (let col = 1; col <= seatsPerRow; col += 1) {
-          await seatService.createSeat({
-            theaterId: selectedScreen.id,
-            name: `${label}${col}`,
-            seatType: 'REGULAR',
-            seatStatus: 'AVAILABLE',
-            row: rowIndex,
-            col,
-          });
-        }
-      },
-      `Đã thêm hàng ${label} với ${seatsPerRow} ghế.`
-    );
+    await runSeatAction(async () => {
+      for (let col = 1; col <= seatsPerRow; col += 1) {
+        await seatService.createSeat({
+          auditoriumId: selectedScreen.id,
+          theaterId: selectedScreen.id,
+          name: `${rowLabel}${col}`,
+          displayName: `${rowLabel}${col}`,
+          seatType: 'REGULAR',
+          seatStatus: 'ACTIVE',
+          row: rowIndex,
+          col,
+        });
+      }
+    }, `Đã thêm hàng ${rowLabel} với ${seatsPerRow} ghế.`);
   };
 
   const handleRemoveRow = async (row) => {
-    if (seatLayout.rows.length <= 1) {
-      notification.warning('Phòng chiếu phải có ít nhất một hàng ghế.');
-      return;
-    }
-
-    if (!window.confirm(`Xóa toàn bộ ${row.seats.length} ghế của hàng ${row.label}?`)) return;
-
+    if (!window.confirm(`Xóa toàn bộ ${row.seats.length} ghế vật lý của hàng ${row.label}?`)) return;
     await runSeatAction(
       () => Promise.all(row.seats.map((seat) => seatService.deleteSeat(seat.id))),
-      `Đã xóa hàng ${row.label}.`
+      `Đã xóa hàng ${row.label}.`,
     );
+  };
+
+  const seatTypeValueFor = (seat) => {
+    if (!MOCK_API_ENABLED && seat?.seatTypeId) return String(seat.seatTypeId);
+    return toApiSeatType(seat?.type || seat?.seatType || 'REGULAR');
   };
 
   const handleSeatClick = (seat) => {
     setSelectedSeat(seat);
     setSeatEditFormValues({
-      name: seat.name || `${seat.row}${seat.number}`,
-      type: normalizeSeatType(seat.type),
-      status: normalizeSeatStatus(seat.status),
+      name: seat.name,
+      seatTypeValue: seatTypeValueFor(seat),
+      status: physicalStatusForUi(seat),
     });
     setShowSeatEditModal(true);
   };
@@ -318,33 +354,33 @@ const SeatManager = ({ selectedScreen }) => {
   const handleSeatEdit = async (event) => {
     event.preventDefault();
     if (!selectedSeat) return;
-
-    if (!seatEditFormValues.name.trim()) {
+    const name = seatEditFormValues.name.trim();
+    if (!name) {
       notification.error('Vui lòng nhập tên ghế.');
       return;
     }
 
-    if (seatEditFormValues.type === 'couple' && selectedSeat.type !== 'couple') {
-      const targetRow = seatLayout.rows.find((row) => row.label === selectedSeat.row);
-      const nextColumnOccupied = targetRow?.seats.some(
-        (seat) => seat.col === selectedSeat.col + 1 && seat.id !== selectedSeat.id
-      );
-      if (nextColumnOccupied) {
-        notification.error(`Ghế đôi cần hai vị trí liên tiếp; cột ${selectedSeat.col + 1} đang có ghế.`);
-        return;
-      }
-    }
+    const selectedType = seatTypes.find((type) => type.value === seatEditFormValues.seatTypeValue)
+      || FALLBACK_SEAT_TYPES.find((type) => type.value === seatEditFormValues.seatTypeValue)
+      || FALLBACK_SEAT_TYPES[0];
+
+    const typePayload = MOCK_API_ENABLED
+      ? { seatType: selectedType.code }
+      : { seatTypeId: selectedType.value, seatType: selectedType.code };
 
     const success = await runSeatAction(
       () => seatService.updateSeat(selectedSeat.id, {
+        auditoriumId: selectedScreen.id,
         theaterId: selectedScreen.id,
-        name: seatEditFormValues.name.trim(),
-        seatType: toApiSeatType(seatEditFormValues.type),
+        name,
+        displayName: name,
+        ...typePayload,
         seatStatus: toApiSeatStatus(seatEditFormValues.status),
+        status: toApiSeatStatus(seatEditFormValues.status),
         col: selectedSeat.col,
         row: selectedSeat.rowIndex,
       }),
-      `Đã cập nhật ghế ${seatEditFormValues.name.trim()}.`
+      `Đã cập nhật ghế ${name}.`,
     );
 
     if (success) {
@@ -355,13 +391,11 @@ const SeatManager = ({ selectedScreen }) => {
 
   const handleDeleteSeat = async () => {
     if (!selectedSeat) return;
-    if (!window.confirm(`Xóa ghế ${selectedSeat.name}?`)) return;
-
+    if (!window.confirm(`Xóa ghế vật lý ${selectedSeat.name}?`)) return;
     const success = await runSeatAction(
       () => seatService.deleteSeat(selectedSeat.id),
-      `Đã xóa ghế ${selectedSeat.name}.`
+      `Đã xóa ghế ${selectedSeat.name}.`,
     );
-
     if (success) {
       setShowSeatEditModal(false);
       setSelectedSeat(null);
@@ -379,12 +413,17 @@ const SeatManager = ({ selectedScreen }) => {
 
   return (
     <div className="space-y-5">
+      <Alert
+        variant="info"
+        showIcon
+        message="Đây là cấu hình ghế vật lý"
+        description="Chỉ lưu ACTIVE, DISABLED và MAINTENANCE. Trạng thái đang giữ/đã đặt thuộc ShowtimeSeat của từng suất chiếu và không được chỉnh tại đây."
+      />
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold tracking-tight">Sơ đồ ghế</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Chọn một ghế để chỉnh sửa. Các thay đổi được lưu trực tiếp vào hệ thống.
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">Chọn ghế để chỉnh loại ghế hoặc trạng thái vật lý.</p>
         </div>
         <Button type="button" variant="outline" onClick={() => loadSeats()} disabled={actionLoading}>
           <RefreshCw className={cn('mr-2 h-4 w-4', actionLoading && 'animate-spin')} />
@@ -395,10 +434,10 @@ const SeatManager = ({ selectedScreen }) => {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {[
           ['Tổng ghế', seatLayout.totalSeats],
-          ['Còn trống', seatLayout.availableSeats],
-          ['Đã đặt', seatLayout.bookedSeats],
+          ['Hoạt động', seatLayout.activeSeats],
+          ['Vô hiệu hóa', seatLayout.disabledSeats],
+          ['Bảo trì', seatLayout.maintenanceSeats],
           ['VIP', seatLayout.vipSeats],
-          ['Bị chặn', seatLayout.blockedSeats],
           ['Số hàng', seatLayout.rows.length],
         ].map(([label, value]) => (
           <Card key={label} className="shadow-none">
@@ -414,7 +453,6 @@ const SeatManager = ({ selectedScreen }) => {
         <div className="mx-auto max-w-xl rounded-md border border-border bg-muted/60 px-8 py-3">
           <p className="text-sm font-semibold tracking-[0.28em] text-muted-foreground">MÀN HÌNH</p>
         </div>
-        <div className="mx-auto h-4 max-w-xl bg-gradient-to-b from-primary/10 to-transparent" aria-hidden="true" />
       </div>
 
       <Card className="overflow-hidden shadow-sm">
@@ -441,10 +479,6 @@ const SeatManager = ({ selectedScreen }) => {
                       {Array.from({ length: totalColumns }, (_, index) => {
                         const currentCol = index + 1;
                         const seat = row.seats.find((item) => item.col === currentCol);
-                        const previousSeat = row.seats.find((item) => item.col === currentCol - 1);
-
-                        if (previousSeat?.type === 'couple') return null;
-
                         if (!seat) {
                           return (
                             <Tooltip key={`empty-${row.label}-${currentCol}`}>
@@ -467,18 +501,16 @@ const SeatManager = ({ selectedScreen }) => {
                           );
                         }
 
-                        const isCoupleSeat = seat.type === 'couple';
                         return (
                           <Tooltip key={seat.id}>
                             <TooltipTrigger asChild>
                               <button
                                 type="button"
                                 className={cn(
-                                  'flex h-9 items-center justify-center rounded-md text-[10px] font-semibold outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-                                  isCoupleSeat ? 'w-[76px]' : 'w-9',
-                                  getSeatVisualClass(seat)
+                                  'flex h-9 w-9 items-center justify-center rounded-md text-[10px] font-semibold outline-none transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                                  getSeatVisualClass(seat),
                                 )}
-                                style={{ gridColumn: isCoupleSeat ? `${currentCol} / span 2` : currentCol }}
+                                style={{ gridColumn: currentCol }}
                                 onClick={() => handleSeatClick(seat)}
                               >
                                 <span className="flex flex-col items-center justify-center leading-none">
@@ -489,10 +521,9 @@ const SeatManager = ({ selectedScreen }) => {
                             </TooltipTrigger>
                             <TooltipContent className="space-y-1">
                               <p className="font-semibold">Ghế {seat.name}</p>
-                              <p>Hàng {seat.row}, cột {seat.col}</p>
+                              <p>Hàng {seat.rowLabel}, cột {seat.col}</p>
                               <p>Loại: {getSeatTypeLabel(seat.type)}</p>
-                              <p>Trạng thái: {getSeatStatusLabel(seat.status)}</p>
-                              {isCoupleSeat && <p>Ghế đôi chiếm hai vị trí.</p>}
+                              <p>Trạng thái vật lý: {getSeatStatusLabel(seat.status)}</p>
                             </TooltipContent>
                           </Tooltip>
                         );
@@ -545,16 +576,15 @@ const SeatManager = ({ selectedScreen }) => {
 
       <Card className="shadow-none">
         <CardHeader className="border-b border-border p-4">
-          <CardTitle className="text-sm">Chú thích</CardTitle>
+          <CardTitle className="text-sm">Chú thích ghế vật lý</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-x-5 gap-y-3 p-4">
           <LegendItem visualClassName="seat-normal" icon={<User className="h-3 w-3" />} label="Ghế thường" />
           <LegendItem visualClassName="seat-vip" icon={<Star className="h-3 w-3" />} label="VIP" />
           <LegendItem visualClassName="seat-couple" icon={<Heart className="h-3 w-3" />} label="Ghế đôi" />
           <LegendItem visualClassName="seat-sweetbox" icon={<Heart className="h-3 w-3" />} label="Sweetbox" />
-          <LegendItem visualClassName="seat-held" icon={<Clock3 className="h-3 w-3" />} label="Đang giữ" />
-          <LegendItem visualClassName="seat-booked" icon={<UserCheck className="h-3 w-3" />} label="Đã đặt" />
-          <LegendItem visualClassName="seat-disabled" icon={<XCircle className="h-3 w-3" />} label="Không khả dụng" />
+          <LegendItem visualClassName="seat-normal" icon={<Accessibility className="h-3 w-3" />} label="Xe lăn" />
+          <LegendItem visualClassName="seat-disabled" icon={<XCircle className="h-3 w-3" />} label="Vô hiệu hóa / bảo trì" />
         </CardContent>
       </Card>
 
@@ -584,7 +614,7 @@ const SeatManager = ({ selectedScreen }) => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Hàng</label>
-                <Input value={selectedSeat.rowIndex ?? '-'} disabled />
+                <Input value={selectedSeat.rowLabel || '-'} disabled />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Cột</label>
@@ -595,35 +625,34 @@ const SeatManager = ({ selectedScreen }) => {
             <div className="space-y-2">
               <label className="text-sm font-medium">Loại ghế</label>
               <Select
-                value={seatEditFormValues.type}
-                onValueChange={(value) => setSeatEditFormValues((previous) => ({ ...previous, type: value }))}
+                value={seatEditFormValues.seatTypeValue}
+                onValueChange={(value) => setSeatEditFormValues((previous) => ({ ...previous, seatTypeValue: value }))}
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Chọn loại ghế" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="normal">Ghế thường</SelectItem>
-                  <SelectItem value="vip">Ghế VIP</SelectItem>
-                  <SelectItem value="couple">Ghế đôi</SelectItem>
-                  <SelectItem value="sweetbox">Sweetbox</SelectItem>
+                  {seatTypes.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Trạng thái</label>
+              <label className="text-sm font-medium">Trạng thái vật lý</label>
               <Select
                 value={seatEditFormValues.status}
                 onValueChange={(value) => setSeatEditFormValues((previous) => ({ ...previous, status: value }))}
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="available">Còn trống</SelectItem>
-                  <SelectItem value="held">Đang giữ</SelectItem>
-                  <SelectItem value="booked">Đã đặt</SelectItem>
-                  <SelectItem value="unavailable">Không khả dụng</SelectItem>
-                  <SelectItem value="maintenance">Bảo trì</SelectItem>
-                  <SelectItem value="blocked">Bị chặn</SelectItem>
+                  {PHYSICAL_STATUS_OPTIONS.map((status) => (
+                    <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs leading-5 text-muted-foreground">
+                Không có lựa chọn “đang giữ” hoặc “đã đặt” ở đây vì hai trạng thái đó thay đổi theo từng suất chiếu.
+              </p>
             </div>
 
             <Separator />
@@ -634,9 +663,7 @@ const SeatManager = ({ selectedScreen }) => {
                 Xóa ghế
               </Button>
               <div className="flex gap-2 sm:justify-end">
-                <Button type="button" variant="outline" onClick={() => setShowSeatEditModal(false)}>
-                  Hủy
-                </Button>
+                <Button type="button" variant="outline" onClick={() => setShowSeatEditModal(false)}>Hủy</Button>
                 <Button type="submit" disabled={actionLoading}>
                   {actionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                   Lưu thay đổi
