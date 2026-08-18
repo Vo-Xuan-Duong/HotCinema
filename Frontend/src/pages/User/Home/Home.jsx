@@ -12,9 +12,9 @@ const processMovies = (data) => {
     ...movie,
     id: movie.id ?? movie._id ?? index + 1,
     poster: movie.posterUrl || movie.posterPath || movie.poster || '/brand-placeholder.svg',
-    backdrop: movie.backdropUrl || movie.backdropPath || movie.posterUrl || movie.poster || '/brand-placeholder.svg',
+    backdrop: movie.bannerUrl || movie.backdropUrl || movie.backdropPath || movie.posterUrl || movie.poster || '/brand-placeholder.svg',
     posterPath: movie.posterUrl || movie.posterPath,
-    backdropPath: movie.backdropUrl || movie.backdropPath,
+    backdropPath: movie.bannerUrl || movie.backdropUrl || movie.backdropPath,
     rating: movie.averageRating ?? movie.rating ?? movie.voteAverage ?? 0,
     duration: movie.durationMinutes || movie.duration,
     durationFormatted: movie.durationFormatted
@@ -24,10 +24,10 @@ const processMovies = (data) => {
 
 const Home = () => {
   const [loading, setLoading] = useState(true);
-  const [movies, setMovies] = useState([]);
+  const [publicMovies, setPublicMovies] = useState([]);
   const [upcomingMovies, setUpcomingMovies] = useState([]);
   const [nowShowingMovies, setNowShowingMovies] = useState([]);
-  const [topRatedMovies, setTopRatedMovies] = useState([]);
+  const [recentMovies, setRecentMovies] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,32 +35,31 @@ const Home = () => {
     const loadData = async () => {
       try {
         const results = await Promise.allSettled([
-          movieService.listPage({ page: 0, size: 20 }),
-          movieService.getComingSoon({ page: 0, size: 12 }),
-          movieService.getNowShowing({ page: 0, size: 12 }),
-          movieService.getTopRated({ page: 0, size: 10 }),
+          movieService.searchPublic({ page: 0, size: 20, sort: 'updatedAt,desc' }),
+          movieService.getComingSoon({ page: 0, size: 12, sort: 'releaseDate,asc' }),
+          movieService.getNowShowing({ page: 0, size: 12, sort: 'updatedAt,desc' }),
         ]);
 
         if (cancelled) return;
 
-        const allMoviesData = results[0].status === 'fulfilled' ? results[0].value : { content: [] };
-        const upcomingData = results[1].status === 'fulfilled' ? results[1].value : [];
-        const nowShowingData = results[2].status === 'fulfilled' ? results[2].value : [];
-        const topRatedData = results[3].status === 'fulfilled' ? results[3].value : [];
+        const allPublic = results[0].status === 'fulfilled' ? results[0].value : [];
+        const upcoming = results[1].status === 'fulfilled' ? results[1].value : [];
+        const nowShowing = results[2].status === 'fulfilled' ? results[2].value : [];
 
         results.forEach((result, index) => {
           if (result.status === 'rejected') {
-            const apiNames = ['listPage', 'getComingSoon', 'getNowShowing', 'getTopRated'];
+            const apiNames = ['searchPublic', 'getComingSoon', 'getNowShowing'];
             console.error(`API ${apiNames[index]} failed:`, result.reason);
           }
         });
 
-        setMovies(processMovies(allMoviesData));
-        setUpcomingMovies(processMovies(upcomingData));
-        setNowShowingMovies(processMovies(nowShowingData));
-        setTopRatedMovies(processMovies(topRatedData));
+        const normalizedPublic = processMovies(allPublic);
+        setPublicMovies(normalizedPublic);
+        setUpcomingMovies(processMovies(upcoming));
+        setNowShowingMovies(processMovies(nowShowing));
+        setRecentMovies(normalizedPublic.slice(0, 10));
       } catch (error) {
-        console.error('Failed to load movies from API', error);
+        console.error('Failed to load public movies from API', error);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -72,7 +71,11 @@ const Home = () => {
     };
   }, []);
 
-  const heroMovies = upcomingMovies.length > 0 ? upcomingMovies : movies;
+  const heroMovies = upcomingMovies.length > 0
+    ? upcomingMovies
+    : nowShowingMovies.length > 0
+      ? nowShowingMovies
+      : publicMovies;
 
   if (loading) {
     return (
@@ -120,7 +123,7 @@ const Home = () => {
       <main className="w-full">
         <MovieShowcase movies={upcomingMovies} title="Phim sắp chiếu" category="upcoming" />
         <MovieShowcase movies={nowShowingMovies} title="Phim đang chiếu" category="now-showing" />
-        <MovieShowcase movies={topRatedMovies} title="Phim được đánh giá cao" category="top-rated" />
+        <MovieShowcase movies={recentMovies} title="Mới cập nhật" category="recent" />
         <FeaturesSection />
       </main>
     </div>
