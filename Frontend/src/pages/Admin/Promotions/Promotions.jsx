@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Ban, Clock, Copy, Edit, Eye, Gift, Loader2, PauseCircle, Percent, PlayCircle, Plus, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Ban, CheckCircle2, Clock, Copy, Edit, Eye, Gift, KeyRound, Loader2, PauseCircle, Percent, Plus, Trash2 } from 'lucide-react';
 import dayjs from '@/utils/dayjsConfig';
 import { AdminPageHeader } from '@/layouts/admin/AdminPageHeader';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
@@ -19,33 +20,55 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import promotionService from '@/services/promotionService';
 import useNotification from '@/hooks/useNotification';
 
-const DEFAULT_FORM = {
+const DEFAULT_RULE_FORM = {
   name: '',
-  code: '',
   description: '',
   discountType: 'PERCENTAGE',
   discountValue: 10,
-  minPurchaseAmount: 0,
+  minimumOrderAmount: 0,
   maxDiscountAmount: 0,
   usageLimit: 100,
-  startDate: '',
-  endDate: '',
+  usagePerUser: 1,
+  startAt: '',
+  endAt: '',
+  status: 'DRAFT',
 };
 
-const discountTypes = [
-  { value: 'PERCENTAGE', label: 'Giảm theo phần trăm' },
-  { value: 'FIXED_AMOUNT', label: 'Giảm số tiền cố định' },
+const DEFAULT_CODE_FORM = {
+  id: null,
+  code: '',
+  usageLimit: 100,
+  usedCount: 0,
+  active: true,
+};
+
+const DISCOUNT_TYPES = [
+  ['PERCENTAGE', 'Giảm theo phần trăm'],
+  ['FIXED_AMOUNT', 'Giảm số tiền cố định'],
 ];
 
-const statusMeta = (promotion) => {
-  if (!promotion) return { key: 'expired', label: 'Hết hạn', tone: 'destructive', icon: Ban };
-  const now = new Date();
-  const start = new Date(promotion.startDate);
-  const end = new Date(promotion.endDate);
-  if (!Number.isNaN(start.getTime()) && start > now) return { key: 'scheduled', label: 'Chờ bắt đầu', tone: 'info', icon: Clock };
-  if (!Number.isNaN(end.getTime()) && end < now) return { key: 'expired', label: 'Hết hạn', tone: 'destructive', icon: Ban };
-  if (promotion.isActive === true) return { key: 'active', label: 'Đang hoạt động', tone: 'success', icon: PlayCircle };
-  return { key: 'paused', label: 'Tạm dừng', tone: 'warning', icon: PauseCircle };
+const RULE_STATUSES = [
+  ['DRAFT', 'Bản nháp'],
+  ['ACTIVE', 'Đang hoạt động'],
+  ['INACTIVE', 'Tạm dừng'],
+  ['EXPIRED', 'Hết hạn'],
+];
+
+const ruleStatusMeta = (promotion) => {
+  const status = String(promotion?.status || 'DRAFT').toUpperCase();
+  const now = dayjs();
+  const start = promotion?.startAt ? dayjs(promotion.startAt) : null;
+  const end = promotion?.endAt ? dayjs(promotion.endAt) : null;
+
+  if (status === 'EXPIRED' || (end?.isValid() && end.isBefore(now))) {
+    return { key: 'EXPIRED', label: 'Hết hạn', tone: 'destructive', icon: Ban };
+  }
+  if (status === 'DRAFT') return { key: 'DRAFT', label: 'Bản nháp', tone: 'neutral', icon: Clock };
+  if (start?.isValid() && start.isAfter(now) && status === 'ACTIVE') {
+    return { key: 'SCHEDULED', label: 'Chờ bắt đầu', tone: 'info', icon: Clock };
+  }
+  if (status === 'ACTIVE') return { key: 'ACTIVE', label: 'Đang hoạt động', tone: 'success', icon: CheckCircle2 };
+  return { key: 'INACTIVE', label: 'Tạm dừng', tone: 'warning', icon: PauseCircle };
 };
 
 const extractPage = (response) => {
@@ -57,20 +80,13 @@ const extractPage = (response) => {
   };
 };
 
-const toInputDateTime = (value) => value ? dayjs(value).format('YYYY-MM-DDTHH:mm') : '';
-const toApiDateTime = (value) => value && value.split(':').length === 2 ? `${value}:00` : value || null;
+const toInputDateTime = (value) => value && dayjs(value).isValid() ? dayjs(value).format('YYYY-MM-DDTHH:mm') : '';
 const money = (value) => `${Number(value || 0).toLocaleString('vi-VN')} ₫`;
+const formatDateTime = (value) => value && dayjs(value).isValid() ? dayjs(value).format('DD/MM/YYYY HH:mm') : '—';
 
-const readableList = (values, preferredKeys = ['name', 'title']) => {
-  if (!Array.isArray(values) || values.length === 0) return 'Không giới hạn';
-  return values.map((item) => {
-    if (typeof item !== 'object' || item === null) return String(item);
-    for (const key of preferredKeys) {
-      if (item[key]) return String(item[key]);
-    }
-    return String(item.id ?? '');
-  }).filter(Boolean).join(', ') || 'Không giới hạn';
-};
+const discountLabel = (promotion) => promotion.discountType === 'PERCENTAGE'
+  ? `${Number(promotion.discountValue || 0).toLocaleString('vi-VN')}%`
+  : money(promotion.discountValue);
 
 const Promotions = () => {
   const notification = useNotification();
@@ -78,20 +94,25 @@ const Promotions = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState(null);
-  const [formOpen, setFormOpen] = useState(false);
+  const [ruleFormOpen, setRuleFormOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [codesOpen, setCodesOpen] = useState(false);
+  const [codeFormOpen, setCodeFormOpen] = useState(false);
+  const [codesLoading, setCodesLoading] = useState(false);
   const [editingPromotion, setEditingPromotion] = useState(null);
   const [selectedPromotion, setSelectedPromotion] = useState(null);
-  const [formValues, setFormValues] = useState(DEFAULT_FORM);
+  const [ruleForm, setRuleForm] = useState(DEFAULT_RULE_FORM);
+  const [codes, setCodes] = useState([]);
+  const [codeForm, setCodeForm] = useState(DEFAULT_CODE_FORM);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
 
   const loadPromotions = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const response = await promotionService.getAllPromotions(
         pagination.current - 1,
         pagination.pageSize,
-        'id,desc'
+        'createdAt,desc',
       );
       const page = extractPage(response);
       setPromotions(page.content);
@@ -100,106 +121,109 @@ const Promotions = () => {
       console.error('Error loading promotions:', error);
       setPromotions([]);
       setPagination((current) => ({ ...current, total: 0 }));
-      notification.error('Không thể tải danh sách khuyến mãi');
+      notification.error(error?.message || 'Không thể tải danh sách khuyến mãi');
     } finally {
       setLoading(false);
     }
   }, [notification, pagination.current, pagination.pageSize]);
 
-  useEffect(() => {
-    loadPromotions();
-  }, [loadPromotions]);
+  useEffect(() => { loadPromotions(); }, [loadPromotions]);
+
+  const pageStats = useMemo(() => ({
+    active: promotions.filter((promotion) => ruleStatusMeta(promotion).key === 'ACTIVE').length,
+    scheduled: promotions.filter((promotion) => ruleStatusMeta(promotion).key === 'SCHEDULED').length,
+    inactive: promotions.filter((promotion) => ['DRAFT', 'INACTIVE'].includes(ruleStatusMeta(promotion).key)).length,
+  }), [promotions]);
 
   const openCreate = () => {
     setEditingPromotion(null);
-    setFormValues(DEFAULT_FORM);
-    setFormOpen(true);
+    setRuleForm(DEFAULT_RULE_FORM);
+    setRuleFormOpen(true);
   };
 
   const openEdit = (promotion) => {
     setEditingPromotion(promotion);
-    setFormValues({
+    setRuleForm({
       name: promotion.name || '',
-      code: promotion.code || '',
       description: promotion.description || '',
       discountType: promotion.discountType || 'PERCENTAGE',
       discountValue: Number(promotion.discountValue || 0),
-      minPurchaseAmount: Number(promotion.minPurchase ?? promotion.minPurchaseAmount ?? 0),
-      maxDiscountAmount: Number(promotion.maxDiscount ?? promotion.maxDiscountAmount ?? 0),
-      usageLimit: Number(promotion.usageLimit || 1),
-      startDate: toInputDateTime(promotion.startDate),
-      endDate: toInputDateTime(promotion.endDate),
+      minimumOrderAmount: Number(promotion.minimumOrderAmount || 0),
+      maxDiscountAmount: Number(promotion.maxDiscountAmount || 0),
+      usageLimit: Number(promotion.usageLimit || 0),
+      usagePerUser: Number(promotion.usagePerUser || 1),
+      startAt: toInputDateTime(promotion.startAt),
+      endAt: toInputDateTime(promotion.endAt),
+      status: String(promotion.status || 'DRAFT').toUpperCase(),
     });
-    setFormOpen(true);
+    setRuleFormOpen(true);
   };
 
-  const closeForm = () => {
-    setFormOpen(false);
+  const closeRuleForm = () => {
+    setRuleFormOpen(false);
     setEditingPromotion(null);
-    setFormValues(DEFAULT_FORM);
+    setRuleForm(DEFAULT_RULE_FORM);
   };
 
-  const openDetail = (promotion) => {
-    setSelectedPromotion(promotion);
-    setDetailOpen(true);
-  };
-
-  const validateForm = () => {
-    if (!formValues.name.trim() || !formValues.code.trim() || !formValues.description.trim()) return 'Vui lòng điền đầy đủ thông tin bắt buộc';
-    if (Number(formValues.discountValue) <= 0) return 'Giá trị giảm phải lớn hơn 0';
-    if (formValues.discountType === 'PERCENTAGE' && Number(formValues.discountValue) > 100) return 'Giảm theo phần trăm không thể vượt quá 100%';
-    if (Number(formValues.usageLimit) < 1) return 'Giới hạn sử dụng phải lớn hơn 0';
-    if (!formValues.startDate || !formValues.endDate) return 'Vui lòng chọn thời gian áp dụng';
-    if (new Date(formValues.startDate) >= new Date(formValues.endDate)) return 'Ngày bắt đầu phải trước ngày kết thúc';
+  const validateRule = () => {
+    if (!ruleForm.name.trim() || !ruleForm.description.trim()) return 'Vui lòng nhập tên và mô tả khuyến mãi';
+    if (Number(ruleForm.discountValue) <= 0) return 'Giá trị giảm phải lớn hơn 0';
+    if (ruleForm.discountType === 'PERCENTAGE' && Number(ruleForm.discountValue) > 100) return 'Giảm phần trăm không thể vượt 100%';
+    if (Number(ruleForm.minimumOrderAmount) < 0 || Number(ruleForm.maxDiscountAmount) < 0) return 'Các ngưỡng tiền không được âm';
+    if (Number(ruleForm.usageLimit) < 1) return 'Usage limit phải lớn hơn 0';
+    if (Number(ruleForm.usagePerUser) < 1 || Number(ruleForm.usagePerUser) > Number(ruleForm.usageLimit)) return 'Usage per user phải từ 1 đến usage limit';
+    if (!ruleForm.startAt || !ruleForm.endAt) return 'Vui lòng nhập thời gian bắt đầu và kết thúc';
+    if (!dayjs(ruleForm.startAt).isBefore(dayjs(ruleForm.endAt))) return 'Thời gian bắt đầu phải trước thời gian kết thúc';
     return null;
   };
 
-  const handleSubmit = async (event) => {
+  const saveRule = async (event) => {
     event.preventDefault();
-    const validationError = validateForm();
+    const validationError = validateRule();
     if (validationError) {
       notification.error(validationError);
       return;
     }
 
     const payload = {
-      code: formValues.code.trim().toUpperCase(),
-      name: formValues.name.trim(),
-      description: formValues.description.trim(),
-      discountType: formValues.discountType,
-      discountValue: Number(formValues.discountValue),
-      startDate: toApiDateTime(formValues.startDate),
-      endDate: toApiDateTime(formValues.endDate),
-      minPurchase: Number(formValues.minPurchaseAmount || 0),
-      maxDiscount: Number(formValues.maxDiscountAmount || 0),
-      usageLimit: Number(formValues.usageLimit),
+      name: ruleForm.name.trim(),
+      description: ruleForm.description.trim(),
+      discountType: ruleForm.discountType,
+      discountValue: Number(ruleForm.discountValue),
+      maxDiscountAmount: Number(ruleForm.maxDiscountAmount),
+      minimumOrderAmount: Number(ruleForm.minimumOrderAmount),
+      startAt: ruleForm.startAt,
+      endAt: ruleForm.endAt,
+      usageLimit: Number(ruleForm.usageLimit),
+      usagePerUser: Number(ruleForm.usagePerUser),
+      status: ruleForm.status,
     };
 
+    setSaving(true);
     try {
-      setSaving(true);
       if (editingPromotion) {
         await promotionService.updatePromotion(editingPromotion.id, payload);
-        notification.success('Cập nhật khuyến mãi thành công');
+        notification.success('Cập nhật rule khuyến mãi thành công');
       } else {
         await promotionService.createPromotion(payload);
-        notification.success('Tạo khuyến mãi thành công');
+        notification.success('Tạo rule khuyến mãi thành công');
       }
-      closeForm();
+      closeRuleForm();
       await loadPromotions();
     } catch (error) {
       console.error('Error saving promotion:', error);
-      notification.error(error?.response?.data?.message || 'Không thể lưu khuyến mãi');
+      notification.error(error?.response?.data?.message || error?.message || 'Không thể lưu khuyến mãi');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleToggle = async (promotion) => {
-    const meta = statusMeta(promotion);
-    if (meta.key === 'expired') return;
+  const toggleRule = async (promotion) => {
+    const meta = ruleStatusMeta(promotion);
+    if (meta.key === 'EXPIRED') return;
+    setBusyId(promotion.id);
     try {
-      setBusyId(promotion.id);
-      if (promotion.isActive === true) {
+      if (String(promotion.status).toUpperCase() === 'ACTIVE') {
         await promotionService.deactivatePromotion(promotion.id);
         notification.success('Đã tạm dừng khuyến mãi');
       } else {
@@ -209,18 +233,18 @@ const Promotions = () => {
       await loadPromotions();
     } catch (error) {
       console.error('Error toggling promotion:', error);
-      notification.error(error?.response?.data?.message || 'Không thể thay đổi trạng thái khuyến mãi');
+      notification.error(error?.message || 'Không thể thay đổi trạng thái khuyến mãi');
     } finally {
       setBusyId(null);
     }
   };
 
-  const handleDelete = async (promotion) => {
-    if (!window.confirm(`Xóa khuyến mãi ${promotion.name}? Hành động này không thể hoàn tác.`)) return;
+  const deleteRule = async (promotion) => {
+    if (!window.confirm(`Xóa rule “${promotion.name}”? Các PromotionCode liên quan có thể bị ràng buộc bởi backend.`)) return;
+    setBusyId(promotion.id);
     try {
-      setBusyId(promotion.id);
       await promotionService.deletePromotion(promotion.id);
-      notification.success('Đã xóa khuyến mãi');
+      notification.success('Đã xóa rule khuyến mãi');
       if (promotions.length === 1 && pagination.current > 1) {
         setPagination((current) => ({ ...current, current: current.current - 1 }));
       } else {
@@ -228,7 +252,118 @@ const Promotions = () => {
       }
     } catch (error) {
       console.error('Error deleting promotion:', error);
-      notification.error(error?.response?.data?.message || 'Không thể xóa khuyến mãi');
+      notification.error(error?.response?.data?.message || error?.message || 'Không thể xóa khuyến mãi');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const loadCodes = useCallback(async (promotion) => {
+    if (!promotion?.id) return;
+    setCodesLoading(true);
+    try {
+      const rows = await promotionService.listCodesForPromotion(promotion.id);
+      setCodes(Array.isArray(rows) ? rows : []);
+    } catch (error) {
+      console.error('Error loading promotion codes:', error);
+      setCodes([]);
+      notification.error(error?.message || 'Không thể tải mã khuyến mãi');
+    } finally {
+      setCodesLoading(false);
+    }
+  }, [notification]);
+
+  const openCodes = async (promotion) => {
+    setSelectedPromotion(promotion);
+    setCodesOpen(true);
+    await loadCodes(promotion);
+  };
+
+  const openCreateCode = () => {
+    setCodeForm({
+      ...DEFAULT_CODE_FORM,
+      usageLimit: Math.max(1, Number(selectedPromotion?.usageLimit || 100)),
+    });
+    setCodeFormOpen(true);
+  };
+
+  const openEditCode = (code) => {
+    setCodeForm({
+      id: code.id,
+      code: code.code,
+      usageLimit: Number(code.usageLimit || 0),
+      usedCount: Number(code.usedCount || 0),
+      active: Boolean(code.active),
+    });
+    setCodeFormOpen(true);
+  };
+
+  const validateCode = () => {
+    if (!codeForm.code.trim()) return 'Vui lòng nhập code';
+    if (!/^[A-Z0-9_-]+$/.test(codeForm.code.trim().toUpperCase())) return 'Code chỉ dùng chữ in hoa, số, _ hoặc -';
+    if (Number(codeForm.usageLimit) < 1) return 'Usage limit của code phải lớn hơn 0';
+    if (Number(codeForm.usedCount) < 0 || Number(codeForm.usedCount) > Number(codeForm.usageLimit)) return 'Used count phải nằm trong usage limit';
+    return null;
+  };
+
+  const saveCode = async (event) => {
+    event.preventDefault();
+    if (!selectedPromotion?.id) return;
+    const validationError = validateCode();
+    if (validationError) {
+      notification.error(validationError);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        promotionId: selectedPromotion.id,
+        code: codeForm.code.trim().toUpperCase(),
+        usageLimit: Number(codeForm.usageLimit),
+        usedCount: Number(codeForm.usedCount),
+        active: codeForm.active,
+      };
+      if (codeForm.id) {
+        await promotionService.updateCode(codeForm.id, payload);
+        notification.success('Cập nhật promotion code thành công');
+      } else {
+        await promotionService.createCode(selectedPromotion.id, payload);
+        notification.success('Tạo promotion code thành công');
+      }
+      setCodeFormOpen(false);
+      setCodeForm(DEFAULT_CODE_FORM);
+      await loadCodes(selectedPromotion);
+    } catch (error) {
+      console.error('Error saving promotion code:', error);
+      notification.error(error?.response?.data?.message || error?.message || 'Không thể lưu promotion code');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleCode = async (code) => {
+    setBusyId(code.id);
+    try {
+      await promotionService.toggleCode(code, !code.active);
+      notification.success(code.active ? 'Đã tắt code' : 'Đã bật code');
+      await loadCodes(selectedPromotion);
+    } catch (error) {
+      notification.error(error?.message || 'Không thể đổi trạng thái code');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const deleteCode = async (code) => {
+    if (!window.confirm(`Xóa code ${code.code}?`)) return;
+    setBusyId(code.id);
+    try {
+      await promotionService.deleteCode(code, selectedPromotion?.id);
+      notification.success('Đã xóa promotion code');
+      await loadCodes(selectedPromotion);
+    } catch (error) {
+      notification.error(error?.message || 'Không thể xóa promotion code');
     } finally {
       setBusyId(null);
     }
@@ -237,88 +372,61 @@ const Promotions = () => {
   const copyCode = async (code) => {
     try {
       await navigator.clipboard.writeText(code);
-      notification.success('Đã sao chép mã khuyến mãi');
+      notification.success('Đã sao chép code');
     } catch {
-      notification.error('Không thể sao chép mã khuyến mãi');
+      notification.error('Không thể sao chép code');
     }
   };
 
   const columns = [
     {
-      title: 'Khuyến mãi',
+      title: 'Rule khuyến mãi',
       key: 'promotion',
       render: (_, record) => (
-        <div className="min-w-[220px] space-y-2">
-          <button type="button" onClick={() => openDetail(record)} className="block max-w-full truncate text-left font-medium hover:text-primary">{record.name}</button>
-          <div className="flex items-center gap-1.5">
-            <StatusBadge tone="info">{record.code}</StatusBadge>
-            <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyCode(record.code)} aria-label="Sao chép mã khuyến mãi"><Copy className="h-3.5 w-3.5" /></Button>
-          </div>
+        <div className="min-w-[240px]">
+          <button type="button" onClick={() => { setSelectedPromotion(record); setDetailOpen(true); }} className="block max-w-full truncate text-left font-medium hover:text-primary">{record.name}</button>
+          <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{record.description}</p>
         </div>
       ),
     },
     {
       title: 'Mức giảm',
       key: 'discount',
-      render: (_, record) => {
-        const percentage = String(record.discountType).toUpperCase() === 'PERCENTAGE';
-        return (
-          <div className="space-y-1">
-            <StatusBadge tone={percentage ? 'info' : 'warning'}>{percentage ? 'Phần trăm' : 'Cố định'}</StatusBadge>
-            <p className="font-medium">{percentage ? `${Number(record.discountValue || 0)}%` : money(record.discountValue)}</p>
-          </div>
-        );
-      },
+      render: (_, record) => <div><p className="font-semibold text-primary">{discountLabel(record)}</p><p className="text-xs text-muted-foreground">Đơn tối thiểu {money(record.minimumOrderAmount)}</p></div>,
     },
     {
       title: 'Thời gian',
       key: 'period',
-      render: (_, record) => (
-        <div className="text-sm">
-          <p>{dayjs(record.startDate).format('DD/MM/YYYY')}</p>
-          <p className="text-xs text-muted-foreground">đến {dayjs(record.endDate).format('DD/MM/YYYY')}</p>
-        </div>
-      ),
+      render: (_, record) => <div className="min-w-[170px] text-xs"><p>{formatDateTime(record.startAt)}</p><p className="text-muted-foreground">→ {formatDateTime(record.endAt)}</p></div>,
+    },
+    {
+      title: 'Giới hạn',
+      key: 'limit',
+      render: (_, record) => <div><p className="font-medium">{Number(record.usageLimit || 0).toLocaleString('vi-VN')} lượt</p><p className="text-xs text-muted-foreground">{Number(record.usagePerUser || 0)} / user</p></div>,
     },
     {
       title: 'Trạng thái',
       key: 'status',
       render: (_, record) => {
-        const meta = statusMeta(record);
+        const meta = ruleStatusMeta(record);
         const Icon = meta.icon;
-        return <StatusBadge tone={meta.tone} leading={<Icon className="h-3.5 w-3.5" />}>{meta.label}</StatusBadge>;
-      },
-    },
-    {
-      title: 'Sử dụng',
-      key: 'usage',
-      render: (_, record) => {
-        const used = Number(record.usedCount || 0);
-        const limit = Number(record.usageLimit || 0);
-        const value = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
-        return (
-          <div className="min-w-32 space-y-1">
-            <p className="text-sm">{used}/{limit || '∞'}</p>
-            {limit > 0 && <Progress value={value} status={value >= 90 ? 'exception' : value >= 70 ? 'warning' : 'normal'} />}
-          </div>
-        );
+        return <StatusBadge tone={meta.tone} leading={<Icon className="h-3 w-3" />}>{meta.label}</StatusBadge>;
       },
     },
     {
       title: 'Thao tác',
       key: 'actions',
       render: (_, record) => {
-        const meta = statusMeta(record);
         const busy = busyId === record.id;
+        const active = String(record.status).toUpperCase() === 'ACTIVE';
         return (
           <TooltipProvider>
             <div className="flex items-center gap-1">
-              <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(record)} aria-label="Xem khuyến mãi"><Eye className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>Xem chi tiết</TooltipContent></Tooltip>
-              <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(record)} aria-label="Chỉnh sửa khuyến mãi"><Edit className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>Chỉnh sửa</TooltipContent></Tooltip>
-              {meta.key !== 'expired' && (
-                <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8" disabled={busy} onClick={() => handleToggle(record)} aria-label={record.isActive ? 'Tạm dừng khuyến mãi' : 'Kích hoạt khuyến mãi'}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : record.isActive ? <PauseCircle className="h-4 w-4" /> : <PlayCircle className="h-4 w-4" />}</Button></TooltipTrigger><TooltipContent>{record.isActive ? 'Tạm dừng' : 'Kích hoạt'}</TooltipContent></Tooltip>
-              )}
-              <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" disabled={busy} onClick={() => handleDelete(record)} aria-label="Xóa khuyến mãi"><Trash2 className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>Xóa</TooltipContent></Tooltip>
+              <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedPromotion(record); setDetailOpen(true); }} aria-label="Xem rule"><Eye className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>Chi tiết rule</TooltipContent></Tooltip>
+              <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => openCodes(record)} aria-label="Quản lý code"><KeyRound className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>Promotion codes</TooltipContent></Tooltip>
+              <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(record)} aria-label="Sửa rule"><Edit className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>Chỉnh sửa</TooltipContent></Tooltip>
+              <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8" disabled={busy || ruleStatusMeta(record).key === 'EXPIRED'} onClick={() => toggleRule(record)} aria-label={active ? 'Tạm dừng' : 'Kích hoạt'}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : active ? <PauseCircle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}</Button></TooltipTrigger><TooltipContent>{active ? 'Tạm dừng' : 'Kích hoạt'}</TooltipContent></Tooltip>
+              <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" disabled={busy} onClick={() => deleteRule(record)} aria-label="Xóa rule"><Trash2 className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>Xóa rule</TooltipContent></Tooltip>
             </div>
           </TooltipProvider>
         );
@@ -330,104 +438,114 @@ const Promotions = () => {
     <div className="space-y-6">
       <AdminPageHeader
         title="Quản lý khuyến mãi"
-        description="Tạo voucher, quản lý thời gian áp dụng, giới hạn sử dụng và trạng thái kích hoạt."
-        breadcrumbs={[
-          { title: 'Dashboard', href: '/admin/dashboard' },
-          { title: 'Khuyến mãi' },
-        ]}
-        actions={<Button onClick={openCreate}><Plus className="h-4 w-4" />Tạo khuyến mãi</Button>}
+        description="Promotion là rule giảm giá; PromotionCode là mã coupon riêng liên kết tới rule."
+        breadcrumbs={[{ title: 'Dashboard', href: '/admin/dashboard' }, { title: 'Khuyến mãi' }]}
+        actions={<Button onClick={openCreate}><Plus className="h-4 w-4" />Thêm rule</Button>}
       />
 
+      <Alert type="info" showIcon message="Rule và code được quản lý độc lập" description="Một Promotion có thể có nhiều PromotionCode trên backend. Booking lookup theo code sẽ resolve code trước, sau đó áp dụng rule tương ứng." />
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card><CardContent className="flex items-center justify-between p-5"><div><p className="text-sm text-muted-foreground">Tổng rule</p><p className="mt-1 text-2xl font-semibold">{pagination.total}</p></div><Gift className="h-5 w-5 text-muted-foreground" /></CardContent></Card>
+        <Card><CardContent className="flex items-center justify-between p-5"><div><p className="text-sm text-muted-foreground">Active trên trang</p><p className="mt-1 text-2xl font-semibold">{pageStats.active}</p></div><Percent className="h-5 w-5 text-muted-foreground" /></CardContent></Card>
+        <Card><CardContent className="flex items-center justify-between p-5"><div><p className="text-sm text-muted-foreground">Chờ / tạm dừng</p><p className="mt-1 text-2xl font-semibold">{pageStats.scheduled + pageStats.inactive}</p></div><Clock className="h-5 w-5 text-muted-foreground" /></CardContent></Card>
+      </div>
+
       <Card>
-        <CardHeader><CardTitle className="text-lg">Danh sách khuyến mãi</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-lg">Danh sách promotion rule</CardTitle></CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex min-h-48 items-center justify-center gap-3 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Đang tải khuyến mãi...</div>
+            <div className="flex min-h-48 items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Đang tải khuyến mãi...</div>
           ) : promotions.length === 0 ? (
-            <Empty description="Chưa có khuyến mãi nào" />
+            <Empty description="Chưa có promotion rule" />
           ) : (
             <DataTable fields={columns} rows={promotions} getRowId="id" pageControls={false} />
           )}
-          {pagination.total > 0 && (
-            <Pagination
-              className="mt-5 border-t pt-5"
-              page={pagination.current}
-              itemsPerPage={pagination.pageSize}
-              totalItems={pagination.total}
-              allowPageSizeChange
-              allowPageJump
-              onPageChange={(page) => setPagination((current) => ({ ...current, current: page }))}
-              onPageSizeChange={(size) => setPagination((current) => ({ ...current, current: 1, pageSize: size }))}
-              showTotal={(total, range) => `Hiển thị ${range[0]}-${range[1]} / ${total} khuyến mãi`}
-            />
-          )}
+          {pagination.total > 0 && <Pagination className="mt-5 border-t pt-5" page={pagination.current} itemsPerPage={pagination.pageSize} totalItems={pagination.total} allowPageSizeChange allowPageJump onPageChange={(page) => setPagination((current) => ({ ...current, current: page }))} onPageSizeChange={(size) => setPagination((current) => ({ ...current, current: 1, pageSize: size }))} showTotal={(total, range) => `Hiển thị ${range[0]}-${range[1]} / ${total} rule`} />}
         </CardContent>
       </Card>
 
-      <ResponsiveDialog
-        heading={editingPromotion ? 'Chỉnh sửa khuyến mãi' : 'Tạo khuyến mãi mới'}
-        description="Lượt đã sử dụng được hệ thống ghi nhận tự động và không thể chỉnh sửa thủ công."
-        open={formOpen}
-        onClose={closeForm}
-        maxWidth={820}
-      >
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="space-y-2 text-sm font-medium"><span>Tên khuyến mãi <span className="text-destructive">*</span></span><Input value={formValues.name} onChange={(event) => setFormValues((current) => ({ ...current, name: event.target.value }))} placeholder="Giảm 20% vé cuối tuần" required /></label>
-            <label className="space-y-2 text-sm font-medium"><span>Mã voucher <span className="text-destructive">*</span></span><Input value={formValues.code} onChange={(event) => setFormValues((current) => ({ ...current, code: event.target.value.toUpperCase() }))} placeholder="WEEKEND20" className="uppercase" required /></label>
-          </div>
+      <ResponsiveDialog heading={editingPromotion ? 'Chỉnh sửa promotion rule' : 'Thêm promotion rule'} open={ruleFormOpen} onClose={closeRuleForm} maxWidth={780}>
+        <form onSubmit={saveRule} className="space-y-5">
+          <label className="block space-y-2 text-sm font-medium"><span>Tên *</span><Input value={ruleForm.name} onChange={(event) => setRuleForm((current) => ({ ...current, name: event.target.value }))} required /></label>
+          <label className="block space-y-2 text-sm font-medium"><span>Mô tả *</span><Textarea rows={3} value={ruleForm.description} onChange={(event) => setRuleForm((current) => ({ ...current, description: event.target.value }))} required /></label>
 
-          <label className="block space-y-2 text-sm font-medium"><span>Mô tả <span className="text-destructive">*</span></span><Textarea value={formValues.description} onChange={(event) => setFormValues((current) => ({ ...current, description: event.target.value }))} rows={3} placeholder="Điều kiện và nội dung chương trình" required /></label>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <label className="space-y-2 text-sm font-medium"><span>Loại giảm</span><Select value={formValues.discountType} onValueChange={(value) => setFormValues((current) => ({ ...current, discountType: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{discountTypes.map((type) => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}</SelectContent></Select></label>
-            <label className="space-y-2 text-sm font-medium"><span>Giá trị giảm</span><NumberStepper min={0} value={formValues.discountValue} onValueChange={(value) => setFormValues((current) => ({ ...current, discountValue: value ?? 0 }))} /></label>
-            <label className="space-y-2 text-sm font-medium"><span>Đơn tối thiểu</span><NumberStepper min={0} value={formValues.minPurchaseAmount} onValueChange={(value) => setFormValues((current) => ({ ...current, minPurchaseAmount: value ?? 0 }))} /></label>
-            <label className="space-y-2 text-sm font-medium"><span>Giảm tối đa</span><NumberStepper min={0} value={formValues.maxDiscountAmount} onValueChange={(value) => setFormValues((current) => ({ ...current, maxDiscountAmount: value ?? 0 }))} /></label>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <label className="space-y-2 text-sm font-medium"><span>Loại giảm *</span><Select value={ruleForm.discountType} onValueChange={(value) => setRuleForm((current) => ({ ...current, discountType: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{DISCOUNT_TYPES.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
+            <label className="space-y-2 text-sm font-medium"><span>Giá trị giảm *</span><NumberStepper min={0} value={ruleForm.discountValue} onValueChange={(value) => setRuleForm((current) => ({ ...current, discountValue: value ?? 0 }))} /></label>
+            <label className="space-y-2 text-sm font-medium"><span>Giảm tối đa</span><NumberStepper min={0} value={ruleForm.maxDiscountAmount} onValueChange={(value) => setRuleForm((current) => ({ ...current, maxDiscountAmount: value ?? 0 }))} /></label>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <label className="space-y-2 text-sm font-medium"><span>Giới hạn sử dụng</span><NumberStepper min={1} value={formValues.usageLimit} onValueChange={(value) => setFormValues((current) => ({ ...current, usageLimit: value ?? 1 }))} /></label>
-            <label className="space-y-2 text-sm font-medium"><span>Bắt đầu <span className="text-destructive">*</span></span><Input type="datetime-local" value={formValues.startDate} onChange={(event) => setFormValues((current) => ({ ...current, startDate: event.target.value }))} required /></label>
-            <label className="space-y-2 text-sm font-medium"><span>Kết thúc <span className="text-destructive">*</span></span><Input type="datetime-local" value={formValues.endDate} onChange={(event) => setFormValues((current) => ({ ...current, endDate: event.target.value }))} required /></label>
+            <label className="space-y-2 text-sm font-medium"><span>Đơn tối thiểu</span><NumberStepper min={0} value={ruleForm.minimumOrderAmount} onValueChange={(value) => setRuleForm((current) => ({ ...current, minimumOrderAmount: value ?? 0 }))} /></label>
+            <label className="space-y-2 text-sm font-medium"><span>Usage limit *</span><NumberStepper min={1} value={ruleForm.usageLimit} onValueChange={(value) => setRuleForm((current) => ({ ...current, usageLimit: value ?? 1 }))} /></label>
+            <label className="space-y-2 text-sm font-medium"><span>Usage / user *</span><NumberStepper min={1} value={ruleForm.usagePerUser} onValueChange={(value) => setRuleForm((current) => ({ ...current, usagePerUser: value ?? 1 }))} /></label>
           </div>
 
-          <div className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" onClick={closeForm}>Hủy</Button><Button type="submit" disabled={saving}>{saving && <Loader2 className="h-4 w-4 animate-spin" />}{editingPromotion ? 'Lưu thay đổi' : 'Tạo khuyến mãi'}</Button></div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-2 text-sm font-medium"><span>Bắt đầu *</span><Input type="datetime-local" value={ruleForm.startAt} onChange={(event) => setRuleForm((current) => ({ ...current, startAt: event.target.value }))} required /></label>
+            <label className="space-y-2 text-sm font-medium"><span>Kết thúc *</span><Input type="datetime-local" value={ruleForm.endAt} onChange={(event) => setRuleForm((current) => ({ ...current, endAt: event.target.value }))} required /></label>
+          </div>
+
+          <label className="block space-y-2 text-sm font-medium"><span>Trạng thái *</span><Select value={ruleForm.status} onValueChange={(value) => setRuleForm((current) => ({ ...current, status: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{RULE_STATUSES.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
+
+          <div className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" onClick={closeRuleForm}>Hủy</Button><Button type="submit" disabled={saving}>{saving && <Loader2 className="h-4 w-4 animate-spin" />}{editingPromotion ? 'Lưu rule' : 'Tạo rule'}</Button></div>
         </form>
       </ResponsiveDialog>
 
-      <ResponsiveDialog
-        heading="Chi tiết khuyến mãi"
-        open={detailOpen}
-        onClose={() => setDetailOpen(false)}
-        maxWidth={760}
-        actions={selectedPromotion ? [
-          <Button key="close" variant="outline" onClick={() => setDetailOpen(false)}>Đóng</Button>,
-          <Button key="edit" onClick={() => { setDetailOpen(false); openEdit(selectedPromotion); }}><Edit className="h-4 w-4" />Chỉnh sửa</Button>,
-        ] : null}
-      >
-        {selectedPromotion && (() => {
-          const meta = statusMeta(selectedPromotion);
-          const Icon = meta.icon;
-          const percentage = String(selectedPromotion.discountType).toUpperCase() === 'PERCENTAGE';
-          return (
-            <div className="space-y-5">
-              <div className="flex flex-wrap items-center gap-2"><StatusBadge tone="info">{selectedPromotion.code}</StatusBadge><StatusBadge tone={meta.tone} leading={<Icon className="h-3.5 w-3.5" />}>{meta.label}</StatusBadge></div>
-              <p className="text-sm text-muted-foreground">{selectedPromotion.description || 'Chưa có mô tả'}</p>
-              <DetailList columns={2}>
-                <DetailItem label="Mức giảm">{percentage ? `${Number(selectedPromotion.discountValue || 0)}%` : money(selectedPromotion.discountValue)}</DetailItem>
-                <DetailItem label="Lượt sử dụng">{Number(selectedPromotion.usedCount || 0)} / {Number(selectedPromotion.usageLimit || 0) || 'Không giới hạn'}</DetailItem>
-                <DetailItem label="Đơn tối thiểu">{money(selectedPromotion.minPurchase ?? selectedPromotion.minPurchaseAmount)}</DetailItem>
-                <DetailItem label="Giảm tối đa">{money(selectedPromotion.maxDiscount ?? selectedPromotion.maxDiscountAmount)}</DetailItem>
-                <DetailItem label="Bắt đầu">{dayjs(selectedPromotion.startDate).format('DD/MM/YYYY HH:mm')}</DetailItem>
-                <DetailItem label="Kết thúc">{dayjs(selectedPromotion.endDate).format('DD/MM/YYYY HH:mm')}</DetailItem>
-                {selectedPromotion.applicableMovies?.length > 0 && <DetailItem label="Phim áp dụng" wide>{readableList(selectedPromotion.applicableMovies, ['title', 'name'])}</DetailItem>}
-                {selectedPromotion.applicableCinemas?.length > 0 && <DetailItem label="Rạp áp dụng" wide>{readableList(selectedPromotion.applicableCinemas, ['name'])}</DetailItem>}
-                {selectedPromotion.applicableDays?.length > 0 && <DetailItem label="Ngày áp dụng" wide>{readableList(selectedPromotion.applicableDays)}</DetailItem>}
-              </DetailList>
-            </div>
-          );
-        })()}
+      <ResponsiveDialog heading="Chi tiết promotion rule" open={detailOpen} onClose={() => { setDetailOpen(false); setSelectedPromotion(null); }} maxWidth={720} actions={selectedPromotion ? [<Button key="close" variant="outline" onClick={() => { setDetailOpen(false); setSelectedPromotion(null); }}>Đóng</Button>, <Button key="codes" variant="outline" onClick={() => { setDetailOpen(false); openCodes(selectedPromotion); }}><KeyRound className="h-4 w-4" />Codes</Button>, <Button key="edit" onClick={() => { const promotion = selectedPromotion; setDetailOpen(false); openEdit(promotion); }}><Edit className="h-4 w-4" />Chỉnh sửa</Button>] : null}>
+        {selectedPromotion && (
+          <DetailList columns={2}>
+            <DetailItem label="Tên">{selectedPromotion.name}</DetailItem>
+            <DetailItem label="Trạng thái">{ruleStatusMeta(selectedPromotion).label}</DetailItem>
+            <DetailItem label="Loại giảm">{DISCOUNT_TYPES.find(([value]) => value === selectedPromotion.discountType)?.[1] || selectedPromotion.discountType}</DetailItem>
+            <DetailItem label="Giá trị">{discountLabel(selectedPromotion)}</DetailItem>
+            <DetailItem label="Đơn tối thiểu">{money(selectedPromotion.minimumOrderAmount)}</DetailItem>
+            <DetailItem label="Giảm tối đa">{money(selectedPromotion.maxDiscountAmount)}</DetailItem>
+            <DetailItem label="Usage limit">{selectedPromotion.usageLimit}</DetailItem>
+            <DetailItem label="Usage / user">{selectedPromotion.usagePerUser}</DetailItem>
+            <DetailItem label="Bắt đầu">{formatDateTime(selectedPromotion.startAt)}</DetailItem>
+            <DetailItem label="Kết thúc">{formatDateTime(selectedPromotion.endAt)}</DetailItem>
+            <DetailItem label="Mô tả" wide>{selectedPromotion.description}</DetailItem>
+            <DetailItem label="Promotion ID" wide>{selectedPromotion.id}</DetailItem>
+          </DetailList>
+        )}
+      </ResponsiveDialog>
+
+      <ResponsiveDialog heading={`Promotion codes${selectedPromotion?.name ? ` · ${selectedPromotion.name}` : ''}`} open={codesOpen} onClose={() => { setCodesOpen(false); setCodes([]); setSelectedPromotion(null); }} maxWidth={820} actions={<Button onClick={openCreateCode} disabled={!selectedPromotion}><Plus className="h-4 w-4" />Thêm code</Button>}>
+        {codesLoading ? (
+          <div className="flex min-h-36 items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Đang tải code...</div>
+        ) : codes.length === 0 ? (
+          <Empty description="Rule này chưa có promotion code" />
+        ) : (
+          <div className="space-y-3">
+            {codes.map((code) => {
+              const percent = code.usageLimit > 0 ? Math.min(100, (Number(code.usedCount || 0) / Number(code.usageLimit)) * 100) : 0;
+              const busy = busyId === code.id;
+              return (
+                <Card key={code.id || code.code} className="shadow-none">
+                  <CardContent className="grid gap-4 p-4 md:grid-cols-[minmax(0,1fr)_180px_auto] md:items-center">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2"><StatusBadge tone={code.active ? 'success' : 'neutral'}>{code.code}</StatusBadge><Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyCode(code.code)}><Copy className="h-3.5 w-3.5" /></Button></div>
+                      <div className="mt-2 flex items-center gap-2"><Progress value={percent} className="h-2 flex-1" /><span className="text-xs text-muted-foreground">{code.usedCount}/{code.usageLimit}</span></div>
+                    </div>
+                    <StatusBadge tone={code.active ? 'success' : 'neutral'}>{code.active ? 'Đang dùng' : 'Đã tắt'}</StatusBadge>
+                    <div className="flex items-center gap-1 md:justify-end"><Button type="button" variant="ghost" size="icon" disabled={busy} onClick={() => openEditCode(code)}><Edit className="h-4 w-4" /></Button><Button type="button" variant="ghost" size="icon" disabled={busy} onClick={() => toggleCode(code)}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : code.active ? <PauseCircle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}</Button><Button type="button" variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={busy} onClick={() => deleteCode(code)}><Trash2 className="h-4 w-4" /></Button></div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </ResponsiveDialog>
+
+      <ResponsiveDialog heading={codeForm.id ? 'Chỉnh sửa promotion code' : 'Thêm promotion code'} open={codeFormOpen} onClose={() => { setCodeFormOpen(false); setCodeForm(DEFAULT_CODE_FORM); }} maxWidth={560}>
+        <form onSubmit={saveCode} className="space-y-5">
+          <label className="block space-y-2 text-sm font-medium"><span>Code *</span><Input value={codeForm.code} onChange={(event) => setCodeForm((current) => ({ ...current, code: event.target.value.toUpperCase() }))} placeholder="SUMMER2026" required /></label>
+          <div className="grid gap-4 sm:grid-cols-2"><label className="space-y-2 text-sm font-medium"><span>Usage limit *</span><NumberStepper min={1} value={codeForm.usageLimit} onValueChange={(value) => setCodeForm((current) => ({ ...current, usageLimit: value ?? 1 }))} /></label><label className="space-y-2 text-sm font-medium"><span>Used count *</span><NumberStepper min={0} value={codeForm.usedCount} onValueChange={(value) => setCodeForm((current) => ({ ...current, usedCount: value ?? 0 }))} /></label></div>
+          <label className="block space-y-2 text-sm font-medium"><span>Trạng thái *</span><Select value={codeForm.active ? 'active' : 'inactive'} onValueChange={(value) => setCodeForm((current) => ({ ...current, active: value === 'active' }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="active">Đang hoạt động</SelectItem><SelectItem value="inactive">Tạm tắt</SelectItem></SelectContent></Select></label>
+          <div className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" onClick={() => { setCodeFormOpen(false); setCodeForm(DEFAULT_CODE_FORM); }}>Hủy</Button><Button type="submit" disabled={saving}>{saving && <Loader2 className="h-4 w-4 animate-spin" />}{codeForm.id ? 'Lưu code' : 'Tạo code'}</Button></div>
+        </form>
       </ResponsiveDialog>
     </div>
   );
