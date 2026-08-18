@@ -32,6 +32,7 @@ const paginate = (rows, params = {}) => {
 };
 
 const bookingService = {
+  // Administrative collection APIs. Customer pages must use getMy* methods.
   async listPage(params = {}) {
     return unwrapApiData(await apiClient.get(base, { params }));
   },
@@ -49,18 +50,33 @@ const bookingService = {
     const normalized = normalizeResourceId(identifier);
     if (normalized == null) return null;
 
-    // Real backend booking ids are UUIDs; mock ids are numeric. Prefer the
-    // direct entity endpoint whenever the route already contains such an id.
     if (typeof normalized === 'number' || isUuid(normalized)) {
       return this.getBookingById(normalized);
     }
 
-    // Admin screens are allowed to use the administrative collection to map a
-    // human booking code to its entity. Customer screens must never use this
-    // fallback; they use getMyBookings/getBookingByCode ownership commands.
     const rows = await this.list({ page: 0, size: 500 });
     const code = String(identifier).trim().toUpperCase();
     return rows.find((item) => String(item.bookingCode || item.code || '').trim().toUpperCase() === code) || null;
+  },
+
+  async getMyBookingById(bookingId) {
+    const id = normalizeResourceId(bookingId);
+    if (id == null) return null;
+
+    if (MOCK_API_ENABLED) {
+      const result = await this.getMyBookings({ page: 0, size: 500 });
+      const rows = Array.isArray(result) ? result : result?.content || [];
+      return rows.find((item) => sameResourceId(item.id ?? item.bookingId, id)) || null;
+    }
+
+    try {
+      return unwrapApiData(await apiClient.get(`${base}/my-bookings/${id}`));
+    } catch (error) {
+      if (!isEndpointUnavailable(error)) throw error;
+      // Do not fall back to GET /bookings/{id}. Knowing a UUID must not be
+      // sufficient to read another customer's booking from the browser.
+      rethrowCapabilityError('chi tiết booking cá nhân có kiểm soát ownership', error);
+    }
   },
 
   async getBookingByCode(bookingCode) {
@@ -88,9 +104,6 @@ const bookingService = {
     }
 
     try {
-      // Real checkout is a business transaction. Do not fall back to the
-      // entity CRUD POST /bookings because it accepts client-owned totals,
-      // statuses and timestamps and cannot atomically hold seats.
       return unwrapApiData(await apiClient.post(`${base}/checkout`, payload));
     } catch (error) {
       rethrowCapabilityError('tạo booking/checkout an toàn', error);
@@ -112,9 +125,6 @@ const bookingService = {
         const current = await this.getBookingById(id);
         return this.updateBooking(id, { ...current, status: normalizedStatus });
       }
-      // BookingUpdateRequest contains monetary totals and lifecycle timestamps.
-      // Replaying that DTO from the browser just to change status would make
-      // client data authoritative for booking state.
       rethrowCapabilityError('đổi trạng thái booking bằng command backend', error);
     }
   },
@@ -129,8 +139,6 @@ const bookingService = {
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
       if (!MOCK_API_ENABLED) {
-        // Never GET the entire booking collection in a customer session and
-        // filter by userId in the browser. Ownership must be server-enforced.
         rethrowCapabilityError('danh sách booking của người dùng có kiểm soát ownership', error);
       }
       const user = getUserInfo();
