@@ -1,8 +1,7 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react-swc'
-import { fileURLToPath, URL } from 'node:url'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react-swc';
+import { fileURLToPath, URL } from 'node:url';
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -13,11 +12,13 @@ export default defineConfig({
   define: {
     global: 'globalThis',
   },
-  server: {
-    // Cho phép tất cả các host (Dùng cách này tiện nhất khi xài ngrok vì link đổi liên tục)
-    allowedHosts: true, 
-    
-    // HOẶC nếu bạn muốn chỉ định rõ domain (bảo mật hơn nhưng phải đổi mỗi khi tắt ngrok):
-    // allowedHosts: ['botchily-radiotelegraphic-ezequiel.ngrok-free.dev'],
+  test: {
+    environment: 'jsdom',
+    clearMocks: true,
+    restoreMocks: true,
   },
-})
+  server: {
+    // Allow tunnelling/dev-host use cases; this only applies to the local Vite dev server.
+    allowedHosts: true,
+  },
+});
