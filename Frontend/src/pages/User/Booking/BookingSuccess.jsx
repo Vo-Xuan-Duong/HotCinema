@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import QRCode from 'qrcode';
-import { CheckCircle2, Download, Home, Mail, Ticket } from 'lucide-react';
+import { CheckCircle2, Clock3, Download, Home, Mail, Ticket } from 'lucide-react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import ContentLoader from '@/components/Loading/ContentLoader';
 import { Alert } from '@/components/ui/alert';
@@ -79,6 +79,12 @@ const normalizeQrImage = (booking = {}) => {
   return booking.qrImageUrl || booking.qrCodeUrl || '';
 };
 
+const isConfirmedBooking = (booking = {}) => {
+  const paymentStatus = String(booking.paymentStatus || '').toUpperCase();
+  const bookingStatus = String(booking.bookingStatus || booking.status || '').toUpperCase();
+  return paymentStatus === 'SUCCESS' || ['CONFIRMED', 'COMPLETED'].includes(bookingStatus);
+};
+
 const BookingSuccess = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -88,8 +94,10 @@ const BookingSuccess = () => {
   const [loading, setLoading] = useState(true);
   const [bookingData, setBookingData] = useState({});
   const [ticketCapabilityMessage, setTicketCapabilityMessage] = useState('');
+  const [bookingCapabilityMessage, setBookingCapabilityMessage] = useState('');
+  const [serverHydrated, setServerHydrated] = useState(false);
 
-  const fallbackBooking = location.state?.bookingData || readStoredBooking();
+  const fallbackBooking = useMemo(() => location.state?.bookingData || readStoredBooking(), [location.state]);
   const bookingCodeParam = searchParams.get('bookingCode') || fallbackBooking.bookingCode;
   const bookingIdParam = searchParams.get('bookingId') || fallbackBooking.id || fallbackBooking.bookingId;
   const pdfSupported = ticketService.isPdfDownloadSupported();
@@ -101,51 +109,56 @@ const BookingSuccess = () => {
     const load = async () => {
       setLoading(true);
       setTicketCapabilityMessage('');
+      setBookingCapabilityMessage('');
+      setServerHydrated(false);
 
+      let source = fallbackBooking;
       try {
-        let source = fallbackBooking;
         if (bookingIdParam) {
-          source = await bookingService.getBookingById(bookingIdParam);
+          source = await bookingService.getMyBookingById(bookingIdParam);
+          if (!cancelled) setServerHydrated(Boolean(source));
         } else if (MOCK_API_ENABLED && bookingCodeParam) {
           source = await bookingService.getBookingByCode(bookingCodeParam);
-        }
-
-        if (cancelled) return;
-        const mapped = mapBooking(source || fallbackBooking);
-        setBookingData(mapped);
-
-        const embeddedQr = normalizeQrImage(source || fallbackBooking);
-        if (embeddedQr) {
-          setQrCodeUrl(embeddedQr);
-          return;
-        }
-
-        if (!mapped.bookingId) {
-          setQrCodeUrl('');
-          return;
-        }
-
-        try {
-          const tickets = await ticketService.resolveBookingQrPayload(mapped.bookingId);
-          const qrPayload = tickets?.find((ticket) => ticket.qrPayload)?.qrPayload;
-          if (!qrPayload) {
-            setQrCodeUrl('');
-            setTicketCapabilityMessage('Backend chưa trả về QR token/ticket code có thể dùng làm vé điện tử.');
-            return;
-          }
-          const image = await QRCode.toDataURL(qrPayload, { width: 300, margin: 2 });
-          if (!cancelled) setQrCodeUrl(image);
-        } catch (error) {
-          if (!cancelled) {
-            setQrCodeUrl('');
-            if (error?.code === 'BACKEND_CAPABILITY_MISSING') setTicketCapabilityMessage(error.message);
-          }
+          if (!cancelled) setServerHydrated(Boolean(source));
         }
       } catch (error) {
-        console.error('Error fetching booking details:', error);
+        console.error('Error hydrating customer booking success:', error);
+        if (error?.code === 'BACKEND_CAPABILITY_MISSING' && !cancelled) {
+          setBookingCapabilityMessage(error.message);
+        }
+        source = fallbackBooking;
+      }
+
+      if (cancelled) return;
+      const mapped = mapBooking(source || fallbackBooking);
+      setBookingData(mapped);
+
+      const embeddedQr = normalizeQrImage(source || fallbackBooking);
+      if (embeddedQr) {
+        setQrCodeUrl(embeddedQr);
+        setLoading(false);
+        return;
+      }
+
+      if (!mapped.bookingId) {
+        setQrCodeUrl('');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const tickets = await ticketService.resolveBookingQrPayload(mapped.bookingId);
+        const qrPayload = tickets?.find((ticket) => ticket.qrPayload)?.qrPayload;
+        if (!qrPayload) {
+          setQrCodeUrl('');
+          setTicketCapabilityMessage('Backend chưa trả về QR token/ticket code có thể dùng làm vé điện tử.');
+        } else {
+          const image = await QRCode.toDataURL(qrPayload, { width: 300, margin: 2 });
+          if (!cancelled) setQrCodeUrl(image);
+        }
+      } catch (error) {
         if (!cancelled) {
-          setBookingData(mapBooking(fallbackBooking));
-          setQrCodeUrl(normalizeQrImage(fallbackBooking));
+          setQrCodeUrl('');
           if (error?.code === 'BACKEND_CAPABILITY_MISSING') setTicketCapabilityMessage(error.message);
         }
       } finally {
@@ -155,10 +168,11 @@ const BookingSuccess = () => {
 
     load();
     return () => { cancelled = true; };
-    // fallbackBooking is intentionally derived from navigation/localStorage at
-    // mount; identifiers are the stable dependencies for backend hydration.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookingCodeParam, bookingIdParam]);
+  }, [bookingCodeParam, bookingIdParam, fallbackBooking]);
+
+  const confirmed = isConfirmedBooking(bookingData);
+  const callbackConfirmed = String(fallbackBooking?.paymentStatus || '').toUpperCase() === 'SUCCESS';
+  const trustedConfirmation = confirmed && (serverHydrated || callbackConfirmed || MOCK_API_ENABLED);
 
   const handleDownloadPDF = async () => {
     if (!pdfSupported || !bookingData.bookingId) return;
@@ -183,7 +197,7 @@ const BookingSuccess = () => {
     }
   };
 
-  if (loading) return <ContentLoader message="Đang tải thông tin đặt vé..." />;
+  if (loading) return <ContentLoader message="Đang xác minh thông tin booking..." />;
 
   const {
     bookingCode = '',
@@ -213,38 +227,42 @@ const BookingSuccess = () => {
     <div className="min-h-dvh bg-background px-4 py-16 text-foreground">
       <div className="mx-auto w-full max-w-6xl space-y-8">
         <header className="text-center">
-          <div className="status-success mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border">
-            <CheckCircle2 className="h-7 w-7" />
+          <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border ${trustedConfirmation ? 'status-success' : 'bg-muted text-muted-foreground'}`}>
+            {trustedConfirmation ? <CheckCircle2 className="h-7 w-7" /> : <Clock3 className="h-7 w-7" />}
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Đặt vé thành công</h1>
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+            {trustedConfirmation ? 'Đặt vé đã được xác nhận' : 'Booking đang chờ xác minh'}
+          </h1>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-            Thông tin booking đã được ghi nhận. Vé điện tử chỉ xuất hiện khi backend phát hành ticket/QR tương ứng.
+            {trustedConfirmation
+              ? 'Trạng thái booking/thanh toán đã được xác nhận từ server hoặc callback payment của phiên hiện tại.'
+              : 'Frontend có dữ liệu booking cục bộ nhưng chưa có nguồn server-side đủ mạnh để khẳng định giao dịch thành công.'}
           </p>
         </header>
 
-        {ticketCapabilityMessage && (
+        {!trustedConfirmation && (
           <Alert
             variant="warning"
             showIcon
-            message="Vé điện tử chưa được backend phát hành đầy đủ"
-            description={ticketCapabilityMessage}
+            message="Chưa xác minh được trạng thái thành công"
+            description={bookingCapabilityMessage || 'Không dùng dữ liệu localStorage đơn thuần làm bằng chứng thanh toán. Hãy kiểm tra lại trong lịch sử booking khi backend có API ownership-scoped.'}
           />
+        )}
+
+        {ticketCapabilityMessage && (
+          <Alert variant="warning" showIcon message="Vé điện tử chưa được backend phát hành đầy đủ" description={ticketCapabilityMessage} />
         )}
 
         <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
           <Card className="h-fit shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg"><Ticket className="h-4 w-4" />Vé điện tử</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Ticket className="h-4 w-4" />Vé điện tử</CardTitle></CardHeader>
             <CardContent className="space-y-6">
               <div className="flex justify-center">
-                {qrCodeUrl ? (
-                  <div className="rounded-lg border border-border bg-white p-3">
-                    <img src={qrCodeUrl} alt={`QR ticket ${bookingCode || bookingData.bookingId}`} className="h-56 w-56" />
-                  </div>
+                {trustedConfirmation && qrCodeUrl ? (
+                  <div className="rounded-lg border border-border bg-white p-3"><img src={qrCodeUrl} alt={`QR ticket ${bookingCode || bookingData.bookingId}`} className="h-56 w-56" /></div>
                 ) : (
                   <div className="flex h-56 w-56 items-center justify-center rounded-lg border border-dashed border-border bg-muted p-5 text-center text-sm leading-6 text-muted-foreground">
-                    Chưa có QR do backend phát hành
+                    {trustedConfirmation ? 'Chưa có QR do backend phát hành' : 'QR bị ẩn cho đến khi booking được xác minh'}
                   </div>
                 )}
               </div>
@@ -254,22 +272,13 @@ const BookingSuccess = () => {
                 <p className="mt-1 break-all font-mono text-lg font-semibold tracking-wide">{bookingCode || 'N/A'}</p>
               </div>
 
-              {(pdfSupported || emailSupported) && <Separator />}
-
-              <div className="space-y-2">
-                {pdfSupported && (
-                  <Button type="button" className="w-full" onClick={handleDownloadPDF} disabled={!bookingData.bookingId}>
-                    <Download className="mr-2 h-4 w-4" />
-                    Tải vé PDF
-                  </Button>
-                )}
-                {emailSupported && (
-                  <Button type="button" variant="outline" className="w-full" onClick={handleSendEmail} disabled={!bookingData.bookingId}>
-                    <Mail className="mr-2 h-4 w-4" />
-                    Gửi vé qua email
-                  </Button>
-                )}
-              </div>
+              {trustedConfirmation && (pdfSupported || emailSupported) && <Separator />}
+              {trustedConfirmation && (
+                <div className="space-y-2">
+                  {pdfSupported && <Button type="button" className="w-full" onClick={handleDownloadPDF} disabled={!bookingData.bookingId}><Download className="mr-2 h-4 w-4" />Tải vé PDF</Button>}
+                  {emailSupported && <Button type="button" variant="outline" className="w-full" onClick={handleSendEmail} disabled={!bookingData.bookingId}><Mail className="mr-2 h-4 w-4" />Gửi vé qua email</Button>}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -278,53 +287,28 @@ const BookingSuccess = () => {
             <CardContent className="pt-6">
               <div className="grid gap-6 md:grid-cols-[180px_minmax(0,1fr)]">
                 <div>
-                  <img
-                    src={moviePoster}
-                    alt={movieTitle}
-                    className="aspect-[2/3] w-full rounded-lg border border-border object-cover"
-                    onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }}
-                  />
-                  <p className="mt-3 text-xs text-muted-foreground">Phim</p>
-                  <p className="mt-1 font-semibold">{movieTitle}</p>
+                  <img src={moviePoster} alt={movieTitle} className="aspect-[2/3] w-full rounded-lg border border-border object-cover" onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }} />
+                  <p className="mt-3 text-xs text-muted-foreground">Phim</p><p className="mt-1 font-semibold">{movieTitle}</p>
                 </div>
-
                 <div className="space-y-4">
-                  {ticketDetails.map(([label, value]) => (
-                    <div key={label} className="flex items-start justify-between gap-6 text-sm">
-                      <span className="text-muted-foreground">{label}</span>
-                      <span className="max-w-[65%] text-right font-medium">{value}</span>
-                    </div>
-                  ))}
-
-                  {cinemaAddress && (
-                    <div className="flex items-start justify-between gap-6 text-sm">
-                      <span className="text-muted-foreground">Địa chỉ</span>
-                      <span className="max-w-[65%] text-right font-medium">{cinemaAddress}</span>
-                    </div>
-                  )}
-
+                  {ticketDetails.map(([label, value]) => <div key={label} className="flex items-start justify-between gap-6 text-sm"><span className="text-muted-foreground">{label}</span><span className="max-w-[65%] text-right font-medium">{value}</span></div>)}
+                  {cinemaAddress && <div className="flex items-start justify-between gap-6 text-sm"><span className="text-muted-foreground">Địa chỉ</span><span className="max-w-[65%] text-right font-medium">{cinemaAddress}</span></div>}
                   <Separator />
-
-                  <div className="flex items-center justify-between gap-6">
-                    <span className="font-semibold">Tổng thanh toán</span>
-                    <span className="text-2xl font-semibold text-primary">{totalAmount}</span>
-                  </div>
+                  <div className="flex items-center justify-between gap-6"><span className="font-semibold">Tổng thanh toán</span><span className="text-2xl font-semibold text-primary">{totalAmount}</span></div>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="flex justify-center">
-          <Button type="button" variant="outline" onClick={() => navigate('/')}>
-            <Home className="mr-2 h-4 w-4" />
-            Quay về trang chủ
-          </Button>
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button type="button" variant="outline" onClick={() => navigate('/history')}>Xem lịch sử booking</Button>
+          <Button type="button" variant="outline" onClick={() => navigate('/')}><Home className="mr-2 h-4 w-4" />Quay về trang chủ</Button>
         </div>
       </div>
     </div>
   );
 };
 
-export { mapBooking, normalizeQrImage };
+export { isConfirmedBooking, mapBooking, normalizeQrImage };
 export default BookingSuccess;
