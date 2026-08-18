@@ -6,10 +6,38 @@ import { isEndpointUnavailable, rethrowCapabilityError } from '@/utils/backendCa
 import { isJwtExpired, userFromAccessToken } from '@/utils/jwt';
 import { buildUserUpdatePayload } from '@/services/userService';
 
+const normalizeUserProfile = (profile, token = getAccessToken()) => {
+  if (!profile && !token) return null;
+  const identity = userFromAccessToken(token) || {};
+  const source = profile || {};
+  const roles = Array.isArray(source.roles) && source.roles.length > 0
+    ? source.roles
+    : (identity.roles || []);
+  const role = source.role || identity.role || roles[0] || null;
+  const phone = source.phone ?? source.phoneNumber ?? identity.phone ?? '';
+  const dateOfBirth = source.dateOfBirth ?? source.birthDate ?? null;
+  const avatarUrl = source.avatarUrl ?? source.avatar ?? '';
+
+  return {
+    ...identity,
+    ...source,
+    id: source.id || identity.id || null,
+    email: source.email || identity.email || null,
+    roles,
+    role,
+    phone,
+    phoneNumber: phone,
+    dateOfBirth,
+    birthDate: dateOfBirth,
+    avatarUrl,
+    avatar: avatarUrl,
+  };
+};
+
 const toAuthResult = (response) => {
   const auth = unwrapApiData(response) || {};
   const token = auth.accessToken || auth.token || null;
-  const user = auth.userAuth || auth.user || userFromAccessToken(token);
+  const user = normalizeUserProfile(auth.userAuth || auth.user, token);
   return {
     ...auth,
     accessToken: token,
@@ -22,35 +50,33 @@ const toAuthResult = (response) => {
 const verifyLocally = () => {
   const token = getAccessToken();
   if (!token || isJwtExpired(token)) throw new Error('Phiên đăng nhập đã hết hạn.');
-  return { valid: true, localOnly: true, user: userFromAccessToken(token) };
+  return { valid: true, localOnly: true, user: normalizeUserProfile(null, token) };
 };
 
-const getTokenUser = () => userFromAccessToken(getAccessToken());
+const getTokenUser = () => normalizeUserProfile(null, getAccessToken());
 
 const getUserResourceFromToken = async () => {
   const tokenUser = getTokenUser();
   if (!tokenUser?.id) return null;
-  return unwrapApiData(await api.get(`/users/${tokenUser.id}`));
+  const profile = unwrapApiData(await api.get(`/users/${tokenUser.id}`));
+  return normalizeUserProfile(profile, getAccessToken());
 };
 
 export const authService = {
   async verify() {
     try {
-      return unwrapApiData(await api.get('/auth/verify'));
+      const verification = unwrapApiData(await api.get('/auth/verify'));
+      if (verification?.user) return { ...verification, user: normalizeUserProfile(verification.user) };
+      return verification;
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
       try {
-        return unwrapApiData(await api.get('/auth/current-user'));
+        const currentUser = unwrapApiData(await api.get('/auth/current-user'));
+        return { valid: true, fallback: 'auth-current-user', user: normalizeUserProfile(currentUser) };
       } catch (currentUserError) {
         if (!isEndpointUnavailable(currentUserError)) throw currentUserError;
-        try {
-          const user = await getUserResourceFromToken();
-          if (user) return { valid: true, fallback: 'users-resource', user };
-        } catch (userError) {
-          // A concrete /users/{id} response such as 401/403/404 is meaningful;
-          // do not keep an invalid local session in that case.
-          throw userError;
-        }
+        const user = await getUserResourceFromToken();
+        if (user) return { valid: true, fallback: 'users-resource', user };
         return verifyLocally();
       }
     }
@@ -156,17 +182,16 @@ export const authService = {
 
   async getCurrentUser() {
     try {
-      return unwrapApiData(await api.get('/auth/current-user'));
+      return normalizeUserProfile(unwrapApiData(await api.get('/auth/current-user')));
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
-      const resourceUser = await getUserResourceFromToken();
-      return resourceUser || getTokenUser();
+      return (await getUserResourceFromToken()) || getTokenUser();
     }
   },
 
   async updateProfile(userData) {
     try {
-      const user = unwrapApiData(await api.put('/users/profile', userData));
+      const user = normalizeUserProfile(unwrapApiData(await api.put('/users/profile', userData)));
       return { user };
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
@@ -174,7 +199,7 @@ export const authService = {
       const current = await getUserResourceFromToken();
       if (!current?.id) throw new Error('Không xác định được người dùng hiện tại để cập nhật hồ sơ.');
       const payload = buildUserUpdatePayload(current, userData);
-      const user = unwrapApiData(await api.put(`/users/${current.id}`, payload));
+      const user = normalizeUserProfile(unwrapApiData(await api.put(`/users/${current.id}`, payload)));
       return { user };
     }
   },
@@ -204,4 +229,4 @@ export const authService = {
   },
 };
 
-export { toAuthResult };
+export { normalizeUserProfile, toAuthResult };
