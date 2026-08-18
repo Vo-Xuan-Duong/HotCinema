@@ -12,8 +12,34 @@ const rowsOf = (response) => {
 
 const pageOf = (rows, page = 0, size = 10) => {
   const start = page * size;
-  return { content: rows.slice(start, start + size), number: page, page, size, totalElements: rows.length, totalPages: Math.ceil(rows.length / size) };
+  return {
+    content: rows.slice(start, start + size),
+    number: page,
+    page,
+    size,
+    totalElements: rows.length,
+    totalPages: Math.ceil(rows.length / size),
+  };
 };
+
+const normalizeUserStatus = (value) => {
+  const status = String(value || 'ACTIVE').toUpperCase();
+  if (status === 'INACTIVE') return 'DISABLED';
+  return ['ACTIVE', 'LOCKED', 'DISABLED'].includes(status) ? status : 'ACTIVE';
+};
+
+const buildUserUpdatePayload = (current, changes = {}) => ({
+  email: String(changes.email ?? current.email ?? '').trim(),
+  phone: String(changes.phone ?? changes.phoneNumber ?? current.phone ?? current.phoneNumber ?? '').trim(),
+  fullName: String(changes.fullName ?? current.fullName ?? '').trim(),
+  dateOfBirth: changes.dateOfBirth ?? changes.birthDate ?? current.dateOfBirth ?? current.birthDate ?? '1970-01-01',
+  gender: String(changes.gender ?? current.gender ?? 'OTHER').toUpperCase(),
+  avatarUrl: String(changes.avatarUrl ?? changes.avatar ?? current.avatarUrl ?? current.avatar ?? '/brand-placeholder.svg').trim() || '/brand-placeholder.svg',
+  status: normalizeUserStatus(changes.status ?? current.status),
+  emailVerified: Boolean(changes.emailVerified ?? current.emailVerified ?? false),
+  phoneVerified: Boolean(changes.phoneVerified ?? current.phoneVerified ?? false),
+  lastLoginAt: changes.lastLoginAt ?? current.lastLoginAt ?? new Date().toISOString(),
+});
 
 const userService = {
   async createUser(data) {
@@ -34,7 +60,10 @@ const userService = {
   },
 
   async updateUser(userId, data) {
-    return unwrapApiData(await apiClient.put(`${ENDPOINTS.USERS}/${normalizeResourceId(userId)}`, data));
+    const id = normalizeResourceId(userId);
+    const current = await this.getUserById(id);
+    const payload = buildUserUpdatePayload(current || {}, data || {});
+    return unwrapApiData(await apiClient.put(`${ENDPOINTS.USERS}/${id}`, payload));
   },
 
   async deleteUser(userId) {
@@ -49,7 +78,11 @@ const userService = {
       if (!isEndpointUnavailable(error)) throw error;
       const rows = rowsOf(await apiClient.get(ENDPOINTS.USERS, { params: { page: 0, size: 500 } }));
       const needle = String(keyword || '').trim().toLowerCase();
-      return pageOf(rows.filter((user) => `${user.fullName || ''} ${user.email || ''} ${user.phone || ''}`.toLowerCase().includes(needle)), page, size);
+      return pageOf(
+        rows.filter((user) => `${user.fullName || ''} ${user.email || ''} ${user.phone || ''}`.toLowerCase().includes(needle)),
+        page,
+        size,
+      );
     }
   },
 
@@ -81,8 +114,7 @@ const userService = {
       return unwrapApiData(await apiClient.put(`${ENDPOINTS.USERS}/${normalizeResourceId(userId)}/avatar`, { avatarUrl }));
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
-      const current = await this.getUserById(userId);
-      return this.updateUser(userId, { ...current, avatarUrl });
+      return this.updateUser(userId, { avatarUrl });
     }
   },
 
@@ -96,12 +128,11 @@ const userService = {
   },
 
   async setStatus(userId, status) {
-    const current = await this.getUserById(userId);
-    return this.updateUser(userId, { ...current, status: String(status).toUpperCase() });
+    return this.updateUser(userId, { status: normalizeUserStatus(status) });
   },
 
   async activateUser(userId) { return this.setStatus(userId, 'ACTIVE'); },
-  async deactivateUser(userId) { return this.setStatus(userId, 'INACTIVE'); },
+  async deactivateUser(userId) { return this.setStatus(userId, 'DISABLED'); },
 
   async getUsersByRole(roleName, params = {}) {
     try {
@@ -116,4 +147,5 @@ const userService = {
   async getAllCustomers(params = {}) { return this.getUsersByRole('CUSTOMER', params); },
 };
 
+export { buildUserUpdatePayload, normalizeUserStatus };
 export default userService;
