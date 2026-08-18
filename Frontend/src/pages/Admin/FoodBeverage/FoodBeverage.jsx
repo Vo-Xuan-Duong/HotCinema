@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Coffee, Edit, Eye, Loader2, Package, Plus, Sparkles, Trash2, TriangleAlert } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Coffee, Edit, Eye, Loader2, Package, Plus, Store, Trash2, TriangleAlert } from 'lucide-react';
 import { AdminPageHeader } from '@/layouts/admin/AdminPageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,65 +10,122 @@ import { Empty } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { NumberStepper } from '@/components/ui/number-stepper';
 import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
-import { SegmentedTabs } from '@/components/ui/segmented-tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import cinemaService from '@/services/cinemaService';
 import concessionService from '@/services/concessionService';
 import useNotification from '@/hooks/useNotification';
+import { sameResourceId } from '@/utils/resourceId';
 
-const DEFAULT_FORM = {
+const EMPTY_FORM = {
+  code: '',
   name: '',
-  category: '',
+  categoryId: '',
   price: '',
-  originalPrice: '',
   stock: '',
   description: '',
-  image: '',
-  isPopular: false,
+  imageUrl: '',
+  status: 'ACTIVE',
+  isAvailable: true,
 };
 
-const categoryMeta = (category) => {
-  const normalized = String(category || '').toLowerCase();
-  if (normalized === 'food') return { key: 'food', label: 'Đồ ăn', tone: 'warning' };
-  if (normalized === 'drink') return { key: 'drink', label: 'Đồ uống', tone: 'info' };
-  if (normalized === 'combo') return { key: 'combo', label: 'Combo', tone: 'success' };
-  return { key: normalized || 'other', label: category || 'Khác', tone: 'neutral' };
-};
+const formatMoney = (value) => value == null
+  ? 'Chưa cấu hình'
+  : `${Number(value || 0).toLocaleString('vi-VN')} ₫`;
 
-const stockMeta = (stock) => {
+const stockMeta = (stock, available = true) => {
+  if (!available) return { label: 'Ngừng bán', tone: 'neutral' };
   const value = Number(stock || 0);
   if (value <= 0) return { label: 'Hết hàng', tone: 'destructive' };
   if (value < 10) return { label: 'Sắp hết', tone: 'warning' };
   return { label: 'Còn hàng', tone: 'success' };
 };
 
-const formatMoney = (value) => `${Number(value || 0).toLocaleString('vi-VN')} ₫`;
+const makeProductCode = (value) => String(value || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toUpperCase()
+  .replace(/[^A-Z0-9]+/g, '_')
+  .replace(/^_+|_+$/g, '')
+  .slice(0, 40);
 
 const FoodBeverage = () => {
   const notification = useNotification();
+  const [cinemas, setCinemas] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCinemaId, setSelectedCinemaId] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [metadataLoading, setMetadataLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [formValues, setFormValues] = useState(DEFAULT_FORM);
+  const [formValues, setFormValues] = useState(EMPTY_FORM);
+
+  const selectedCinema = useMemo(
+    () => cinemas.find((cinema) => sameResourceId(cinema.id, selectedCinemaId)) || null,
+    [cinemas, selectedCinemaId],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadMetadata = async () => {
+      setMetadataLoading(true);
+      try {
+        const [cinemaRows, categoryRows] = await Promise.all([
+          cinemaService.getAllCinemasNoPagination(),
+          concessionService.getCategories(),
+        ]);
+        if (cancelled) return;
+
+        const activeCinemas = (Array.isArray(cinemaRows) ? cinemaRows : [])
+          .filter((cinema) => cinema.status !== 'INACTIVE');
+        const normalizedCategories = Array.isArray(categoryRows) ? categoryRows : [];
+
+        setCinemas(activeCinemas);
+        setCategories(normalizedCategories);
+        setSelectedCinemaId((current) => current || String(activeCinemas[0]?.id || ''));
+      } catch (error) {
+        if (cancelled) return;
+        setCinemas([]);
+        setCategories([]);
+        notification.error(error?.message || 'Không thể tải dữ liệu rạp và danh mục sản phẩm');
+      } finally {
+        if (!cancelled) setMetadataLoading(false);
+      }
+    };
+
+    loadMetadata();
+    return () => { cancelled = true; };
+  }, [notification]);
 
   const loadProducts = useCallback(async () => {
+    if (!selectedCinemaId) {
+      setProducts([]);
+      return;
+    }
+
+    setLoading(true);
     try {
-      setLoading(true);
-      const response = await concessionService.list({ page: 0, size: 500 });
+      const response = await concessionService.list({
+        cinemaId: selectedCinemaId,
+        page: 0,
+        size: 500,
+      });
       setProducts(Array.isArray(response) ? response : []);
     } catch (error) {
-      console.error('Error loading concessions:', error);
+      console.error('Error loading cinema products:', error);
       setProducts([]);
-      notification.error(error?.message || 'Không thể tải danh sách sản phẩm');
+      notification.error(error?.message || 'Không thể tải menu của rạp');
     } finally {
       setLoading(false);
     }
-  }, [notification]);
+  }, [notification, selectedCinemaId]);
 
   useEffect(() => {
     loadProducts();
@@ -76,28 +133,47 @@ const FoodBeverage = () => {
 
   const stats = useMemo(() => ({
     total: products.length,
-    popular: products.filter((item) => item.isPopular).length,
-    lowStock: products.filter((item) => Number(item.stock || 0) > 0 && Number(item.stock || 0) < 10).length,
-    outOfStock: products.filter((item) => Number(item.stock || 0) <= 0).length,
+    available: products.filter((item) => item.isAvailable).length,
+    lowStock: products.filter((item) => item.isAvailable && Number(item.stock || 0) > 0 && Number(item.stock || 0) < 10).length,
+    outOfStock: products.filter((item) => item.isAvailable && Number(item.stock || 0) <= 0).length,
   }), [products]);
 
+  const filteredProducts = useMemo(() => {
+    if (categoryFilter === 'all') return products;
+    return products.filter((product) => sameResourceId(product.categoryId, categoryFilter));
+  }, [categoryFilter, products]);
+
+  const categoryFor = (product) => categories.find((category) => sameResourceId(category.id, product.categoryId));
+
   const openCreate = () => {
+    if (!selectedCinemaId) {
+      notification.warning('Vui lòng chọn rạp trước khi thêm sản phẩm');
+      return;
+    }
+    if (categories.length === 0) {
+      notification.warning('Backend chưa có ProductCategory. Hãy tạo danh mục sản phẩm trước.');
+      return;
+    }
     setSelectedProduct(null);
-    setFormValues(DEFAULT_FORM);
+    setFormValues({ ...EMPTY_FORM, categoryId: String(categories[0].id) });
     setFormOpen(true);
   };
 
   const openEdit = (record) => {
+    const matchedCategory = categoryFor(record)
+      || categories.find((category) => String(category.code || '').toLowerCase() === String(record.category || '').toLowerCase());
+
     setSelectedProduct(record);
     setFormValues({
+      code: record.code || '',
       name: record.name || '',
-      category: categoryMeta(record.category).key,
+      categoryId: String(record.categoryId || matchedCategory?.id || ''),
       price: record.price ?? '',
-      originalPrice: record.originalPrice ?? '',
-      stock: record.stock ?? '',
+      stock: record.stock ?? record.stockQuantity ?? '',
       description: record.description || '',
-      image: record.image || record.imageUrl || '',
-      isPopular: Boolean(record.isPopular),
+      imageUrl: record.imageUrl || record.image || '',
+      status: String(record.status || 'ACTIVE').toUpperCase(),
+      isAvailable: Boolean(record.isAvailable),
     });
     setFormOpen(true);
   };
@@ -105,7 +181,7 @@ const FoodBeverage = () => {
   const closeForm = () => {
     setFormOpen(false);
     setSelectedProduct(null);
-    setFormValues(DEFAULT_FORM);
+    setFormValues(EMPTY_FORM);
   };
 
   const openDetail = (record) => {
@@ -113,64 +189,75 @@ const FoodBeverage = () => {
     setDetailOpen(true);
   };
 
+  const validateForm = () => {
+    if (!formValues.code.trim()) return 'Vui lòng nhập mã sản phẩm';
+    if (!/^[A-Z0-9_\-]+$/.test(formValues.code.trim())) return 'Mã sản phẩm chỉ dùng chữ in hoa, số, _ hoặc -';
+    if (!formValues.name.trim()) return 'Vui lòng nhập tên sản phẩm';
+    if (!formValues.categoryId) return 'Vui lòng chọn danh mục';
+    if (!formValues.description.trim()) return 'Vui lòng nhập mô tả sản phẩm';
+    if (!formValues.imageUrl.trim()) return 'Vui lòng nhập URL hình ảnh';
+    if (Number(formValues.price) <= 0) return 'Giá bán phải lớn hơn 0';
+    if (formValues.stock === '' || Number(formValues.stock) < 0) return 'Tồn kho phải lớn hơn hoặc bằng 0';
+    return null;
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!formValues.name.trim()) {
-      notification.error('Vui lòng nhập tên sản phẩm');
-      return;
-    }
-    if (!formValues.category) {
-      notification.error('Vui lòng chọn danh mục');
-      return;
-    }
-    if (Number(formValues.price) <= 0) {
-      notification.error('Giá bán phải lớn hơn 0');
-      return;
-    }
-    if (formValues.stock === '' || Number(formValues.stock) < 0) {
-      notification.error('Tồn kho phải lớn hơn hoặc bằng 0');
+    const validationError = validateForm();
+    if (validationError) {
+      notification.error(validationError);
       return;
     }
 
+    const category = categories.find((item) => sameResourceId(item.id, formValues.categoryId));
     const payload = {
+      cinemaId: selectedCinemaId,
+      productId: selectedProduct?.productId,
+      cinemaProductId: selectedProduct?.cinemaProductId,
+      code: formValues.code.trim().toUpperCase(),
       name: formValues.name.trim(),
-      category: formValues.category,
+      categoryId: formValues.categoryId,
+      category: String(category?.code || category?.name || '').toLowerCase(),
       price: Number(formValues.price),
-      originalPrice: Number(formValues.originalPrice) || Number(formValues.price),
       stock: Number(formValues.stock),
+      stockQuantity: Number(formValues.stock),
       description: formValues.description.trim(),
-      image: formValues.image.trim() || '/brand-placeholder.svg',
-      isPopular: Boolean(formValues.isPopular),
+      imageUrl: formValues.imageUrl.trim(),
+      image: formValues.imageUrl.trim(),
+      status: formValues.status,
+      isAvailable: formValues.status === 'ACTIVE' && formValues.isAvailable,
     };
 
+    setSaving(true);
     try {
-      setSaving(true);
       if (selectedProduct) {
-        await concessionService.update(selectedProduct.id, payload);
-        notification.success('Cập nhật sản phẩm thành công');
+        await concessionService.update(selectedProduct, payload);
+        notification.success('Cập nhật sản phẩm và tồn kho thành công');
       } else {
         await concessionService.create(payload);
-        notification.success('Thêm sản phẩm thành công');
+        notification.success('Đã thêm sản phẩm vào menu rạp');
       }
       closeForm();
       await loadProducts();
     } catch (error) {
-      console.error('Error saving concession:', error);
-      notification.error(error?.message || 'Không thể lưu sản phẩm');
+      console.error('Error saving cinema product:', error);
+      notification.error(error?.response?.data?.message || error?.message || 'Không thể lưu sản phẩm');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (record) => {
-    if (!window.confirm(`Xóa sản phẩm ${record.name}?`)) return;
+  const handleRemove = async (record) => {
+    const cinemaName = selectedCinema?.name || 'rạp này';
+    if (!window.confirm(`Gỡ ${record.name} khỏi menu ${cinemaName}? Sản phẩm trong catalog chung sẽ được giữ lại.`)) return;
+
     try {
-      await concessionService.delete(record.id);
-      notification.success('Đã xóa sản phẩm');
+      await concessionService.removeFromCinema(record);
+      notification.success('Đã gỡ sản phẩm khỏi menu rạp');
       await loadProducts();
     } catch (error) {
-      console.error('Error deleting concession:', error);
-      notification.error(error?.message || 'Không thể xóa sản phẩm');
+      console.error('Error removing cinema product:', error);
+      notification.error(error?.message || 'Không thể gỡ sản phẩm khỏi menu');
     }
   };
 
@@ -179,57 +266,57 @@ const FoodBeverage = () => {
       title: 'Sản phẩm',
       key: 'product',
       render: (_, record) => (
-        <div className="flex min-w-[240px] items-center gap-3">
+        <div className="flex min-w-[250px] items-center gap-3">
           <img
-            src={record.image || record.imageUrl || '/brand-placeholder.svg'}
+            src={record.imageUrl || record.image || '/brand-placeholder.svg'}
             alt={record.name}
             className="h-14 w-14 rounded-md border object-cover"
             onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }}
           />
           <div className="min-w-0">
             <button type="button" className="block max-w-full truncate text-left font-medium hover:text-primary" onClick={() => openDetail(record)}>
-              {record.name}
+              {record.name || 'Chưa có tên'}
             </button>
+            <p className="mt-0.5 text-xs font-medium text-muted-foreground">{record.code || '—'}</p>
             <p className="line-clamp-1 text-xs text-muted-foreground">{record.description || 'Chưa có mô tả'}</p>
-            {record.isPopular && <StatusBadge tone="warning" className="mt-1">Phổ biến</StatusBadge>}
           </div>
         </div>
       ),
     },
     {
       title: 'Danh mục',
-      dataIndex: 'category',
       key: 'category',
-      render: (category) => {
-        const meta = categoryMeta(category);
-        return <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>;
+      render: (_, record) => {
+        const category = categoryFor(record);
+        return <StatusBadge tone="info">{category?.name || record.categoryName || record.category || 'Chưa phân loại'}</StatusBadge>;
       },
     },
     {
       title: 'Giá bán',
       key: 'price',
-      render: (_, record) => (
-        <div>
-          <p className="font-medium text-foreground">{formatMoney(record.price)}</p>
-          {Number(record.originalPrice || 0) > Number(record.price || 0) && (
-            <p className="text-xs text-muted-foreground line-through">{formatMoney(record.originalPrice)}</p>
-          )}
-        </div>
-      ),
+      render: (_, record) => <span className="font-medium">{formatMoney(record.price)}</span>,
     },
     {
       title: 'Tồn kho',
-      dataIndex: 'stock',
       key: 'stock',
-      render: (stock) => {
-        const meta = stockMeta(stock);
+      render: (_, record) => {
+        const meta = stockMeta(record.stock, record.isAvailable);
         return (
           <div className="space-y-1">
-            <p className="font-medium">{Number(stock || 0)}</p>
+            <p className="font-medium">{Number(record.stock || 0)}</p>
             <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>
           </div>
         );
       },
+    },
+    {
+      title: 'Catalog',
+      key: 'catalogStatus',
+      render: (_, record) => (
+        <StatusBadge tone={record.status === 'ACTIVE' ? 'success' : 'neutral'}>
+          {record.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm ẩn'}
+        </StatusBadge>
+      ),
     },
     {
       title: 'Thao tác',
@@ -237,179 +324,142 @@ const FoodBeverage = () => {
       render: (_, record) => (
         <TooltipProvider>
           <div className="flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(record)} aria-label="Xem sản phẩm"><Eye className="h-4 w-4" /></Button>
-              </TooltipTrigger>
-              <TooltipContent>Xem chi tiết</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(record)} aria-label="Chỉnh sửa sản phẩm"><Edit className="h-4 w-4" /></Button>
-              </TooltipTrigger>
-              <TooltipContent>Chỉnh sửa</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(record)} aria-label="Xóa sản phẩm"><Trash2 className="h-4 w-4" /></Button>
-              </TooltipTrigger>
-              <TooltipContent>Xóa</TooltipContent>
-            </Tooltip>
+            <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(record)} aria-label="Xem sản phẩm"><Eye className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>Xem chi tiết</TooltipContent></Tooltip>
+            <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(record)} aria-label="Chỉnh sửa sản phẩm"><Edit className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>Chỉnh sửa</TooltipContent></Tooltip>
+            <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleRemove(record)} aria-label="Gỡ khỏi menu rạp"><Trash2 className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>Gỡ khỏi menu rạp</TooltipContent></Tooltip>
           </div>
         </TooltipProvider>
       ),
     },
   ];
 
-  const tableFor = (category) => {
-    const rows = category === 'all'
-      ? products
-      : products.filter((product) => categoryMeta(product.category).key === category);
-
-    if (loading) {
-      return (
-        <div className="flex min-h-48 items-center justify-center gap-3 text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          Đang tải sản phẩm...
-        </div>
-      );
-    }
-    if (rows.length === 0) return <Empty description="Không có sản phẩm trong danh mục này" />;
-    return <DataTable fields={columns} rows={rows} getRowId="id" pageControls={false} />;
-  };
+  if (metadataLoading) {
+    return <div className="flex min-h-72 items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Đang tải cấu hình menu...</div>;
+  }
 
   return (
     <div className="space-y-6">
       <AdminPageHeader
         title="Đồ ăn & đồ uống"
-        description="Quản lý menu concession, giá bán và tồn kho tại HotCinema."
+        description="Quản lý catalog sản phẩm và giá/tồn kho theo từng rạp."
         breadcrumbs={[
           { title: 'Dashboard', href: '/admin/dashboard' },
           { title: 'Đồ ăn & đồ uống' },
         ]}
-        actions={<Button onClick={openCreate}><Plus className="h-4 w-4" />Thêm sản phẩm</Button>}
+        actions={<Button onClick={openCreate} disabled={!selectedCinemaId || categories.length === 0}><Plus className="h-4 w-4" />Thêm vào menu</Button>}
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          { label: 'Tổng sản phẩm', value: stats.total, icon: Coffee },
-          { label: 'Sản phẩm phổ biến', value: stats.popular, icon: Sparkles },
-          { label: 'Sắp hết hàng', value: stats.lowStock, icon: TriangleAlert },
-          { label: 'Hết hàng', value: stats.outOfStock, icon: Package },
-        ].map(({ label, value, icon: Icon }) => (
-          <Card key={label}>
-            <CardContent className="flex items-center justify-between p-5">
-              <div><p className="text-sm text-muted-foreground">{label}</p><p className="mt-1 text-2xl font-semibold">{value}</p></div>
-              <Icon className="h-5 w-5 text-muted-foreground" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
       <Card>
-        <CardHeader><CardTitle className="text-lg">Danh sách sản phẩm</CardTitle></CardHeader>
-        <CardContent>
-          <SegmentedTabs
-            defaultSelectedId="all"
-            sections={[
-              { key: 'all', label: 'Tất cả', children: tableFor('all') },
-              { key: 'food', label: 'Đồ ăn', children: tableFor('food') },
-              { key: 'drink', label: 'Đồ uống', children: tableFor('drink') },
-              { key: 'combo', label: 'Combo', children: tableFor('combo') },
-            ]}
-          />
+        <CardContent className="grid gap-4 p-4 md:grid-cols-2">
+          <label className="space-y-2 text-sm font-medium">
+            <span>Rạp đang quản lý</span>
+            <Select value={selectedCinemaId} onValueChange={(value) => { setSelectedCinemaId(value); setCategoryFilter('all'); }}>
+              <SelectTrigger><SelectValue placeholder="Chọn rạp" /></SelectTrigger>
+              <SelectContent>
+                {cinemas.map((cinema) => <SelectItem key={cinema.id} value={String(cinema.id)}>{cinema.name}{cinema.city ? ` · ${cinema.city}` : ''}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </label>
+          <label className="space-y-2 text-sm font-medium">
+            <span>Lọc theo danh mục</span>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả danh mục</SelectItem>
+                {categories.map((category) => <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </label>
         </CardContent>
       </Card>
 
+      {cinemas.length === 0 ? (
+        <Empty description="Chưa có rạp hoạt động để cấu hình menu" />
+      ) : categories.length === 0 ? (
+        <Empty description="Backend chưa có ProductCategory. Cần tạo danh mục trước khi thêm sản phẩm." />
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              { label: 'Sản phẩm trong menu', value: stats.total, icon: Coffee },
+              { label: 'Đang bán', value: stats.available, icon: Store },
+              { label: 'Sắp hết hàng', value: stats.lowStock, icon: TriangleAlert },
+              { label: 'Hết hàng', value: stats.outOfStock, icon: Package },
+            ].map(({ label, value, icon: Icon }) => (
+              <Card key={label}><CardContent className="flex items-center justify-between p-5"><div><p className="text-sm text-muted-foreground">{label}</p><p className="mt-1 text-2xl font-semibold">{value}</p></div><Icon className="h-5 w-5 text-muted-foreground" /></CardContent></Card>
+            ))}
+          </div>
+
+          <Card>
+            <CardHeader><CardTitle className="text-lg">Menu · {selectedCinema?.name || 'Rạp'}</CardTitle></CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex min-h-48 items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Đang tải menu...</div>
+              ) : filteredProducts.length === 0 ? (
+                <Empty description={categoryFilter === 'all' ? 'Rạp này chưa có sản phẩm trong menu' : 'Không có sản phẩm trong danh mục này'} />
+              ) : (
+                <DataTable fields={columns} rows={filteredProducts} getRowId="id" pageControls={false} />
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
+
       <ResponsiveDialog
-        heading={selectedProduct ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'}
-        description="Cập nhật thông tin bán hàng và tồn kho của sản phẩm."
+        heading={selectedProduct ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm vào menu'}
+        description={`Giá và tồn kho áp dụng riêng cho ${selectedCinema?.name || 'rạp đang chọn'}.`}
         open={formOpen}
         onClose={closeForm}
-        maxWidth={680}
+        maxWidth={720}
       >
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="space-y-2 text-sm font-medium">
-              <span>Tên sản phẩm <span className="text-destructive">*</span></span>
-              <Input value={formValues.name} onChange={(event) => setFormValues((current) => ({ ...current, name: event.target.value }))} placeholder="Bắp rang bơ" required />
-            </label>
-            <label className="space-y-2 text-sm font-medium">
-              <span>Danh mục <span className="text-destructive">*</span></span>
-              <Select value={formValues.category} onValueChange={(value) => setFormValues((current) => ({ ...current, category: value }))}>
-                <SelectTrigger><SelectValue placeholder="Chọn danh mục" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="food">Đồ ăn</SelectItem>
-                  <SelectItem value="drink">Đồ uống</SelectItem>
-                  <SelectItem value="combo">Combo</SelectItem>
-                </SelectContent>
-              </Select>
-            </label>
+            <label className="space-y-2 text-sm font-medium"><span>Mã sản phẩm *</span><Input value={formValues.code} onChange={(event) => setFormValues((current) => ({ ...current, code: event.target.value.toUpperCase() }))} onBlur={() => { if (!formValues.code.trim()) setFormValues((current) => ({ ...current, code: makeProductCode(current.name) })); }} placeholder="POPCORN_CARAMEL" required /></label>
+            <label className="space-y-2 text-sm font-medium"><span>Tên sản phẩm *</span><Input value={formValues.name} onChange={(event) => setFormValues((current) => ({ ...current, name: event.target.value }))} placeholder="Bắp rang caramel" required /></label>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <label className="space-y-2 text-sm font-medium">
-              <span>Giá bán <span className="text-destructive">*</span></span>
-              <NumberStepper min={0} value={formValues.price} onValueChange={(value) => setFormValues((current) => ({ ...current, price: value ?? '' }))} />
-            </label>
-            <label className="space-y-2 text-sm font-medium">
-              <span>Giá gốc</span>
-              <NumberStepper min={0} value={formValues.originalPrice} onValueChange={(value) => setFormValues((current) => ({ ...current, originalPrice: value ?? '' }))} />
-            </label>
-            <label className="space-y-2 text-sm font-medium">
-              <span>Tồn kho <span className="text-destructive">*</span></span>
-              <NumberStepper min={0} value={formValues.stock} onValueChange={(value) => setFormValues((current) => ({ ...current, stock: value ?? '' }))} />
-            </label>
+          <label className="block space-y-2 text-sm font-medium"><span>Danh mục *</span><Select value={formValues.categoryId} onValueChange={(value) => setFormValues((current) => ({ ...current, categoryId: value }))}><SelectTrigger><SelectValue placeholder="Chọn danh mục" /></SelectTrigger><SelectContent>{categories.map((category) => <SelectItem key={category.id} value={String(category.id)}>{category.name} · {category.code}</SelectItem>)}</SelectContent></Select></label>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-2 text-sm font-medium"><span>Giá bán *</span><NumberStepper min={0} value={formValues.price} onValueChange={(value) => setFormValues((current) => ({ ...current, price: value ?? '' }))} /></label>
+            <label className="space-y-2 text-sm font-medium"><span>Tồn kho *</span><NumberStepper min={0} value={formValues.stock} onValueChange={(value) => setFormValues((current) => ({ ...current, stock: value ?? '' }))} /></label>
           </div>
 
-          <label className="block space-y-2 text-sm font-medium">
-            <span>Mô tả</span>
-            <Textarea rows={3} value={formValues.description} onChange={(event) => setFormValues((current) => ({ ...current, description: event.target.value }))} placeholder="Mô tả sản phẩm" />
-          </label>
+          <label className="block space-y-2 text-sm font-medium"><span>Mô tả *</span><Textarea rows={3} value={formValues.description} onChange={(event) => setFormValues((current) => ({ ...current, description: event.target.value }))} placeholder="Mô tả sản phẩm" required /></label>
+          <label className="block space-y-2 text-sm font-medium"><span>URL hình ảnh *</span><Input value={formValues.imageUrl} onChange={(event) => setFormValues((current) => ({ ...current, imageUrl: event.target.value }))} placeholder="https://..." required /></label>
+          {formValues.imageUrl && <img src={formValues.imageUrl} alt="Xem trước sản phẩm" className="h-28 w-28 rounded-md border object-cover" onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }} />}
 
-          <label className="block space-y-2 text-sm font-medium">
-            <span>URL hình ảnh</span>
-            <Input value={formValues.image} onChange={(event) => setFormValues((current) => ({ ...current, image: event.target.value }))} placeholder="https://..." />
-          </label>
-
-          {formValues.image && (
-            <img src={formValues.image} alt="Xem trước sản phẩm" className="h-28 w-28 rounded-md border object-cover" onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }} />
-          )}
-
-          <label className="flex items-center gap-3 rounded-md border p-3 text-sm">
-            <Checkbox checked={formValues.isPopular} onCheckedChange={(checked) => setFormValues((current) => ({ ...current, isPopular: checked === true }))} />
-            <span><span className="font-medium">Sản phẩm phổ biến</span><span className="block text-xs text-muted-foreground">Đánh dấu để ưu tiên hiển thị trong menu.</span></span>
-          </label>
-
-          <div className="flex justify-end gap-2 border-t pt-4">
-            <Button type="button" variant="outline" onClick={closeForm}>Hủy</Button>
-            <Button type="submit" disabled={saving}>{saving && <Loader2 className="h-4 w-4 animate-spin" />}{selectedProduct ? 'Lưu thay đổi' : 'Thêm sản phẩm'}</Button>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-2 text-sm font-medium"><span>Trạng thái catalog</span><Select value={formValues.status} onValueChange={(value) => setFormValues((current) => ({ ...current, status: value, isAvailable: value === 'ACTIVE' ? current.isAvailable : false }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="ACTIVE">Hoạt động</SelectItem><SelectItem value="INACTIVE">Tạm ẩn</SelectItem></SelectContent></Select></label>
+            <label className="flex items-center gap-3 self-end rounded-md border p-3 text-sm"><Checkbox checked={formValues.isAvailable} disabled={formValues.status !== 'ACTIVE'} onCheckedChange={(checked) => setFormValues((current) => ({ ...current, isAvailable: checked === true }))} /><span><span className="font-medium">Đang bán tại rạp</span><span className="block text-xs text-muted-foreground">Tắt để tạm ngừng bán nhưng vẫn giữ tồn kho.</span></span></label>
           </div>
+
+          <div className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" onClick={closeForm}>Hủy</Button><Button type="submit" disabled={saving}>{saving && <Loader2 className="h-4 w-4 animate-spin" />}{selectedProduct ? 'Lưu thay đổi' : 'Thêm vào menu'}</Button></div>
         </form>
       </ResponsiveDialog>
 
       <ResponsiveDialog
         heading="Chi tiết sản phẩm"
         open={detailOpen}
-        onClose={() => setDetailOpen(false)}
-        maxWidth={560}
+        onClose={() => { setDetailOpen(false); setSelectedProduct(null); }}
+        maxWidth={620}
         actions={selectedProduct ? [
-          <Button key="close" variant="outline" onClick={() => setDetailOpen(false)}>Đóng</Button>,
-          <Button key="edit" onClick={() => { setDetailOpen(false); openEdit(selectedProduct); }}><Edit className="h-4 w-4" />Chỉnh sửa</Button>,
+          <Button key="close" variant="outline" onClick={() => { setDetailOpen(false); setSelectedProduct(null); }}>Đóng</Button>,
+          <Button key="edit" onClick={() => { const product = selectedProduct; setDetailOpen(false); openEdit(product); }}><Edit className="h-4 w-4" />Chỉnh sửa</Button>,
         ] : null}
       >
         {selectedProduct && (
           <div className="space-y-5">
-            <div className="flex items-center gap-4">
-              <img src={selectedProduct.image || selectedProduct.imageUrl || '/brand-placeholder.svg'} alt={selectedProduct.name} className="h-20 w-20 rounded-md border object-cover" onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }} />
-              <div><h3 className="font-semibold">{selectedProduct.name}</h3><p className="text-sm text-muted-foreground">{selectedProduct.description || 'Chưa có mô tả'}</p></div>
-            </div>
+            <div className="flex items-center gap-4"><img src={selectedProduct.imageUrl || selectedProduct.image || '/brand-placeholder.svg'} alt={selectedProduct.name} className="h-20 w-20 rounded-md border object-cover" onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }} /><div><h3 className="font-semibold">{selectedProduct.name}</h3><p className="text-sm text-muted-foreground">{selectedProduct.description || 'Chưa có mô tả'}</p></div></div>
             <DetailList columns={2}>
-              <DetailItem label="Danh mục"><StatusBadge tone={categoryMeta(selectedProduct.category).tone}>{categoryMeta(selectedProduct.category).label}</StatusBadge></DetailItem>
-              <DetailItem label="Tồn kho"><StatusBadge tone={stockMeta(selectedProduct.stock).tone}>{Number(selectedProduct.stock || 0)} · {stockMeta(selectedProduct.stock).label}</StatusBadge></DetailItem>
+              <DetailItem label="Mã sản phẩm">{selectedProduct.code || '—'}</DetailItem>
+              <DetailItem label="Danh mục">{categoryFor(selectedProduct)?.name || selectedProduct.categoryName || '—'}</DetailItem>
+              <DetailItem label="Rạp">{selectedCinema?.name || '—'}</DetailItem>
               <DetailItem label="Giá bán">{formatMoney(selectedProduct.price)}</DetailItem>
-              <DetailItem label="Giá gốc">{formatMoney(selectedProduct.originalPrice || selectedProduct.price)}</DetailItem>
-              <DetailItem label="Phổ biến">{selectedProduct.isPopular ? 'Có' : 'Không'}</DetailItem>
+              <DetailItem label="Tồn kho">{Number(selectedProduct.stock || 0)}</DetailItem>
+              <DetailItem label="Đang bán">{selectedProduct.isAvailable ? 'Có' : 'Không'}</DetailItem>
+              <DetailItem label="Catalog">{selectedProduct.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm ẩn'}</DetailItem>
+              <DetailItem label="Inventory ID">{selectedProduct.cinemaProductId || '—'}</DetailItem>
             </DetailList>
           </div>
         )}
