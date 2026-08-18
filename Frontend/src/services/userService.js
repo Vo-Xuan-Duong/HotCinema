@@ -1,6 +1,7 @@
 import { apiClient } from '@/utils/apiClient';
 import { unwrapApiData } from '@/utils/apiResponse';
 import { ENDPOINTS } from '@/utils/constants';
+import { MOCK_API_ENABLED } from '@/mocks/mockConfig';
 import { createCapabilityError, isEndpointUnavailable } from '@/utils/backendCapability';
 import { normalizeResourceId } from '@/utils/resourceId';
 
@@ -66,6 +67,11 @@ const buildUserUpdatePayload = (current = {}, changes = {}) => {
 
 const userService = {
   async createUser(data) {
+    if (!MOCK_API_ENABLED) {
+      throw createCapabilityError(
+        'tạo tài khoản người dùng an toàn (generic User CRUD hiện không hash password)',
+      );
+    }
     return unwrapApiData(await apiClient.post(ENDPOINTS.USERS, data));
   },
 
