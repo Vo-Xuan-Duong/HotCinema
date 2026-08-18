@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
 import { CalendarDays, CheckCircle2, Clock3, Eye, Film, Home, Loader2, Search, Store, Ticket, Trash2, User, X, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
@@ -63,6 +64,7 @@ const getPaymentMethodLabel = (method) => {
 };
 
 const getBookingCode = (booking) => booking.bookingCode || booking.code || String(booking.id || '');
+const getBookingDetailKey = (booking) => booking.id || getBookingCode(booking);
 
 const AdminBookings = () => {
   const navigate = useNavigate();
@@ -83,6 +85,9 @@ const AdminBookings = () => {
   const [nextStatus, setNextStatus] = useState('PENDING');
   const [savingStatus, setSavingStatus] = useState(false);
 
+  const statusCommandSupported = bookingService.isBookingStatusCommandSupported();
+  const deleteRecommended = bookingService.isBookingDeleteRecommended();
+
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(searchText.trim()), 300);
     return () => window.clearTimeout(timer);
@@ -96,11 +101,11 @@ const AdminBookings = () => {
       cinemaService.getAllCinemas({ page: 0, size: 100 }),
     ]).then(([moviesResult, cinemasResult]) => {
       if (cancelled) return;
+
       if (moviesResult.status === 'fulfilled') {
         const page = unwrapApiData(moviesResult.value) || {};
         setMovies(Array.isArray(page) ? page : page.content || []);
       } else {
-        console.error('Error loading booking movie options:', moviesResult.reason);
         setMovies([]);
       }
 
@@ -108,7 +113,6 @@ const AdminBookings = () => {
         const page = unwrapApiData(cinemasResult.value) || {};
         setCinemas(Array.isArray(page) ? page : page.content || unwrapApiArray(cinemasResult.value));
       } else {
-        console.error('Error loading booking cinema options:', cinemasResult.reason);
         setCinemas([]);
       }
     });
@@ -122,7 +126,7 @@ const AdminBookings = () => {
       const params = {
         page: pagination.current - 1,
         size: pagination.pageSize,
-        sort: 'id,desc',
+        sort: 'createdAt,desc',
       };
       if (statusFilter !== 'all') params.status = statusFilter;
       if (movieFilter !== 'all') params.movieId = movieFilter;
@@ -139,7 +143,7 @@ const AdminBookings = () => {
       console.error('Error loading bookings:', error);
       setBookings([]);
       setPagination((previous) => ({ ...previous, total: 0 }));
-      notification.error('Không thể tải danh sách đặt vé');
+      notification.error(error?.message || 'Không thể tải danh sách đặt vé');
     } finally {
       setLoading(false);
     }
@@ -166,13 +170,14 @@ const AdminBookings = () => {
   }), [bookings]);
 
   const openStatusDialog = (booking) => {
+    if (!statusCommandSupported) return;
     setSelectedBooking(booking);
     setNextStatus(String(booking.bookingStatus || booking.status || 'PENDING').toUpperCase());
     setStatusDialogOpen(true);
   };
 
   const handleSaveStatus = async () => {
-    if (!selectedBooking) return;
+    if (!selectedBooking || !statusCommandSupported) return;
     setSavingStatus(true);
     try {
       await bookingService.updateBookingStatus(selectedBooking.id, nextStatus);
@@ -182,15 +187,16 @@ const AdminBookings = () => {
       await loadBookings();
     } catch (error) {
       console.error('Error updating booking status:', error);
-      notification.error(error.response?.data?.message || 'Không thể cập nhật trạng thái đặt vé');
+      notification.error(error?.message || 'Không thể cập nhật trạng thái đặt vé');
     } finally {
       setSavingStatus(false);
     }
   };
 
   const handleDeleteBooking = async (booking) => {
+    if (!deleteRecommended) return;
     const code = getBookingCode(booking);
-    if (!window.confirm(`Xóa đặt vé #${code}? Hành động này không thể hoàn tác.`)) return;
+    if (!window.confirm(`Xóa booking mock #${code}?`)) return;
 
     try {
       await bookingService.deleteBooking(booking.id);
@@ -198,7 +204,7 @@ const AdminBookings = () => {
       await loadBookings();
     } catch (error) {
       console.error('Error deleting booking:', error);
-      notification.error(error.response?.data?.message || 'Không thể xóa đặt vé');
+      notification.error(error?.message || 'Không thể xóa đặt vé');
     }
   };
 
@@ -210,15 +216,15 @@ const AdminBookings = () => {
     {
       title: 'Mã đặt vé',
       key: 'bookingCode',
-      width: 150,
+      width: 170,
       render: (_, record) => {
         const code = getBookingCode(record);
         return (
           <div>
-            <Button type="button" variant="link" className="h-auto p-0 font-mono font-semibold" onClick={() => navigate(`/admin/bookings/${code}`)}>
+            <Button type="button" variant="link" className="h-auto p-0 font-mono font-semibold" onClick={() => navigate(`/admin/bookings/${getBookingDetailKey(record)}`)}>
               #{code}
             </Button>
-            <p className="mt-1 text-xs text-muted-foreground">ID: {record.id}</p>
+            <p className="mt-1 max-w-44 truncate text-xs text-muted-foreground">ID: {record.id || 'N/A'}</p>
           </div>
         );
       },
@@ -230,9 +236,9 @@ const AdminBookings = () => {
         <div className="min-w-0">
           <p className="flex items-center gap-1.5 truncate text-sm font-medium">
             <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            {record.userFullName || record.fullName || record.user?.fullName || 'N/A'}
+            {record.customerName || record.userFullName || record.fullName || record.user?.fullName || 'N/A'}
           </p>
-          <p className="mt-1 truncate text-xs text-muted-foreground">{record.userEmail || record.customerInfo?.email || record.user?.email || 'N/A'}</p>
+          <p className="mt-1 truncate text-xs text-muted-foreground">{record.customerEmail || record.userEmail || record.customerInfo?.email || record.user?.email || 'N/A'}</p>
         </div>
       ),
     },
@@ -251,31 +257,22 @@ const AdminBookings = () => {
       title: 'Suất chiếu',
       key: 'showtime',
       render: (_, record) => {
-        const date = record.showDate || record.showtimeDate || record.showtime?.date;
+        const date = record.showDate || record.showtimeDate || record.showtime?.date || record.showtime?.startTime;
         const start = record.startTime || record.showtimeStartTime || record.showtime?.startTime;
         const room = record.roomName || record.showtime?.roomName || record.room?.name;
         return (
           <div className="space-y-1 text-sm">
             <p className="flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />{date && dayjs(date).isValid() ? dayjs(date).format('DD/MM/YYYY') : 'N/A'}</p>
-            <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><Clock3 className="h-3.5 w-3.5" />{[start, room].filter(Boolean).join(' · ') || 'N/A'}</p>
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground"><Clock3 className="h-3.5 w-3.5" />{[start ? String(start).slice(11, 16) || String(start).slice(0, 5) : null, room].filter(Boolean).join(' · ') || 'N/A'}</p>
           </div>
         );
-      },
-    },
-    {
-      title: 'Ghế',
-      key: 'seats',
-      render: (_, record) => {
-        const seats = Array.isArray(record.seats) ? record.seats : [];
-        const labels = seats.map((seat) => seat.name || seat.seatName || seat.seatNumber).filter(Boolean);
-        return labels.length ? <span className="text-sm font-medium">{labels.join(', ')}</span> : <span className="text-muted-foreground">—</span>;
       },
     },
     {
       title: 'Tổng tiền',
       key: 'amount',
       render: (_, record) => (
-        <span className="font-semibold tabular-nums">{Number(record.finalAmount ?? record.totalAmount ?? record.totalPrice ?? 0).toLocaleString('vi-VN')} ₫</span>
+        <span className="font-semibold tabular-nums">{Number(record.totalAmount ?? record.finalAmount ?? record.totalPrice ?? 0).toLocaleString('vi-VN')} ₫</span>
       ),
     },
     {
@@ -307,13 +304,17 @@ const AdminBookings = () => {
         const code = getBookingCode(record);
         return (
           <div className="flex items-center gap-1">
-            <Button type="button" variant="ghost" size="icon" onClick={() => navigate(`/admin/bookings/${code}`)} aria-label={`Xem booking ${code}`}>
+            <Button type="button" variant="ghost" size="icon" onClick={() => navigate(`/admin/bookings/${getBookingDetailKey(record)}`)} aria-label={`Xem booking ${code}`}>
               <Eye className="h-4 w-4" />
             </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => openStatusDialog(record)}>Trạng thái</Button>
-            <Button type="button" variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteBooking(record)} aria-label={`Xóa booking ${code}`}>
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {statusCommandSupported && (
+              <Button type="button" variant="ghost" size="sm" onClick={() => openStatusDialog(record)}>Trạng thái</Button>
+            )}
+            {deleteRecommended && (
+              <Button type="button" variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteBooking(record)} aria-label={`Xóa booking ${code}`}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         );
       },
@@ -324,12 +325,21 @@ const AdminBookings = () => {
     <div className="space-y-6">
       <AdminPageHeader
         title="Quản lý đặt vé"
-        description="Theo dõi đơn đặt vé, trạng thái xử lý và thông tin thanh toán của khách hàng."
+        description="Theo dõi booking và thông tin thanh toán. Business command chỉ được bật khi backend có endpoint phù hợp."
         breadcrumbs={[
           { title: 'Dashboard', icon: <Home className="h-4 w-4" />, href: '/admin/dashboard' },
           { title: 'Quản lý đặt vé', icon: <Ticket className="h-4 w-4" /> },
         ]}
       />
+
+      {!statusCommandSupported && (
+        <Alert
+          variant="warning"
+          showIcon
+          message="Booking đang ở chế độ quản trị chỉ đọc"
+          description="Backend hiện chưa có command an toàn cho đổi trạng thái/hủy booking. FE không dùng PUT toàn bộ BookingUpdateRequest và cũng không xóa booking thật từ màn nghiệp vụ này."
+        />
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Tổng đặt vé" value={pagination.total} icon={<Ticket className="h-5 w-5" />} />
@@ -433,36 +443,38 @@ const AdminBookings = () => {
         </CardContent>
       </Card>
 
-      <ResponsiveDialog
-        heading={selectedBooking ? `Cập nhật trạng thái #${getBookingCode(selectedBooking)}` : 'Cập nhật trạng thái'}
-        description="Chỉ thay đổi trạng thái xử lý của đơn đặt vé; thông tin thanh toán được quản lý theo luồng payment riêng."
-        open={statusDialogOpen}
-        onClose={() => { setStatusDialogOpen(false); setSelectedBooking(null); }}
-        actions={null}
-        maxWidth={480}
-      >
-        <div className="space-y-5">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Trạng thái đặt vé</label>
-            <Select value={nextStatus} onValueChange={setNextStatus}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="PENDING">Chờ xử lý</SelectItem>
-                <SelectItem value="CONFIRMED">Đã xác nhận</SelectItem>
-                <SelectItem value="COMPLETED">Hoàn thành</SelectItem>
-                <SelectItem value="CANCELLED">Đã hủy</SelectItem>
-              </SelectContent>
-            </Select>
+      {statusCommandSupported && (
+        <ResponsiveDialog
+          heading={selectedBooking ? `Cập nhật trạng thái #${getBookingCode(selectedBooking)}` : 'Cập nhật trạng thái'}
+          description="Chỉ dùng trong mock hoặc khi backend có command trạng thái riêng."
+          open={statusDialogOpen}
+          onClose={() => { setStatusDialogOpen(false); setSelectedBooking(null); }}
+          actions={null}
+          maxWidth={480}
+        >
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Trạng thái đặt vé</label>
+              <Select value={nextStatus} onValueChange={setNextStatus}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PENDING">Chờ xử lý</SelectItem>
+                  <SelectItem value="CONFIRMED">Đã xác nhận</SelectItem>
+                  <SelectItem value="COMPLETED">Hoàn thành</SelectItem>
+                  <SelectItem value="CANCELLED">Đã hủy</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2 border-t border-border pt-4">
+              <Button type="button" variant="outline" onClick={() => setStatusDialogOpen(false)}>Hủy</Button>
+              <Button type="button" onClick={handleSaveStatus} disabled={savingStatus}>
+                {savingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Lưu trạng thái
+              </Button>
+            </div>
           </div>
-          <div className="flex justify-end gap-2 border-t border-border pt-4">
-            <Button type="button" variant="outline" onClick={() => setStatusDialogOpen(false)}>Hủy</Button>
-            <Button type="button" onClick={handleSaveStatus} disabled={savingStatus}>
-              {savingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Lưu trạng thái
-            </Button>
-          </div>
-        </div>
-      </ResponsiveDialog>
+        </ResponsiveDialog>
+      )}
     </div>
   );
 };
