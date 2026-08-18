@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Bell, Check, Eye, Gift, Loader2, Settings, Ticket, Trash2 } from 'lucide-react';
+import { Bell, Check, Eye, Film, Gift, Loader2, Settings, Ticket, Trash2, WalletCards } from 'lucide-react';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Empty } from '@/components/ui/empty';
@@ -9,7 +10,10 @@ import useNotification from '@/hooks/useNotification';
 
 const notificationMeta = (type) => {
   const normalized = String(type || 'SYSTEM').toUpperCase();
-  if (normalized === 'BOOKING') return { label: 'Đặt vé', tone: 'info', icon: Ticket };
+  if (normalized === 'BOOKING_SUCCESS') return { label: 'Đặt vé', tone: 'info', icon: Ticket };
+  if (normalized === 'PAYMENT_SUCCESS') return { label: 'Thanh toán', tone: 'success', icon: WalletCards };
+  if (normalized === 'PAYMENT_FAILED') return { label: 'Thanh toán lỗi', tone: 'destructive', icon: WalletCards };
+  if (normalized === 'SHOWTIME_CHANGED') return { label: 'Suất chiếu', tone: 'warning', icon: Film };
   if (normalized === 'PROMOTION') return { label: 'Khuyến mãi', tone: 'warning', icon: Gift };
   return { label: 'Hệ thống', tone: 'neutral', icon: Settings };
 };
@@ -26,16 +30,22 @@ const Notifications = () => {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
   const [markingAll, setMarkingAll] = useState(false);
+  const [capabilityMessage, setCapabilityMessage] = useState('');
 
   const loadNotifications = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await notificationService.list({ page: 0, size: 100, sort: 'createdAt,desc' });
+      setCapabilityMessage('');
+      const response = await notificationService.listMine({ page: 0, size: 100, sort: 'createdAt,desc' });
       setItems(extractItems(response));
     } catch (error) {
       console.error('Error loading notifications:', error);
       setItems([]);
-      notification.error(error?.message || 'Không tải được danh sách thông báo');
+      if (error?.code === 'BACKEND_CAPABILITY_MISSING') {
+        setCapabilityMessage(error.message);
+      } else {
+        notification.error(error?.message || 'Không tải được danh sách thông báo');
+      }
     } finally {
       setLoading(false);
     }
@@ -59,7 +69,7 @@ const Notifications = () => {
       setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, isRead: true, read: true } : entry));
     } catch (error) {
       console.error('Error marking notification as read:', error);
-      notification.error('Không thể đánh dấu đã đọc');
+      notification.error(error?.message || 'Không thể đánh dấu đã đọc');
     } finally {
       setBusyId(null);
     }
@@ -74,7 +84,7 @@ const Notifications = () => {
     } catch (error) {
       console.error('Error deleting notification:', error);
       setItems(previous);
-      notification.error('Xóa thông báo thất bại');
+      notification.error(error?.message || 'Xóa thông báo thất bại');
     } finally {
       setBusyId(null);
     }
@@ -90,7 +100,8 @@ const Notifications = () => {
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
       setItems(previous);
-      notification.error('Không thể đánh dấu tất cả đã đọc');
+      if (error?.code === 'BACKEND_CAPABILITY_MISSING') setCapabilityMessage(error.message);
+      notification.error(error?.message || 'Không thể đánh dấu tất cả đã đọc');
     } finally {
       setMarkingAll(false);
     }
@@ -106,17 +117,27 @@ const Notifications = () => {
               <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Thông báo</h1>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              {unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : 'Tất cả thông báo đã được đọc'}
+              {unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : 'Thông báo dành riêng cho tài khoản đang đăng nhập'}
             </p>
           </div>
 
-          {unreadCount > 0 && (
+          {unreadCount > 0 && !capabilityMessage && (
             <Button size="sm" onClick={markAllAsRead} disabled={markingAll}>
               {markingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
               Đánh dấu tất cả đã đọc
             </Button>
           )}
         </header>
+
+        {capabilityMessage && (
+          <Alert
+            variant="warning"
+            showIcon
+            message="Backend chưa có API thông báo cá nhân an toàn"
+            description={`${capabilityMessage} FE không tải collection thông báo toàn hệ thống để lọc theo user vì thao tác đó có thể làm lộ dữ liệu của tài khoản khác.`}
+            className="mb-4"
+          />
+        )}
 
         <Card>
           <CardContent className="p-0">
@@ -126,7 +147,7 @@ const Notifications = () => {
                 Đang tải thông báo...
               </div>
             ) : items.length === 0 ? (
-              <Empty description="Không có thông báo nào" className="min-h-40" />
+              <Empty description={capabilityMessage ? 'Chưa thể tải thông báo cá nhân từ backend hiện tại' : 'Không có thông báo nào'} className="min-h-40" />
             ) : (
               <div className="divide-y divide-border">
                 {items.map((item) => {
