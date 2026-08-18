@@ -40,7 +40,17 @@ const toUpdatePayload = (notification, changes = {}) => {
   };
 };
 
+const emptyPage = (params = {}) => ({
+  content: [],
+  totalElements: 0,
+  totalPages: 0,
+  number: 0,
+  page: 0,
+  size: Number(params.size || 100),
+});
+
 const notificationService = {
+  // Admin collection. Customer surfaces must use listMine instead.
   async list(params = {}) {
     return normalizeNotificationPage(unwrapApiData(
       await apiClient.get(ENDPOINTS.NOTIFICATIONS, { params }),
@@ -49,18 +59,23 @@ const notificationService = {
 
   async listMine(params = {}) {
     const user = getUserInfo();
-    if (!user?.id) return { content: [], totalElements: 0, totalPages: 0, number: 0, size: Number(params.size || 100) };
+    if (!user?.id) return emptyPage(params);
 
     if (MOCK_API_ENABLED) {
-      const response = await this.list({ page: 0, size: 1000, ...params });
-      const rows = pageRows(response).filter((item) => sameResourceId(item.userId, user.id));
+      const response = await this.list({ page: 0, size: 1000 });
+      const rows = pageRows(response)
+        .filter((item) => sameResourceId(item.userId, user.id))
+        .sort((left, right) => String(right.createdAt || '').localeCompare(String(left.createdAt || '')));
+      const page = Math.max(0, Number(params.page || 0));
+      const size = Math.max(1, Number(params.size || 100));
+      const start = page * size;
       return {
-        content: rows,
+        content: rows.slice(start, start + size),
         totalElements: rows.length,
-        totalPages: rows.length ? 1 : 0,
-        number: 0,
-        page: 0,
-        size: rows.length || Number(params.size || 100),
+        totalPages: rows.length ? Math.ceil(rows.length / size) : 0,
+        number: page,
+        page,
+        size,
       };
     }
 
@@ -76,12 +91,15 @@ const notificationService = {
     }
   },
 
+  // Admin lookup. Do not use this from customer pages because the current
+  // backend has no resource-level authorization guarantee for generic CRUD.
   async getById(id) {
     return normalizeNotification(unwrapApiData(
       await apiClient.get(`${ENDPOINTS.NOTIFICATIONS}/${normalizeResourceId(id)}`),
     ));
   },
 
+  // Admin mutation. Customer surfaces must use markMineAsRead.
   async markAsRead(id) {
     const notificationId = normalizeResourceId(id);
     if (MOCK_API_ENABLED) {
@@ -105,6 +123,23 @@ const notificationService = {
     }
   },
 
+  async markMineAsRead(id) {
+    const notificationId = normalizeResourceId(id);
+    if (MOCK_API_ENABLED) return this.markAsRead(notificationId);
+
+    try {
+      return normalizeNotification(unwrapApiData(
+        await apiClient.post(`${ENDPOINTS.NOTIFICATIONS}/me/${notificationId}/read`),
+      ));
+    } catch (error) {
+      if (!isEndpointUnavailable(error)) throw error;
+      // Do not emulate this with GET /notifications/{id} + PUT. That would let
+      // the browser choose another user's notification identifier.
+      throw createCapabilityError('đánh dấu thông báo cá nhân đã đọc có kiểm soát ownership', error);
+    }
+  },
+
+  // Admin/global command. Customer surfaces must use markAllMineAsRead.
   async markAllAsRead() {
     if (MOCK_API_ENABLED) {
       return unwrapApiData(await apiClient.put(`${ENDPOINTS.NOTIFICATIONS}/read-all`));
@@ -114,14 +149,43 @@ const notificationService = {
       return unwrapApiData(await apiClient.post(`${ENDPOINTS.NOTIFICATIONS}/read-all`));
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
-      // Avoid fetching the full admin collection to emulate a user-scoped
-      // command. The backend must provide an ownership-aware operation.
+      throw createCapabilityError('đánh dấu tất cả thông báo đã đọc', error);
+    }
+  },
+
+  async markAllMineAsRead() {
+    if (MOCK_API_ENABLED) {
+      const mine = pageRows(await this.listMine({ page: 0, size: 1000 })).filter((item) => !item.isRead);
+      for (let index = 0; index < mine.length; index += 8) {
+        const batch = mine.slice(index, index + 8);
+        await Promise.all(batch.map((item) => this.markMineAsRead(item.id)));
+      }
+      return { updated: mine.length };
+    }
+
+    try {
+      return unwrapApiData(await apiClient.post(`${ENDPOINTS.NOTIFICATIONS}/me/read-all`));
+    } catch (error) {
+      if (!isEndpointUnavailable(error)) throw error;
       throw createCapabilityError('đánh dấu tất cả thông báo cá nhân đã đọc', error);
     }
   },
 
+  // Admin delete. Customer surfaces must use deleteMine.
   async delete(id) {
     return apiClient.delete(`${ENDPOINTS.NOTIFICATIONS}/${normalizeResourceId(id)}`);
+  },
+
+  async deleteMine(id) {
+    const notificationId = normalizeResourceId(id);
+    if (MOCK_API_ENABLED) return this.delete(notificationId);
+
+    try {
+      return apiClient.delete(`${ENDPOINTS.NOTIFICATIONS}/me/${notificationId}`);
+    } catch (error) {
+      if (!isEndpointUnavailable(error)) throw error;
+      throw createCapabilityError('xóa thông báo cá nhân có kiểm soát ownership', error);
+    }
   },
 
   async create(payload) {
