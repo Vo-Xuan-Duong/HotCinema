@@ -5,6 +5,7 @@ import {
   Check,
   Clapperboard,
   Clock,
+  Home,
   LayoutDashboard,
   Loader2,
   LogOut,
@@ -16,7 +17,6 @@ import {
   Trash2,
   User,
   Video,
-  Home,
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -76,20 +76,24 @@ const Header = () => {
   const [searchValue, setSearchValue] = useState('');
   const [notifications, setNotifications] = useState([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationsCapabilityMissing, setNotificationsCapabilityMissing] = useState(false);
 
   const loadNotifications = useCallback(async () => {
     if (!isAuthenticated) {
       setNotifications([]);
+      setNotificationsCapabilityMissing(false);
       return;
     }
 
     try {
       setNotificationsLoading(true);
-      const response = await notificationService.list({ page: 0, size: 5, sort: 'createdAt,desc' });
+      setNotificationsCapabilityMissing(false);
+      const response = await notificationService.listMine({ page: 0, size: 5, sort: 'createdAt,desc' });
       setNotifications(extractNotifications(response));
     } catch (error) {
       console.error('Error loading header notifications:', error);
       setNotifications([]);
+      setNotificationsCapabilityMissing(error?.code === 'BACKEND_CAPABILITY_MISSING');
     } finally {
       setNotificationsLoading(false);
     }
@@ -101,7 +105,7 @@ const Header = () => {
 
   const notificationCount = useMemo(
     () => notifications.filter(isUnread).length,
-    [notifications]
+    [notifications],
   );
 
   const displayName = user?.fullName || user?.name || user?.email || 'Tài khoản';
@@ -139,7 +143,7 @@ const Header = () => {
     } catch (error) {
       console.error('Error marking header notification as read:', error);
       setNotifications(previous);
-      notification.error('Không thể đánh dấu thông báo đã đọc');
+      notification.error(error?.message || 'Không thể đánh dấu thông báo đã đọc');
     }
   };
 
@@ -151,7 +155,8 @@ const Header = () => {
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
       setNotifications(previous);
-      notification.error('Không thể đánh dấu tất cả thông báo đã đọc');
+      if (error?.code === 'BACKEND_CAPABILITY_MISSING') setNotificationsCapabilityMissing(true);
+      notification.error(error?.message || 'Không thể đánh dấu tất cả thông báo đã đọc');
     }
   };
 
@@ -163,7 +168,7 @@ const Header = () => {
     } catch (error) {
       console.error('Error deleting header notification:', error);
       setNotifications(previous);
-      notification.error('Không thể xóa thông báo');
+      notification.error(error?.message || 'Không thể xóa thông báo');
     }
   };
 
@@ -238,9 +243,11 @@ const Header = () => {
                 <div className="flex items-center justify-between border-b p-3">
                   <div>
                     <p className="text-sm font-semibold">Thông báo</p>
-                    <p className="text-xs text-muted-foreground">{notificationCount} chưa đọc</p>
+                    <p className="text-xs text-muted-foreground">
+                      {notificationsCapabilityMissing ? 'Backend chưa hỗ trợ danh sách cá nhân' : `${notificationCount} chưa đọc`}
+                    </p>
                   </div>
-                  {notificationCount > 0 && (
+                  {notificationCount > 0 && !notificationsCapabilityMissing && (
                     <Button type="button" variant="ghost" size="sm" onClick={markAllAsRead}>
                       Đọc tất cả
                     </Button>
@@ -253,6 +260,10 @@ const Header = () => {
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Đang tải...
                     </div>
+                  ) : notificationsCapabilityMissing ? (
+                    <p className="p-6 text-center text-sm leading-6 text-muted-foreground">
+                      Chưa thể tải thông báo cá nhân an toàn. FE không đọc collection thông báo toàn hệ thống để lọc ở trình duyệt.
+                    </p>
                   ) : notifications.length === 0 ? (
                     <p className="p-6 text-center text-sm text-muted-foreground">Không có thông báo</p>
                   ) : (
