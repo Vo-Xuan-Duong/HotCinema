@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import AdminLayout from '@/layouts/AdminLayout';
+import RouteErrorBoundary from '@/components/ErrorPage/RouteErrorBoundary';
 import NotFound from '@/pages/Common/ErrorPages/NotFound';
 import { lazyElement } from './routeElements';
 
@@ -30,7 +31,7 @@ const AdminPayment = React.lazy(() => import('@/pages/Admin/Payment/Payment'));
 export const adminRoutes = {
   path: '/admin',
   element: <AdminLayout />,
-  errorElement: <NotFound />,
+  errorElement: <RouteErrorBoundary />,
   children: [
     { index: true, element: lazyElement(Dashboard, 'modern', 'Đang tải dashboard...') },
     { path: 'dashboard', element: lazyElement(Dashboard, 'modern', 'Đang tải dashboard...') },
@@ -59,5 +60,6 @@ export const adminRoutes = {
     { path: 'food-beverage', element: lazyElement(AdminFoodBeverage, 'modern', 'Đang tải quản lý đồ ăn...') },
     { path: 'roles-permissions', element: lazyElement(AdminRolesPermissions, 'modern', 'Đang tải quản lý vai trò và quyền...') },
     { path: 'payment', element: lazyElement(AdminPayment, 'modern', 'Đang tải quản lý thanh toán...') },
+    { path: '*', element: <NotFound /> },
   ],
 };
