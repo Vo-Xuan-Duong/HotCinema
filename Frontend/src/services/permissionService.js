@@ -1,45 +1,40 @@
-import { apiClient } from '@/utils/apiClient';
-import { ENDPOINTS } from '@/utils/constants';
+import { createCapabilityError } from '@/utils/backendCapability';
 
+const unsupported = (feature) => {
+  throw createCapabilityError(feature);
+};
+
+// The current backend does not expose a PermissionController/resource. Keep a
+// stable service surface so callers fail with an explicit capability error
+// instead of issuing requests to a non-existent /permissions endpoint.
 const permissionService = {
-  // 1. Tạo Permission Mới
-  createPermission: async (data) => {
-    return apiClient.post(ENDPOINTS.PERMISSIONS, data);
+  async createPermission() {
+    return unsupported('tạo permission');
   },
 
-  // 2. Lấy Tất Cả Permissions (Phân Trang)
-  getAllPermissions: async (params = {}) => {
-    const { page = 0, size = 10, sort = 'id,asc' } = params;
-    return apiClient.get(ENDPOINTS.PERMISSIONS, {
-      params: { page, size, sort }
-    });
+  async getAllPermissions() {
+    return unsupported('đọc danh sách permission');
   },
 
-  // 3. Lấy Tất Cả Permissions (Không Phân Trang)
-  getAllPermissionsList: async () => {
-    return apiClient.get(`${ENDPOINTS.PERMISSIONS}/all`);
+  async getAllPermissionsList() {
+    return unsupported('đọc danh sách permission');
   },
 
-  // 4. Lấy Permission Theo ID
-  getPermissionById: async (permissionId) => {
-    return apiClient.get(`${ENDPOINTS.PERMISSIONS}/${permissionId}`);
+  async getPermissionById() {
+    return unsupported('đọc permission');
   },
 
-  // 5. Cập Nhật Permission (PUT)
-  updatePermission: async (permissionId, data) => {
-    return apiClient.put(`${ENDPOINTS.PERMISSIONS}/${permissionId}`, data);
+  async updatePermission() {
+    return unsupported('cập nhật permission');
   },
 
-  // 6. Cập Nhật Permission Một Phần (PATCH)
-  partialUpdatePermission: async (permissionId, data) => {
-    return apiClient.patch(`${ENDPOINTS.PERMISSIONS}/${permissionId}`, data);
+  async partialUpdatePermission() {
+    return unsupported('cập nhật permission');
   },
 
-  // 7. Xóa Permission
-  deletePermission: async (permissionId) => {
-    return apiClient.delete(`${ENDPOINTS.PERMISSIONS}/${permissionId}`);
+  async deletePermission() {
+    return unsupported('xóa permission');
   },
 };
 
 export default permissionService;
-
