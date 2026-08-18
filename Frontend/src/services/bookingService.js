@@ -7,6 +7,7 @@ import { isEndpointUnavailable, rethrowCapabilityError } from '@/utils/backendCa
 import { normalizeResourceId, normalizeResourceIds, sameResourceId } from '@/utils/resourceId';
 
 const base = ENDPOINTS.BOOKINGS;
+
 const pageContent = (response) => {
   const data = unwrapApiData(response);
   if (Array.isArray(data)) return data;
@@ -15,6 +16,20 @@ const pageContent = (response) => {
 };
 
 const normalizeStatus = (status) => String(status || '').trim().toUpperCase();
+
+const paginate = (rows, params = {}) => {
+  const page = Math.max(0, Number(params.page || 0));
+  const size = Math.max(1, Number(params.size || 10));
+  const start = page * size;
+  return {
+    content: rows.slice(start, start + size),
+    totalElements: rows.length,
+    totalPages: Math.ceil(rows.length / size),
+    number: page,
+    page,
+    size,
+  };
+};
 
 const bookingService = {
   async listPage(params = {}) {
@@ -36,6 +51,7 @@ const bookingService = {
       return unwrapApiData(await apiClient.get(`${base}/code/${encodeURIComponent(code)}`));
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
+      if (!MOCK_API_ENABLED) rethrowCapabilityError('tra cứu booking theo mã có kiểm soát ownership', error);
       const rows = await this.list({ page: 0, size: 500 });
       return rows.find((item) => String(item.bookingCode || '').toUpperCase() === code.toUpperCase()) || null;
     }
@@ -55,8 +71,8 @@ const bookingService = {
 
     try {
       // Real checkout is a business transaction. Do not fall back to the
-      // entity CRUD POST /bookings because that endpoint currently accepts
-      // client-owned totals/status/timestamps and cannot atomically hold seats.
+      // entity CRUD POST /bookings because it accepts client-owned totals,
+      // statuses and timestamps and cannot atomically hold seats.
       return unwrapApiData(await apiClient.post(`${base}/checkout`, payload));
     } catch (error) {
       rethrowCapabilityError('tạo booking/checkout an toàn', error);
@@ -74,10 +90,14 @@ const bookingService = {
       return unwrapApiData(await apiClient.patch(`${base}/${id}/status`, { status: normalizedStatus }));
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
-      // Compatibility fallback is retained for admin/cancel UX only. The
-      // backend remains authoritative for payment, ticket and seat state.
-      const current = await this.getBookingById(id);
-      return this.updateBooking(id, { ...current, status: normalizedStatus });
+      if (MOCK_API_ENABLED) {
+        const current = await this.getBookingById(id);
+        return this.updateBooking(id, { ...current, status: normalizedStatus });
+      }
+      // BookingUpdateRequest contains monetary totals and lifecycle timestamps.
+      // Replaying that DTO from the browser just to change status would make
+      // client data authoritative for booking state.
+      rethrowCapabilityError('đổi trạng thái booking bằng command backend', error);
     }
   },
 
@@ -90,21 +110,16 @@ const bookingService = {
       return unwrapApiData(await apiClient.get(`${base}/my-bookings`, { params }));
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
+      if (!MOCK_API_ENABLED) {
+        // Never GET the entire booking collection in a customer session and
+        // filter by userId in the browser. Ownership must be server-enforced.
+        rethrowCapabilityError('danh sách booking của người dùng có kiểm soát ownership', error);
+      }
       const user = getUserInfo();
-      if (!user?.id) return { content: [], totalElements: 0, totalPages: 0, number: 0, size: params.size || 10 };
+      if (!user?.id) return paginate([], params);
       const response = await apiClient.get(base, { params: { page: 0, size: 500 } });
       const mine = pageContent(response).filter((item) => sameResourceId(item.userId ?? item.user?.id, user.id));
-      const page = Math.max(0, Number(params.page || 0));
-      const size = Math.max(1, Number(params.size || 10));
-      const start = page * size;
-      return {
-        content: mine.slice(start, start + size),
-        totalElements: mine.length,
-        totalPages: Math.ceil(mine.length / size),
-        number: page,
-        page,
-        size,
-      };
+      return paginate(mine, params);
     }
   },
 
@@ -113,6 +128,7 @@ const bookingService = {
       return unwrapApiArray(await apiClient.get(`${base}/my-bookings/history`, { params }));
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
+      if (!MOCK_API_ENABLED) rethrowCapabilityError('lịch sử booking của người dùng có kiểm soát ownership', error);
       const result = await this.getMyBookings({ ...params, page: 0, size: 500 });
       return result?.content || [];
     }
@@ -124,19 +140,9 @@ const bookingService = {
       return unwrapApiData(await apiClient.get(`${base}/history/user/${id}`, { params }));
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
+      if (!MOCK_API_ENABLED) rethrowCapabilityError('lịch sử booking theo user có authorization backend', error);
       const rows = await this.list({ page: 0, size: 500 });
-      const filtered = rows.filter((item) => sameResourceId(item.userId ?? item.user?.id, id));
-      const page = Math.max(0, Number(params.page || 0));
-      const size = Math.max(1, Number(params.size || 10));
-      const start = page * size;
-      return {
-        content: filtered.slice(start, start + size),
-        totalElements: filtered.length,
-        totalPages: Math.ceil(filtered.length / size),
-        number: page,
-        page,
-        size,
-      };
+      return paginate(rows.filter((item) => sameResourceId(item.userId ?? item.user?.id, id)), params);
     }
   },
 
@@ -146,6 +152,7 @@ const bookingService = {
       return unwrapApiData(await apiClient.get(`${base}/user/${id}`, { params }));
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
+      if (!MOCK_API_ENABLED) rethrowCapabilityError('booking theo user có authorization backend', error);
       return this.getBookingHistoryByUserId(id, params);
     }
   },
@@ -199,6 +206,7 @@ const bookingService = {
       return Boolean(unwrapApiData(direct));
     } catch (error) {
       if (!isEndpointUnavailable(error)) return false;
+      if (!MOCK_API_ENABLED) rethrowCapabilityError('xác thực booking code', error);
       return Boolean(await this.getBookingByCode(bookingCode));
     }
   },
