@@ -91,10 +91,65 @@ const enrichBookingPage = async (data) => {
   return data;
 };
 
+const filterAndSortAdminBookings = (rows = [], params = {}) => {
+  const keyword = String(params.keyword || '').trim().toLowerCase();
+  const requestedStatus = normalizeStatus(params.status);
+  let result = rows.filter((booking) => {
+    if (requestedStatus && normalizeStatus(booking.status || booking.bookingStatus) !== requestedStatus) return false;
+    if (params.movieId && !sameResourceId(booking.movieId ?? booking.movie?.id, params.movieId)) return false;
+    if (params.cinemaId && !sameResourceId(booking.cinemaId ?? booking.cinema?.id, params.cinemaId)) return false;
+    if (keyword) {
+      const haystack = [
+        booking.bookingCode,
+        booking.customerName,
+        booking.customerEmail,
+        booking.customerPhone,
+        booking.movieTitle,
+        booking.cinemaName,
+      ].filter(Boolean).join(' ').toLowerCase();
+      if (!haystack.includes(keyword)) return false;
+    }
+    return true;
+  });
+
+  const [sortKey = 'createdAt', sortDirection = 'desc'] = String(params.sort || 'createdAt,desc').replace(':', ',').split(',');
+  result = [...result].sort((left, right) => {
+    const leftValue = left?.[sortKey];
+    const rightValue = right?.[sortKey];
+    let compared;
+    if (['createdAt', 'updatedAt', 'expiresAt', 'paidAt', 'cancelledAt'].includes(sortKey)) {
+      compared = (new Date(leftValue || 0).getTime() || 0) - (new Date(rightValue || 0).getTime() || 0);
+    } else if (typeof leftValue === 'number' || typeof rightValue === 'number') {
+      compared = Number(leftValue || 0) - Number(rightValue || 0);
+    } else {
+      compared = String(leftValue || '').localeCompare(String(rightValue || ''), 'vi', { sensitivity: 'base' });
+    }
+    return String(sortDirection).toLowerCase() === 'asc' ? compared : -compared;
+  });
+  return result;
+};
+
 const bookingService = {
   // Administrative collection APIs. Customer pages must use getMy* methods.
   async listPage(params = {}) {
-    const data = unwrapApiData(await apiClient.get(base, { params }));
+    if (MOCK_API_ENABLED) {
+      return unwrapApiData(await apiClient.get(base, { params }));
+    }
+
+    const needsClientQuery = Boolean(
+      params.keyword
+      || params.status
+      || params.movieId
+      || params.cinemaId
+      || params.sort,
+    );
+    if (needsClientQuery) {
+      const data = unwrapApiData(await apiClient.get(base, { params: { page: 0, size: 2000 } }));
+      const enriched = await enrichRealBookings(pageContent(data));
+      return paginate(filterAndSortAdminBookings(enriched, params), params);
+    }
+
+    const data = unwrapApiData(await apiClient.get(base, { params: { page: params.page, size: params.size } }));
     return enrichBookingPage(data);
   },
 
@@ -112,11 +167,7 @@ const bookingService = {
   async getAdminBooking(identifier) {
     const normalized = normalizeResourceId(identifier);
     if (normalized == null) return null;
-
-    if (typeof normalized === 'number' || isUuid(normalized)) {
-      return this.getBookingById(normalized);
-    }
-
+    if (typeof normalized === 'number' || isUuid(normalized)) return this.getBookingById(normalized);
     const rows = await this.list({ page: 0, size: 500 });
     const code = String(identifier).trim().toUpperCase();
     return rows.find((item) => String(item.bookingCode || item.code || '').trim().toUpperCase() === code) || null;
@@ -125,13 +176,11 @@ const bookingService = {
   async getMyBookingById(bookingId) {
     const id = normalizeResourceId(bookingId);
     if (id == null) return null;
-
     if (MOCK_API_ENABLED) {
       const result = await this.getMyBookings({ page: 0, size: 500 });
       const rows = Array.isArray(result) ? result : result?.content || [];
       return rows.find((item) => sameResourceId(item.id ?? item.bookingId, id)) || null;
     }
-
     try {
       const booking = unwrapApiData(await apiClient.get(`${base}/my-bookings/${id}`));
       return booking ? (await enrichRealBookings([booking]))[0] || booking : null;
@@ -162,11 +211,7 @@ const bookingService = {
       promotionCode: data.promotionCode ? String(data.promotionCode).trim() : null,
       concessions: Array.isArray(data.concessions) ? data.concessions : undefined,
     };
-
-    if (MOCK_API_ENABLED) {
-      return unwrapApiData(await apiClient.post(base, payload));
-    }
-
+    if (MOCK_API_ENABLED) return unwrapApiData(await apiClient.post(base, payload));
     try {
       return unwrapApiData(await apiClient.post(`${base}/checkout`, payload));
     } catch (error) {
@@ -203,9 +248,7 @@ const bookingService = {
       return enrichBookingPage(data);
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
-      if (!MOCK_API_ENABLED) {
-        rethrowCapabilityError('danh sách booking của người dùng có kiểm soát ownership', error);
-      }
+      if (!MOCK_API_ENABLED) rethrowCapabilityError('danh sách booking của người dùng có kiểm soát ownership', error);
       const user = getUserInfo();
       if (!user?.id) return paginate([], params);
       const response = await apiClient.get(base, { params: { page: 0, size: 500 } });
@@ -259,10 +302,7 @@ const bookingService = {
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
       const rows = await this.list({ page: 0, size: 500 });
-      return {
-        totalBookings: rows.length,
-        totalAmount: rows.reduce((sum, item) => sum + Number(item.totalAmount || 0), 0),
-      };
+      return { totalBookings: rows.length, totalAmount: rows.reduce((sum, item) => sum + Number(item.totalAmount || 0), 0) };
     }
   },
 
@@ -309,10 +349,7 @@ const bookingService = {
 
   async checkSeatAvailability(showtimeId, seatIds) {
     try {
-      return unwrapApiData(await apiClient.post(`${base}/check-availability`, {
-        showtimeId: normalizeResourceId(showtimeId),
-        seatIds: normalizeResourceIds(seatIds),
-      }));
+      return unwrapApiData(await apiClient.post(`${base}/check-availability`, { showtimeId: normalizeResourceId(showtimeId), seatIds: normalizeResourceIds(seatIds) }));
     } catch (error) {
       rethrowCapabilityError('kiểm tra ghế theo thời gian thực', error);
     }
@@ -359,5 +396,5 @@ const bookingService = {
   },
 };
 
-export { enrichRealBookings };
+export { enrichRealBookings, filterAndSortAdminBookings };
 export default bookingService;
