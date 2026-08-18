@@ -139,10 +139,11 @@ const Header = () => {
       entry.id === item.id ? { ...entry, isRead: true, read: true } : entry
     )));
     try {
-      await notificationService.markAsRead(item.id);
+      await notificationService.markMineAsRead(item.id);
     } catch (error) {
       console.error('Error marking header notification as read:', error);
       setNotifications(previous);
+      if (error?.code === 'BACKEND_CAPABILITY_MISSING') setNotificationsCapabilityMissing(true);
       notification.error(error?.message || 'Không thể đánh dấu thông báo đã đọc');
     }
   };
@@ -151,7 +152,7 @@ const Header = () => {
     const previous = notifications;
     setNotifications((items) => items.map((item) => ({ ...item, isRead: true, read: true })));
     try {
-      await notificationService.markAllAsRead();
+      await notificationService.markAllMineAsRead();
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
       setNotifications(previous);
@@ -164,10 +165,11 @@ const Header = () => {
     const previous = notifications;
     setNotifications((items) => items.filter((entry) => entry.id !== item.id));
     try {
-      await notificationService.delete(item.id);
+      await notificationService.deleteMine(item.id);
     } catch (error) {
       console.error('Error deleting header notification:', error);
       setNotifications(previous);
+      if (error?.code === 'BACKEND_CAPABILITY_MISSING') setNotificationsCapabilityMissing(true);
       notification.error(error?.message || 'Không thể xóa thông báo');
     }
   };
@@ -244,7 +246,7 @@ const Header = () => {
                   <div>
                     <p className="text-sm font-semibold">Thông báo</p>
                     <p className="text-xs text-muted-foreground">
-                      {notificationsCapabilityMissing ? 'Backend chưa hỗ trợ danh sách cá nhân' : `${notificationCount} chưa đọc`}
+                      {notificationsCapabilityMissing ? 'Backend chưa hỗ trợ API cá nhân an toàn' : `${notificationCount} chưa đọc`}
                     </p>
                   </div>
                   {notificationCount > 0 && !notificationsCapabilityMissing && (
@@ -262,7 +264,7 @@ const Header = () => {
                     </div>
                   ) : notificationsCapabilityMissing ? (
                     <p className="p-6 text-center text-sm leading-6 text-muted-foreground">
-                      Chưa thể tải thông báo cá nhân an toàn. FE không đọc collection thông báo toàn hệ thống để lọc ở trình duyệt.
+                      Chưa thể đọc hoặc cập nhật thông báo cá nhân an toàn. FE không dùng generic notification CRUD trong customer context.
                     </p>
                   ) : notifications.length === 0 ? (
                     <p className="p-6 text-center text-sm text-muted-foreground">Không có thông báo</p>
