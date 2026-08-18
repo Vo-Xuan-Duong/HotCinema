@@ -1,13 +1,14 @@
 import { apiClient } from '@/utils/apiClient';
-import { unwrapApiArray, unwrapApiData } from '@/utils/apiResponse';
+import { unwrapApiData } from '@/utils/apiResponse';
 import { ENDPOINTS } from '@/utils/constants';
 import { isEndpointUnavailable } from '@/utils/backendCapability';
 import { normalizeResourceId } from '@/utils/resourceId';
 
 const base = ENDPOINTS.MOVIES;
+const PUBLIC_MOVIE_STATUSES = new Set(['NOW_SHOWING', 'COMING_SOON', 'ENDED']);
 const normalizeStatus = (value) => String(value || '').trim().toUpperCase();
-
 const asRows = (data) => Array.isArray(data) ? data : data?.content || [];
+
 const makePage = (rows, params = {}) => {
   const page = Math.max(0, Number(params.page || 0));
   const size = Math.max(1, Number(params.size || 10));
@@ -18,8 +19,64 @@ const makePage = (rows, params = {}) => {
     page,
     size,
     totalElements: rows.length,
-    totalPages: Math.ceil(rows.length / size),
+    totalPages: rows.length ? Math.ceil(rows.length / size) : 0,
+    first: page === 0,
+    last: rows.length === 0 || page >= Math.ceil(rows.length / size) - 1,
+    empty: rows.length === 0,
   };
+};
+
+const releaseYearOf = (movie) => {
+  const value = movie?.releaseDate;
+  if (!value) return null;
+  if (typeof value === 'object' && value.year) return Number(value.year);
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? Number(String(value).slice(0, 4)) || null : date.getFullYear();
+};
+
+const textOf = (movie) => [
+  movie?.title,
+  movie?.originalTitle,
+  movie?.director,
+  movie?.actors,
+  movie?.country,
+  movie?.productionCompany,
+].filter(Boolean).join(' ').toLowerCase();
+
+const compareValues = (left, right, key) => {
+  if (key === 'releaseDate' || key === 'createdAt' || key === 'updatedAt') {
+    const a = new Date(left?.[key] || 0).getTime();
+    const b = new Date(right?.[key] || 0).getTime();
+    return (Number.isFinite(a) ? a : 0) - (Number.isFinite(b) ? b : 0);
+  }
+  const a = left?.[key];
+  const b = right?.[key];
+  if (typeof a === 'number' || typeof b === 'number') return Number(a || 0) - Number(b || 0);
+  return String(a || '').localeCompare(String(b || ''), 'vi', { sensitivity: 'base' });
+};
+
+const filterAndSortRows = (rows, params = {}, { publicOnly = false } = {}) => {
+  const keyword = String(params.keyword || params.query || params.q || '').trim().toLowerCase();
+  const requestedStatus = normalizeStatus(params.status);
+  const requestedYear = params.releaseYear == null || params.releaseYear === '' ? null : Number(params.releaseYear);
+
+  let result = rows.filter((movie) => {
+    const status = normalizeStatus(movie?.status);
+    if (publicOnly && !PUBLIC_MOVIE_STATUSES.has(status)) return false;
+    if (keyword && !textOf(movie).includes(keyword)) return false;
+    if (requestedStatus && status !== requestedStatus) return false;
+    if (requestedYear && releaseYearOf(movie) !== requestedYear) return false;
+    return true;
+  });
+
+  const rawSort = String(params.sort || 'updatedAt,desc').replace(':', ',');
+  const [sortKey = 'updatedAt', sortOrder = 'desc'] = rawSort.split(',');
+  result = [...result].sort((left, right) => {
+    const compared = compareValues(left, right, sortKey);
+    return String(sortOrder).toLowerCase() === 'asc' ? compared : -compared;
+  });
+
+  return result;
 };
 
 const movieService = {
@@ -36,16 +93,25 @@ const movieService = {
     return unwrapApiData(await apiClient.get(`${base}/${normalizeResourceId(id)}`));
   },
 
+  async getPublicMovieById(id) {
+    const movie = await this.getMovieById(id);
+    if (!PUBLIC_MOVIE_STATUSES.has(normalizeStatus(movie?.status))) {
+      const error = new Error('Phim này hiện không được công khai.');
+      error.code = 'MOVIE_NOT_PUBLIC';
+      error.status = 404;
+      throw error;
+    }
+    return movie;
+  },
+
   async getByGenrePage(genre, params = {}) {
     try {
       return unwrapApiData(await apiClient.get(`${base}/genre/${encodeURIComponent(genre)}`, { params }));
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
-      const rows = await this.list();
-      const needle = String(genre || '').toLowerCase();
-      return makePage(rows.filter((movie) => (
-        Array.isArray(movie.genres) && movie.genres.some((item) => String(item?.name ?? item).toLowerCase() === needle)
-      )), params);
+      // Current MovieResponse has no genre relation. Returning an invented
+      // genre match from the browser would be misleading.
+      return makePage([], params);
     }
   },
 
@@ -58,7 +124,7 @@ const movieService = {
       return unwrapApiData(await apiClient.get(`${base}/coming-soon`, { params }));
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
-      const rows = (await this.list()).filter((movie) => normalizeStatus(movie.status) === 'COMING_SOON');
+      const rows = filterAndSortRows(await this.list(), { ...params, status: 'COMING_SOON' }, { publicOnly: true });
       return makePage(rows, params);
     }
   },
@@ -72,7 +138,7 @@ const movieService = {
       return unwrapApiData(await apiClient.get(`${base}/now-showing`, { params }));
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
-      const rows = (await this.list()).filter((movie) => normalizeStatus(movie.status) === 'NOW_SHOWING');
+      const rows = filterAndSortRows(await this.list(), { ...params, status: 'NOW_SHOWING' }, { publicOnly: true });
       return makePage(rows, params);
     }
   },
@@ -86,7 +152,9 @@ const movieService = {
       return unwrapApiData(await apiClient.get(`${base}/top-rated`, { params }));
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
-      const rows = [...await this.list()].sort((a, b) => Number(b.averageRating || b.ratingScore || 0) - Number(a.averageRating || a.ratingScore || 0));
+      // MovieResponse currently has no aggregate rating field, so use stable
+      // public ordering rather than fabricating a ranking.
+      const rows = filterAndSortRows(await this.list(), { ...params, sort: params.sort || 'updatedAt,desc' }, { publicOnly: true });
       return makePage(rows, params);
     }
   },
@@ -100,14 +168,25 @@ const movieService = {
       return unwrapApiData(await apiClient.get(`${base}/search`, { params }));
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
-      const keyword = String(params.keyword || params.query || params.q || '').trim().toLowerCase();
-      const rows = (await this.list()).filter((movie) => `${movie.title || ''} ${movie.originalTitle || ''} ${movie.director || ''} ${movie.actors || ''}`.toLowerCase().includes(keyword));
+      const rows = filterAndSortRows(await this.list(), params);
       return makePage(rows, params);
     }
   },
 
   async search(params = {}) {
     return asRows(await this.searchPage({ page: 0, size: 500, ...params }));
+  },
+
+  async searchPublicPage(params = {}) {
+    // Current backend exposes only generic CRUD, so customer filtering is
+    // intentionally performed over the public subset instead of trusting
+    // unsupported query parameters on GET /movies.
+    const rows = filterAndSortRows(await this.list(), params, { publicOnly: true });
+    return makePage(rows, params);
+  },
+
+  async searchPublic(params = {}) {
+    return asRows(await this.searchPublicPage({ page: 0, size: 500, ...params }));
   },
 
   async createMovie(body) {
@@ -151,4 +230,5 @@ const movieService = {
   },
 };
 
+export { filterAndSortRows as filterAndSortMovieRows, PUBLIC_MOVIE_STATUSES };
 export default movieService;
