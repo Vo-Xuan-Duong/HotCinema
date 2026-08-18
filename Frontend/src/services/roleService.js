@@ -1,72 +1,98 @@
 import { apiClient } from '@/utils/apiClient';
+import { unwrapApiArray, unwrapApiData } from '@/utils/apiResponse';
+import { createCapabilityError, isEndpointUnavailable } from '@/utils/backendCapability';
 import { ENDPOINTS } from '@/utils/constants';
+import { normalizeResourceId } from '@/utils/resourceId';
+
+const rowsOf = (response) => {
+  const data = unwrapApiData(response);
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.content)) return data.content;
+  return unwrapApiArray(response);
+};
 
 const roleService = {
-  // 1. Tạo Role Mới
-  createRole: async (data) => {
-    return apiClient.post(ENDPOINTS.ROLES, data);
+  async createRole(data) {
+    return unwrapApiData(await apiClient.post(ENDPOINTS.ROLES, data));
   },
 
-  // 2. Lấy Tất Cả Roles (Phân Trang)
-  getAllRoles: async (params = {}) => {
-    const { page = 0, size = 10, sort = 'id,asc' } = params;
-    return apiClient.get(ENDPOINTS.ROLES, {
-      params: { page, size, sort }
-    });
+  async getAllRoles(params = {}) {
+    const { page = 0, size = 10 } = params;
+    return unwrapApiData(await apiClient.get(ENDPOINTS.ROLES, { params: { page, size } }));
   },
 
-  // 3. Lấy Tất Cả Roles (Không Phân Trang)
-  getAllRolesList: async () => {
-    return apiClient.get(`${ENDPOINTS.ROLES}/all`);
+  async getAllRolesList() {
+    try {
+      return rowsOf(await apiClient.get(`${ENDPOINTS.ROLES}/all`));
+    } catch (error) {
+      if (!isEndpointUnavailable(error)) throw error;
+      return rowsOf(await apiClient.get(ENDPOINTS.ROLES, { params: { page: 0, size: 500 } }));
+    }
   },
 
-  // 4. Lấy Role Theo ID
-  getRoleById: async (roleId) => {
-    return apiClient.get(`${ENDPOINTS.ROLES}/${roleId}`);
+  async getRoleById(roleId) {
+    return unwrapApiData(await apiClient.get(`${ENDPOINTS.ROLES}/${normalizeResourceId(roleId)}`));
   },
 
-  // 5. Lấy Role Theo Code
-  getRoleByCode: async (code) => {
-    return apiClient.get(`${ENDPOINTS.ROLES}/code/${code}`);
+  async getRoleByCode(code) {
+    try {
+      return unwrapApiData(await apiClient.get(`${ENDPOINTS.ROLES}/code/${encodeURIComponent(code)}`));
+    } catch (error) {
+      if (!isEndpointUnavailable(error)) throw error;
+      const normalizedCode = String(code || '').trim().toUpperCase();
+      return (await this.getAllRolesList()).find(
+        (role) => String(role.code || '').trim().toUpperCase() === normalizedCode,
+      ) || null;
+    }
   },
 
-  // 6. Cập Nhật Role (PUT)
-  updateRole: async (roleId, data) => {
-    return apiClient.put(`${ENDPOINTS.ROLES}/${roleId}`, data);
+  async updateRole(roleId, data) {
+    return unwrapApiData(await apiClient.put(
+      `${ENDPOINTS.ROLES}/${normalizeResourceId(roleId)}`,
+      data,
+    ));
   },
 
-  // 7. Cập Nhật Role Một Phần (PATCH)
-  partialUpdateRole: async (roleId, data) => {
-    return apiClient.patch(`${ENDPOINTS.ROLES}/${roleId}`, data);
+  async partialUpdateRole(roleId, data) {
+    const id = normalizeResourceId(roleId);
+    try {
+      return unwrapApiData(await apiClient.patch(`${ENDPOINTS.ROLES}/${id}`, data));
+    } catch (error) {
+      if (!isEndpointUnavailable(error)) throw error;
+      const current = await this.getRoleById(id);
+      return this.updateRole(id, { ...current, ...data });
+    }
   },
 
-  // 8. Xóa Role
-  deleteRole: async (roleId) => {
-    return apiClient.delete(`${ENDPOINTS.ROLES}/${roleId}`);
+  async deleteRole(roleId) {
+    return apiClient.delete(`${ENDPOINTS.ROLES}/${normalizeResourceId(roleId)}`);
   },
 
-  // 9. Kích Hoạt Role
-  activateRole: async (roleId) => {
-    return apiClient.patch(`${ENDPOINTS.ROLES}/${roleId}/activate`);
+  async activateRole(roleId) {
+    const error = createCapabilityError('kích hoạt role');
+    error.roleId = normalizeResourceId(roleId);
+    throw error;
   },
 
-  // 10. Vô Hiệu Hóa Role
-  deactivateRole: async (roleId) => {
-    return apiClient.patch(`${ENDPOINTS.ROLES}/${roleId}/deactivate`);
+  async deactivateRole(roleId) {
+    const error = createCapabilityError('vô hiệu hóa role');
+    error.roleId = normalizeResourceId(roleId);
+    throw error;
   },
 
-  // 11. Thêm Permissions Vào Role
-  addPermissionsToRole: async (roleId, permissionIds) => {
-    return apiClient.post(`${ENDPOINTS.ROLES}/${roleId}/permissions`, permissionIds);
+  async addPermissionsToRole(roleId, permissionIds) {
+    const error = createCapabilityError('gán permission cho role');
+    error.roleId = normalizeResourceId(roleId);
+    error.permissionIds = permissionIds;
+    throw error;
   },
 
-  // 12. Xóa Permissions Khỏi Role
-  removePermissionsFromRole: async (roleId, permissionIds) => {
-    return apiClient.delete(`${ENDPOINTS.ROLES}/${roleId}/permissions`, {
-      data: permissionIds
-    });
+  async removePermissionsFromRole(roleId, permissionIds) {
+    const error = createCapabilityError('gỡ permission khỏi role');
+    error.roleId = normalizeResourceId(roleId);
+    error.permissionIds = permissionIds;
+    throw error;
   },
 };
 
 export default roleService;
-
