@@ -1,8 +1,11 @@
 import { apiClient } from '@/utils/apiClient';
 import { unwrapApiArray, unwrapApiData } from '@/utils/apiResponse';
+import { MOCK_API_ENABLED } from '@/mocks/mockConfig';
 import { ENDPOINTS } from '@/utils/constants';
 import { normalizeResourceId, sameResourceId } from '@/utils/resourceId';
 
+const SHOWTIME_BASE = MOCK_API_ENABLED ? '/showtime' : ENDPOINTS.SHOWTIMES;
+const SHOWTIME_SEAT_BASE = MOCK_API_ENABLED ? '/showtime-seats' : ENDPOINTS.SHOWTIMESEATS;
 const endpointUnavailable = (error) => [404, 405].includes(error?.status || error?.response?.status);
 const pageContent = (response) => {
   const data = unwrapApiData(response);
@@ -16,7 +19,7 @@ class ShowtimeService {
     const params = typeof paramsOrPage === 'number'
       ? { page: paramsOrPage, size: size ?? 10 }
       : (paramsOrPage || {});
-    return unwrapApiData(await apiClient.get(ENDPOINTS.SHOWTIMES, { params }));
+    return unwrapApiData(await apiClient.get(SHOWTIME_BASE, { params }));
   }
 
   async getShowtimesByDate(date, params = {}) {
@@ -34,7 +37,7 @@ class ShowtimeService {
   async getShowtimesByDateAndCinema(date, cinemaId, params = {}) {
     const id = normalizeResourceId(cinemaId);
     try {
-      return unwrapApiData(await apiClient.get(`${ENDPOINTS.SHOWTIMES}/cinema/${id}/date/${date}`, { params }));
+      return unwrapApiData(await apiClient.get(`${SHOWTIME_BASE}/cinema/${id}/date/${date}`, { params }));
     } catch (error) {
       if (!endpointUnavailable(error)) throw error;
       const result = await this.getAllShowtimes({ ...params, page: 0, size: 500 });
@@ -49,7 +52,7 @@ class ShowtimeService {
   async getCinemaShowtimesByMovieAndDate(movieId, date, params = {}) {
     const id = normalizeResourceId(movieId);
     try {
-      return unwrapApiData(await apiClient.get(`${ENDPOINTS.SHOWTIMES}/movie/${id}/date/${date}`, { params }));
+      return unwrapApiData(await apiClient.get(`${SHOWTIME_BASE}/movie/${id}/date/${date}`, { params }));
     } catch (error) {
       if (!endpointUnavailable(error)) throw error;
       const result = await this.getAllShowtimes({ ...params, page: 0, size: 500 });
@@ -63,7 +66,7 @@ class ShowtimeService {
 
   async getShowtimesWithFilters(filters = {}) {
     try {
-      return unwrapApiData(await apiClient.post(`${ENDPOINTS.SHOWTIMES}/filters`, filters));
+      return unwrapApiData(await apiClient.post(`${SHOWTIME_BASE}/filters`, filters));
     } catch (error) {
       if (!endpointUnavailable(error)) throw error;
       const result = await this.getAllShowtimes({ page: 0, size: 500 });
@@ -79,25 +82,25 @@ class ShowtimeService {
   }
 
   async getShowtimeById(id) {
-    return unwrapApiData(await apiClient.get(`${ENDPOINTS.SHOWTIMES}/${normalizeResourceId(id)}`));
+    return unwrapApiData(await apiClient.get(`${SHOWTIME_BASE}/${normalizeResourceId(id)}`));
   }
 
   async createShowtime(data) {
-    return unwrapApiData(await apiClient.post(ENDPOINTS.SHOWTIMES, data));
+    return unwrapApiData(await apiClient.post(SHOWTIME_BASE, data));
   }
 
   async updateShowtime(id, data) {
-    return unwrapApiData(await apiClient.put(`${ENDPOINTS.SHOWTIMES}/${normalizeResourceId(id)}`, data));
+    return unwrapApiData(await apiClient.put(`${SHOWTIME_BASE}/${normalizeResourceId(id)}`, data));
   }
 
   async deleteShowtime(id) {
-    return unwrapApiData(await apiClient.delete(`${ENDPOINTS.SHOWTIMES}/${normalizeResourceId(id)}`));
+    return unwrapApiData(await apiClient.delete(`${SHOWTIME_BASE}/${normalizeResourceId(id)}`));
   }
 
   async updateShowtimeStatus(id, status) {
     const normalizedId = normalizeResourceId(id);
     try {
-      return unwrapApiData(await apiClient.patch(`${ENDPOINTS.SHOWTIMES}/${normalizedId}/status`, { status }));
+      return unwrapApiData(await apiClient.patch(`${SHOWTIME_BASE}/${normalizedId}/status`, { status }));
     } catch (error) {
       if (!endpointUnavailable(error)) throw error;
       const current = await this.getShowtimeById(normalizedId);
@@ -108,15 +111,15 @@ class ShowtimeService {
   async getSeatsByShowtimeId(showtimeId) {
     const normalizedShowtimeId = normalizeResourceId(showtimeId);
     try {
-      return unwrapApiArray(await apiClient.get(`${ENDPOINTS.SHOWTIMES}/${normalizedShowtimeId}/seats`));
+      return unwrapApiArray(await apiClient.get(`${SHOWTIME_BASE}/${normalizedShowtimeId}/seats`));
     } catch (error) {
-      if (!endpointUnavailable(error)) throw error;
+      if (MOCK_API_ENABLED || !endpointUnavailable(error)) throw error;
 
       // Current backend exposes generic ShowtimeSeat and Seat CRUD resources.
       // Join them client-side as a compatibility fallback until the dedicated
       // seat-layout use-case endpoint is implemented server-side.
       const [showtimeSeatsResponse, seatsResponse] = await Promise.all([
-        apiClient.get(ENDPOINTS.SHOWTIMESEATS, { params: { page: 0, size: 500 } }),
+        apiClient.get(SHOWTIME_SEAT_BASE, { params: { page: 0, size: 500 } }),
         apiClient.get(ENDPOINTS.SEATS, { params: { page: 0, size: 1000 } }),
       ]);
 
@@ -148,7 +151,7 @@ class ShowtimeService {
     const showtime = normalizeResourceId(showtimeId);
     const seat = normalizeResourceId(seatIds);
     return unwrapApiData(await apiClient.post(
-      `${ENDPOINTS.SHOWTIMES}/${showtime}/lock-seat/${seat}`,
+      `${SHOWTIME_BASE}/${showtime}/lock-seat/${seat}`,
       null,
       { params: userId ? { userId: normalizeResourceId(userId) } : undefined },
     ));
@@ -156,7 +159,7 @@ class ShowtimeService {
 
   async unlockSeats(showtimeId, seatIds) {
     return unwrapApiData(await apiClient.post(
-      `${ENDPOINTS.SHOWTIMES}/${normalizeResourceId(showtimeId)}/unlock-seat/${normalizeResourceId(seatIds)}`,
+      `${SHOWTIME_BASE}/${normalizeResourceId(showtimeId)}/unlock-seat/${normalizeResourceId(seatIds)}`,
     ));
   }
 
