@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { CreditCard, Loader2, ShieldCheck } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup } from '@/components/ui/radio-group';
+import { MOCK_API_ENABLED } from '@/mocks/mockConfig';
 import bookingService from '@/services/bookingService';
 import paymentService from '@/services/paymentService';
 import useNotification from '@/hooks/useNotification';
@@ -141,7 +143,7 @@ const BookingPayment = () => {
   };
 
   const handleCancelBooking = async () => {
-    if (!bookingData?.bookingId) return navigate('/history');
+    if (!MOCK_API_ENABLED || !bookingData?.bookingId) return;
     try {
       setIsCancelling(true);
       await bookingService.updateBookingStatus(bookingData.bookingId, 'CANCELLED');
@@ -169,6 +171,15 @@ const BookingPayment = () => {
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><ShieldCheck className="h-4 w-4" />Thông tin thanh toán được xác nhận ở máy chủ</div>
         </div>
+
+        {!MOCK_API_ENABLED && (
+          <Alert
+            variant="warning"
+            showIcon
+            message="Hủy booking không khả dụng ở frontend hiện tại"
+            description="Backend chưa có cancel command riêng. FE không dùng generic Booking PUT để đổi trạng thái vì DTO đó chứa tổng tiền và lifecycle timestamps do server quản lý."
+          />
+        )}
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
           <Card>
@@ -209,11 +220,13 @@ const BookingPayment = () => {
 
               <div className="flex items-center justify-between border-t pt-3"><span className="font-semibold">Tổng cộng</span><span className="text-xl font-bold text-primary">{bookingTotal.toLocaleString('vi-VN')} ₫</span></div>
 
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                <Button variant="outline" onClick={handleCancelBooking} disabled={isProcessing || isCancelling}>
-                  {isCancelling && <Loader2 className="h-4 w-4 animate-spin" />}{isCancelling ? 'Đang hủy...' : 'Hủy booking'}
-                </Button>
-                <Button onClick={handlePayment} disabled={isCancelling || isProcessing || !paymentMethod}>
+              <div className={MOCK_API_ENABLED ? 'grid grid-cols-2 gap-2 pt-1' : 'pt-1'}>
+                {MOCK_API_ENABLED && (
+                  <Button variant="outline" onClick={handleCancelBooking} disabled={isProcessing || isCancelling}>
+                    {isCancelling && <Loader2 className="h-4 w-4 animate-spin" />}{isCancelling ? 'Đang hủy...' : 'Hủy booking'}
+                  </Button>
+                )}
+                <Button className="w-full" onClick={handlePayment} disabled={isCancelling || isProcessing || !paymentMethod}>
                   {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}{isProcessing ? 'Đang xử lý...' : 'Thanh toán'}
                 </Button>
               </div>
