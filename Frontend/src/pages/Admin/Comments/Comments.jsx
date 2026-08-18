@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Check, Eye, Loader2, MessageSquare, Trash2, User, X } from 'lucide-react';
 import { AdminPageHeader } from '@/layouts/admin/AdminPageHeader';
+import { Alert } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,14 +42,16 @@ const formatDate = (value) => {
 
 const Comments = () => {
   const notification = useNotification();
+  const reviewSupported = reviewService.isSupported();
   const [reviews, setReviews] = useState([]);
   const [movies, setMovies] = useState([]);
   const [selectedReview, setSelectedReview] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(reviewSupported);
   const [busyId, setBusyId] = useState(null);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
 
   const loadMovies = useCallback(async () => {
+    if (!reviewSupported) return;
     try {
       const result = await movieService.list({ page: 0, size: 200 });
       setMovies(Array.isArray(result) ? result : []);
@@ -56,11 +59,17 @@ const Comments = () => {
       console.error('Error loading movie references for reviews:', error);
       setMovies([]);
     }
-  }, []);
+  }, [reviewSupported]);
 
   const loadReviews = useCallback(async () => {
+    if (!reviewSupported) {
+      setReviews([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
     try {
-      setLoading(true);
       const response = await reviewService.getAllReviews({
         page: pagination.current - 1,
         size: pagination.pageSize,
@@ -73,32 +82,27 @@ const Comments = () => {
       console.error('Error loading reviews:', error);
       setReviews([]);
       setPagination((current) => ({ ...current, total: 0 }));
-      notification.error('Không thể tải danh sách bình luận');
+      notification.error(error?.message || 'Không thể tải danh sách bình luận');
     } finally {
       setLoading(false);
     }
-  }, [notification, pagination.current, pagination.pageSize]);
+  }, [notification, pagination.current, pagination.pageSize, reviewSupported]);
 
-  useEffect(() => {
-    loadMovies();
-  }, [loadMovies]);
-
-  useEffect(() => {
-    loadReviews();
-  }, [loadReviews]);
+  useEffect(() => { loadMovies(); }, [loadMovies]);
+  useEffect(() => { loadReviews(); }, [loadReviews]);
 
   const movieById = useMemo(
     () => new Map(movies.map((movie) => [String(movie.id), movie])),
-    [movies]
+    [movies],
   );
 
   const movieTitleFor = (review) => review.movieTitle
     || movieById.get(String(review.movieId))?.title
-    || (review.movieId ? `Phim #${review.movieId}` : 'Không có thông tin phim');
+    || (review.movieId ? `Phim ${String(review.movieId).slice(0, 8)}` : 'Không có thông tin phim');
 
   const runModeration = async (review, action) => {
+    setBusyId(review.id);
     try {
-      setBusyId(review.id);
       if (action === 'approve') {
         await reviewService.approveReview(review.id);
         notification.success('Đã duyệt bình luận');
@@ -117,7 +121,7 @@ const Comments = () => {
       }
     } catch (error) {
       console.error(`Error ${action} review:`, error);
-      notification.error(error?.response?.data?.message || 'Không thể cập nhật bình luận');
+      notification.error(error?.message || 'Không thể cập nhật bình luận');
     } finally {
       setBusyId(null);
     }
@@ -134,31 +138,22 @@ const Comments = () => {
             <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
           </Avatar>
           <div className="min-w-0">
-            <p className="truncate font-medium">{review.fullName || review.userName || `User #${review.userId || 'N/A'}`}</p>
-            {review.userId && <p className="text-xs text-muted-foreground">ID: {review.userId}</p>}
+            <p className="truncate font-medium">{review.fullName || review.userName || `User ${String(review.userId || 'N/A').slice(0, 8)}`}</p>
+            {review.userId && <p className="truncate text-xs text-muted-foreground">{review.userId}</p>}
           </div>
         </div>
       ),
     },
-    {
-      title: 'Phim',
-      key: 'movie',
-      render: (_, review) => <span className="text-sm">{movieTitleFor(review)}</span>,
-    },
+    { title: 'Phim', key: 'movie', render: (_, review) => <span className="text-sm">{movieTitleFor(review)}</span> },
     {
       title: 'Đánh giá',
       dataIndex: 'rating',
       key: 'rating',
-      render: (rating) => rating != null ? (
-        <div className="flex items-center gap-2"><StarRating readOnly value={Number(rating)} stars={5} /><span className="text-xs text-muted-foreground">{rating}/5</span></div>
-      ) : <span className="text-sm text-muted-foreground">Không có</span>,
+      render: (rating) => rating != null
+        ? <div className="flex items-center gap-2"><StarRating readOnly value={Number(rating)} stars={5} /><span className="text-xs text-muted-foreground">{rating}/5</span></div>
+        : <span className="text-sm text-muted-foreground">Không có</span>,
     },
-    {
-      title: 'Bình luận',
-      dataIndex: 'comment',
-      key: 'comment',
-      render: (comment) => <p className="max-w-[360px] line-clamp-2 text-sm">{comment || 'Không có nội dung'}</p>,
-    },
+    { title: 'Bình luận', dataIndex: 'comment', key: 'comment', render: (comment, review) => <p className="max-w-[360px] line-clamp-2 text-sm">{comment || review.content || 'Không có nội dung'}</p> },
     {
       title: 'Trạng thái',
       dataIndex: 'status',
@@ -192,17 +187,25 @@ const Comments = () => {
     <div className="space-y-6">
       <AdminPageHeader
         title="Quản lý bình luận"
-        description="Kiểm duyệt review bằng dữ liệu và trạng thái do backend trả về; frontend không tự gán likes, reports hoặc trạng thái mặc định."
-        breadcrumbs={[
-          { title: 'Dashboard', href: '/admin/dashboard' },
-          { title: 'Bình luận' },
-        ]}
+        description="Kiểm duyệt review khi backend cung cấp Review API."
+        breadcrumbs={[{ title: 'Dashboard', href: '/admin/dashboard' }, { title: 'Bình luận' }]}
       />
+
+      {!reviewSupported && (
+        <Alert
+          type="warning"
+          showIcon
+          message="Backend chưa có ReviewController"
+          description="Mock mode vẫn hỗ trợ review để phát triển UI. Real mode đã khóa create/read/moderation để không giả lập dữ liệu hoặc gọi endpoint không tồn tại."
+        />
+      )}
 
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><MessageSquare className="h-4 w-4 text-muted-foreground" />Danh sách bình luận</CardTitle></CardHeader>
         <CardContent>
-          {loading ? (
+          {!reviewSupported ? (
+            <Empty description="Review API chưa được backend triển khai" />
+          ) : loading ? (
             <div className="flex min-h-48 items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Đang tải bình luận...</div>
           ) : reviews.length === 0 ? (
             <Empty description="Chưa có bình luận nào" />
@@ -210,7 +213,7 @@ const Comments = () => {
             <DataTable fields={columns} rows={reviews} getRowId="id" pageControls={false} />
           )}
 
-          {pagination.total > 0 && (
+          {reviewSupported && pagination.total > 0 && (
             <Pagination
               className="mt-5 border-t pt-5"
               page={pagination.current}
@@ -233,23 +236,25 @@ const Comments = () => {
         maxWidth={680}
         actions={selectedReview ? [
           <Button key="close" variant="outline" onClick={() => setSelectedReview(null)}>Đóng</Button>,
-          reviewStatus(selectedReview.status).value !== 'APPROVED' ? <Button key="approve" disabled={busyId === selectedReview.id} onClick={() => runModeration(selectedReview, 'approve')}><Check className="h-4 w-4" />Duyệt</Button> : null,
+          reviewStatus(selectedReview.status).value !== 'APPROVED'
+            ? <Button key="approve" disabled={busyId === selectedReview.id} onClick={() => runModeration(selectedReview, 'approve')}><Check className="h-4 w-4" />Duyệt</Button>
+            : null,
         ].filter(Boolean) : null}
       >
         {selectedReview && (
           <div className="space-y-5">
             <DetailList columns={2}>
-              <DetailItem label="Người dùng">{selectedReview.fullName || selectedReview.userName || `User #${selectedReview.userId || 'N/A'}`}</DetailItem>
+              <DetailItem label="Người dùng">{selectedReview.fullName || selectedReview.userName || `User ${String(selectedReview.userId || 'N/A').slice(0, 8)}`}</DetailItem>
               <DetailItem label="Phim">{movieTitleFor(selectedReview)}</DetailItem>
               <DetailItem label="Đánh giá">{selectedReview.rating != null ? `${selectedReview.rating}/5` : 'Không có'}</DetailItem>
               <DetailItem label="Trạng thái"><StatusBadge tone={reviewStatus(selectedReview.status).tone}>{reviewStatus(selectedReview.status).label}</StatusBadge></DetailItem>
               <DetailItem label="Ngày tạo" wide>{formatDate(selectedReview.createdAt)}</DetailItem>
-              <DetailItem label="Nội dung" wide>{selectedReview.comment || 'Không có nội dung'}</DetailItem>
+              <DetailItem label="Nội dung" wide>{selectedReview.comment || selectedReview.content || 'Không có nội dung'}</DetailItem>
             </DetailList>
             {Array.isArray(selectedReview.replies) && selectedReview.replies.length > 0 && (
               <div>
                 <h3 className="mb-2 text-sm font-semibold">Phản hồi ({selectedReview.replies.length})</h3>
-                <div className="space-y-2">{selectedReview.replies.map((reply) => <div key={reply.id} className="rounded-md border p-3"><p className="text-sm font-medium">{reply.fullName || reply.userName || `User #${reply.userId || 'N/A'}`}</p><p className="mt-1 text-sm text-muted-foreground">{reply.comment || 'Không có nội dung'}</p></div>)}</div>
+                <div className="space-y-2">{selectedReview.replies.map((reply) => <div key={reply.id} className="rounded-md border p-3"><p className="text-sm font-medium">{reply.fullName || reply.userName || `User ${String(reply.userId || 'N/A').slice(0, 8)}`}</p><p className="mt-1 text-sm text-muted-foreground">{reply.comment || reply.content || 'Không có nội dung'}</p></div>)}</div>
               </div>
             )}
           </div>
