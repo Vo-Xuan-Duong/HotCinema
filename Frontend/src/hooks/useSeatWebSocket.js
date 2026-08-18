@@ -2,126 +2,105 @@ import { useEffect, useCallback, useRef, useState } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { MOCK_API_ENABLED } from '@/mocks/mockConfig';
+import { getAccessToken, getUserInfo } from '@/utils/authStorage';
+import { normalizeResourceId } from '@/utils/resourceId';
 
-/**
- * Custom Hook for Seat Booking WebSocket using STOMP.
- * In frontend mock mode we intentionally skip the real socket and expose a
- * connected state because seat lock/unlock is simulated by the mock API layer.
- * @param {string} showtimeId - ID of the showtime
- * @param {Function} onSeatUpdate - Callback when seat status changes
- */
+const statusToUpdateType = (status) => {
+  switch (String(status || '').toUpperCase()) {
+    case 'HELD': return 'locked';
+    case 'AVAILABLE': return 'unlocked';
+    case 'BOOKED': return 'booked';
+    case 'UNAVAILABLE': return 'unavailable';
+    case 'MAINTENANCE': return 'maintenance';
+    case 'BLOCKED': return 'blocked';
+    default: return null;
+  }
+};
+
 const useSeatWebSocket = (showtimeId, onSeatUpdate) => {
-    const [isConnected, setIsConnected] = useState(MOCK_API_ENABLED);
-    const stompClientRef = useRef(null);
-    const subscriptionRef = useRef(null);
+  const [isConnected, setIsConnected] = useState(MOCK_API_ENABLED);
+  const stompClientRef = useRef(null);
+  const subscriptionRef = useRef(null);
 
-    const getUserId = useCallback(() => {
-        let userId = localStorage.getItem('userId');
-        if (!userId) {
-            userId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-            localStorage.setItem('userId', userId);
-        }
-        return userId;
-    }, []);
+  const getUserId = useCallback(() => {
+    const user = getUserInfo();
+    return normalizeResourceId(user?.id) || null;
+  }, []);
 
-    const handleMessage = useCallback((message) => {
-        if (!onSeatUpdate) return;
+  const handleMessage = useCallback((message) => {
+    if (!onSeatUpdate) return;
+    try {
+      const data = JSON.parse(message.body);
+      const seatIds = Array.isArray(data.seatIds)
+        ? data.seatIds
+        : data.seatId != null
+          ? [data.seatId]
+          : [];
+      const updateType = data.type || statusToUpdateType(data.status);
+      if (!seatIds.length || !updateType) return;
 
-        try {
-            const data = JSON.parse(message.body);
-            const { seatId, status } = data;
+      onSeatUpdate({
+        ...data,
+        type: updateType,
+        seatIds: seatIds.map(normalizeResourceId).filter((id) => id != null),
+        userId: normalizeResourceId(data.userId ?? data.heldByUserId),
+      });
+    } catch (error) {
+      if (import.meta.env.DEV) console.error('Error parsing seat WebSocket message:', error);
+    }
+  }, [onSeatUpdate]);
 
-            if (!seatId || !status) {
-                console.warn('Invalid seat WebSocket message:', data);
-                return;
-            }
+  useEffect(() => {
+    if (!showtimeId) {
+      setIsConnected(false);
+      return undefined;
+    }
 
-            let updateType;
-            let userId = null;
+    if (MOCK_API_ENABLED) {
+      setIsConnected(true);
+      return () => setIsConnected(false);
+    }
 
-            switch (status.toUpperCase()) {
-                case 'HELD':
-                    updateType = 'locked';
-                    userId = data.userId || null;
-                    break;
-                case 'AVAILABLE':
-                    updateType = 'unlocked';
-                    break;
-                case 'BOOKED':
-                    updateType = 'booked';
-                    break;
-                case 'UNAVAILABLE':
-                    updateType = 'unavailable';
-                    break;
-                case 'MAINTENANCE':
-                    updateType = 'maintenance';
-                    break;
-                case 'BLOCKED':
-                    updateType = 'blocked';
-                    break;
-                default:
-                    updateType = 'available';
-                    break;
-            }
+    const token = getAccessToken();
+    const userId = getUserId();
+    const client = new Client({
+      webSocketFactory: () => new SockJS(import.meta.env.VITE_BOOKING_WS_URL || 'http://localhost:8080/ws-booking'),
+      connectHeaders: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(userId ? { userId: String(userId) } : {}),
+      },
+      debug: import.meta.env.DEV ? (message) => console.debug('STOMP:', message) : undefined,
+      reconnectDelay: 3000,
+      heartbeatIncoming: 30000,
+      heartbeatOutgoing: 30000,
+      onConnect: () => {
+        setIsConnected(true);
+        subscriptionRef.current = client.subscribe(`/topic/showtimes/${normalizeResourceId(showtimeId)}`, handleMessage);
+      },
+      onDisconnect: () => setIsConnected(false),
+      onStompError: (frame) => {
+        if (import.meta.env.DEV) console.error('STOMP error:', frame.headers?.message || frame.body);
+        setIsConnected(false);
+      },
+      onWebSocketError: (event) => {
+        if (import.meta.env.DEV) console.error('Seat WebSocket error:', event);
+        setIsConnected(false);
+      },
+    });
 
-            onSeatUpdate({
-                type: updateType,
-                seatIds: [seatId],
-                userId,
-            });
-        } catch (error) {
-            console.error('Error parsing seat WebSocket message:', error);
-        }
-    }, [onSeatUpdate]);
+    stompClientRef.current = client;
+    client.activate();
 
-    useEffect(() => {
-        if (!showtimeId) {
-            setIsConnected(false);
-            return undefined;
-        }
+    return () => {
+      subscriptionRef.current?.unsubscribe();
+      subscriptionRef.current = null;
+      stompClientRef.current?.deactivate();
+      stompClientRef.current = null;
+      setIsConnected(false);
+    };
+  }, [showtimeId, handleMessage, getUserId]);
 
-        if (MOCK_API_ENABLED) {
-            setIsConnected(true);
-            return () => setIsConnected(false);
-        }
-
-        const client = new Client({
-            webSocketFactory: () => new SockJS(import.meta.env.VITE_BOOKING_WS_URL || 'http://localhost:8080/ws-booking'),
-            connectHeaders: {
-                userId: getUserId(),
-            },
-            debug: import.meta.env.DEV ? (message) => console.debug('STOMP:', message) : undefined,
-            reconnectDelay: 3000,
-            heartbeatIncoming: 30000,
-            heartbeatOutgoing: 30000,
-            onConnect: () => {
-                setIsConnected(true);
-                subscriptionRef.current = client.subscribe(`/topic/showtimes/${showtimeId}`, handleMessage);
-            },
-            onDisconnect: () => setIsConnected(false),
-            onStompError: (frame) => {
-                console.error('STOMP error:', frame.headers?.message || frame.body);
-                setIsConnected(false);
-            },
-            onWebSocketError: (event) => {
-                console.error('Seat WebSocket error:', event);
-                setIsConnected(false);
-            },
-        });
-
-        stompClientRef.current = client;
-        client.activate();
-
-        return () => {
-            subscriptionRef.current?.unsubscribe();
-            subscriptionRef.current = null;
-            stompClientRef.current?.deactivate();
-            stompClientRef.current = null;
-            setIsConnected(false);
-        };
-    }, [showtimeId, handleMessage, getUserId]);
-
-    return { isConnected };
+  return { isConnected };
 };
 
 export default useSeatWebSocket;
