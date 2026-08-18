@@ -1,5 +1,6 @@
 import { apiClient } from '@/utils/apiClient';
 import { unwrapApiData } from '@/utils/apiResponse';
+import { MOCK_API_ENABLED } from '@/mocks/mockConfig';
 import { isEndpointUnavailable, rethrowCapabilityError } from '@/utils/backendCapability';
 import { normalizeResourceId, sameResourceId } from '@/utils/resourceId';
 
@@ -12,6 +13,10 @@ const rowsOf = (response) => {
 };
 
 const ticketService = {
+  isPdfDownloadSupported() {
+    return MOCK_API_ENABLED;
+  },
+
   async list(params = {}) {
     return rowsOf(await apiClient.get(base, { params: { page: 0, size: 500, ...params } }));
   },
@@ -26,6 +31,7 @@ const ticketService = {
       return rowsOf(await apiClient.get(`${base}/booking/${id}`));
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
+      if (!MOCK_API_ENABLED) rethrowCapabilityError('ticket theo booking có authorization backend', error);
       return (await this.list()).filter((ticket) => sameResourceId(ticket.bookingId, id));
     }
   },
@@ -36,6 +42,7 @@ const ticketService = {
       return unwrapApiData(await apiClient.get(`${base}/code/${encodeURIComponent(code)}`));
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
+      if (!MOCK_API_ENABLED) rethrowCapabilityError('tra cứu ticket code có authorization backend', error);
       return (await this.list()).find(
         (ticket) => String(ticket.ticketCode || '').trim().toUpperCase() === code,
       ) || null;
@@ -59,8 +66,6 @@ const ticketService = {
   async resolveBookingQrPayload(bookingId) {
     const tickets = await this.getTicketsByBookingId(bookingId);
     if (tickets.length === 0) return null;
-    // Prefer server-issued qrToken. A ticket code is an identification fallback
-    // for display only; validation still belongs to the backend scan command.
     return tickets.map((ticket) => ({
       id: ticket.id,
       ticketCode: ticket.ticketCode,
