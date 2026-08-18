@@ -15,9 +15,10 @@ import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import showtimeService, { normalizeShowtimeFormat, normalizeShowtimeStatus } from '@/services/showtimeService';
-import movieService from '@/services/movieService';
+import { MOCK_API_ENABLED } from '@/mocks/mockConfig';
 import cinemaService from '@/services/cinemaService';
+import movieService from '@/services/movieService';
+import showtimeService, { normalizeShowtimeFormat, normalizeShowtimeStatus } from '@/services/showtimeService';
 import useNotification from '@/hooks/useNotification';
 import { sameResourceId } from '@/utils/resourceId';
 
@@ -74,6 +75,17 @@ const pageOf = (response) => {
   return { content, totalElements: Number(response?.totalElements ?? content.length) };
 };
 
+const recordDateTime = (record, field) => {
+  const value = record?.[field];
+  if (!value) return null;
+  const raw = String(value);
+  if (/^\d{1,2}:\d{2}(?::\d{2})?$/.test(raw)) {
+    const date = record?.showDate || record?.date;
+    return date ? `${String(date).slice(0, 10)}T${raw.length === 5 ? `${raw}:00` : raw}` : null;
+  }
+  return value;
+};
+
 const toLocalDateTimeInput = (value) => {
   if (!value) return '';
   const date = new Date(value);
@@ -88,9 +100,10 @@ const toIso = (value) => {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 };
 
-const formatDateTime = (value) => value && dayjs(value).isValid()
-  ? dayjs(value).format('DD/MM/YYYY HH:mm')
-  : '—';
+const formatRecordDateTime = (record, field) => {
+  const value = recordDateTime(record, field);
+  return value && dayjs(value).isValid() ? dayjs(value).format('DD/MM/YYYY HH:mm') : '—';
+};
 
 const formatMoney = (value) => `${Number(value || 0).toLocaleString('vi-VN')} ₫`;
 const displayFormat = (value) => FORMAT_OPTIONS.find(([key]) => key === normalizeShowtimeFormat(value))?.[1] || value || '—';
@@ -117,11 +130,11 @@ const Schedules = () => {
   const loadReferences = useCallback(async () => {
     setReferencesLoading(true);
     try {
-      const [movieResponse, cinemaRows] = await Promise.all([
-        movieService.getNowShowing({ page: 0, size: 500 }),
+      const [movieRows, cinemaRows] = await Promise.all([
+        movieService.list({ page: 0, size: 500 }),
         cinemaService.getAllCinemasNoPagination(),
       ]);
-      setMovies(extractRows(movieResponse));
+      setMovies(Array.isArray(movieRows) ? movieRows : []);
       setCinemas((Array.isArray(cinemaRows) ? cinemaRows : []).filter((cinema) => cinema.isActive !== false));
     } catch (error) {
       console.error('Error loading showtime references:', error);
@@ -210,19 +223,25 @@ const Schedules = () => {
   const openEdit = async (schedule) => {
     const cinemaId = schedule.cinemaId ?? schedule.cinema?.id;
     if (cinemaId) await loadRooms(cinemaId);
+
+    const startValue = recordDateTime(schedule, 'startTime');
+    const endValue = recordDateTime(schedule, 'endTime');
+    const defaultBookingOpen = startValue ? dayjs(startValue).subtract(7, 'day').format('YYYY-MM-DDTHH:mm') : '';
+    const defaultBookingClose = startValue ? dayjs(startValue).subtract(15, 'minute').format('YYYY-MM-DDTHH:mm') : '';
+
     setSelectedSchedule(schedule);
     setFormValues({
       movieId: String(schedule.movieId ?? schedule.movie?.id ?? ''),
       cinemaId: String(cinemaId ?? ''),
-      auditoriumId: String(schedule.auditoriumId ?? schedule.roomId ?? schedule.auditorium?.id ?? ''),
-      startTime: toLocalDateTimeInput(schedule.startTime),
-      endTime: toLocalDateTimeInput(schedule.endTime),
-      language: schedule.language || '',
-      subtitle: schedule.subtitle || '',
+      auditoriumId: String(schedule.auditoriumId ?? schedule.roomId ?? schedule.theaterId ?? schedule.auditorium?.id ?? ''),
+      startTime: toLocalDateTimeInput(startValue),
+      endTime: toLocalDateTimeInput(endValue),
+      language: schedule.language || (MOCK_API_ENABLED ? 'VI' : ''),
+      subtitle: schedule.subtitle || (MOCK_API_ENABLED ? (String(schedule.audioType || '').toUpperCase() === 'ORIGINAL' ? 'NONE' : 'VI') : ''),
       format: normalizeShowtimeFormat(schedule.format ?? schedule.formatType) || 'FORMAT_2D',
       basePrice: schedule.basePrice ?? schedule.price ?? '',
-      bookingOpenAt: toLocalDateTimeInput(schedule.bookingOpenAt),
-      bookingCloseAt: toLocalDateTimeInput(schedule.bookingCloseAt),
+      bookingOpenAt: toLocalDateTimeInput(schedule.bookingOpenAt) || (MOCK_API_ENABLED ? defaultBookingOpen : ''),
+      bookingCloseAt: toLocalDateTimeInput(schedule.bookingCloseAt) || (MOCK_API_ENABLED ? defaultBookingClose : ''),
       status: normalizeShowtimeStatus(schedule.status) || 'SCHEDULED',
     });
     setFormOpen(true);
@@ -266,7 +285,7 @@ const Schedules = () => {
     if (!formValues.movieId || !formValues.cinemaId || !formValues.auditoriumId) return 'Vui lòng chọn phim, rạp và phòng chiếu';
     if (!formValues.startTime || !formValues.endTime) return 'Vui lòng nhập thời gian bắt đầu và kết thúc';
     if (!formValues.language.trim()) return 'Vui lòng nhập ngôn ngữ suất chiếu';
-    if (!formValues.subtitle.trim()) return 'Backend yêu cầu trường subtitle; dùng NONE nếu không có phụ đề';
+    if (!formValues.subtitle.trim()) return 'Backend yêu cầu subtitle; dùng NONE nếu không có phụ đề';
     if (Number(formValues.basePrice) <= 0) return 'Giá cơ bản phải lớn hơn 0';
     if (!formValues.bookingOpenAt || !formValues.bookingCloseAt) return 'Vui lòng nhập thời gian mở và đóng booking';
 
@@ -291,6 +310,7 @@ const Schedules = () => {
 
     const payload = {
       movieId: formValues.movieId,
+      cinemaId: formValues.cinemaId,
       auditoriumId: formValues.auditoriumId,
       startTime: toIso(formValues.startTime),
       endTime: toIso(formValues.endTime),
@@ -362,7 +382,7 @@ const Schedules = () => {
     {
       title: 'Suất chiếu',
       key: 'time',
-      render: (_, record) => <div className="min-w-[170px]"><p className="font-medium">{formatDateTime(record.startTime)}</p><p className="text-xs text-muted-foreground">đến {formatDateTime(record.endTime)}</p></div>,
+      render: (_, record) => <div className="min-w-[170px]"><p className="font-medium">{formatRecordDateTime(record, 'startTime')}</p><p className="text-xs text-muted-foreground">đến {formatRecordDateTime(record, 'endTime')}</p></div>,
     },
     { title: 'Giá cơ bản', key: 'price', render: (_, record) => <span className="font-medium">{formatMoney(record.basePrice ?? record.price)}</span> },
     {
@@ -407,85 +427,28 @@ const Schedules = () => {
       <Card>
         <CardHeader><CardTitle className="text-lg">Danh sách suất chiếu</CardTitle></CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="flex min-h-48 items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Đang tải lịch chiếu...</div>
-          ) : schedules.length === 0 ? (
-            <Empty description="Không có suất chiếu phù hợp" />
-          ) : (
-            <DataTable fields={columns} rows={schedules} getRowId="id" pageControls={false} />
-          )}
+          {loading ? <div className="flex min-h-48 items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Đang tải lịch chiếu...</div> : schedules.length === 0 ? <Empty description="Không có suất chiếu phù hợp" /> : <DataTable fields={columns} rows={schedules} getRowId="id" pageControls={false} />}
           {pagination.total > 0 && <Pagination className="mt-5 border-t pt-5" page={pagination.current} itemsPerPage={pagination.pageSize} totalItems={pagination.total} allowPageSizeChange allowPageJump onPageChange={(page) => setPagination((current) => ({ ...current, current: page }))} onPageSizeChange={(size) => setPagination((current) => ({ ...current, current: 1, pageSize: size }))} showTotal={(total, range) => `Hiển thị ${range[0]}-${range[1]} / ${total} suất chiếu`} />}
         </CardContent>
       </Card>
 
-      <ResponsiveDialog
-        heading={selectedSchedule ? 'Chỉnh sửa suất chiếu' : 'Thêm suất chiếu'}
-        description={selectedMovie ? `${selectedMovie.title} · ${selectedMovie.durationMinutes || selectedMovie.duration || '?'} phút` : 'Payload được gửi theo ShowtimeCreateRequest/UpdateRequest.'}
-        open={formOpen}
-        onClose={closeForm}
-        maxWidth={820}
-      >
+      <ResponsiveDialog heading={selectedSchedule ? 'Chỉnh sửa suất chiếu' : 'Thêm suất chiếu'} description={selectedMovie ? `${selectedMovie.title} · ${selectedMovie.durationMinutes || selectedMovie.duration || '?'} phút` : 'Payload được gửi theo ShowtimeCreateRequest/UpdateRequest.'} open={formOpen} onClose={closeForm} maxWidth={820}>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="space-y-2 text-sm font-medium"><span>Phim *</span><Select value={formValues.movieId} onValueChange={handleMovieChange}><SelectTrigger><SelectValue placeholder="Chọn phim" /></SelectTrigger><SelectContent>{movies.map((movie) => <SelectItem key={movie.id} value={String(movie.id)}>{movie.title}</SelectItem>)}</SelectContent></Select></label>
             <label className="space-y-2 text-sm font-medium"><span>Rạp *</span><Select value={formValues.cinemaId} onValueChange={handleCinemaChange}><SelectTrigger><SelectValue placeholder="Chọn rạp" /></SelectTrigger><SelectContent>{cinemas.map((cinema) => <SelectItem key={cinema.id} value={String(cinema.id)}>{cinema.name}</SelectItem>)}</SelectContent></Select></label>
           </div>
-
           <label className="block space-y-2 text-sm font-medium"><span>Phòng chiếu / Auditorium *</span><Select value={formValues.auditoriumId} disabled={!formValues.cinemaId || roomsLoading} onValueChange={(value) => setFormValues((current) => ({ ...current, auditoriumId: value }))}><SelectTrigger><SelectValue placeholder={roomsLoading ? 'Đang tải phòng...' : 'Chọn phòng'} /></SelectTrigger><SelectContent>{rooms.map((room) => <SelectItem key={room.id} value={String(room.id)}>{room.name} · {room.roomType || room.screenType}</SelectItem>)}</SelectContent></Select></label>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="space-y-2 text-sm font-medium"><span>Bắt đầu *</span><Input type="datetime-local" value={formValues.startTime} onChange={(event) => handleStartTimeChange(event.target.value)} required /></label>
-            <label className="space-y-2 text-sm font-medium"><span>Kết thúc *</span><Input type="datetime-local" value={formValues.endTime} onChange={(event) => setFormValues((current) => ({ ...current, endTime: event.target.value }))} required /><span className="block text-xs font-normal text-muted-foreground">Tự tính theo thời lượng phim khi có thể, vẫn cho phép chỉnh tay.</span></label>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="space-y-2 text-sm font-medium"><span>Ngôn ngữ *</span><Input value={formValues.language} onChange={(event) => setFormValues((current) => ({ ...current, language: event.target.value }))} placeholder="Ví dụ: VI, EN, JA" required /></label>
-            <label className="space-y-2 text-sm font-medium"><span>Phụ đề *</span><Input value={formValues.subtitle} onChange={(event) => setFormValues((current) => ({ ...current, subtitle: event.target.value }))} placeholder="Ví dụ: VI, EN hoặc NONE" required /></label>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <label className="space-y-2 text-sm font-medium"><span>Định dạng *</span><Select value={formValues.format} onValueChange={(value) => setFormValues((current) => ({ ...current, format: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{FORMAT_OPTIONS.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
-            <label className="space-y-2 text-sm font-medium"><span>Giá cơ bản *</span><NumberStepper min={0} value={formValues.basePrice} onValueChange={(value) => setFormValues((current) => ({ ...current, basePrice: value ?? '' }))} /></label>
-            <label className="space-y-2 text-sm font-medium"><span>Trạng thái *</span><Select value={formValues.status} onValueChange={(value) => setFormValues((current) => ({ ...current, status: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{STATUS_OPTIONS.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="space-y-2 text-sm font-medium"><span>Mở booking *</span><Input type="datetime-local" value={formValues.bookingOpenAt} onChange={(event) => setFormValues((current) => ({ ...current, bookingOpenAt: event.target.value }))} required /></label>
-            <label className="space-y-2 text-sm font-medium"><span>Đóng booking *</span><Input type="datetime-local" value={formValues.bookingCloseAt} onChange={(event) => setFormValues((current) => ({ ...current, bookingCloseAt: event.target.value }))} required /></label>
-          </div>
-
+          <div className="grid gap-4 sm:grid-cols-2"><label className="space-y-2 text-sm font-medium"><span>Bắt đầu *</span><Input type="datetime-local" value={formValues.startTime} onChange={(event) => handleStartTimeChange(event.target.value)} required /></label><label className="space-y-2 text-sm font-medium"><span>Kết thúc *</span><Input type="datetime-local" value={formValues.endTime} onChange={(event) => setFormValues((current) => ({ ...current, endTime: event.target.value }))} required /></label></div>
+          <div className="grid gap-4 sm:grid-cols-2"><label className="space-y-2 text-sm font-medium"><span>Ngôn ngữ *</span><Input value={formValues.language} onChange={(event) => setFormValues((current) => ({ ...current, language: event.target.value }))} placeholder="VI, EN, JA..." required /></label><label className="space-y-2 text-sm font-medium"><span>Phụ đề *</span><Input value={formValues.subtitle} onChange={(event) => setFormValues((current) => ({ ...current, subtitle: event.target.value }))} placeholder="VI, EN hoặc NONE" required /></label></div>
+          <div className="grid gap-4 sm:grid-cols-3"><label className="space-y-2 text-sm font-medium"><span>Định dạng *</span><Select value={formValues.format} onValueChange={(value) => setFormValues((current) => ({ ...current, format: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{FORMAT_OPTIONS.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label><label className="space-y-2 text-sm font-medium"><span>Giá cơ bản *</span><NumberStepper min={0} value={formValues.basePrice} onValueChange={(value) => setFormValues((current) => ({ ...current, basePrice: value ?? '' }))} /></label><label className="space-y-2 text-sm font-medium"><span>Trạng thái *</span><Select value={formValues.status} onValueChange={(value) => setFormValues((current) => ({ ...current, status: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{STATUS_OPTIONS.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label></div>
+          <div className="grid gap-4 sm:grid-cols-2"><label className="space-y-2 text-sm font-medium"><span>Mở booking *</span><Input type="datetime-local" value={formValues.bookingOpenAt} onChange={(event) => setFormValues((current) => ({ ...current, bookingOpenAt: event.target.value }))} required /></label><label className="space-y-2 text-sm font-medium"><span>Đóng booking *</span><Input type="datetime-local" value={formValues.bookingCloseAt} onChange={(event) => setFormValues((current) => ({ ...current, bookingCloseAt: event.target.value }))} required /></label></div>
           <div className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" onClick={closeForm}>Hủy</Button><Button type="submit" disabled={saving}>{saving && <Loader2 className="h-4 w-4 animate-spin" />}{selectedSchedule ? 'Lưu thay đổi' : 'Tạo suất chiếu'}</Button></div>
         </form>
       </ResponsiveDialog>
 
-      <ResponsiveDialog
-        heading="Chi tiết suất chiếu"
-        open={detailOpen}
-        onClose={() => { setDetailOpen(false); setSelectedSchedule(null); }}
-        maxWidth={720}
-        actions={selectedSchedule ? [
-          <Button key="close" variant="outline" onClick={() => { setDetailOpen(false); setSelectedSchedule(null); }}>Đóng</Button>,
-          <Button key="seats" variant="outline" onClick={() => navigate(`/admin/schedules/${selectedSchedule.id}/seats`)}><Grid3X3 className="h-4 w-4" />Ghế</Button>,
-          <Button key="edit" onClick={() => { const showtime = selectedSchedule; setDetailOpen(false); openEdit(showtime); }}><Edit className="h-4 w-4" />Chỉnh sửa</Button>,
-        ] : null}
-      >
-        {selectedSchedule && (
-          <DetailList columns={2}>
-            <DetailItem label="Phim">{selectedSchedule.movieTitle || selectedSchedule.movie?.title || '—'}</DetailItem>
-            <DetailItem label="Trạng thái">{statusMeta(selectedSchedule.status).label}</DetailItem>
-            <DetailItem label="Rạp">{selectedSchedule.cinemaName || selectedSchedule.cinema?.name || '—'}</DetailItem>
-            <DetailItem label="Phòng">{selectedSchedule.roomName || selectedSchedule.auditorium?.name || '—'}</DetailItem>
-            <DetailItem label="Bắt đầu">{formatDateTime(selectedSchedule.startTime)}</DetailItem>
-            <DetailItem label="Kết thúc">{formatDateTime(selectedSchedule.endTime)}</DetailItem>
-            <DetailItem label="Định dạng">{displayFormat(selectedSchedule.format)}</DetailItem>
-            <DetailItem label="Giá cơ bản">{formatMoney(selectedSchedule.basePrice ?? selectedSchedule.price)}</DetailItem>
-            <DetailItem label="Ngôn ngữ">{selectedSchedule.language || '—'}</DetailItem>
-            <DetailItem label="Phụ đề">{selectedSchedule.subtitle || '—'}</DetailItem>
-            <DetailItem label="Mở booking">{formatDateTime(selectedSchedule.bookingOpenAt)}</DetailItem>
-            <DetailItem label="Đóng booking">{formatDateTime(selectedSchedule.bookingCloseAt)}</DetailItem>
-            <DetailItem label="Showtime ID" wide>{selectedSchedule.id}</DetailItem>
-          </DetailList>
-        )}
+      <ResponsiveDialog heading="Chi tiết suất chiếu" open={detailOpen} onClose={() => { setDetailOpen(false); setSelectedSchedule(null); }} maxWidth={720} actions={selectedSchedule ? [<Button key="close" variant="outline" onClick={() => { setDetailOpen(false); setSelectedSchedule(null); }}>Đóng</Button>, <Button key="seats" variant="outline" onClick={() => navigate(`/admin/schedules/${selectedSchedule.id}/seats`)}><Grid3X3 className="h-4 w-4" />Ghế</Button>, <Button key="edit" onClick={() => { const showtime = selectedSchedule; setDetailOpen(false); openEdit(showtime); }}><Edit className="h-4 w-4" />Chỉnh sửa</Button>] : null}>
+        {selectedSchedule && <DetailList columns={2}><DetailItem label="Phim">{selectedSchedule.movieTitle || selectedSchedule.movie?.title || '—'}</DetailItem><DetailItem label="Trạng thái">{statusMeta(selectedSchedule.status).label}</DetailItem><DetailItem label="Rạp">{selectedSchedule.cinemaName || selectedSchedule.cinema?.name || '—'}</DetailItem><DetailItem label="Phòng">{selectedSchedule.roomName || selectedSchedule.auditorium?.name || '—'}</DetailItem><DetailItem label="Bắt đầu">{formatRecordDateTime(selectedSchedule, 'startTime')}</DetailItem><DetailItem label="Kết thúc">{formatRecordDateTime(selectedSchedule, 'endTime')}</DetailItem><DetailItem label="Định dạng">{displayFormat(selectedSchedule.format)}</DetailItem><DetailItem label="Giá cơ bản">{formatMoney(selectedSchedule.basePrice ?? selectedSchedule.price)}</DetailItem><DetailItem label="Ngôn ngữ">{selectedSchedule.language || '—'}</DetailItem><DetailItem label="Phụ đề">{selectedSchedule.subtitle || selectedSchedule.audioType || '—'}</DetailItem><DetailItem label="Mở booking">{selectedSchedule.bookingOpenAt ? formatRecordDateTime(selectedSchedule, 'bookingOpenAt') : '—'}</DetailItem><DetailItem label="Đóng booking">{selectedSchedule.bookingCloseAt ? formatRecordDateTime(selectedSchedule, 'bookingCloseAt') : '—'}</DetailItem><DetailItem label="Showtime ID" wide>{selectedSchedule.id}</DetailItem></DetailList>}
       </ResponsiveDialog>
     </div>
   );
