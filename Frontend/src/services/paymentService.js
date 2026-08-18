@@ -2,7 +2,7 @@ import { apiClient } from '@/utils/apiClient';
 import { unwrapApiArray, unwrapApiData } from '@/utils/apiResponse';
 import { ENDPOINTS } from '@/utils/constants';
 import { MOCK_API_ENABLED } from '@/mocks/mockConfig';
-import { isEndpointUnavailable, rethrowCapabilityError } from '@/utils/backendCapability';
+import { createCapabilityError, isEndpointUnavailable, rethrowCapabilityError } from '@/utils/backendCapability';
 import { normalizeResourceId, sameResourceId } from '@/utils/resourceId';
 
 const base = ENDPOINTS.PAYMENTS;
@@ -55,14 +55,13 @@ const paymentService = {
     }
 
     try {
-      // Payment amount/status/provider transaction IDs are server-owned. The
-      // frontend only requests initiation for a booking and selected provider.
       return normalizePayment(unwrapApiData(await apiClient.post(`${base}/initiate`, payload)));
     } catch (error) {
       rethrowCapabilityError('khởi tạo thanh toán an toàn', error);
     }
   },
 
+  // Admin collection methods. Customer flows must not call these.
   async listPage(params = { page: 0, size: 10, sort: 'createdAt,desc' }) {
     const data = unwrapApiData(await apiClient.get(base, { params }));
     if (Array.isArray(data)) return data.map(normalizePayment);
@@ -76,12 +75,14 @@ const paymentService = {
   },
 
   async getAllNoPagination() {
-    try {
-      return contentOf(await apiClient.get(`${base}/all-no-page`)).map(normalizePayment);
-    } catch (error) {
-      if (!isEndpointUnavailable(error)) throw error;
-      return this.list({ page: 0, size: 500 });
+    if (MOCK_API_ENABLED) {
+      try {
+        return contentOf(await apiClient.get(`${base}/all-no-page`)).map(normalizePayment);
+      } catch (error) {
+        if (!isEndpointUnavailable(error)) throw error;
+      }
     }
+    return this.list({ page: 0, size: 500 });
   },
 
   async getPaymentById(paymentId) {
@@ -94,7 +95,37 @@ const paymentService = {
       return contentOf(await apiClient.get(`${base}/booking/${id}`)).map(normalizePayment);
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
+      // Admin/reporting fallback only. Customer callback uses
+      // getMyPaymentForBooking instead.
       return (await this.list()).filter((payment) => sameResourceId(payment.bookingId ?? payment.booking?.id, id));
+    }
+  },
+
+  async getMyPaymentForBooking(bookingId, context = {}) {
+    const id = normalizeResourceId(bookingId);
+    if (!id) throw new Error('Booking ID không hợp lệ.');
+
+    if (MOCK_API_ENABLED) {
+      const payments = await this.getPaymentsByBookingId(id);
+      return payments.find((item) => (
+        (context.paymentId && sameResourceId(item.id, context.paymentId))
+        || (context.transactionId && String(item.transactionId || item.providerTransactionId || '') === String(context.transactionId))
+      )) || payments[0] || null;
+    }
+
+    try {
+      const result = unwrapApiData(await apiClient.get(`${base}/my/booking/${id}`));
+      if (Array.isArray(result)) {
+        const rows = result.map(normalizePayment);
+        return rows.find((item) => (
+          (context.paymentId && sameResourceId(item.id, context.paymentId))
+          || (context.transactionId && String(item.transactionId || item.providerTransactionId || '') === String(context.transactionId))
+        )) || rows[0] || null;
+      }
+      return result ? normalizePayment(result) : null;
+    } catch (error) {
+      if (!isEndpointUnavailable(error)) throw error;
+      throw createCapabilityError('xác nhận payment của booking hiện tại có kiểm soát ownership', error);
     }
   },
 
@@ -143,7 +174,6 @@ const paymentService = {
     try {
       return normalizePayment(unwrapApiData(await apiClient.patch(`${base}/${id}/status`, { status: normalizedStatus })));
     } catch (error) {
-      // Never fall back to generic PUT: payment status is provider/server-owned.
       rethrowCapabilityError('cập nhật trạng thái thanh toán', error);
     }
   },
