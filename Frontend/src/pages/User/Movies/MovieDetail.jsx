@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, Clock, Loader2, MapPin, Play, Share2, ShoppingCart, Star, UserRound } from 'lucide-react';
+import { CalendarDays, Clock, Loader2, MapPin, Play, Share2, ShoppingCart, Star } from 'lucide-react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { Button } from '@/components/ui/button';
@@ -12,12 +12,12 @@ import { StarRating } from '@/components/ui/star-rating';
 import { StatusBadge } from '@/components/ui/status-badge';
 import MovieCard from '@/components/MovieCard/MovieCard';
 import CommentsSection from '@/components/Comments/CommentsSection';
+import cinemaService from '@/services/cinemaService';
 import movieService from '@/services/movieService';
-import regionService from '@/services/regionService';
 import showtimeService from '@/services/showtimeService';
 import useNotification from '@/hooks/useNotification';
 
-const BOOKING_BLOCKED_STATUSES = new Set(['FULL', 'SALES_ENDED', 'COMPLETED', 'CANCELLED', 'POSTPONED']);
+const BOOKABLE_SHOWTIME_STATUSES = new Set(['OPEN', 'AVAILABLE']);
 
 const unwrapData = (response) => response?.data?.data ?? response?.data ?? response;
 const unwrapList = (response) => {
@@ -45,25 +45,23 @@ const formatTime = (value) => {
 };
 
 const showtimeStatusMeta = (status) => {
-  if (status === 'AVAILABLE') return { label: 'Còn vé', tone: 'success' };
-  if (status === 'ALMOST_FULL') return { label: 'Sắp hết', tone: 'warning' };
-  if (status === 'FULL') return { label: 'Hết chỗ', tone: 'destructive' };
-  if (status === 'CANCELLED') return { label: 'Đã hủy', tone: 'destructive' };
-  if (status === 'POSTPONED') return { label: 'Tạm hoãn', tone: 'warning' };
-  if (status === 'COMPLETED') return { label: 'Đã chiếu', tone: 'neutral' };
-  if (status === 'SALES_ENDED') return { label: 'Dừng bán', tone: 'neutral' };
-  return { label: status || 'Sắp chiếu', tone: 'info' };
+  const normalized = String(status || '').toUpperCase();
+  if (normalized === 'OPEN' || normalized === 'AVAILABLE') return { label: 'Đang mở bán', tone: 'success' };
+  if (normalized === 'SCHEDULED') return { label: 'Chưa mở bán', tone: 'info' };
+  if (normalized === 'CLOSED') return { label: 'Đã đóng bán', tone: 'neutral' };
+  if (normalized === 'CANCELLED') return { label: 'Đã hủy', tone: 'destructive' };
+  if (normalized === 'FINISHED') return { label: 'Đã chiếu', tone: 'neutral' };
+  return { label: normalized || 'Chưa xác định', tone: 'neutral' };
 };
 
 const flattenCinemaPage = (response) => {
   const payload = unwrapData(response) || {};
   const content = Array.isArray(payload) ? payload : Array.isArray(payload.content) ? payload.content : [];
-  const cinemas = content.map((cinema) => ({
+  return content.map((cinema) => ({
     id: cinema.cinemaId ?? cinema.id,
     name: cinema.cinemaName ?? cinema.name ?? 'Rạp chiếu',
     address: cinema.address || '',
-    cityName: cinema.cityName || '',
-    distance: cinema.distance,
+    cityName: cinema.cityName || cinema.city || '',
     showtimes: (Array.isArray(cinema.formats) ? cinema.formats : []).flatMap((format) =>
       (Array.isArray(format.showtimes) ? format.showtimes : []).map((showtime) => ({
         id: showtime.showtimeId ?? showtime.id,
@@ -72,17 +70,11 @@ const flattenCinemaPage = (response) => {
         roomId: showtime.roomId,
         roomName: showtime.roomName || '',
         price: Number(showtime.price ?? showtime.basePrice ?? 0),
-        status: showtime.status || 'AVAILABLE',
+        status: String(showtime.status || '').toUpperCase(),
         formatType: format.formatType || showtime.format || '',
       }))
-    ),
+    ).sort((left, right) => String(left.startTime).localeCompare(String(right.startTime))),
   }));
-
-  return {
-    cinemas,
-    page: Number(payload.number ?? 0),
-    totalPages: Number(payload.totalPages ?? (cinemas.length ? 1 : 0)),
-  };
 };
 
 const toMovieCard = (movie) => ({
@@ -90,11 +82,8 @@ const toMovieCard = (movie) => ({
   title: movie.title || 'HotCinema',
   poster: movie.posterUrl || movie.posterPath || movie.poster || '/brand-placeholder.svg',
   rating: Number(movie.averageRating ?? movie.voteAverage ?? movie.ratingScore ?? 0),
-  genre: Array.isArray(movie.genres)
-    ? movie.genres.map((genre) => typeof genre === 'string' ? genre : genre?.name).filter(Boolean).join(', ')
-    : movie.genre || '',
   releaseDate: formatReleaseDate(movie.releaseDate),
-  ageLabel: movie.rating || '',
+  ageLabel: movie.ageRating || movie.rating || '',
   duration: movie.durationFormatted || (movie.durationMinutes ? `${movie.durationMinutes} phút` : ''),
   description: movie.description || movie.overview || '',
   trailerUrl: movie.trailerUrl || movie.trailer || '',
@@ -119,14 +108,12 @@ const MovieDetail = () => {
 
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [regions, setRegions] = useState([]);
-  const [selectedRegionId, setSelectedRegionId] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [cities, setCities] = useState([]);
+  const [selectedCity, setSelectedCity] = useState('all');
   const [selectedDate, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'));
   const [cinemas, setCinemas] = useState([]);
   const [scheduleLoading, setScheduleLoading] = useState(false);
-  const [schedulePage, setSchedulePage] = useState(0);
-  const [scheduleTotalPages, setScheduleTotalPages] = useState(0);
-  const [loadingMoreSchedules, setLoadingMoreSchedules] = useState(false);
   const [relatedNowShowing, setRelatedNowShowing] = useState([]);
   const [relatedUpcoming, setRelatedUpcoming] = useState([]);
   const [trailer, setTrailer] = useState(null);
@@ -134,44 +121,43 @@ const MovieDetail = () => {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    movieService.getMovieById(id)
+    setLoadError('');
+    movieService.getPublicMovieById(id)
       .then((result) => {
         if (!active) return;
         if (!result) throw new Error('Không tìm thấy phim');
         setMovie(result);
       })
       .catch((error) => {
-        console.error('Error loading movie:', error);
+        console.error('Error loading public movie:', error);
         if (active) {
-          notification.error('Không thể tải thông tin phim');
-          navigate('/movies');
+          setMovie(null);
+          setLoadError(error?.message || 'Không thể tải thông tin phim');
         }
       })
       .finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [id, navigate, notification]);
+  }, [id]);
 
   useEffect(() => {
     let active = true;
-    regionService.getRegionsAllNoPage()
+    cinemaService.getPublicCinemas({ page: 0, size: 500 })
       .then((response) => {
         if (!active) return;
-        const data = unwrapList(response);
-        setRegions(data);
-        if (!selectedRegionId && data.length > 0) {
-          const preferred = data.find((region) => /hồ chí minh|ho chi minh/i.test(region.name || '') || region.slug === 'ho-chi-minh') || data[0];
-          setSelectedRegionId(String(preferred.id));
-        }
+        const rows = unwrapList(response);
+        const values = [...new Set(rows.map((cinema) => String(cinema.city || '').trim()).filter(Boolean))]
+          .sort((left, right) => left.localeCompare(right, 'vi', { sensitivity: 'base' }));
+        setCities(values);
       })
-      .catch((error) => console.error('Error loading regions:', error));
+      .catch((error) => console.error('Error loading public cinema cities:', error));
     return () => { active = false; };
-  }, [selectedRegionId]);
+  }, []);
 
   useEffect(() => {
     if (!movie?.id) return undefined;
     let active = true;
     Promise.all([
-      movieService.getNowShowingPage({ page: 0, size: 5, sort: 'createdAt,desc' }),
+      movieService.getNowShowingPage({ page: 0, size: 5, sort: 'updatedAt,desc' }),
       movieService.getComingSoonPage({ page: 0, size: 5, sort: 'releaseDate,asc' }),
     ])
       .then(([nowShowingResponse, upcomingResponse]) => {
@@ -183,29 +169,26 @@ const MovieDetail = () => {
     return () => { active = false; };
   }, [movie?.id]);
 
-  const loadSchedules = useCallback(async ({ page = 0, append = false } = {}) => {
+  const loadSchedules = useCallback(async () => {
     if (!movie?.id) return;
-    const setter = append ? setLoadingMoreSchedules : setScheduleLoading;
+    setScheduleLoading(true);
     try {
-      setter(true);
-      const params = { page, size: 5 };
-      if (selectedRegionId) params.cityId = Number(selectedRegionId);
-      const response = await showtimeService.getCinemaShowtimesByMovieAndDate(movie.id, selectedDate, params);
-      const normalized = flattenCinemaPage(response);
-      setCinemas((current) => append ? [...current, ...normalized.cinemas] : normalized.cinemas);
-      setSchedulePage(normalized.page);
-      setScheduleTotalPages(normalized.totalPages);
+      const response = await showtimeService.getCinemaShowtimesByMovieAndDate(movie.id, selectedDate, {
+        page: 0,
+        size: 500,
+      });
+      setCinemas(flattenCinemaPage(response));
     } catch (error) {
       console.error('Error loading showtimes:', error);
-      if (!append) setCinemas([]);
-      notification.error(append ? 'Không thể tải thêm rạp' : 'Không thể tải lịch chiếu');
+      setCinemas([]);
+      notification.error(error?.message || 'Không thể tải lịch chiếu');
     } finally {
-      setter(false);
+      setScheduleLoading(false);
     }
-  }, [movie?.id, notification, selectedDate, selectedRegionId]);
+  }, [movie?.id, notification, selectedDate]);
 
   useEffect(() => {
-    loadSchedules({ page: 0, append: false });
+    loadSchedules();
   }, [loadSchedules]);
 
   useEffect(() => {
@@ -217,12 +200,14 @@ const MovieDetail = () => {
   }, [location.hash, location.search, movie?.status]);
 
   const dates = useMemo(() => Array.from({ length: 7 }, (_, index) => dayjs().add(index, 'day')), []);
-  const genres = Array.isArray(movie?.genres)
-    ? movie.genres.map((genre) => typeof genre === 'string' ? genre : genre?.name).filter(Boolean)
-    : [];
   const averageRating = Number(movie?.averageRating ?? movie?.voteAverage ?? 0);
   const trailerUrl = movie?.trailerUrl || movie?.trailer || '';
-  const isNowShowing = movie?.status === 'NOW_SHOWING' || movie?.isActive === true;
+  const isNowShowing = movie?.status === 'NOW_SHOWING';
+  const visibleCinemas = useMemo(() => (
+    selectedCity === 'all'
+      ? cinemas
+      : cinemas.filter((cinema) => String(cinema.cityName || '') === selectedCity)
+  ), [cinemas, selectedCity]);
 
   const openTrailer = (targetMovie = movie) => {
     const url = targetMovie?.trailerUrl || targetMovie?.trailer || '';
@@ -237,7 +222,7 @@ const MovieDetail = () => {
   const shareMovie = async () => {
     try {
       if (navigator.share) {
-        await navigator.share({ title: movie.title, text: movie.description || movie.overview || '', url: window.location.href });
+        await navigator.share({ title: movie.title, text: movie.description || '', url: window.location.href });
       } else {
         await navigator.clipboard.writeText(window.location.href);
         notification.success('Đã sao chép liên kết phim');
@@ -248,11 +233,11 @@ const MovieDetail = () => {
   };
 
   const selectShowtime = (showtime) => {
-    if (!showtime?.id || BOOKING_BLOCKED_STATUSES.has(showtime.status)) return;
+    if (!showtime?.id || !BOOKABLE_SHOWTIME_STATUSES.has(String(showtime.status || '').toUpperCase())) return;
     navigate(`/booking/seats/${showtime.id}`);
   };
 
-  if (loading || !movie) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background pt-20">
         <div className="mx-auto max-w-7xl space-y-6 px-4 py-8">
@@ -263,8 +248,23 @@ const MovieDetail = () => {
     );
   }
 
+  if (!movie) {
+    return (
+      <div className="min-h-screen bg-background px-4 pb-16 pt-24">
+        <div className="mx-auto max-w-4xl">
+          <Card>
+            <CardContent className="py-8 text-center">
+              <Empty description={loadError || 'Phim không tồn tại hoặc chưa được công khai'} />
+              <Button type="button" variant="outline" className="mt-4" onClick={() => navigate('/movies')}>Về danh sách phim</Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   const poster = movie.posterUrl || movie.posterPath || movie.poster || '/brand-placeholder.svg';
-  const backdrop = movie.backdropUrl || movie.backdropPath || movie.backdrop_path || poster;
+  const backdrop = movie.bannerUrl || movie.backdropUrl || movie.backdropPath || poster;
 
   return (
     <main className="min-h-screen bg-background pb-16 pt-16 text-foreground">
@@ -276,17 +276,18 @@ const MovieDetail = () => {
           <img src={poster} alt={movie.title} className="aspect-[2/3] w-full rounded-lg border border-white/15 object-cover shadow-xl" onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }} />
           <div className="flex flex-col justify-end text-white">
             <div className="mb-3 flex flex-wrap gap-2">
-              <StatusBadge tone={isNowShowing ? 'success' : movie.status === 'COMING_SOON' ? 'warning' : 'neutral'}>{isNowShowing ? 'Đang chiếu' : movie.status === 'COMING_SOON' ? 'Sắp chiếu' : 'Đã kết thúc'}</StatusBadge>
-              {movie.rating && <StatusBadge tone="warning">{movie.rating}</StatusBadge>}
-              {genres.slice(0, 3).map((genre) => <StatusBadge key={genre} tone="info">{genre}</StatusBadge>)}
+              <StatusBadge tone={isNowShowing ? 'success' : movie.status === 'COMING_SOON' ? 'warning' : 'neutral'}>
+                {isNowShowing ? 'Đang chiếu' : movie.status === 'COMING_SOON' ? 'Sắp chiếu' : 'Đã kết thúc'}
+              </StatusBadge>
+              {movie.ageRating && <StatusBadge tone="warning">{movie.ageRating}</StatusBadge>}
             </div>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">{movie.title}</h1>
             {movie.originalTitle && movie.originalTitle !== movie.title && <p className="mt-2 text-lg text-white/70">{movie.originalTitle}</p>}
-            <p className="mt-5 max-w-3xl text-sm leading-6 text-white/80 sm:text-base">{movie.description || movie.overview || 'Nội dung phim đang được cập nhật.'}</p>
+            <p className="mt-5 max-w-3xl text-sm leading-6 text-white/80 sm:text-base">{movie.description || 'Nội dung phim đang được cập nhật.'}</p>
 
             <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm text-white/80">
               <span className="flex items-center gap-2"><CalendarDays className="h-4 w-4" />{formatReleaseDate(movie.releaseDate)}</span>
-              <span className="flex items-center gap-2"><Clock className="h-4 w-4" />{movie.durationMinutes ? `${movie.durationMinutes} phút` : movie.durationFormatted || 'Đang cập nhật'}</span>
+              <span className="flex items-center gap-2"><Clock className="h-4 w-4" />{movie.durationMinutes ? `${movie.durationMinutes} phút` : 'Đang cập nhật'}</span>
               {averageRating > 0 && <span className="flex items-center gap-2"><Star className="h-4 w-4 fill-current" />{averageRating.toFixed(1)}/10</span>}
             </div>
 
@@ -305,10 +306,10 @@ const MovieDetail = () => {
             <CardHeader><CardTitle className="text-xl">Thông tin phim</CardTitle></CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Đạo diễn</p><p className="mt-1 text-sm">{movie.director || 'Đang cập nhật'}</p></div>
-              <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Ngôn ngữ</p><p className="mt-1 text-sm">{movie.language || 'Đang cập nhật'}</p></div>
-              <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Phụ đề</p><p className="mt-1 text-sm">{movie.subtitle || 'Đang cập nhật'}</p></div>
-              <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Phân loại</p><p className="mt-1 text-sm">{movie.rating || 'Đang cập nhật'}</p></div>
-              <div className="sm:col-span-2"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Diễn viên</p><p className="mt-1 text-sm">{Array.isArray(movie.actors) ? movie.actors.join(', ') : movie.actors || 'Đang cập nhật'}</p></div>
+              <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Ngôn ngữ gốc</p><p className="mt-1 text-sm">{movie.originalLanguage || 'Đang cập nhật'}</p></div>
+              <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Quốc gia</p><p className="mt-1 text-sm">{movie.country || 'Đang cập nhật'}</p></div>
+              <div><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Phân loại</p><p className="mt-1 text-sm">{movie.ageRating || 'Đang cập nhật'}</p></div>
+              <div className="sm:col-span-2"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Diễn viên</p><p className="mt-1 text-sm">{movie.actors || 'Đang cập nhật'}</p></div>
             </CardContent>
           </Card>
 
@@ -317,7 +318,7 @@ const MovieDetail = () => {
             <CardContent>
               {averageRating > 0 ? (
                 <div className="space-y-3"><div className="flex items-end gap-2"><span className="text-4xl font-semibold">{averageRating.toFixed(1)}</span><span className="pb-1 text-muted-foreground">/10</span></div><StarRating readOnly value={averageRating / 2} precision={0.5} /></div>
-              ) : <p className="text-sm text-muted-foreground">Chưa có điểm đánh giá tổng hợp.</p>}
+              ) : <p className="text-sm text-muted-foreground">Backend hiện chưa trả điểm đánh giá tổng hợp cho MovieResponse.</p>}
             </CardContent>
           </Card>
         </section>
@@ -325,11 +326,14 @@ const MovieDetail = () => {
         {isNowShowing && (
           <section ref={scheduleRef} className="scroll-mt-24 space-y-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div><h2 className="text-2xl font-semibold">Lịch chiếu</h2><p className="mt-1 text-sm text-muted-foreground">Chọn khu vực, ngày và suất chiếu để sang bước chọn ghế thật.</p></div>
+              <div><h2 className="text-2xl font-semibold">Lịch chiếu</h2><p className="mt-1 text-sm text-muted-foreground">Chọn thành phố, ngày và suất OPEN để sang bước chọn ghế.</p></div>
               <div className="w-full lg:w-72">
-                <Select value={selectedRegionId || undefined} onValueChange={setSelectedRegionId}>
-                  <SelectTrigger><SelectValue placeholder="Chọn khu vực" /></SelectTrigger>
-                  <SelectContent>{regions.map((region) => <SelectItem key={region.id} value={String(region.id)}>{region.name}</SelectItem>)}</SelectContent>
+                <Select value={selectedCity} onValueChange={setSelectedCity}>
+                  <SelectTrigger><SelectValue placeholder="Chọn thành phố" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tất cả thành phố</SelectItem>
+                    {cities.map((city) => <SelectItem key={city} value={city}>{city}</SelectItem>)}
+                  </SelectContent>
                 </Select>
               </div>
             </div>
@@ -349,21 +353,21 @@ const MovieDetail = () => {
             <div className="space-y-4">
               {scheduleLoading ? (
                 <div className="flex min-h-40 items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Đang tải lịch chiếu...</div>
-              ) : cinemas.length === 0 ? (
-                <Empty description="Không có suất chiếu phù hợp với khu vực và ngày đã chọn" />
-              ) : cinemas.map((cinema) => (
+              ) : visibleCinemas.length === 0 ? (
+                <Empty description="Không có suất chiếu phù hợp với thành phố và ngày đã chọn" />
+              ) : visibleCinemas.map((cinema) => (
                 <Card key={cinema.id}>
                   <CardHeader className="pb-4">
-                    <CardTitle className="flex items-start gap-2 text-lg"><MapPin className="mt-0.5 h-4 w-4 text-muted-foreground" /><span>{cinema.name}<span className="mt-1 block text-sm font-normal text-muted-foreground">{cinema.address}{cinema.distance != null ? ` · ${Number(cinema.distance).toFixed(1)} km` : ''}</span></span></CardTitle>
+                    <CardTitle className="flex items-start gap-2 text-lg"><MapPin className="mt-0.5 h-4 w-4 text-muted-foreground" /><span>{cinema.name}<span className="mt-1 block text-sm font-normal text-muted-foreground">{[cinema.address, cinema.cityName].filter(Boolean).join(', ')}</span></span></CardTitle>
                   </CardHeader>
                   <CardContent>
                     {cinema.showtimes.length === 0 ? <p className="text-sm text-muted-foreground">Chưa có suất chiếu.</p> : (
                       <div className="flex flex-wrap gap-2">
                         {cinema.showtimes.map((showtime) => {
                           const meta = showtimeStatusMeta(showtime.status);
-                          const disabled = BOOKING_BLOCKED_STATUSES.has(showtime.status);
+                          const bookable = BOOKABLE_SHOWTIME_STATUSES.has(String(showtime.status || '').toUpperCase());
                           return (
-                            <Button key={showtime.id} type="button" variant="outline" className="h-auto min-w-28 flex-col items-start gap-1 px-3 py-2" disabled={disabled} onClick={() => selectShowtime(showtime)}>
+                            <Button key={showtime.id} type="button" variant="outline" className="h-auto min-w-28 flex-col items-start gap-1 px-3 py-2" disabled={!bookable} onClick={() => selectShowtime(showtime)}>
                               <span className="font-semibold">{showtime.startTime}</span>
                               <span className="text-xs text-muted-foreground">{showtime.formatType || '2D'}{showtime.roomName ? ` · ${showtime.roomName}` : ''}</span>
                               {showtime.price > 0 && <span className="text-xs">{showtime.price.toLocaleString('vi-VN')} ₫</span>}
@@ -377,10 +381,6 @@ const MovieDetail = () => {
                 </Card>
               ))}
             </div>
-
-            {schedulePage + 1 < scheduleTotalPages && (
-              <div className="text-center"><Button variant="outline" disabled={loadingMoreSchedules} onClick={() => loadSchedules({ page: schedulePage + 1, append: true })}>{loadingMoreSchedules && <Loader2 className="h-4 w-4 animate-spin" />}Xem thêm rạp</Button></div>
-            )}
           </section>
         )}
 
