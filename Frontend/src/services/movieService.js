@@ -9,6 +9,34 @@ const PUBLIC_MOVIE_STATUSES = new Set(['NOW_SHOWING', 'COMING_SOON', 'ENDED']);
 const normalizeStatus = (value) => String(value || '').trim().toUpperCase();
 const asRows = (data) => Array.isArray(data) ? data : data?.content || [];
 
+const localDate = (value) => {
+  if (!value) return null;
+  if (typeof value === 'object' && value.year && value.month && value.day) {
+    return `${String(value.year).padStart(4, '0')}-${String(value.month).padStart(2, '0')}-${String(value.day).padStart(2, '0')}`;
+  }
+  return String(value).slice(0, 10);
+};
+
+const toMoviePayload = (data = {}) => ({
+  title: String(data.title || '').trim(),
+  originalTitle: String(data.originalTitle || '').trim(),
+  slug: String(data.slug || '').trim(),
+  description: String(data.description || '').trim(),
+  durationMinutes: Number(data.durationMinutes ?? data.duration),
+  releaseDate: localDate(data.releaseDate),
+  endDate: localDate(data.endDate),
+  ageRating: String(data.ageRating || '').trim().toUpperCase(),
+  originalLanguage: String(data.originalLanguage || '').trim(),
+  director: String(data.director || '').trim(),
+  actors: String(data.actors || '').trim(),
+  country: String(data.country || '').trim(),
+  productionCompany: String(data.productionCompany || '').trim(),
+  posterUrl: String(data.posterUrl || data.poster || '').trim(),
+  bannerUrl: String(data.bannerUrl || data.backdropUrl || '').trim(),
+  trailerUrl: String(data.trailerUrl || data.trailer || '').trim(),
+  status: normalizeStatus(data.status || 'DRAFT'),
+});
+
 const makePage = (rows, params = {}) => {
   const page = Math.max(0, Number(params.page || 0));
   const size = Math.max(1, Number(params.size || 10));
@@ -109,8 +137,6 @@ const movieService = {
       return unwrapApiData(await apiClient.get(`${base}/genre/${encodeURIComponent(genre)}`, { params }));
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
-      // Current MovieResponse has no genre relation. Returning an invented
-      // genre match from the browser would be misleading.
       return makePage([], params);
     }
   },
@@ -152,8 +178,6 @@ const movieService = {
       return unwrapApiData(await apiClient.get(`${base}/top-rated`, { params }));
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
-      // MovieResponse currently has no aggregate rating field, so use stable
-      // public ordering rather than fabricating a ranking.
       const rows = filterAndSortRows(await this.list(), { ...params, sort: params.sort || 'updatedAt,desc' }, { publicOnly: true });
       return makePage(rows, params);
     }
@@ -178,9 +202,6 @@ const movieService = {
   },
 
   async searchPublicPage(params = {}) {
-    // Current backend exposes only generic CRUD, so customer filtering is
-    // intentionally performed over the public subset instead of trusting
-    // unsupported query parameters on GET /movies.
     const rows = filterAndSortRows(await this.list(), params, { publicOnly: true });
     return makePage(rows, params);
   },
@@ -190,11 +211,11 @@ const movieService = {
   },
 
   async createMovie(body) {
-    return unwrapApiData(await apiClient.post(base, body));
+    return unwrapApiData(await apiClient.post(base, toMoviePayload(body)));
   },
 
   async updateMovie(id, body) {
-    return unwrapApiData(await apiClient.put(`${base}/${normalizeResourceId(id)}`, body));
+    return unwrapApiData(await apiClient.put(`${base}/${normalizeResourceId(id)}`, toMoviePayload(body)));
   },
 
   async activeMovie(id) {
@@ -230,5 +251,5 @@ const movieService = {
   },
 };
 
-export { filterAndSortRows as filterAndSortMovieRows, PUBLIC_MOVIE_STATUSES };
+export { filterAndSortRows as filterAndSortMovieRows, PUBLIC_MOVIE_STATUSES, toMoviePayload };
 export default movieService;
