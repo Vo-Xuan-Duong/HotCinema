@@ -65,10 +65,11 @@ const Notifications = () => {
     if (isRead === true) return;
     try {
       setBusyId(item.id);
-      await notificationService.markAsRead(item.id);
+      await notificationService.markMineAsRead(item.id);
       setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, isRead: true, read: true } : entry));
     } catch (error) {
       console.error('Error marking notification as read:', error);
+      if (error?.code === 'BACKEND_CAPABILITY_MISSING') setCapabilityMessage(error.message);
       notification.error(error?.message || 'Không thể đánh dấu đã đọc');
     } finally {
       setBusyId(null);
@@ -80,10 +81,11 @@ const Notifications = () => {
     setItems((current) => current.filter((entry) => entry.id !== item.id));
     try {
       setBusyId(item.id);
-      await notificationService.delete(item.id);
+      await notificationService.deleteMine(item.id);
     } catch (error) {
       console.error('Error deleting notification:', error);
       setItems(previous);
+      if (error?.code === 'BACKEND_CAPABILITY_MISSING') setCapabilityMessage(error.message);
       notification.error(error?.message || 'Xóa thông báo thất bại');
     } finally {
       setBusyId(null);
@@ -95,7 +97,7 @@ const Notifications = () => {
     try {
       setMarkingAll(true);
       setItems((current) => current.map((entry) => ({ ...entry, isRead: true, read: true })));
-      await notificationService.markAllAsRead();
+      await notificationService.markAllMineAsRead();
       notification.success('Đã đánh dấu tất cả là đã đọc');
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
@@ -134,7 +136,7 @@ const Notifications = () => {
             variant="warning"
             showIcon
             message="Backend chưa có API thông báo cá nhân an toàn"
-            description={`${capabilityMessage} FE không tải collection thông báo toàn hệ thống để lọc theo user vì thao tác đó có thể làm lộ dữ liệu của tài khoản khác.`}
+            description={`${capabilityMessage} FE không dùng generic notification CRUD để giả lập thao tác customer vì identifier do browser chọn không đảm bảo ownership.`}
             className="mb-4"
           />
         )}
@@ -188,7 +190,7 @@ const Notifications = () => {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            disabled={busy}
+                            disabled={busy || Boolean(capabilityMessage)}
                             onClick={() => markAsRead(item)}
                             aria-label="Đánh dấu đã đọc"
                           >
@@ -200,7 +202,7 @@ const Notifications = () => {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
-                          disabled={busy}
+                          disabled={busy || Boolean(capabilityMessage)}
                           onClick={() => deleteNotification(item)}
                           aria-label="Xóa thông báo"
                         >
