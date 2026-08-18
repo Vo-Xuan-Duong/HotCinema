@@ -1,6 +1,6 @@
 import { apiClient } from '@/utils/apiClient';
 import { unwrapApiArray, unwrapApiData } from '@/utils/apiResponse';
-import { createCapabilityError, isEndpointUnavailable } from '@/utils/backendCapability';
+import { createCapabilityError } from '@/utils/backendCapability';
 import { ENDPOINTS } from '@/utils/constants';
 import { normalizeResourceId } from '@/utils/resourceId';
 
@@ -11,9 +11,15 @@ const rowsOf = (response) => {
   return unwrapApiArray(response);
 };
 
+const toRolePayload = (data = {}) => ({
+  code: String(data.code || '').trim().toUpperCase(),
+  name: String(data.name || '').trim(),
+  description: String(data.description || '').trim(),
+});
+
 const roleService = {
   async createRole(data) {
-    return unwrapApiData(await apiClient.post(ENDPOINTS.ROLES, data));
+    return unwrapApiData(await apiClient.post(ENDPOINTS.ROLES, toRolePayload(data)));
   },
 
   async getAllRoles(params = {}) {
@@ -22,12 +28,7 @@ const roleService = {
   },
 
   async getAllRolesList() {
-    try {
-      return rowsOf(await apiClient.get(`${ENDPOINTS.ROLES}/all`));
-    } catch (error) {
-      if (!isEndpointUnavailable(error)) throw error;
-      return rowsOf(await apiClient.get(ENDPOINTS.ROLES, { params: { page: 0, size: 500 } }));
-    }
+    return rowsOf(await apiClient.get(ENDPOINTS.ROLES, { params: { page: 0, size: 500 } }));
   },
 
   async getRoleById(roleId) {
@@ -35,33 +36,23 @@ const roleService = {
   },
 
   async getRoleByCode(code) {
-    try {
-      return unwrapApiData(await apiClient.get(`${ENDPOINTS.ROLES}/code/${encodeURIComponent(code)}`));
-    } catch (error) {
-      if (!isEndpointUnavailable(error)) throw error;
-      const normalizedCode = String(code || '').trim().toUpperCase();
-      return (await this.getAllRolesList()).find(
-        (role) => String(role.code || '').trim().toUpperCase() === normalizedCode,
-      ) || null;
-    }
+    const normalizedCode = String(code || '').trim().toUpperCase();
+    return (await this.getAllRolesList()).find(
+      (role) => String(role.code || '').trim().toUpperCase() === normalizedCode,
+    ) || null;
   },
 
   async updateRole(roleId, data) {
     return unwrapApiData(await apiClient.put(
       `${ENDPOINTS.ROLES}/${normalizeResourceId(roleId)}`,
-      data,
+      toRolePayload(data),
     ));
   },
 
   async partialUpdateRole(roleId, data) {
     const id = normalizeResourceId(roleId);
-    try {
-      return unwrapApiData(await apiClient.patch(`${ENDPOINTS.ROLES}/${id}`, data));
-    } catch (error) {
-      if (!isEndpointUnavailable(error)) throw error;
-      const current = await this.getRoleById(id);
-      return this.updateRole(id, { ...current, ...data });
-    }
+    const current = await this.getRoleById(id);
+    return this.updateRole(id, { ...current, ...data });
   },
 
   async deleteRole(roleId) {
@@ -95,4 +86,5 @@ const roleService = {
   },
 };
 
+export { toRolePayload };
 export default roleService;
