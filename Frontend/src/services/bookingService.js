@@ -2,6 +2,7 @@ import { apiClient } from '@/utils/apiClient';
 import { unwrapApiArray, unwrapApiData } from '@/utils/apiResponse';
 import { BOOKING_STATUS, ENDPOINTS } from '@/utils/constants';
 import { getUserInfo } from '@/utils/authStorage';
+import { MOCK_API_ENABLED } from '@/mocks/mockConfig';
 import { isEndpointUnavailable, rethrowCapabilityError } from '@/utils/backendCapability';
 import { normalizeResourceId, normalizeResourceIds, sameResourceId } from '@/utils/resourceId';
 
@@ -42,12 +43,24 @@ const bookingService = {
 
   async createBooking(data = {}) {
     const payload = {
-      ...data,
       showtimeId: normalizeResourceId(data.showtimeId),
       seatIds: normalizeResourceIds(data.seatIds || []),
       promotionCode: data.promotionCode ? String(data.promotionCode).trim() : null,
+      concessions: Array.isArray(data.concessions) ? data.concessions : undefined,
     };
-    return unwrapApiData(await apiClient.post(base, payload));
+
+    if (MOCK_API_ENABLED) {
+      return unwrapApiData(await apiClient.post(base, payload));
+    }
+
+    try {
+      // Real checkout is a business transaction. Do not fall back to the
+      // entity CRUD POST /bookings because that endpoint currently accepts
+      // client-owned totals/status/timestamps and cannot atomically hold seats.
+      return unwrapApiData(await apiClient.post(`${base}/checkout`, payload));
+    } catch (error) {
+      rethrowCapabilityError('tạo booking/checkout an toàn', error);
+    }
   },
 
   async updateBooking(bookingId, data) {
@@ -61,9 +74,8 @@ const bookingService = {
       return unwrapApiData(await apiClient.patch(`${base}/${id}/status`, { status: normalizedStatus }));
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
-      // Legacy CRUD backend fallback. Preserve all server-owned fields and only
-      // change the status; this is used for admin/cancel UX until a command
-      // endpoint is available.
+      // Compatibility fallback is retained for admin/cancel UX only. The
+      // backend remains authoritative for payment, ticket and seat state.
       const current = await this.getBookingById(id);
       return this.updateBooking(id, { ...current, status: normalizedStatus });
     }
@@ -113,7 +125,18 @@ const bookingService = {
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
       const rows = await this.list({ page: 0, size: 500 });
-      return rows.filter((item) => sameResourceId(item.userId ?? item.user?.id, id));
+      const filtered = rows.filter((item) => sameResourceId(item.userId ?? item.user?.id, id));
+      const page = Math.max(0, Number(params.page || 0));
+      const size = Math.max(1, Number(params.size || 10));
+      const start = page * size;
+      return {
+        content: filtered.slice(start, start + size),
+        totalElements: filtered.length,
+        totalPages: Math.ceil(filtered.length / size),
+        number: page,
+        page,
+        size,
+      };
     }
   },
 
@@ -192,11 +215,19 @@ const bookingService = {
   },
 
   async exportBookings(params) {
-    return apiClient.get(`${base}/export`, { params, responseType: 'blob' });
+    try {
+      return await apiClient.get(`${base}/export`, { params, responseType: 'blob' });
+    } catch (error) {
+      rethrowCapabilityError('xuất danh sách booking', error);
+    }
   },
 
   async downloadTicket(bookingCode) {
-    return apiClient.get(`${base}/code/${encodeURIComponent(bookingCode)}/qr`, { responseType: 'blob' });
+    try {
+      return await apiClient.get(`${base}/code/${encodeURIComponent(bookingCode)}/qr`, { responseType: 'blob' });
+    } catch (error) {
+      rethrowCapabilityError('tải QR booking', error);
+    }
   },
 
   getStatusDisplayName(status) {
