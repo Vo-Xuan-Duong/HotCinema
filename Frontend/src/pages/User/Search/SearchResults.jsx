@@ -3,6 +3,7 @@ import { Building2, MapPin, Search } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import ContentLoader from '@/components/Loading/ContentLoader';
 import MovieCard from '@/components/MovieCard/MovieCard';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Empty } from '@/components/ui/empty';
@@ -16,18 +17,14 @@ const normalizeMovie = (movie) => ({
   ...movie,
   poster: movie.poster || movie.posterUrl || movie.posterPath || '/brand-placeholder.svg',
   rating: Number(movie.averageRating ?? movie.rating ?? 0),
-  genre: Array.isArray(movie.genres)
-    ? movie.genres.map((genre) => typeof genre === 'string' ? genre : genre?.name).filter(Boolean).join(', ')
-    : typeof movie.genre === 'string'
-      ? movie.genre
-      : movie.genre?.name || '',
   releaseDate: movie.releaseDate || '',
-  description: movie.overview || movie.description || '',
+  description: movie.description || movie.overview || '',
 });
 
 const SearchResults = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [searchType, setSearchType] = useState(searchParams.get('type') || 'all');
   const [results, setResults] = useState({ movies: [], cinemas: [], total: 0 });
@@ -39,6 +36,7 @@ const SearchResults = () => {
     setSearchType(type);
 
     if (!query) {
+      setErrorMessage('');
       setResults({ movies: [], cinemas: [], total: 0 });
       return;
     }
@@ -47,16 +45,17 @@ const SearchResults = () => {
 
     const performSearch = async () => {
       setLoading(true);
+      setErrorMessage('');
       try {
         const shouldSearchMovies = type === 'all' || type === 'movies';
         const shouldSearchCinemas = type === 'all' || type === 'cinemas';
 
         const [moviesResponse, cinemasResponse] = await Promise.all([
           shouldSearchMovies
-            ? movieService.searchPage({ keyword: query, page: 0, size: 28 })
+            ? movieService.searchPublicPage({ keyword: query, page: 0, size: 28, sort: 'updatedAt,desc' })
             : Promise.resolve([]),
           shouldSearchCinemas
-            ? cinemaService.searchCinemas(query, { page: 0, size: 20 })
+            ? cinemaService.searchPublicCinemas(query, { page: 0, size: 20 })
             : Promise.resolve([]),
         ]);
 
@@ -67,23 +66,20 @@ const SearchResults = () => {
         const movies = (Array.isArray(movieData) ? movieData : movieData?.content || []).map(normalizeMovie);
         const cinemas = Array.isArray(cinemaData) ? cinemaData : cinemaData?.content || unwrapApiArray(cinemasResponse);
 
-        setResults({
-          movies,
-          cinemas,
-          total: movies.length + cinemas.length,
-        });
+        setResults({ movies, cinemas, total: movies.length + cinemas.length });
       } catch (error) {
-        console.error('Search error:', error);
-        if (!cancelled) setResults({ movies: [], cinemas: [], total: 0 });
+        console.error('Public search error:', error);
+        if (!cancelled) {
+          setResults({ movies: [], cinemas: [], total: 0 });
+          setErrorMessage(error?.message || 'Không thể thực hiện tìm kiếm.');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
 
     performSearch();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [searchParams]);
 
   const submitSearch = () => {
@@ -106,7 +102,7 @@ const SearchResults = () => {
             <p className="text-xs font-medium text-primary">HotCinema</p>
             <h1 className="mt-0.5 text-2xl font-semibold tracking-tight sm:text-3xl">Tìm kiếm</h1>
           </div>
-          <p className="max-w-2xl text-sm text-muted-foreground">Tìm phim hoặc rạp chiếu phù hợp với nhu cầu của bạn.</p>
+          <p className="max-w-2xl text-sm text-muted-foreground">Chỉ hiển thị phim và rạp đang được công khai cho khách hàng.</p>
         </header>
 
         <Card className="mb-5">
@@ -123,9 +119,7 @@ const SearchResults = () => {
             </div>
 
             <Select value={searchType} onValueChange={handleTypeChange}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả</SelectItem>
                 <SelectItem value="movies">Phim</SelectItem>
@@ -140,6 +134,10 @@ const SearchResults = () => {
           </CardContent>
         </Card>
 
+        {errorMessage && (
+          <Alert variant="destructive" showIcon message="Tìm kiếm thất bại" description={errorMessage} className="mb-4" />
+        )}
+
         {loading ? (
           <ContentLoader message="Đang tìm kiếm..." />
         ) : searchParams.get('q') ? (
@@ -150,20 +148,14 @@ const SearchResults = () => {
             </div>
 
             {results.total === 0 ? (
-              <Card>
-                <CardContent className="py-4">
-                  <Empty description="Không tìm thấy kết quả phù hợp" />
-                </CardContent>
-              </Card>
+              <Card><CardContent className="py-4"><Empty description="Không tìm thấy kết quả công khai phù hợp" /></CardContent></Card>
             ) : (
               <>
                 {results.movies.length > 0 && (
                   <section>
                     <h3 className="mb-3 text-base font-semibold">Phim ({results.movies.length})</h3>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
-                      {results.movies.map((movie) => (
-                        <MovieCard key={movie.id} movie={movie} />
-                      ))}
+                      {results.movies.map((movie) => <MovieCard key={movie.id} movie={movie} />)}
                     </div>
                   </section>
                 )}
@@ -185,14 +177,10 @@ const SearchResults = () => {
                               <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                               <span className="line-clamp-2">{cinema.address || 'Chưa cập nhật địa chỉ'}</span>
                             </div>
-                            <div className="mt-auto flex items-center justify-between gap-2 pt-1">
-                              <span className="text-xs text-muted-foreground">
-                                {cinema.rooms?.length > 0 ? `${cinema.rooms.length} phòng chiếu` : 'Thông tin rạp'}
-                              </span>
-                              <Button asChild variant="outline" size="sm">
-                                <Link to={`/cinemas/${cinema.id}`}>Xem rạp</Link>
-                              </Button>
-                            </div>
+                            {cinema.city && <p className="text-xs text-muted-foreground">{cinema.city}</p>}
+                            <Button asChild variant="outline" size="sm" className="mt-auto">
+                              <Link to={`/cinemas/${cinema.id}`}>Xem rạp</Link>
+                            </Button>
                           </CardContent>
                         </Card>
                       ))}
@@ -203,11 +191,7 @@ const SearchResults = () => {
             )}
           </div>
         ) : (
-          <Card>
-            <CardContent className="py-4">
-              <Empty description="Nhập từ khóa để bắt đầu tìm kiếm" />
-            </CardContent>
-          </Card>
+          <Card><CardContent className="py-4"><Empty description="Nhập từ khóa để bắt đầu tìm kiếm" /></CardContent></Card>
         )}
       </div>
     </div>
