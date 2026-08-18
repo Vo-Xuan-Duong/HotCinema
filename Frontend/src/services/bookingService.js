@@ -4,7 +4,7 @@ import { BOOKING_STATUS, ENDPOINTS } from '@/utils/constants';
 import { getUserInfo } from '@/utils/authStorage';
 import { MOCK_API_ENABLED } from '@/mocks/mockConfig';
 import { isEndpointUnavailable, rethrowCapabilityError } from '@/utils/backendCapability';
-import { normalizeResourceId, normalizeResourceIds, sameResourceId } from '@/utils/resourceId';
+import { isUuid, normalizeResourceId, normalizeResourceIds, sameResourceId } from '@/utils/resourceId';
 
 const base = ENDPOINTS.BOOKINGS;
 
@@ -43,6 +43,24 @@ const bookingService = {
 
   async getBookingById(bookingId) {
     return unwrapApiData(await apiClient.get(`${base}/${normalizeResourceId(bookingId)}`));
+  },
+
+  async getAdminBooking(identifier) {
+    const normalized = normalizeResourceId(identifier);
+    if (normalized == null) return null;
+
+    // Real backend booking ids are UUIDs; mock ids are numeric. Prefer the
+    // direct entity endpoint whenever the route already contains such an id.
+    if (typeof normalized === 'number' || isUuid(normalized)) {
+      return this.getBookingById(normalized);
+    }
+
+    // Admin screens are allowed to use the administrative collection to map a
+    // human booking code to its entity. Customer screens must never use this
+    // fallback; they use getMyBookings/getBookingByCode ownership commands.
+    const rows = await this.list({ page: 0, size: 500 });
+    const code = String(identifier).trim().toUpperCase();
+    return rows.find((item) => String(item.bookingCode || item.code || '').trim().toUpperCase() === code) || null;
   },
 
   async getBookingByCode(bookingCode) {
@@ -236,6 +254,14 @@ const bookingService = {
     } catch (error) {
       rethrowCapabilityError('tải QR booking', error);
     }
+  },
+
+  isBookingStatusCommandSupported() {
+    return MOCK_API_ENABLED;
+  },
+
+  isBookingDeleteRecommended() {
+    return MOCK_API_ENABLED;
   },
 
   getStatusDisplayName(status) {
