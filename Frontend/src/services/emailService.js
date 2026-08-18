@@ -1,20 +1,16 @@
-import { apiClient } from '@/utils/apiClient';
+import { createCapabilityError } from '@/utils/backendCapability';
 
 const emailService = {
-    /**
-     * Send ticket email by booking ID
-     * @param {number|string} bookingId - Booking ID
-     * @returns {Promise} Response message
-     */
-    async sendTicketEmail(bookingId) {
-        try {
-            const response = await apiClient.get(`/emails/send-ticket/${bookingId}`);
-            return response.data;
-        } catch (error) {
-            console.error('Error sending ticket email:', error);
-            throw error;
-        }
-    }
+  isTicketEmailSupported() {
+    return false;
+  },
+
+  async sendTicketEmail() {
+    // There is no EmailController/ticket-email command in the current backend.
+    // Do not call the legacy GET /emails/send-ticket/{id} endpoint: sending
+    // email is a state-changing command and GET would also be semantically wrong.
+    throw createCapabilityError('gửi vé qua email');
+  },
 };
 
 export default emailService;
