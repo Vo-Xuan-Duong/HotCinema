@@ -47,6 +47,14 @@ const toAuthResult = (response) => {
   };
 };
 
+const buildRegisterPayload = (data = {}) => ({
+  email: String(data.email || '').trim(),
+  fullName: String(data.fullName || '').trim(),
+  phone: String(data.phone ?? data.phoneNumber ?? '').trim(),
+  password: String(data.password || ''),
+  confirmPassword: String(data.confirmPassword || ''),
+});
+
 const verifyLocally = () => {
   const token = getAccessToken();
   if (!token || isJwtExpired(token)) throw new Error('Phiên đăng nhập đã hết hạn.');
@@ -90,7 +98,11 @@ export const authService = {
   },
 
   async register(data) {
-    return unwrapApiData(await api.post('/auth/register', data));
+    try {
+      return unwrapApiData(await api.post('/auth/register', buildRegisterPayload(data)));
+    } catch (error) {
+      rethrowCapabilityError('đăng ký tài khoản', error);
+    }
   },
 
   async refreshToken(refreshToken) {
@@ -229,4 +241,4 @@ export const authService = {
   },
 };
 
-export { normalizeUserProfile, toAuthResult };
+export { buildRegisterPayload, normalizeUserProfile, toAuthResult };
