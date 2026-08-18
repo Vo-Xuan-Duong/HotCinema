@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CreditCard, Loader2 } from 'lucide-react';
+import { CreditCard, Loader2, ShieldCheck } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { Button } from '@/components/ui/button';
@@ -8,46 +8,66 @@ import { RadioGroup } from '@/components/ui/radio-group';
 import bookingService from '@/services/bookingService';
 import paymentService from '@/services/paymentService';
 import useNotification from '@/hooks/useNotification';
+import { STORAGE_KEYS } from '@/utils/constants';
+
+const CHECKOUT_STORAGE_KEY = 'hotcinema_checkout_context';
+
+const readCheckoutContext = () => {
+  try {
+    return JSON.parse(window.sessionStorage.getItem(CHECKOUT_STORAGE_KEY) || 'null');
+  } catch {
+    return null;
+  }
+};
 
 const BookingPayment = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const notification = useNotification();
-  const bookingData = location.state;
-  const enabledMethods = (import.meta.env.VITE_PAYMENT_METHODS || 'MOMO')
-    .split(',')
-    .map((method) => method.trim().toUpperCase())
-    .filter(Boolean);
+  const [bookingData, setBookingData] = useState(() => location.state || readCheckoutContext());
+  const enabledMethods = useMemo(() => (
+    (import.meta.env.VITE_PAYMENT_METHODS || 'MOMO,VNPAY,ZALOPAY')
+      .split(',')
+      .map((method) => method.trim().toUpperCase())
+      .filter(Boolean)
+  ), []);
   const [paymentMethod, setPaymentMethod] = useState(enabledMethods[0]?.toLowerCase() || '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
 
   useEffect(() => {
-    if (!bookingData) {
-      notification.error('Không tìm thấy thông tin đặt vé');
-      navigate('/');
+    if (location.state) {
+      setBookingData(location.state);
+      window.sessionStorage.setItem(CHECKOUT_STORAGE_KEY, JSON.stringify(location.state));
     }
-  }, [bookingData, navigate, notification]);
+  }, [location.state]);
+
+  useEffect(() => {
+    if (!bookingData?.bookingId) {
+      notification.error('Không tìm thấy thông tin đơn đặt vé để thanh toán.');
+      navigate('/history', { replace: true });
+    }
+  }, [bookingData?.bookingId, navigate, notification]);
 
   const selectedSeats = useMemo(
     () => Array.isArray(bookingData?.selectedSeats) ? bookingData.selectedSeats : [],
-    [bookingData?.selectedSeats]
+    [bookingData?.selectedSeats],
   );
   const seatSubtotal = useMemo(
-    () => selectedSeats.reduce((sum, seat) => sum + Number(seat.price || 0), 0),
-    [selectedSeats]
+    () => Number(bookingData?.subtotal) || selectedSeats.reduce((sum, seat) => sum + Number(seat.price || 0), 0),
+    [bookingData?.subtotal, selectedSeats],
   );
   const bookingTotal = useMemo(() => {
-    const totalFromBooking = Number(bookingData?.totalAmount);
-    return Number.isFinite(totalFromBooking) && totalFromBooking >= 0 ? totalFromBooking : seatSubtotal;
+    const total = Number(bookingData?.totalAmount);
+    return Number.isFinite(total) && total >= 0 ? total : seatSubtotal;
   }, [bookingData?.totalAmount, seatSubtotal]);
-  const discountAmount = Math.max(seatSubtotal - bookingTotal, 0);
+  const discountAmount = Math.max(0, Number(bookingData?.discountAmount) || seatSubtotal - bookingTotal);
 
   const buildBookingSnapshot = (paymentData = {}) => ({
     bookingCode: paymentData.bookingCode || bookingData?.bookingCode,
     bookingId: bookingData?.bookingId,
     paymentId: paymentData.paymentId ?? paymentData.id,
-    transactionId: paymentData.transactionId,
+    transactionId: paymentData.transactionId || paymentData.providerTransactionId,
     movieTitle: bookingData?.movieTitle,
     moviePoster: bookingData?.moviePoster,
     cinemaName: bookingData?.cinemaName,
@@ -58,22 +78,17 @@ const BookingPayment = () => {
     showDate: bookingData?.showDate,
     showTime: bookingData?.showTime,
     formatType: bookingData?.formatType,
-    totalAmount: bookingTotal,
+    totalAmount: Number(paymentData.amount ?? bookingTotal),
     discountAmount,
     paymentMethod: paymentService.getPaymentMethodName(paymentMethod),
-    paymentDate: paymentData.paymentDate,
+    paymentDate: paymentData.paymentDate || paymentData.paidAt,
   });
 
+  const clearCheckoutContext = () => window.sessionStorage.removeItem(CHECKOUT_STORAGE_KEY);
+
   const handlePayment = async () => {
-    if (!paymentMethod) {
-      notification.warning('Vui lòng chọn phương thức thanh toán');
-      return;
-    }
-    if (!bookingData?.bookingId) {
-      notification.error('Không tìm thấy thông tin đơn đặt vé');
-      navigate('/');
-      return;
-    }
+    if (!paymentMethod) return notification.warning('Vui lòng chọn phương thức thanh toán.');
+    if (!bookingData?.bookingId) return notification.error('Đơn đặt vé không hợp lệ.');
 
     try {
       setIsProcessing(true);
@@ -81,42 +96,42 @@ const BookingPayment = () => {
         bookingId: bookingData.bookingId,
         paymentMethod: paymentMethod.toUpperCase(),
       });
+      const snapshot = buildBookingSnapshot(paymentData);
 
       if (paymentData?.paymentUrl) {
-        localStorage.setItem('pendingPayment', JSON.stringify(buildBookingSnapshot(paymentData)));
-        notification.info('Đang chuyển đến trang thanh toán...', 2500, true);
+        localStorage.setItem(STORAGE_KEYS.PENDING_PAYMENT, JSON.stringify(snapshot));
+        notification.info('Đang chuyển đến cổng thanh toán...', 2500, true);
         window.location.assign(paymentData.paymentUrl);
         return;
       }
 
-      if (String(paymentData?.paymentStatus || '').toUpperCase() === 'SUCCESS') {
-        const completed = buildBookingSnapshot(paymentData);
-        localStorage.setItem('lastBooking', JSON.stringify(completed));
+      if (String(paymentData?.paymentStatus || paymentData?.status || '').toUpperCase() === 'SUCCESS') {
+        localStorage.setItem(STORAGE_KEYS.LAST_BOOKING, JSON.stringify(snapshot));
+        localStorage.removeItem(STORAGE_KEYS.PENDING_PAYMENT);
+        clearCheckoutContext();
         notification.success('Thanh toán thành công!');
-        navigate('/booking/success', { state: { bookingData: completed } });
+        navigate('/booking/success', { replace: true, state: { bookingData: snapshot } });
         return;
       }
 
-      notification.error('Cổng thanh toán chưa trả về liên kết thanh toán. Vui lòng chọn phương thức khác.');
+      notification.warning('Giao dịch đã được tạo nhưng chưa hoàn tất. Bạn có thể kiểm tra trạng thái trong lịch sử đặt vé.');
+      navigate('/history', { replace: true });
     } catch (error) {
-      console.error('Payment error:', error);
-      if (error.response?.status === 404) {
-        notification.error('Không tìm thấy đơn đặt vé');
-        navigate('/');
-      } else if (error.response?.status === 400) {
-        notification.error(error.response?.data?.message || 'Thanh toán không hợp lệ');
-      } else if (error.response?.status === 409) {
-        notification.error('Booking đã được thanh toán rồi');
-      } else {
-        notification.error('Thanh toán thất bại. Vui lòng thử lại.');
+      if (error?.code === 'BACKEND_CAPABILITY_MISSING') {
+        notification.error(error.message);
+        return;
       }
+      if (error?.status === 409) notification.error('Booking đã có giao dịch thanh toán hoặc trạng thái không cho phép thanh toán lại.');
+      else if (error?.status === 404) notification.error('Không tìm thấy đơn đặt vé.');
+      else notification.error(error?.message || 'Thanh toán thất bại. Vui lòng thử lại.');
+
       navigate('/booking/failed', {
         state: {
           errorData: {
-            errorMessage: error.response?.data?.message || 'Có lỗi xảy ra trong quá trình thanh toán.',
+            errorMessage: error?.message || 'Có lỗi xảy ra trong quá trình thanh toán.',
             movieTitle: bookingData?.movieTitle,
-            reason: error.response?.data?.reason || 'Thanh toán không thành công.',
-            transactionId: error.response?.data?.transactionId || '',
+            reason: error?.response?.data?.reason || 'Thanh toán không thành công.',
+            transactionId: error?.response?.data?.transactionId || '',
           },
         },
       });
@@ -126,50 +141,54 @@ const BookingPayment = () => {
   };
 
   const handleCancelBooking = async () => {
-    if (!bookingData?.bookingId) {
-      notification.warning('Không tìm thấy thông tin đơn đặt vé để hủy');
-      navigate(-1);
-      return;
-    }
-
+    if (!bookingData?.bookingId) return navigate('/history');
     try {
       setIsCancelling(true);
       await bookingService.updateBookingStatus(bookingData.bookingId, 'CANCELLED');
-      notification.success('Đã hủy đơn đặt vé thành công');
-      navigate(-1);
+      clearCheckoutContext();
+      notification.success('Đã hủy đơn đặt vé.');
+      navigate('/history', { replace: true });
     } catch (error) {
-      console.error('Error cancelling booking:', error);
-      if (error.response?.status === 404) notification.warning('Đơn đặt vé không tồn tại');
-      else notification.error('Không thể hủy đơn đặt vé. Vui lòng thử lại.');
+      notification.error(error?.message || 'Không thể hủy đơn đặt vé.');
     } finally {
       setIsCancelling(false);
     }
   };
 
-  if (!bookingData) {
+  if (!bookingData?.bookingId) {
     return <div className="flex min-h-screen items-center justify-center bg-background"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
   return (
     <main className="min-h-screen bg-background px-4 pb-8 pt-20">
       <div className="mx-auto max-w-7xl space-y-5">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Thanh toán an toàn</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Hoàn tất thanh toán cho booking #{bookingData.bookingCode || bookingData.bookingId}.</p>
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Thanh toán</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Booking #{bookingData.bookingCode || bookingData.bookingId}</p>
           </div>
-          <span className="text-sm text-muted-foreground">{selectedSeats.length} ghế đã chọn</span>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground"><ShieldCheck className="h-4 w-4" />Thông tin thanh toán được xác nhận ở máy chủ</div>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
           <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-lg">Chọn phương thức thanh toán</CardTitle></CardHeader>
-            <CardContent>
+            <CardHeader className="pb-3"><CardTitle className="text-lg">Phương thức thanh toán</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
               <RadioGroup value={paymentMethod} onChange={setPaymentMethod} className="grid w-full gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {enabledMethods.includes('MOMO') && <RadioGroup.Button value="momo" className="h-auto w-full px-3 py-3"><div className="flex items-center gap-3"><img src="https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" alt="MoMo" className="h-10 w-10 object-contain" /><div className="min-w-0 text-left"><p className="font-semibold">MoMo</p><p className="truncate text-xs text-muted-foreground">Ví điện tử MoMo</p></div></div></RadioGroup.Button>}
-                {enabledMethods.includes('VNPAY') && <RadioGroup.Button value="vnpay" className="h-auto w-full px-3 py-3"><div className="flex items-center gap-3"><img src="https://vnpay.vn/s1/statics.vnpay.vn/2023/9/06ncktiwd6dc1694418196384.png" alt="VNPay" className="h-10 w-10 object-contain" /><div className="min-w-0 text-left"><p className="font-semibold">VNPay</p><p className="truncate text-xs text-muted-foreground">Thanh toán qua VNPay</p></div></div></RadioGroup.Button>}
-                {enabledMethods.includes('ZALOPAY') && <RadioGroup.Button value="zalopay" className="h-auto w-full px-3 py-3"><div className="flex items-center gap-3"><img src="https://cdn.haitrieu.com/wp-content/uploads/2022/10/Logo-ZaloPay-Square.png" alt="ZaloPay" className="h-10 w-10 object-contain" /><div className="min-w-0 text-left"><p className="font-semibold">ZaloPay</p><p className="truncate text-xs text-muted-foreground">Ví điện tử ZaloPay</p></div></div></RadioGroup.Button>}
+                {enabledMethods.map((method) => (
+                  <RadioGroup.Button key={method} value={method.toLowerCase()} className="h-auto w-full px-4 py-4">
+                    <div className="text-left">
+                      <p className="font-semibold">{paymentService.getPaymentMethodName(method)}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{method === 'MOMO' || method === 'ZALOPAY' ? 'Ví điện tử' : method === 'VNPAY' ? 'Ngân hàng / QR' : 'Thanh toán điện tử'}</p>
+                    </div>
+                  </RadioGroup.Button>
+                ))}
               </RadioGroup>
+              {!bookingData.serverPriced && (
+                <div className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
+                  Giá đang hiển thị là ước tính từ bước chọn ghế. Máy chủ/payment provider phải xác nhận số tiền cuối cùng trước khi giao dịch hoàn tất.
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -184,15 +203,19 @@ const BookingPayment = () => {
               </div>
 
               <div className="space-y-1.5 border-t pt-3 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Giá ghế ({selectedSeats.length})</span><span>{seatSubtotal.toLocaleString('vi-VN')} ₫</span></div>
-                {discountAmount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Giảm giá</span><span className="text-destructive">-{discountAmount.toLocaleString('vi-VN')} ₫</span></div>}
+                <div className="flex justify-between"><span className="text-muted-foreground">Tạm tính</span><span>{seatSubtotal.toLocaleString('vi-VN')} ₫</span></div>
+                {discountAmount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Giảm giá</span><span>-{discountAmount.toLocaleString('vi-VN')} ₫</span></div>}
               </div>
 
               <div className="flex items-center justify-between border-t pt-3"><span className="font-semibold">Tổng cộng</span><span className="text-xl font-bold text-primary">{bookingTotal.toLocaleString('vi-VN')} ₫</span></div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" onClick={handleCancelBooking} disabled={isProcessing || isCancelling}>{isCancelling && <Loader2 className="h-4 w-4 animate-spin" />}{isCancelling ? 'Đang hủy...' : 'Hủy booking'}</Button>
-                <Button onClick={handlePayment} disabled={isCancelling || isProcessing}>{isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}{isProcessing ? 'Đang xử lý...' : 'Thanh toán'}</Button>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <Button variant="outline" onClick={handleCancelBooking} disabled={isProcessing || isCancelling}>
+                  {isCancelling && <Loader2 className="h-4 w-4 animate-spin" />}{isCancelling ? 'Đang hủy...' : 'Hủy booking'}
+                </Button>
+                <Button onClick={handlePayment} disabled={isCancelling || isProcessing || !paymentMethod}>
+                  {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}{isProcessing ? 'Đang xử lý...' : 'Thanh toán'}
+                </Button>
               </div>
             </CardContent>
           </Card>
