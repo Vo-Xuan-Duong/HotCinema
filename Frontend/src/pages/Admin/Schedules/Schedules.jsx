@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Edit, Eye, Grid3X3, Loader2, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -15,76 +15,85 @@ import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import showtimeService from '@/services/showtimeService';
+import showtimeService, { normalizeShowtimeFormat, normalizeShowtimeStatus } from '@/services/showtimeService';
 import movieService from '@/services/movieService';
 import cinemaService from '@/services/cinemaService';
 import useNotification from '@/hooks/useNotification';
+import { sameResourceId } from '@/utils/resourceId';
 
 const DEFAULT_FORM = {
   movieId: '',
   cinemaId: '',
-  roomId: '',
-  format: 'TWO_D',
-  audioType: 'SUBTITLE',
-  date: '',
-  time: '',
-  price: '',
-  status: 'AVAILABLE',
+  auditoriumId: '',
+  startTime: '',
+  endTime: '',
+  language: '',
+  subtitle: '',
+  format: 'FORMAT_2D',
+  basePrice: '',
+  bookingOpenAt: '',
+  bookingCloseAt: '',
+  status: 'SCHEDULED',
 };
 
-const formats = [
-  ['TWO_D', '2D'],
-  ['THREE_D', '3D'],
+const FORMAT_OPTIONS = [
+  ['FORMAT_2D', '2D'],
+  ['FORMAT_3D', '3D'],
   ['IMAX', 'IMAX'],
-  ['IMAX_3D', 'IMAX 3D'],
-  ['FOUR_DX', '4DX'],
-  ['SCREEN_X', 'ScreenX'],
+  ['FORMAT_4DX', '4DX'],
+  ['SCREENX', 'ScreenX'],
 ];
 
-const audioTypes = [
-  ['SUBTITLE', 'Phụ đề'],
-  ['DUBBED', 'Lồng tiếng'],
-  ['ORIGINAL', 'Nguyên bản'],
-];
-
-const statuses = [
-  ['UPCOMING', 'Sắp chiếu'],
-  ['AVAILABLE', 'Còn vé'],
-  ['ALMOST_FULL', 'Sắp hết chỗ'],
-  ['FULL', 'Hết chỗ'],
-  ['SALES_ENDED', 'Dừng bán'],
-  ['COMPLETED', 'Đã kết thúc'],
+const STATUS_OPTIONS = [
+  ['SCHEDULED', 'Đã lên lịch'],
+  ['OPEN', 'Đang mở bán'],
+  ['CLOSED', 'Đã đóng bán'],
   ['CANCELLED', 'Đã hủy'],
-  ['POSTPONED', 'Tạm hoãn'],
+  ['FINISHED', 'Đã kết thúc'],
 ];
 
 const statusMeta = (status) => {
-  if (status === 'AVAILABLE') return { label: 'Còn vé', tone: 'success' };
-  if (status === 'UPCOMING') return { label: 'Sắp chiếu', tone: 'info' };
-  if (status === 'ALMOST_FULL' || status === 'SALES_ENDED' || status === 'POSTPONED') return { label: statuses.find(([key]) => key === status)?.[1] || status, tone: 'warning' };
-  if (status === 'FULL' || status === 'CANCELLED') return { label: statuses.find(([key]) => key === status)?.[1] || status, tone: 'destructive' };
-  if (status === 'COMPLETED') return { label: 'Đã kết thúc', tone: 'neutral' };
-  return { label: status || 'Không rõ', tone: 'neutral' };
+  const normalized = normalizeShowtimeStatus(status);
+  if (normalized === 'OPEN') return { label: 'Đang mở bán', tone: 'success' };
+  if (normalized === 'SCHEDULED') return { label: 'Đã lên lịch', tone: 'info' };
+  if (normalized === 'CLOSED') return { label: 'Đã đóng bán', tone: 'warning' };
+  if (normalized === 'CANCELLED') return { label: 'Đã hủy', tone: 'destructive' };
+  if (normalized === 'FINISHED') return { label: 'Đã kết thúc', tone: 'neutral' };
+  return { label: normalized || 'Không rõ', tone: 'neutral' };
 };
 
-const unwrapList = (response) => {
-  const payload = response?.data?.data ?? response?.data ?? response;
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.content)) return payload.content;
+const extractRows = (response) => {
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response?.content)) return response.content;
   return [];
 };
 
-const unwrapPage = (response) => {
-  const payload = response?.data?.data ?? response?.data ?? response;
-  if (Array.isArray(payload)) return { content: payload, totalElements: payload.length };
-  const content = Array.isArray(payload?.content) ? payload.content : [];
-  return { content, totalElements: Number(payload?.totalElements ?? payload?.total ?? content.length) };
+const pageOf = (response) => {
+  if (Array.isArray(response)) return { content: response, totalElements: response.length };
+  const content = Array.isArray(response?.content) ? response.content : [];
+  return { content, totalElements: Number(response?.totalElements ?? content.length) };
 };
 
-const normalizeId = (value) => value === null || value === undefined ? '' : String(value);
+const toLocalDateTimeInput = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+};
+
+const toIso = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+
+const formatDateTime = (value) => value && dayjs(value).isValid()
+  ? dayjs(value).format('DD/MM/YYYY HH:mm')
+  : '—';
+
 const formatMoney = (value) => `${Number(value || 0).toLocaleString('vi-VN')} ₫`;
-const displayFormat = (value) => formats.find(([key]) => key === value)?.[1] || value || '—';
-const displayAudio = (value) => audioTypes.find(([key]) => key === value)?.[1] || value || '—';
+const displayFormat = (value) => FORMAT_OPTIONS.find(([key]) => key === normalizeShowtimeFormat(value))?.[1] || value || '—';
 
 const Schedules = () => {
   const navigate = useNavigate();
@@ -106,34 +115,34 @@ const Schedules = () => {
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
 
   const loadReferences = useCallback(async () => {
+    setReferencesLoading(true);
     try {
-      setReferencesLoading(true);
-      const [movieResponse, cinemaResponse] = await Promise.all([
-        movieService.getNowShowing({ page: 0, size: 200 }),
-        cinemaService.getAllCinemas({ page: 0, size: 200 }),
+      const [movieResponse, cinemaRows] = await Promise.all([
+        movieService.getNowShowing({ page: 0, size: 500 }),
+        cinemaService.getAllCinemasNoPagination(),
       ]);
-      setMovies(unwrapList(movieResponse));
-      setCinemas(unwrapList(cinemaResponse).filter((cinema) => cinema.isActive !== false));
+      setMovies(extractRows(movieResponse));
+      setCinemas((Array.isArray(cinemaRows) ? cinemaRows : []).filter((cinema) => cinema.isActive !== false));
     } catch (error) {
-      console.error('Error loading schedule references:', error);
-      notification.error('Không thể tải danh sách phim hoặc rạp');
+      console.error('Error loading showtime references:', error);
       setMovies([]);
       setCinemas([]);
+      notification.error(error?.message || 'Không thể tải danh sách phim hoặc rạp');
     } finally {
       setReferencesLoading(false);
     }
   }, [notification]);
 
   const loadSchedules = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const hasFilters = movieFilter !== 'all' || cinemaFilter !== 'all';
       if (hasFilters) {
-        const filterRequest = {};
-        if (movieFilter !== 'all') filterRequest.movieId = Number(movieFilter);
-        if (cinemaFilter !== 'all') filterRequest.cinemaId = Number(cinemaFilter);
-        const response = await showtimeService.getShowtimesWithFilters(filterRequest);
-        const filtered = unwrapList(response);
+        const response = await showtimeService.getShowtimesWithFilters({
+          ...(movieFilter !== 'all' ? { movieId: movieFilter } : {}),
+          ...(cinemaFilter !== 'all' ? { cinemaId: cinemaFilter } : {}),
+        });
+        const filtered = extractRows(response);
         const start = (pagination.current - 1) * pagination.pageSize;
         setSchedules(filtered.slice(start, start + pagination.pageSize));
         setPagination((current) => ({ ...current, total: filtered.length }));
@@ -141,45 +150,40 @@ const Schedules = () => {
         const response = await showtimeService.getAllShowtimes({
           page: pagination.current - 1,
           size: pagination.pageSize,
-          sort: 'showDate,desc',
         });
-        const page = unwrapPage(response);
+        const page = pageOf(response);
         setSchedules(page.content);
         setPagination((current) => ({ ...current, total: page.totalElements }));
       }
     } catch (error) {
-      console.error('Error loading schedules:', error);
+      console.error('Error loading showtimes:', error);
       setSchedules([]);
       setPagination((current) => ({ ...current, total: 0 }));
-      notification.error('Không thể tải lịch chiếu');
+      notification.error(error?.message || 'Không thể tải lịch chiếu');
     } finally {
       setLoading(false);
     }
   }, [cinemaFilter, movieFilter, notification, pagination.current, pagination.pageSize]);
 
-  useEffect(() => {
-    loadReferences();
-  }, [loadReferences]);
-
-  useEffect(() => {
-    loadSchedules();
-  }, [loadSchedules]);
+  useEffect(() => { loadReferences(); }, [loadReferences]);
+  useEffect(() => { loadSchedules(); }, [loadSchedules]);
 
   const loadRooms = async (cinemaId) => {
     if (!cinemaId) {
       setRooms([]);
       return [];
     }
+    setRoomsLoading(true);
     try {
-      setRoomsLoading(true);
-      const response = await cinemaService.getRoomsByCinemaId(cinemaId);
-      const activeRooms = unwrapList(response).filter((room) => room.isActive !== false);
+      const roomRows = await cinemaService.getRoomsByCinemaId(cinemaId);
+      const activeRooms = (Array.isArray(roomRows) ? roomRows : extractRows(roomRows))
+        .filter((room) => room.isActive !== false);
       setRooms(activeRooms);
       return activeRooms;
     } catch (error) {
-      console.error('Error loading rooms:', error);
+      console.error('Error loading auditoriums:', error);
       setRooms([]);
-      notification.error('Không thể tải phòng chiếu của rạp');
+      notification.error(error?.message || 'Không thể tải phòng chiếu của rạp');
       return [];
     } finally {
       setRoomsLoading(false);
@@ -195,48 +199,85 @@ const Schedules = () => {
 
   const openCreate = () => {
     setSelectedSchedule(null);
-    setFormValues(DEFAULT_FORM);
     setRooms([]);
-    setFormOpen(true);
-  };
-
-  const openEdit = async (schedule) => {
-    const movieId = schedule.movieId ?? movies.find((movie) => movie.title === schedule.movieTitle)?.id;
-    const cinemaId = schedule.cinemaId ?? cinemas.find((cinema) => cinema.name === schedule.cinemaName)?.id;
-    const availableRooms = cinemaId ? await loadRooms(cinemaId) : [];
-    const roomId = schedule.theaterId
-      ?? schedule.roomId
-      ?? availableRooms.find((room) => room.name === schedule.roomName)?.id;
-
-    setSelectedSchedule(schedule);
     setFormValues({
-      movieId: normalizeId(movieId),
-      cinemaId: normalizeId(cinemaId),
-      roomId: normalizeId(roomId),
-      format: schedule.format || 'TWO_D',
-      audioType: schedule.audioType || 'SUBTITLE',
-      date: schedule.showDate ? String(schedule.showDate).split('T')[0] : '',
-      time: schedule.startTime ? String(schedule.startTime).slice(0, 5) : '',
-      price: schedule.basePrice ?? schedule.price ?? '',
-      status: schedule.status || 'AVAILABLE',
+      ...DEFAULT_FORM,
+      bookingOpenAt: toLocalDateTimeInput(new Date()),
     });
     setFormOpen(true);
   };
 
-  const openDetail = (schedule) => {
+  const openEdit = async (schedule) => {
+    const cinemaId = schedule.cinemaId ?? schedule.cinema?.id;
+    if (cinemaId) await loadRooms(cinemaId);
     setSelectedSchedule(schedule);
-    setDetailOpen(true);
+    setFormValues({
+      movieId: String(schedule.movieId ?? schedule.movie?.id ?? ''),
+      cinemaId: String(cinemaId ?? ''),
+      auditoriumId: String(schedule.auditoriumId ?? schedule.roomId ?? schedule.auditorium?.id ?? ''),
+      startTime: toLocalDateTimeInput(schedule.startTime),
+      endTime: toLocalDateTimeInput(schedule.endTime),
+      language: schedule.language || '',
+      subtitle: schedule.subtitle || '',
+      format: normalizeShowtimeFormat(schedule.format ?? schedule.formatType) || 'FORMAT_2D',
+      basePrice: schedule.basePrice ?? schedule.price ?? '',
+      bookingOpenAt: toLocalDateTimeInput(schedule.bookingOpenAt),
+      bookingCloseAt: toLocalDateTimeInput(schedule.bookingCloseAt),
+      status: normalizeShowtimeStatus(schedule.status) || 'SCHEDULED',
+    });
+    setFormOpen(true);
+  };
+
+  const selectedMovie = useMemo(
+    () => movies.find((movie) => sameResourceId(movie.id, formValues.movieId)) || null,
+    [formValues.movieId, movies],
+  );
+
+  const recalculateEnd = (movieId, startTime) => {
+    const movie = movies.find((item) => sameResourceId(item.id, movieId));
+    const duration = Number(movie?.durationMinutes ?? movie?.duration ?? 0);
+    if (!startTime || !Number.isFinite(duration) || duration <= 0) return '';
+    return dayjs(startTime).add(duration, 'minute').format('YYYY-MM-DDTHH:mm');
+  };
+
+  const handleMovieChange = (movieId) => {
+    setFormValues((current) => ({
+      ...current,
+      movieId,
+      endTime: recalculateEnd(movieId, current.startTime) || current.endTime,
+    }));
+  };
+
+  const handleStartTimeChange = (startTime) => {
+    setFormValues((current) => ({
+      ...current,
+      startTime,
+      endTime: recalculateEnd(current.movieId, startTime) || current.endTime,
+      bookingCloseAt: current.bookingCloseAt || dayjs(startTime).subtract(15, 'minute').format('YYYY-MM-DDTHH:mm'),
+    }));
   };
 
   const handleCinemaChange = async (cinemaId) => {
-    setFormValues((current) => ({ ...current, cinemaId, roomId: '' }));
+    setFormValues((current) => ({ ...current, cinemaId, auditoriumId: '' }));
     await loadRooms(cinemaId);
   };
 
   const validateForm = () => {
-    if (!formValues.movieId || !formValues.cinemaId || !formValues.roomId) return 'Vui lòng chọn phim, rạp và phòng chiếu';
-    if (!formValues.date || !formValues.time) return 'Vui lòng chọn ngày và giờ chiếu';
-    if (Number(formValues.price) <= 0) return 'Giá vé phải lớn hơn 0';
+    if (!formValues.movieId || !formValues.cinemaId || !formValues.auditoriumId) return 'Vui lòng chọn phim, rạp và phòng chiếu';
+    if (!formValues.startTime || !formValues.endTime) return 'Vui lòng nhập thời gian bắt đầu và kết thúc';
+    if (!formValues.language.trim()) return 'Vui lòng nhập ngôn ngữ suất chiếu';
+    if (!formValues.subtitle.trim()) return 'Backend yêu cầu trường subtitle; dùng NONE nếu không có phụ đề';
+    if (Number(formValues.basePrice) <= 0) return 'Giá cơ bản phải lớn hơn 0';
+    if (!formValues.bookingOpenAt || !formValues.bookingCloseAt) return 'Vui lòng nhập thời gian mở và đóng booking';
+
+    const start = new Date(formValues.startTime);
+    const end = new Date(formValues.endTime);
+    const open = new Date(formValues.bookingOpenAt);
+    const close = new Date(formValues.bookingCloseAt);
+    if ([start, end, open, close].some((date) => Number.isNaN(date.getTime()))) return 'Có thời gian không hợp lệ';
+    if (end <= start) return 'Thời gian kết thúc phải sau thời gian bắt đầu';
+    if (close <= open) return 'Thời gian đóng booking phải sau thời gian mở booking';
+    if (close > start) return 'Thời gian đóng booking không được sau thời gian bắt đầu suất chiếu';
     return null;
   };
 
@@ -248,35 +289,22 @@ const Schedules = () => {
       return;
     }
 
-    const selectedRoom = rooms.find((room) => normalizeId(room.id) === formValues.roomId);
-    const selectedMovie = movies.find((movie) => normalizeId(movie.id) === formValues.movieId);
-    if (!selectedRoom || !selectedMovie) {
-      notification.error('Dữ liệu phim hoặc phòng chiếu không còn hợp lệ');
-      return;
-    }
-
-    const durationMinutes = Number(selectedMovie.durationMinutes ?? selectedMovie.duration ?? 0);
-    if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
-      notification.error('Phim chưa có thời lượng hợp lệ nên không thể tính giờ kết thúc');
-      return;
-    }
-
-    const startTime = formValues.time.length === 5 ? `${formValues.time}:00` : formValues.time;
-    const endTime = dayjs(`${formValues.date} ${startTime}`).add(durationMinutes, 'minute').format('HH:mm:ss');
     const payload = {
-      movieId: Number(formValues.movieId),
-      theaterId: Number(formValues.roomId),
+      movieId: formValues.movieId,
+      auditoriumId: formValues.auditoriumId,
+      startTime: toIso(formValues.startTime),
+      endTime: toIso(formValues.endTime),
+      language: formValues.language.trim(),
+      subtitle: formValues.subtitle.trim(),
       format: formValues.format,
-      audioType: formValues.audioType,
-      showDate: formValues.date,
-      startTime,
-      endTime,
-      basePrice: Number(formValues.price),
+      basePrice: Number(formValues.basePrice),
+      bookingOpenAt: toIso(formValues.bookingOpenAt),
+      bookingCloseAt: toIso(formValues.bookingCloseAt),
       status: formValues.status,
     };
 
+    setSaving(true);
     try {
-      setSaving(true);
       if (selectedSchedule) {
         await showtimeService.updateShowtime(selectedSchedule.id, payload);
         notification.success('Cập nhật lịch chiếu thành công');
@@ -284,15 +312,16 @@ const Schedules = () => {
         await showtimeService.createShowtime(payload);
         notification.success('Thêm lịch chiếu thành công');
       }
+      const wasEditing = Boolean(selectedSchedule);
       closeForm();
-      if (!selectedSchedule && pagination.current !== 1) {
+      if (!wasEditing && pagination.current !== 1) {
         setPagination((current) => ({ ...current, current: 1 }));
       } else {
         await loadSchedules();
       }
     } catch (error) {
-      console.error('Error saving schedule:', error);
-      notification.error(error?.response?.data?.message || 'Không thể lưu lịch chiếu');
+      console.error('Error saving showtime:', error);
+      notification.error(error?.response?.data?.message || error?.message || 'Không thể lưu lịch chiếu');
     } finally {
       setSaving(false);
     }
@@ -309,8 +338,8 @@ const Schedules = () => {
         await loadSchedules();
       }
     } catch (error) {
-      console.error('Error deleting schedule:', error);
-      notification.error(error?.response?.data?.message || 'Không thể xóa lịch chiếu');
+      console.error('Error deleting showtime:', error);
+      notification.error(error?.response?.data?.message || error?.message || 'Không thể xóa lịch chiếu');
     }
   };
 
@@ -319,23 +348,23 @@ const Schedules = () => {
       title: 'Phim',
       key: 'movie',
       render: (_, record) => (
-        <div className="min-w-[180px]">
-          <button type="button" className="font-medium text-foreground hover:text-primary" onClick={() => openDetail(record)}>{record.movieTitle || 'Không rõ phim'}</button>
-          <p className="text-xs text-muted-foreground">{displayFormat(record.format)} · {displayAudio(record.audioType)}</p>
+        <div className="min-w-[190px]">
+          <button type="button" className="font-medium hover:text-primary" onClick={() => { setSelectedSchedule(record); setDetailOpen(true); }}>{record.movieTitle || record.movie?.title || 'Không rõ phim'}</button>
+          <p className="text-xs text-muted-foreground">{displayFormat(record.format)}</p>
         </div>
       ),
     },
     {
       title: 'Rạp / Phòng',
       key: 'venue',
-      render: (_, record) => <div><p className="font-medium">{record.cinemaName || '—'}</p><p className="text-xs text-muted-foreground">{record.roomName || record.theaterName || '—'}</p></div>,
+      render: (_, record) => <div className="min-w-[170px]"><p className="font-medium">{record.cinemaName || record.cinema?.name || '—'}</p><p className="text-xs text-muted-foreground">{record.roomName || record.auditorium?.name || '—'}</p></div>,
     },
     {
       title: 'Suất chiếu',
       key: 'time',
-      render: (_, record) => <div><p>{record.showDate ? dayjs(record.showDate).format('DD/MM/YYYY') : '—'}</p><p className="text-xs text-muted-foreground">{String(record.startTime || '').slice(0, 5)} - {String(record.endTime || '').slice(0, 5)}</p></div>,
+      render: (_, record) => <div className="min-w-[170px]"><p className="font-medium">{formatDateTime(record.startTime)}</p><p className="text-xs text-muted-foreground">đến {formatDateTime(record.endTime)}</p></div>,
     },
-    { title: 'Giá cơ bản', key: 'price', render: (_, record) => formatMoney(record.basePrice ?? record.price) },
+    { title: 'Giá cơ bản', key: 'price', render: (_, record) => <span className="font-medium">{formatMoney(record.basePrice ?? record.price)}</span> },
     {
       title: 'Trạng thái',
       dataIndex: 'status',
@@ -348,41 +377,30 @@ const Schedules = () => {
       render: (_, record) => (
         <TooltipProvider>
           <div className="flex items-center gap-1">
-            <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(record)} aria-label="Xem lịch chiếu"><Eye className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>Xem chi tiết</TooltipContent></Tooltip>
-            <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(record)} aria-label="Chỉnh sửa lịch chiếu"><Edit className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>Chỉnh sửa</TooltipContent></Tooltip>
-            <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/admin/schedules/${record.id}/seats`)} aria-label="Quản lý ghế suất chiếu"><Grid3X3 className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>Quản lý ghế</TooltipContent></Tooltip>
-            <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(record)} aria-label="Xóa lịch chiếu"><Trash2 className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>Xóa</TooltipContent></Tooltip>
+            <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedSchedule(record); setDetailOpen(true); }} aria-label="Xem suất chiếu"><Eye className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>Xem chi tiết</TooltipContent></Tooltip>
+            <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(record)} aria-label="Sửa suất chiếu"><Edit className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>Chỉnh sửa</TooltipContent></Tooltip>
+            <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/admin/schedules/${record.id}/seats`)} aria-label="Quản lý ghế suất chiếu"><Grid3X3 className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>Ghế suất chiếu</TooltipContent></Tooltip>
+            <Tooltip><TooltipTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(record)} aria-label="Xóa suất chiếu"><Trash2 className="h-4 w-4" /></Button></TooltipTrigger><TooltipContent>Xóa</TooltipContent></Tooltip>
           </div>
         </TooltipProvider>
       ),
     },
   ];
 
-  const filtersActive = movieFilter !== 'all' || cinemaFilter !== 'all';
-
   return (
     <div className="space-y-6">
       <AdminPageHeader
         title="Quản lý lịch chiếu"
-        description="Tạo và quản lý suất chiếu theo phim, rạp, phòng chiếu và thời gian."
-        breadcrumbs={[
-          { title: 'Dashboard', href: '/admin/dashboard' },
-          { title: 'Lịch chiếu' },
-        ]}
+        description="Tạo và quản lý Showtime theo movie, auditorium, ZonedDateTime và cửa sổ booking."
+        breadcrumbs={[{ title: 'Dashboard', href: '/admin/dashboard' }, { title: 'Lịch chiếu' }]}
         actions={<Button onClick={openCreate} disabled={referencesLoading}><Plus className="h-4 w-4" />Thêm suất chiếu</Button>}
       />
 
       <Card>
-        <CardContent className="grid gap-4 p-5 md:grid-cols-[1fr_1fr_auto]">
-          <Select value={movieFilter} onValueChange={(value) => { setMovieFilter(value); setPagination((current) => ({ ...current, current: 1 })); }} disabled={referencesLoading}>
-            <SelectTrigger><SelectValue placeholder="Tất cả phim" /></SelectTrigger>
-            <SelectContent><SelectItem value="all">Tất cả phim</SelectItem>{movies.map((movie) => <SelectItem key={movie.id} value={normalizeId(movie.id)}>{movie.title}</SelectItem>)}</SelectContent>
-          </Select>
-          <Select value={cinemaFilter} onValueChange={(value) => { setCinemaFilter(value); setPagination((current) => ({ ...current, current: 1 })); }} disabled={referencesLoading}>
-            <SelectTrigger><SelectValue placeholder="Tất cả rạp" /></SelectTrigger>
-            <SelectContent><SelectItem value="all">Tất cả rạp</SelectItem>{cinemas.map((cinema) => <SelectItem key={cinema.id} value={normalizeId(cinema.id)}>{cinema.name}</SelectItem>)}</SelectContent>
-          </Select>
-          <Button type="button" variant="outline" disabled={!filtersActive} onClick={() => { setMovieFilter('all'); setCinemaFilter('all'); setPagination((current) => ({ ...current, current: 1 })); }}><RotateCcw className="h-4 w-4" />Xóa lọc</Button>
+        <CardContent className="grid gap-3 p-4 md:grid-cols-[1fr_1fr_auto]">
+          <Select value={movieFilter} onValueChange={(value) => { setMovieFilter(value); setPagination((current) => ({ ...current, current: 1 })); }}><SelectTrigger><SelectValue placeholder="Lọc theo phim" /></SelectTrigger><SelectContent><SelectItem value="all">Tất cả phim</SelectItem>{movies.map((movie) => <SelectItem key={movie.id} value={String(movie.id)}>{movie.title}</SelectItem>)}</SelectContent></Select>
+          <Select value={cinemaFilter} onValueChange={(value) => { setCinemaFilter(value); setPagination((current) => ({ ...current, current: 1 })); }}><SelectTrigger><SelectValue placeholder="Lọc theo rạp" /></SelectTrigger><SelectContent><SelectItem value="all">Tất cả rạp</SelectItem>{cinemas.map((cinema) => <SelectItem key={cinema.id} value={String(cinema.id)}>{cinema.name}</SelectItem>)}</SelectContent></Select>
+          <Button type="button" variant="outline" onClick={() => { setMovieFilter('all'); setCinemaFilter('all'); setPagination((current) => ({ ...current, current: 1 })); }}><RotateCcw className="h-4 w-4" />Đặt lại</Button>
         </CardContent>
       </Card>
 
@@ -390,80 +408,82 @@ const Schedules = () => {
         <CardHeader><CardTitle className="text-lg">Danh sách suất chiếu</CardTitle></CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex min-h-48 items-center justify-center gap-3 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Đang tải lịch chiếu...</div>
+            <div className="flex min-h-48 items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Đang tải lịch chiếu...</div>
           ) : schedules.length === 0 ? (
             <Empty description="Không có suất chiếu phù hợp" />
           ) : (
             <DataTable fields={columns} rows={schedules} getRowId="id" pageControls={false} />
           )}
-          {pagination.total > 0 && (
-            <Pagination
-              className="mt-5 border-t pt-5"
-              page={pagination.current}
-              itemsPerPage={pagination.pageSize}
-              totalItems={pagination.total}
-              allowPageSizeChange
-              allowPageJump
-              onPageChange={(page) => setPagination((current) => ({ ...current, current: page }))}
-              onPageSizeChange={(size) => setPagination((current) => ({ ...current, current: 1, pageSize: size }))}
-              showTotal={(total, range) => `Hiển thị ${range[0]}-${range[1]} / ${total} suất chiếu`}
-            />
-          )}
+          {pagination.total > 0 && <Pagination className="mt-5 border-t pt-5" page={pagination.current} itemsPerPage={pagination.pageSize} totalItems={pagination.total} allowPageSizeChange allowPageJump onPageChange={(page) => setPagination((current) => ({ ...current, current: page }))} onPageSizeChange={(size) => setPagination((current) => ({ ...current, current: 1, pageSize: size }))} showTotal={(total, range) => `Hiển thị ${range[0]}-${range[1]} / ${total} suất chiếu`} />}
         </CardContent>
       </Card>
 
       <ResponsiveDialog
         heading={selectedSchedule ? 'Chỉnh sửa suất chiếu' : 'Thêm suất chiếu'}
-        description="Giờ kết thúc được tính từ giờ bắt đầu và thời lượng phim."
+        description={selectedMovie ? `${selectedMovie.title} · ${selectedMovie.durationMinutes || selectedMovie.duration || '?'} phút` : 'Payload được gửi theo ShowtimeCreateRequest/UpdateRequest.'}
         open={formOpen}
         onClose={closeForm}
         maxWidth={820}
       >
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="space-y-2 text-sm font-medium"><span>Phim</span><Select value={formValues.movieId} onValueChange={(value) => setFormValues((current) => ({ ...current, movieId: value }))}><SelectTrigger><SelectValue placeholder="Chọn phim" /></SelectTrigger><SelectContent>{movies.map((movie) => <SelectItem key={movie.id} value={normalizeId(movie.id)}>{movie.title}</SelectItem>)}</SelectContent></Select></label>
-            <label className="space-y-2 text-sm font-medium"><span>Rạp</span><Select value={formValues.cinemaId} onValueChange={handleCinemaChange}><SelectTrigger><SelectValue placeholder="Chọn rạp" /></SelectTrigger><SelectContent>{cinemas.map((cinema) => <SelectItem key={cinema.id} value={normalizeId(cinema.id)}>{cinema.name}</SelectItem>)}</SelectContent></Select></label>
+            <label className="space-y-2 text-sm font-medium"><span>Phim *</span><Select value={formValues.movieId} onValueChange={handleMovieChange}><SelectTrigger><SelectValue placeholder="Chọn phim" /></SelectTrigger><SelectContent>{movies.map((movie) => <SelectItem key={movie.id} value={String(movie.id)}>{movie.title}</SelectItem>)}</SelectContent></Select></label>
+            <label className="space-y-2 text-sm font-medium"><span>Rạp *</span><Select value={formValues.cinemaId} onValueChange={handleCinemaChange}><SelectTrigger><SelectValue placeholder="Chọn rạp" /></SelectTrigger><SelectContent>{cinemas.map((cinema) => <SelectItem key={cinema.id} value={String(cinema.id)}>{cinema.name}</SelectItem>)}</SelectContent></Select></label>
+          </div>
+
+          <label className="block space-y-2 text-sm font-medium"><span>Phòng chiếu / Auditorium *</span><Select value={formValues.auditoriumId} disabled={!formValues.cinemaId || roomsLoading} onValueChange={(value) => setFormValues((current) => ({ ...current, auditoriumId: value }))}><SelectTrigger><SelectValue placeholder={roomsLoading ? 'Đang tải phòng...' : 'Chọn phòng'} /></SelectTrigger><SelectContent>{rooms.map((room) => <SelectItem key={room.id} value={String(room.id)}>{room.name} · {room.roomType || room.screenType}</SelectItem>)}</SelectContent></Select></label>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-2 text-sm font-medium"><span>Bắt đầu *</span><Input type="datetime-local" value={formValues.startTime} onChange={(event) => handleStartTimeChange(event.target.value)} required /></label>
+            <label className="space-y-2 text-sm font-medium"><span>Kết thúc *</span><Input type="datetime-local" value={formValues.endTime} onChange={(event) => setFormValues((current) => ({ ...current, endTime: event.target.value }))} required /><span className="block text-xs font-normal text-muted-foreground">Tự tính theo thời lượng phim khi có thể, vẫn cho phép chỉnh tay.</span></label>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-2 text-sm font-medium"><span>Ngôn ngữ *</span><Input value={formValues.language} onChange={(event) => setFormValues((current) => ({ ...current, language: event.target.value }))} placeholder="Ví dụ: VI, EN, JA" required /></label>
+            <label className="space-y-2 text-sm font-medium"><span>Phụ đề *</span><Input value={formValues.subtitle} onChange={(event) => setFormValues((current) => ({ ...current, subtitle: event.target.value }))} placeholder="Ví dụ: VI, EN hoặc NONE" required /></label>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <label className="space-y-2 text-sm font-medium"><span>Phòng chiếu</span><Select value={formValues.roomId} onValueChange={(value) => setFormValues((current) => ({ ...current, roomId: value }))} disabled={!formValues.cinemaId || roomsLoading}><SelectTrigger><SelectValue placeholder={roomsLoading ? 'Đang tải phòng...' : 'Chọn phòng'} /></SelectTrigger><SelectContent>{rooms.map((room) => <SelectItem key={room.id} value={normalizeId(room.id)}>{room.name}</SelectItem>)}</SelectContent></Select></label>
-            <label className="space-y-2 text-sm font-medium"><span>Định dạng</span><Select value={formValues.format} onValueChange={(value) => setFormValues((current) => ({ ...current, format: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{formats.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
-            <label className="space-y-2 text-sm font-medium"><span>Âm thanh</span><Select value={formValues.audioType} onValueChange={(value) => setFormValues((current) => ({ ...current, audioType: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{audioTypes.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
+            <label className="space-y-2 text-sm font-medium"><span>Định dạng *</span><Select value={formValues.format} onValueChange={(value) => setFormValues((current) => ({ ...current, format: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{FORMAT_OPTIONS.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
+            <label className="space-y-2 text-sm font-medium"><span>Giá cơ bản *</span><NumberStepper min={0} value={formValues.basePrice} onValueChange={(value) => setFormValues((current) => ({ ...current, basePrice: value ?? '' }))} /></label>
+            <label className="space-y-2 text-sm font-medium"><span>Trạng thái *</span><Select value={formValues.status} onValueChange={(value) => setFormValues((current) => ({ ...current, status: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{STATUS_OPTIONS.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-4">
-            <label className="space-y-2 text-sm font-medium"><span>Ngày chiếu</span><Input type="date" value={formValues.date} onChange={(event) => setFormValues((current) => ({ ...current, date: event.target.value }))} required /></label>
-            <label className="space-y-2 text-sm font-medium"><span>Giờ bắt đầu</span><Input type="time" value={formValues.time} onChange={(event) => setFormValues((current) => ({ ...current, time: event.target.value }))} required /></label>
-            <label className="space-y-2 text-sm font-medium"><span>Giá cơ bản</span><NumberStepper min={0} value={formValues.price} onValueChange={(value) => setFormValues((current) => ({ ...current, price: value ?? '' }))} /></label>
-            <label className="space-y-2 text-sm font-medium"><span>Trạng thái</span><Select value={formValues.status} onValueChange={(value) => setFormValues((current) => ({ ...current, status: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{statuses.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-2 text-sm font-medium"><span>Mở booking *</span><Input type="datetime-local" value={formValues.bookingOpenAt} onChange={(event) => setFormValues((current) => ({ ...current, bookingOpenAt: event.target.value }))} required /></label>
+            <label className="space-y-2 text-sm font-medium"><span>Đóng booking *</span><Input type="datetime-local" value={formValues.bookingCloseAt} onChange={(event) => setFormValues((current) => ({ ...current, bookingCloseAt: event.target.value }))} required /></label>
           </div>
 
-          <div className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" onClick={closeForm}>Hủy</Button><Button type="submit" disabled={saving || roomsLoading}>{saving && <Loader2 className="h-4 w-4 animate-spin" />}{selectedSchedule ? 'Lưu thay đổi' : 'Thêm suất chiếu'}</Button></div>
+          <div className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" onClick={closeForm}>Hủy</Button><Button type="submit" disabled={saving}>{saving && <Loader2 className="h-4 w-4 animate-spin" />}{selectedSchedule ? 'Lưu thay đổi' : 'Tạo suất chiếu'}</Button></div>
         </form>
       </ResponsiveDialog>
 
       <ResponsiveDialog
         heading="Chi tiết suất chiếu"
         open={detailOpen}
-        onClose={() => setDetailOpen(false)}
-        maxWidth={680}
+        onClose={() => { setDetailOpen(false); setSelectedSchedule(null); }}
+        maxWidth={720}
         actions={selectedSchedule ? [
-          <Button key="close" variant="outline" onClick={() => setDetailOpen(false)}>Đóng</Button>,
-          <Button key="seats" variant="outline" onClick={() => navigate(`/admin/schedules/${selectedSchedule.id}/seats`)}><Grid3X3 className="h-4 w-4" />Quản lý ghế</Button>,
-          <Button key="edit" onClick={() => { setDetailOpen(false); openEdit(selectedSchedule); }}><Edit className="h-4 w-4" />Chỉnh sửa</Button>,
+          <Button key="close" variant="outline" onClick={() => { setDetailOpen(false); setSelectedSchedule(null); }}>Đóng</Button>,
+          <Button key="seats" variant="outline" onClick={() => navigate(`/admin/schedules/${selectedSchedule.id}/seats`)}><Grid3X3 className="h-4 w-4" />Ghế</Button>,
+          <Button key="edit" onClick={() => { const showtime = selectedSchedule; setDetailOpen(false); openEdit(showtime); }}><Edit className="h-4 w-4" />Chỉnh sửa</Button>,
         ] : null}
       >
         {selectedSchedule && (
           <DetailList columns={2}>
-            <DetailItem label="Phim">{selectedSchedule.movieTitle || '—'}</DetailItem>
-            <DetailItem label="Trạng thái"><StatusBadge tone={statusMeta(selectedSchedule.status).tone}>{statusMeta(selectedSchedule.status).label}</StatusBadge></DetailItem>
-            <DetailItem label="Rạp">{selectedSchedule.cinemaName || '—'}</DetailItem>
-            <DetailItem label="Phòng">{selectedSchedule.roomName || selectedSchedule.theaterName || '—'}</DetailItem>
-            <DetailItem label="Ngày chiếu">{selectedSchedule.showDate ? dayjs(selectedSchedule.showDate).format('DD/MM/YYYY') : '—'}</DetailItem>
-            <DetailItem label="Thời gian">{String(selectedSchedule.startTime || '').slice(0, 5)} - {String(selectedSchedule.endTime || '').slice(0, 5)}</DetailItem>
+            <DetailItem label="Phim">{selectedSchedule.movieTitle || selectedSchedule.movie?.title || '—'}</DetailItem>
+            <DetailItem label="Trạng thái">{statusMeta(selectedSchedule.status).label}</DetailItem>
+            <DetailItem label="Rạp">{selectedSchedule.cinemaName || selectedSchedule.cinema?.name || '—'}</DetailItem>
+            <DetailItem label="Phòng">{selectedSchedule.roomName || selectedSchedule.auditorium?.name || '—'}</DetailItem>
+            <DetailItem label="Bắt đầu">{formatDateTime(selectedSchedule.startTime)}</DetailItem>
+            <DetailItem label="Kết thúc">{formatDateTime(selectedSchedule.endTime)}</DetailItem>
             <DetailItem label="Định dạng">{displayFormat(selectedSchedule.format)}</DetailItem>
-            <DetailItem label="Âm thanh">{displayAudio(selectedSchedule.audioType)}</DetailItem>
             <DetailItem label="Giá cơ bản">{formatMoney(selectedSchedule.basePrice ?? selectedSchedule.price)}</DetailItem>
+            <DetailItem label="Ngôn ngữ">{selectedSchedule.language || '—'}</DetailItem>
+            <DetailItem label="Phụ đề">{selectedSchedule.subtitle || '—'}</DetailItem>
+            <DetailItem label="Mở booking">{formatDateTime(selectedSchedule.bookingOpenAt)}</DetailItem>
+            <DetailItem label="Đóng booking">{formatDateTime(selectedSchedule.bookingCloseAt)}</DetailItem>
+            <DetailItem label="Showtime ID" wide>{selectedSchedule.id}</DetailItem>
           </DetailList>
         )}
       </ResponsiveDialog>
