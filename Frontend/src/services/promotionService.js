@@ -131,9 +131,7 @@ const promotionService = {
     return this.updatePromotion(promotionId, { ...current, status: 'INACTIVE' });
   },
 
-  // Admin lookup. It may enumerate the PromotionCode collection as a fallback
-  // because admin already has access to the management resource.
-  async getPromotionByCode(code) {
+  async getPromotionByCodeForAdmin(code) {
     const normalizedCode = String(code || '').trim().toUpperCase();
     if (!normalizedCode) return null;
 
@@ -162,7 +160,10 @@ const promotionService = {
   async validateCodeForCheckout(code, context = {}) {
     const normalizedCode = String(code || '').trim().toUpperCase();
     if (!normalizedCode) return null;
-    if (MOCK_API_ENABLED) return this.getPromotionByCode(normalizedCode);
+
+    if (MOCK_API_ENABLED) {
+      return this.getPromotionByCodeForAdmin(normalizedCode);
+    }
 
     try {
       const result = unwrapApiData(await apiClient.post(`${codesBase}/validate`, {
@@ -178,10 +179,14 @@ const promotionService = {
       });
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
-      // Never enumerate /promotioncodes from a customer session to discover
-      // private/unused codes. Validation must be a server-side command.
       throw createCapabilityError('xác thực mã khuyến mãi tại checkout', error);
     }
+  },
+
+  // Customer-facing default. Do not enumerate PromotionCode records in a
+  // browser session when the backend has no validate-by-code command.
+  async getPromotionByCode(code, context = {}) {
+    return this.validateCodeForCheckout(code, context);
   },
 
   async getActivePromotions(page = 0, size = 10, sort = '') {
@@ -222,7 +227,6 @@ const promotionService = {
 
   async createPromotionCode(promotionId, data) {
     if (MOCK_API_ENABLED) {
-      const promotion = await this.getPromotionById(promotionId);
       return normalizePromotionCode({
         id: `mock-code-${promotionId}`,
         promotionId,
