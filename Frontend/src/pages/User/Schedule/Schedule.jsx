@@ -15,53 +15,44 @@ import { sameResourceId } from '@/utils/resourceId';
 
 dayjs.locale('vi');
 
-const BLOCKED_STATUSES = new Set(['CANCELLED', 'SOLD_OUT', 'FULL', 'SALES_ENDED', 'COMPLETED', 'POSTPONED', 'INACTIVE']);
+const BOOKABLE_STATUSES = new Set(['OPEN', 'AVAILABLE']);
 
 const statusMeta = (status) => {
-  const value = String(status || 'AVAILABLE').toUpperCase();
-  if (['AVAILABLE', 'ACTIVE', 'OPEN'].includes(value)) return { label: 'Còn vé', tone: 'success' };
-  if (value === 'ALMOST_FULL') return { label: 'Sắp hết', tone: 'warning' };
-  if (['FULL', 'SOLD_OUT'].includes(value)) return { label: 'Hết chỗ', tone: 'destructive' };
+  const value = String(status || '').toUpperCase();
+  if (BOOKABLE_STATUSES.has(value)) return { label: 'Đang mở bán', tone: 'success' };
+  if (value === 'SCHEDULED') return { label: 'Chưa mở bán', tone: 'info' };
+  if (value === 'CLOSED') return { label: 'Đã đóng bán', tone: 'neutral' };
   if (value === 'CANCELLED') return { label: 'Đã hủy', tone: 'destructive' };
-  if (value === 'POSTPONED') return { label: 'Tạm hoãn', tone: 'warning' };
-  if (['SALES_ENDED', 'COMPLETED', 'INACTIVE'].includes(value)) return { label: 'Dừng bán', tone: 'neutral' };
-  return { label: value, tone: 'info' };
+  if (value === 'FINISHED') return { label: 'Đã chiếu', tone: 'neutral' };
+  return { label: value || 'Chưa xác định', tone: 'neutral' };
 };
 
 const timeLabel = (value) => {
+  if (!value) return '—';
+  const text = String(value);
+  if (/^\d{2}:\d{2}/.test(text)) return text.slice(0, 5);
   const date = dayjs(value);
-  if (date.isValid()) return date.format('HH:mm');
-  return String(value || '').slice(0, 5);
+  return date.isValid() ? date.format('HH:mm') : text.slice(0, 5);
 };
 
-const groupByMovie = (showtimes = []) => {
-  const groups = new Map();
-  showtimes.forEach((showtime) => {
-    const movieId = showtime.movieId ?? showtime.movie?.id ?? 'unknown';
-    const key = String(movieId);
-    if (!groups.has(key)) {
-      groups.set(key, {
-        movie: {
-          id: movieId,
-          title: showtime.movieTitle || showtime.movie?.title || 'Không rõ phim',
-          posterUrl: showtime.moviePoster || showtime.movie?.posterUrl || '/brand-placeholder.svg',
-          duration: showtime.movie?.durationMinutes || showtime.movie?.duration || '',
-          genre: Array.isArray(showtime.movie?.genres) ? showtime.movie.genres.join(', ') : showtime.movie?.genre || '',
-        },
-        showtimes: [],
-      });
-    }
-    groups.get(key).showtimes.push({
-      ...showtime,
-      id: showtime.id,
-      roomName: showtime.roomName || showtime.auditorium?.name || 'Phòng chiếu',
-      price: Number(showtime.price ?? showtime.basePrice ?? 0),
-      formatType: showtime.formatType || showtime.format || '',
-    });
-  });
-  return [...groups.values()].map((group) => ({
-    ...group,
-    showtimes: group.showtimes.sort((a, b) => String(a.startTime).localeCompare(String(b.startTime))),
+const normalizeMovieGroups = (response) => {
+  const content = Array.isArray(response) ? response : response?.content || [];
+  return content.map((movieGroup) => ({
+    movie: {
+      id: movieGroup.movieId ?? movieGroup.id,
+      title: movieGroup.movieTitle || movieGroup.title || 'Không rõ phim',
+      posterUrl: movieGroup.posterUrl || movieGroup.posterPath || '/brand-placeholder.svg',
+    },
+    showtimes: (movieGroup.formats || []).flatMap((format) => (
+      (format.showtimes || []).map((showtime) => ({
+        ...showtime,
+        id: showtime.showtimeId ?? showtime.id,
+        roomName: showtime.roomName || 'Phòng chiếu',
+        price: Number(showtime.price ?? showtime.basePrice ?? 0),
+        formatType: format.formatType || showtime.format || '',
+        status: String(showtime.status || '').toUpperCase(),
+      }))
+    )).sort((left, right) => String(left.startTime).localeCompare(String(right.startTime))),
   }));
 };
 
@@ -72,22 +63,22 @@ const Schedule = () => {
   const [city, setCity] = useState('all');
   const [cinemaId, setCinemaId] = useState('');
   const [selectedDate, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'));
-  const [showtimes, setShowtimes] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [loadingCinemas, setLoadingCinemas] = useState(true);
   const [loadingShowtimes, setLoadingShowtimes] = useState(false);
   const [error, setError] = useState('');
 
   const dates = useMemo(() => Array.from({ length: 7 }, (_, index) => dayjs().add(index, 'day')), []);
-  const cities = useMemo(() => [...new Set(cinemas.map((item) => item.city || item.cityName).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'vi')), [cinemas]);
-  const filteredCinemas = useMemo(() => city === 'all' ? cinemas : cinemas.filter((item) => (item.city || item.cityName) === city), [cinemas, city]);
-  const groups = useMemo(() => groupByMovie(showtimes), [showtimes]);
+  const cities = useMemo(() => [...new Set(cinemas.map((item) => item.city).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'vi')), [cinemas]);
+  const filteredCinemas = useMemo(() => city === 'all' ? cinemas : cinemas.filter((item) => item.city === city), [cinemas, city]);
   const selectedCinema = cinemas.find((item) => sameResourceId(item.id, cinemaId));
 
   const loadCinemas = useCallback(async () => {
     setLoadingCinemas(true);
     setError('');
     try {
-      const rows = await cinemaService.getAllCinemasNoPagination();
+      const response = await cinemaService.getPublicCinemas({ page: 0, size: 500 });
+      const rows = Array.isArray(response) ? response : response?.content || [];
       setCinemas(rows);
       setCinemaId((current) => rows.some((item) => sameResourceId(item.id, current)) ? current : (rows[0]?.id ? String(rows[0].id) : ''));
     } catch (requestError) {
@@ -111,16 +102,16 @@ const Schedule = () => {
 
   const loadShowtimes = useCallback(async () => {
     if (!cinemaId || !selectedDate) {
-      setShowtimes([]);
+      setGroups([]);
       return;
     }
     setLoadingShowtimes(true);
     setError('');
     try {
-      const rows = await showtimeService.getShowtimesByDateAndCinema(selectedDate, cinemaId, { page: 0, size: 500 });
-      setShowtimes(Array.isArray(rows) ? rows : rows?.content || []);
+      const response = await showtimeService.getShowtimesByDateAndCinema(selectedDate, cinemaId, { page: 0, size: 500 });
+      setGroups(normalizeMovieGroups(response));
     } catch (requestError) {
-      setShowtimes([]);
+      setGroups([]);
       setError(requestError?.message || 'Không thể tải lịch chiếu.');
       notification.error(requestError?.message || 'Không thể tải lịch chiếu.');
     } finally {
@@ -131,19 +122,17 @@ const Schedule = () => {
   useEffect(() => { loadShowtimes(); }, [loadShowtimes]);
 
   const goToSeats = (showtime) => {
-    if (!showtime?.id || BLOCKED_STATUSES.has(String(showtime.status).toUpperCase())) return;
+    if (!showtime?.id || !BOOKABLE_STATUSES.has(String(showtime.status || '').toUpperCase())) return;
     navigate(`/booking/seats/${showtime.id}`, {
       state: {
-        movieTitle: showtime.movieTitle || showtime.movie?.title,
-        moviePoster: showtime.moviePoster || showtime.movie?.posterUrl,
-        cinemaName: showtime.cinemaName || selectedCinema?.name,
-        cinemaAddress: showtime.cinemaAddress || selectedCinema?.address,
-        roomName: showtime.roomName || showtime.auditorium?.name,
+        cinemaName: selectedCinema?.name,
+        cinemaAddress: selectedCinema?.address,
+        roomName: showtime.roomName,
         date: selectedDate,
         startTime: showtime.startTime,
         endTime: showtime.endTime,
-        price: showtime.price ?? showtime.basePrice,
-        formatType: showtime.formatType || showtime.format,
+        price: showtime.price,
+        formatType: showtime.formatType,
       },
     });
   };
@@ -153,7 +142,7 @@ const Schedule = () => {
       <div className="mx-auto max-w-7xl space-y-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Lịch chiếu phim</h1>
-          <p className="mt-2 text-muted-foreground">Chọn thành phố, rạp và ngày chiếu để xem các suất đang bán vé.</p>
+          <p className="mt-2 text-muted-foreground">Chọn thành phố, rạp ACTIVE và ngày chiếu. Chỉ suất OPEN mới có thể bắt đầu bước chọn ghế.</p>
         </div>
 
         <Card>
@@ -197,7 +186,7 @@ const Schedule = () => {
           <Card>
             <CardContent className="flex items-start gap-3 p-4">
               <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-              <div><p className="font-semibold">{selectedCinema.name}</p><p className="text-sm text-muted-foreground">{[selectedCinema.address, selectedCinema.district, selectedCinema.city].filter(Boolean).join(', ')}</p></div>
+              <div><p className="font-semibold">{selectedCinema.name}</p><p className="text-sm text-muted-foreground">{[selectedCinema.address, selectedCinema.city].filter(Boolean).join(', ')}</p></div>
             </CardContent>
           </Card>
         )}
@@ -212,20 +201,20 @@ const Schedule = () => {
           <Empty icon={Film} title="Chưa có suất chiếu" description="Không có suất chiếu phù hợp cho rạp và ngày đã chọn." />
         ) : (
           <div className="space-y-5">
-            {groups.map(({ movie, showtimes: movieShowtimes }) => (
+            {groups.map(({ movie, showtimes }) => (
               <Card key={String(movie.id)}>
                 <CardHeader className="pb-3">
                   <div className="flex gap-4">
                     <img src={movie.posterUrl} alt={movie.title} className="h-24 w-16 rounded-md border bg-muted object-cover" onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }} />
-                    <div className="min-w-0"><CardTitle className="text-lg">{movie.title}</CardTitle>{movie.duration && <p className="mt-1 text-sm text-muted-foreground">{movie.duration} phút</p>}{movie.genre && <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">{movie.genre}</p>}</div>
+                    <div className="min-w-0"><CardTitle className="text-lg">{movie.title}</CardTitle></div>
                   </div>
                 </CardHeader>
                 <CardContent className="flex flex-wrap gap-2">
-                  {movieShowtimes.map((showtime) => {
+                  {showtimes.map((showtime) => {
                     const meta = statusMeta(showtime.status);
-                    const blocked = BLOCKED_STATUSES.has(String(showtime.status).toUpperCase());
+                    const bookable = BOOKABLE_STATUSES.has(String(showtime.status || '').toUpperCase());
                     return (
-                      <Button key={String(showtime.id)} variant="outline" className="h-auto min-w-32 flex-col items-start gap-1 py-2" disabled={blocked} onClick={() => goToSeats(showtime)}>
+                      <Button key={String(showtime.id)} variant="outline" className="h-auto min-w-32 flex-col items-start gap-1 py-2" disabled={!bookable} onClick={() => goToSeats(showtime)}>
                         <span className="flex w-full items-center justify-between gap-2"><span className="flex items-center gap-1 font-semibold"><Clock className="h-3.5 w-3.5" />{timeLabel(showtime.startTime)}</span><StatusBadge tone={meta.tone}>{meta.label}</StatusBadge></span>
                         <span className="text-xs text-muted-foreground">{showtime.roomName}{showtime.formatType ? ` · ${showtime.formatType}` : ''}</span>
                         {showtime.price > 0 && <span className="text-xs font-medium">{showtime.price.toLocaleString('vi-VN')} ₫</span>}
