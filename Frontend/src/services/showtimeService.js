@@ -2,11 +2,12 @@ import { apiClient } from '@/utils/apiClient';
 import { unwrapApiArray, unwrapApiData } from '@/utils/apiResponse';
 import { MOCK_API_ENABLED } from '@/mocks/mockConfig';
 import { ENDPOINTS } from '@/utils/constants';
+import { rethrowCapabilityError } from '@/utils/backendCapability';
 import { normalizeResourceId, sameResourceId } from '@/utils/resourceId';
 
 const SHOWTIME_BASE = MOCK_API_ENABLED ? '/showtime' : ENDPOINTS.SHOWTIMES;
 const SHOWTIME_SEAT_BASE = MOCK_API_ENABLED ? '/showtime-seats' : ENDPOINTS.SHOWTIMESEATS;
-const endpointUnavailable = (error) => [404, 405].includes(error?.status || error?.response?.status);
+const endpointUnavailable = (error) => [404, 405, 501].includes(error?.status || error?.response?.status);
 
 const pageContent = (response) => {
   const data = unwrapApiData(response);
@@ -229,6 +230,7 @@ const enrichRealShowtimes = async (rows = []) => {
       cinemaId: item.cinemaId ?? cinema?.id,
       cinemaName: item.cinemaName || cinema?.name,
       cinemaAddress: item.cinemaAddress || cinema?.address,
+      cityName: item.cityName || cinema?.city,
       date: item.date || item.showDate || dateOf(item),
       showDate: item.showDate || item.date || dateOf(item),
       price: Number(item.price ?? item.basePrice ?? 0),
@@ -237,6 +239,105 @@ const enrichRealShowtimes = async (rows = []) => {
       status: normalizeShowtimeStatus(item.status),
     };
   });
+};
+
+const paginateGroups = (groups, params = {}) => {
+  const page = Math.max(0, Number(params.page || 0));
+  const size = Math.max(1, Number(params.size || 5));
+  const start = page * size;
+  const content = groups.slice(start, start + size);
+  const totalPages = groups.length ? Math.ceil(groups.length / size) : 0;
+  return {
+    content,
+    number: page,
+    page,
+    size,
+    numberOfElements: content.length,
+    totalElements: groups.length,
+    totalPages,
+    first: page === 0,
+    last: groups.length === 0 || page >= totalPages - 1,
+    empty: content.length === 0,
+  };
+};
+
+const addToFormatGroup = (formats, showtime) => {
+  const formatType = normalizeShowtimeFormat(showtime.format ?? showtime.formatType) || 'FORMAT_2D';
+  let format = formats.find((item) => item.formatType === formatType);
+  if (!format) {
+    format = { formatType, showtimes: [] };
+    formats.push(format);
+  }
+  format.showtimes.push({
+    showtimeId: showtime.id,
+    id: showtime.id,
+    startTime: showtime.startTime,
+    endTime: showtime.endTime,
+    roomId: showtime.auditoriumId ?? showtime.roomId,
+    roomName: showtime.roomName || showtime.auditorium?.name || '',
+    price: Number(showtime.basePrice ?? showtime.price ?? 0),
+    basePrice: Number(showtime.basePrice ?? showtime.price ?? 0),
+    status: normalizeShowtimeStatus(showtime.status),
+    format: formatType,
+    language: showtime.language,
+    subtitle: showtime.subtitle,
+    bookingOpenAt: showtime.bookingOpenAt,
+    bookingCloseAt: showtime.bookingCloseAt,
+  });
+};
+
+const groupShowtimesByCinema = (rows = [], params = {}) => {
+  const groups = new Map();
+  rows.forEach((showtime) => {
+    const cinema = showtime.cinema || {};
+    if (String(cinema.status || 'ACTIVE').toUpperCase() !== 'ACTIVE') return;
+    const key = String(showtime.cinemaId ?? cinema.id ?? '');
+    if (!key) return;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        cinemaId: showtime.cinemaId ?? cinema.id,
+        id: showtime.cinemaId ?? cinema.id,
+        cinemaName: showtime.cinemaName || cinema.name || 'Rạp chiếu',
+        name: showtime.cinemaName || cinema.name || 'Rạp chiếu',
+        address: showtime.cinemaAddress || cinema.address || '',
+        cityName: showtime.cityName || cinema.city || '',
+        formats: [],
+      });
+    }
+    addToFormatGroup(groups.get(key).formats, showtime);
+  });
+
+  const result = [...groups.values()].sort((left, right) => left.cinemaName.localeCompare(right.cinemaName, 'vi'));
+  result.forEach((group) => group.formats.forEach((format) => format.showtimes.sort((a, b) => String(a.startTime).localeCompare(String(b.startTime)))));
+  return paginateGroups(result, params);
+};
+
+const groupShowtimesByMovie = (rows = [], params = {}) => {
+  const groups = new Map();
+  rows.forEach((showtime) => {
+    const movie = showtime.movie || {};
+    const movieStatus = String(movie.status || 'NOW_SHOWING').toUpperCase();
+    if (['DRAFT', 'HIDDEN'].includes(movieStatus)) return;
+    const key = String(showtime.movieId ?? movie.id ?? '');
+    if (!key) return;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        movieId: showtime.movieId ?? movie.id,
+        id: showtime.movieId ?? movie.id,
+        movieTitle: showtime.movieTitle || movie.title || 'Phim',
+        title: showtime.movieTitle || movie.title || 'Phim',
+        posterUrl: showtime.moviePoster || movie.posterUrl || '',
+        posterPath: showtime.moviePoster || movie.posterUrl || '',
+        status: movieStatus,
+        formats: [],
+      });
+    }
+    addToFormatGroup(groups.get(key).formats, showtime);
+  });
+
+  const result = [...groups.values()].sort((left, right) => left.movieTitle.localeCompare(right.movieTitle, 'vi'));
+  result.forEach((group) => group.formats.forEach((format) => format.showtimes.sort((a, b) => String(a.startTime).localeCompare(String(b.startTime)))));
+  return paginateGroups(result, params);
 };
 
 class ShowtimeService {
@@ -276,8 +377,9 @@ class ShowtimeService {
     if (MOCK_API_ENABLED) {
       return unwrapApiData(await apiClient.get(`${SHOWTIME_BASE}/cinema/${id}/date/${date}`, { params }));
     }
-    const rows = await this.getShowtimesByCinema(id, params);
-    return rows.filter((item) => dateOf(item) === String(date));
+    const rows = (await this.getShowtimesByCinema(id, params))
+      .filter((item) => dateOf(item) === String(date));
+    return groupShowtimesByMovie(rows, params);
   }
 
   async getCinemaShowtimesByMovieAndDate(movieId, date, params = {}) {
@@ -285,8 +387,9 @@ class ShowtimeService {
     if (MOCK_API_ENABLED) {
       return unwrapApiData(await apiClient.get(`${SHOWTIME_BASE}/movie/${id}/date/${date}`, { params }));
     }
-    const rows = await this.getShowtimesByMovie(id, params);
-    return rows.filter((item) => dateOf(item) === String(date));
+    const rows = (await this.getShowtimesByMovie(id, params))
+      .filter((item) => dateOf(item) === String(date));
+    return groupShowtimesByCinema(rows, params);
   }
 
   async getShowtimesWithFilters(filters = {}) {
@@ -358,25 +461,64 @@ class ShowtimeService {
   }
 
   async lockSeats(showtimeId, seatIds, userId) {
-    return unwrapApiData(await apiClient.post(
-      `${SHOWTIME_BASE}/${normalizeResourceId(showtimeId)}/lock-seat/${normalizeResourceId(seatIds)}`,
-      null,
-      { params: userId ? { userId: normalizeResourceId(userId) } : undefined },
-    ));
+    const showtime = normalizeResourceId(showtimeId);
+    const ids = Array.isArray(seatIds) ? seatIds : [seatIds];
+    if (!MOCK_API_ENABLED) {
+      try {
+        return unwrapApiData(await apiClient.post(`${ENDPOINTS.SHOWTIMES}/${showtime}/hold-seats`, {
+          seatIds: ids.map(normalizeResourceId),
+          userId: normalizeResourceId(userId),
+        }));
+      } catch (error) {
+        rethrowCapabilityError('giữ ghế nguyên tử cho suất chiếu', error);
+      }
+    }
+
+    const results = [];
+    for (const seatId of ids) {
+      results.push(unwrapApiData(await apiClient.post(
+        `${SHOWTIME_BASE}/${showtime}/lock-seat/${normalizeResourceId(seatId)}`,
+        null,
+        { params: userId ? { userId: normalizeResourceId(userId) } : undefined },
+      )));
+    }
+    return results;
   }
 
   async unlockSeats(showtimeId, seatIds) {
-    return unwrapApiData(await apiClient.post(
-      `${SHOWTIME_BASE}/${normalizeResourceId(showtimeId)}/unlock-seat/${normalizeResourceId(seatIds)}`,
-    ));
+    const showtime = normalizeResourceId(showtimeId);
+    const ids = Array.isArray(seatIds) ? seatIds : [seatIds];
+    if (!MOCK_API_ENABLED) {
+      try {
+        return unwrapApiData(await apiClient.post(`${ENDPOINTS.SHOWTIMES}/${showtime}/release-seats`, {
+          seatIds: ids.map(normalizeResourceId),
+        }));
+      } catch (error) {
+        rethrowCapabilityError('nhả ghế đã giữ', error);
+      }
+    }
+
+    const results = [];
+    for (const seatId of ids) {
+      results.push(unwrapApiData(await apiClient.post(
+        `${SHOWTIME_BASE}/${showtime}/unlock-seat/${normalizeResourceId(seatId)}`,
+      )));
+    }
+    return results;
   }
 
   getUpcomingDates(days = 7) {
     return Array.from({ length: days }, (_, index) => {
       const date = new Date();
+      date.setHours(12, 0, 0, 0);
       date.setDate(date.getDate() + index);
+      const value = [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, '0'),
+        String(date.getDate()).padStart(2, '0'),
+      ].join('-');
       return {
-        value: date.toISOString().split('T')[0],
+        value,
         label: date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
         fullLabel: date.toLocaleDateString('vi-VN', { year: 'numeric', month: 'long', day: 'numeric' }),
         isToday: index === 0,
@@ -384,7 +526,14 @@ class ShowtimeService {
     });
   }
 
-  formatTime(timeString) { return timeString; }
+  formatTime(timeString) {
+    if (!timeString) return '';
+    const text = String(timeString);
+    if (/^\d{2}:\d{2}/.test(text)) return text.slice(0, 5);
+    const date = new Date(timeString);
+    return Number.isNaN(date.getTime()) ? text : date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  }
+
   formatDate(dateString) {
     return new Date(dateString).toLocaleDateString('vi-VN', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -394,6 +543,8 @@ class ShowtimeService {
 
 export {
   enrichRealShowtimes,
+  groupShowtimesByCinema,
+  groupShowtimesByMovie,
   normalizeJoinedShowtimeSeat,
   normalizeShowtimeFormat,
   normalizeShowtimeStatus,
