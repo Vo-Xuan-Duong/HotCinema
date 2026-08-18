@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowLeft, Calendar, Grid3x3, Loader2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import SeatViewer from '@/components/SeatManager/SeatViewer';
@@ -8,15 +8,22 @@ import { Card, CardContent } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import useNotification from '@/hooks/useNotification';
 import { AdminPageHeader } from '@/layouts/admin/AdminPageHeader';
-import showtimeService from '@/services/showtimeService';
+import showtimeService, { normalizeShowtimeFormat, normalizeShowtimeStatus } from '@/services/showtimeService';
 
 const FORMAT_LABELS = {
-  TWO_D: '2D',
-  THREE_D: '3D',
+  FORMAT_2D: '2D',
+  FORMAT_3D: '3D',
   IMAX: 'IMAX',
-  IMAX_3D: 'IMAX 3D',
-  FOUR_DX: '4DX',
-  SCREEN_X: 'ScreenX',
+  FORMAT_4DX: '4DX',
+  SCREENX: 'ScreenX',
+};
+
+const STATUS_LABELS = {
+  SCHEDULED: 'Đã lên lịch',
+  OPEN: 'Đang mở bán',
+  CLOSED: 'Đã đóng bán',
+  CANCELLED: 'Đã hủy',
+  FINISHED: 'Đã kết thúc',
 };
 
 const ShowtimeSeatManagement = () => {
@@ -68,16 +75,17 @@ const ShowtimeSeatManagement = () => {
     );
   }
 
-  const format = showtime.format || showtime.formatType;
+  const format = normalizeShowtimeFormat(showtime.format || showtime.formatType);
+  const status = normalizeShowtimeStatus(showtime.status);
 
   return (
     <div className="space-y-6">
       <AdminPageHeader
         title="Sơ đồ ghế theo suất chiếu"
-        description="Theo dõi trạng thái ghế của một suất chiếu cụ thể."
+        description="Theo dõi trạng thái ShowtimeSeat kết hợp với cấu hình ghế vật lý của auditorium."
         breadcrumbs={[
           { title: 'Lịch chiếu', href: '/admin/schedules', icon: <Calendar className="h-4 w-4" /> },
-          { title: showtime.movieTitle || `Suất #${showtime.id}`, icon: <Grid3x3 className="h-4 w-4" /> },
+          { title: showtime.movieTitle || `Suất ${String(showtime.id).slice(0, 8)}`, icon: <Grid3x3 className="h-4 w-4" /> },
         ]}
         actions={(
           <Button variant="outline" onClick={() => navigate('/admin/schedules')}>
@@ -88,10 +96,11 @@ const ShowtimeSeatManagement = () => {
 
       <Card>
         <CardContent className="flex flex-wrap items-center gap-2 p-5">
-          <span className="font-medium">{showtime.movieTitle || 'Phim'}</span>
+          <span className="font-medium">{showtime.movieTitle || showtime.movie?.title || 'Phim'}</span>
           {showtime.cinemaName && <span className="text-muted-foreground">· {showtime.cinemaName}</span>}
           {showtime.roomName && <span className="text-muted-foreground">· {showtime.roomName}</span>}
           {format && <StatusBadge tone="info">{FORMAT_LABELS[format] || format}</StatusBadge>}
+          {status && <StatusBadge tone={status === 'OPEN' ? 'success' : status === 'CANCELLED' ? 'destructive' : 'neutral'}>{STATUS_LABELS[status] || status}</StatusBadge>}
         </CardContent>
       </Card>
 
@@ -100,8 +109,9 @@ const ShowtimeSeatManagement = () => {
           <SeatViewer
             showtimeId={showtime.id || showtimeId}
             selectedScreen={{
-              name: showtime.roomName || 'Phòng chiếu',
-              cinemaName: showtime.cinemaName || 'Rạp chiếu',
+              id: showtime.auditoriumId || showtime.roomId,
+              name: showtime.roomName || showtime.auditorium?.name || 'Phòng chiếu',
+              cinemaName: showtime.cinemaName || showtime.cinema?.name || 'Rạp chiếu',
             }}
           />
         </CardContent>
