@@ -12,7 +12,17 @@ import useNotification from '@/hooks/useNotification';
 import { unwrapApiData } from '@/utils/apiResponse';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
-const BLOCKED_SHOWTIME_STATUSES = new Set(['CANCELLED', 'SOLD_OUT', 'FULL', 'SALES_ENDED', 'COMPLETED', 'POSTPONED']);
+const BOOKABLE_SHOWTIME_STATUSES = new Set(['OPEN', 'AVAILABLE']);
+
+const formatShowtimeClock = (value) => {
+  if (!value) return '—';
+  const text = String(value);
+  if (/^\d{2}:\d{2}/.test(text)) return text.slice(0, 5);
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? text.slice(0, 5)
+    : date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+};
 
 const CinemaDetail = () => {
   const { id } = useParams();
@@ -40,13 +50,13 @@ const CinemaDetail = () => {
     const loadCinema = async () => {
       setLoading(true);
       try {
-        const response = await cinemaService.getCinemaById(id);
+        const response = await cinemaService.getPublicCinemaById(id);
         if (!cancelled) setCinema(unwrapApiData(response));
       } catch (error) {
-        console.error('Error fetching cinema detail:', error);
+        console.error('Error fetching public cinema detail:', error);
         if (!cancelled) {
           setCinema(null);
-          notification.error('Không thể tải thông tin rạp!');
+          if (error?.code !== 'CINEMA_NOT_PUBLIC') notification.error(error?.message || 'Không thể tải thông tin rạp!');
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -54,9 +64,7 @@ const CinemaDetail = () => {
     };
 
     loadCinema();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [id, notification]);
 
   const fetchShowtimes = async (pageNum = 0) => {
@@ -77,7 +85,7 @@ const CinemaDetail = () => {
             time: showtime.startTime,
             roomName: showtime.roomName || 'Phòng',
             screeningFormat: format.formatType,
-            status: showtime.status,
+            status: String(showtime.status || '').toUpperCase(),
             price: showtime.price,
           })))
           .sort((a, b) => String(a.time).localeCompare(String(b.time)));
@@ -85,7 +93,7 @@ const CinemaDetail = () => {
         return {
           id: movieData.movieId,
           title: movieData.movieTitle,
-          ageRating: movieData.formats?.[0]?.formatType || '2D',
+          format: movieData.formats?.[0]?.formatType || '2D',
           poster: movieData.posterPath || movieData.posterUrl || '/brand-placeholder.svg',
           showtimes,
         };
@@ -95,14 +103,14 @@ const CinemaDetail = () => {
       setPage(currentPage);
       setHasMore(currentPage < totalPages - 1);
     } catch (error) {
-      console.error('Error fetching showtimes:', error);
-      notification.error('Không thể tải lịch chiếu!');
+      console.error('Error fetching cinema showtimes:', error);
+      notification.error(error?.message || 'Không thể tải lịch chiếu!');
       if (pageNum === 0) setMovies([]);
     }
   };
 
   useEffect(() => {
-    if (!id || !activeDate) return;
+    if (!id || !activeDate || !cinema) return;
     let active = true;
 
     setPage(0);
@@ -112,12 +120,10 @@ const CinemaDetail = () => {
       if (active) setShowtimesLoading(false);
     });
 
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
     // fetchShowtimes is intentionally driven by cinema/date changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, activeDate]);
+  }, [id, activeDate, cinema?.id]);
 
   const handleLoadMore = async () => {
     if (showtimesLoading || !hasMore) return;
@@ -130,23 +136,17 @@ const CinemaDetail = () => {
   };
 
   const goToSeats = (showtime) => {
-    if (!showtime?.id || BLOCKED_SHOWTIME_STATUSES.has(String(showtime.status || '').toUpperCase())) return;
+    if (!showtime?.id || !BOOKABLE_SHOWTIME_STATUSES.has(String(showtime.status || '').toUpperCase())) return;
     navigate(`/booking/seats/${showtime.id}`);
   };
 
-  if (loading) {
-    return <ContentLoader message="Đang tải thông tin rạp..." />;
-  }
+  if (loading) return <ContentLoader message="Đang tải thông tin rạp..." />;
 
   if (!cinema) {
     return (
       <div className="min-h-dvh bg-background px-4 pb-16 pt-24 text-foreground">
         <div className="mx-auto max-w-5xl">
-          <Card>
-            <CardContent className="py-4">
-              <Empty description="Không tìm thấy thông tin rạp chiếu" />
-            </CardContent>
-          </Card>
+          <Card><CardContent className="py-4"><Empty description="Rạp không tồn tại hoặc hiện không hoạt động" /></CardContent></Card>
         </div>
       </div>
     );
@@ -166,8 +166,9 @@ const CinemaDetail = () => {
     { icon: Wifi, label: 'Wifi miễn phí' },
   ];
 
-  const mapUrl = GOOGLE_MAPS_API_KEY && cinema.address
-    ? `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}&q=${encodeURIComponent(cinema.address)}`
+  const mapQuery = [cinema.address, cinema.city].filter(Boolean).join(', ');
+  const mapUrl = GOOGLE_MAPS_API_KEY && mapQuery
+    ? `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}&q=${encodeURIComponent(mapQuery)}`
     : null;
 
   return (
@@ -179,13 +180,13 @@ const CinemaDetail = () => {
             <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{cinema.name}</h1>
             <p className="mt-2 flex max-w-3xl items-start gap-2 text-sm leading-6 text-muted-foreground">
               <MapPin className="mt-1 h-4 w-4 shrink-0 text-primary" />
-              {cinema.address || 'Chưa cập nhật địa chỉ'}
+              {[cinema.address, cinema.city].filter(Boolean).join(', ') || 'Chưa cập nhật địa chỉ'}
             </p>
           </div>
           <Button
             type="button"
             variant="outline"
-            onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cinema.address || cinema.name || '')}`, '_blank', 'noopener,noreferrer')}
+            onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery || cinema.name || '')}`, '_blank', 'noopener,noreferrer')}
           >
             <Navigation className="mr-2 h-4 w-4" />
             Chỉ đường
@@ -208,6 +209,7 @@ const CinemaDetail = () => {
           <section>
             <div className="mb-5">
               <h2 className="text-xl font-semibold">Lịch chiếu</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Chỉ suất chiếu ở trạng thái OPEN mới cho phép bắt đầu đặt ghế.</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {dates.slice(0, 7).map((date) => (
                   <Button
@@ -243,30 +245,25 @@ const CinemaDetail = () => {
                       </Link>
 
                       <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div>
-                            <Link to={`/movies/${movie.id}`} className="font-semibold hover:text-primary">
-                              {movie.title}
-                            </Link>
-                            <div className="mt-2">
-                              <StatusBadge tone="info">{movie.ageRating}</StatusBadge>
-                            </div>
-                          </div>
+                        <div>
+                          <Link to={`/movies/${movie.id}`} className="font-semibold hover:text-primary">{movie.title}</Link>
+                          <div className="mt-2"><StatusBadge tone="info">{movie.format}</StatusBadge></div>
                         </div>
 
                         <div className="mt-4 flex flex-wrap gap-2">
                           {movie.showtimes.map((showtime) => {
-                            const blocked = BLOCKED_SHOWTIME_STATUSES.has(String(showtime.status || '').toUpperCase());
+                            const bookable = BOOKABLE_SHOWTIME_STATUSES.has(String(showtime.status || '').toUpperCase());
                             return (
                               <Button
                                 key={showtime.id}
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                disabled={blocked}
+                                disabled={!bookable}
+                                title={bookable ? 'Chọn ghế' : `Suất chiếu ${showtime.status || 'chưa mở bán'}`}
                                 onClick={() => goToSeats(showtime)}
                               >
-                                {showtime.time}
+                                {formatShowtimeClock(showtime.time)}
                               </Button>
                             );
                           })}
@@ -276,11 +273,7 @@ const CinemaDetail = () => {
                   </Card>
                 ))
               ) : (
-                <Card>
-                  <CardContent className="py-4">
-                    <Empty description="Không có lịch chiếu cho ngày này" />
-                  </CardContent>
-                </Card>
+                <Card><CardContent className="py-4"><Empty description="Không có lịch chiếu cho ngày này" /></CardContent></Card>
               )}
 
               {hasMore && movies.length > 0 && (
@@ -296,9 +289,7 @@ const CinemaDetail = () => {
 
           <aside className="space-y-6">
             <Card className="shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg">Tiện ích rạp</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-lg">Tiện ích rạp</CardTitle></CardHeader>
               <CardContent className="grid grid-cols-2 gap-3">
                 {amenities.map(({ icon: Icon, label }) => (
                   <div key={label} className="rounded-lg border border-border bg-muted/30 p-3 text-center">
@@ -310,9 +301,7 @@ const CinemaDetail = () => {
             </Card>
 
             <Card className="overflow-hidden shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg">Vị trí</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-lg">Vị trí</CardTitle></CardHeader>
               <div className="h-64 border-t border-border bg-muted">
                 {mapUrl ? (
                   <iframe
