@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import QRCode from 'qrcode';
-import { CheckCircle2, Download, Home, Mail } from 'lucide-react';
+import { CheckCircle2, Download, Home, Mail, Ticket } from 'lucide-react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import ContentLoader from '@/components/Loading/ContentLoader';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import useNotification from '@/hooks/useNotification';
+import { MOCK_API_ENABLED } from '@/mocks/mockConfig';
 import bookingService from '@/services/bookingService';
 import emailService from '@/services/emailService';
 import ticketService from '@/services/ticketService';
-import useNotification from '@/hooks/useNotification';
 
 const readStoredBooking = () => {
   try {
@@ -22,22 +23,60 @@ const readStoredBooking = () => {
 };
 
 const formatDate = (value) => {
-  if (!value) return '';
+  if (!value) return 'N/A';
   const date = dayjs(value);
-  return date.isValid() ? date.locale('vi').format('DD/MM/YYYY') : String(value);
+  return date.isValid() ? date.format('DD/MM/YYYY') : String(value);
 };
 
 const formatTime = (value) => {
   if (!value) return '';
   const text = String(value);
   if (/^\d{2}:\d{2}/.test(text)) return text.slice(0, 5);
-  const time = dayjs(`2000-01-01 ${text}`);
-  return time.isValid() ? time.format('HH:mm') : text;
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format('HH:mm') : text;
 };
 
 const formatAmount = (value) => {
-  const amount = typeof value === 'number' ? value : Number.parseFloat(value || 0);
+  const amount = Number(value || 0);
   return `${(Number.isFinite(amount) ? amount : 0).toLocaleString('vi-VN')}đ`;
+};
+
+const mapBooking = (booking = {}) => {
+  const seats = Array.isArray(booking.seats) ? booking.seats : [];
+  const seatNumbers = seats.length
+    ? seats.map((seat) => seat.seatName || seat.seatLabel || seat.name || seat.seatNumber).filter(Boolean).join(', ')
+    : 'Chưa có thông tin ghế';
+  const startTime = formatTime(booking.showtimeStartTime || booking.startTime || booking.showtime?.startTime);
+  const endTime = formatTime(booking.showtimeEndTime || booking.endTime || booking.showtime?.endTime);
+  const finalAmount = booking.finalAmount ?? booking.totalAmount ?? booking.totalPrice ?? 0;
+
+  return {
+    ...booking,
+    bookingId: booking.id || booking.bookingId,
+    bookingCode: booking.bookingCode || booking.code || '',
+    movieTitle: booking.movieTitle || booking.movie?.title || 'Không có thông tin phim',
+    cinemaName: booking.cinemaName || booking.cinema?.name || 'N/A',
+    cinemaAddress: booking.cinemaAddress || booking.cinema?.address || '',
+    roomName: booking.roomName || booking.showtime?.roomName || 'N/A',
+    seatNumbers,
+    showDate: formatDate(booking.showtimeDateTime || booking.showDate || booking.showtime?.startTime),
+    showTime: startTime,
+    showTimeEnd: endTime,
+    showTimeRange: endTime ? `${startTime} – ${endTime}` : startTime,
+    totalAmount: formatAmount(finalAmount),
+    totalAmountValue: Number(finalAmount) || 0,
+    moviePoster: booking.moviePosterUrl || booking.posterUrl || booking.movie?.posterUrl || '/brand-placeholder.svg',
+    formatType: [booking.movieFormat, booking.movieAudioType].filter(Boolean).join(' '),
+  };
+};
+
+const normalizeQrImage = (booking = {}) => {
+  if (booking.qrCodeBase64) {
+    return String(booking.qrCodeBase64).startsWith('data:')
+      ? booking.qrCodeBase64
+      : `data:image/png;base64,${booking.qrCodeBase64}`;
+  }
+  return booking.qrImageUrl || booking.qrCodeUrl || '';
 };
 
 const BookingSuccess = () => {
@@ -48,127 +87,103 @@ const BookingSuccess = () => {
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [bookingData, setBookingData] = useState({});
+  const [ticketCapabilityMessage, setTicketCapabilityMessage] = useState('');
 
-  const bookingCodeParam = searchParams.get('bookingCode')
-    || location.state?.bookingData?.bookingCode
-    || readStoredBooking().bookingCode;
+  const fallbackBooking = location.state?.bookingData || readStoredBooking();
+  const bookingCodeParam = searchParams.get('bookingCode') || fallbackBooking.bookingCode;
+  const bookingIdParam = searchParams.get('bookingId') || fallbackBooking.id || fallbackBooking.bookingId;
+  const pdfSupported = ticketService.isPdfDownloadSupported();
+  const emailSupported = emailService.isTicketEmailSupported();
 
   useEffect(() => {
     let cancelled = false;
 
-    const createQrCode = async (bookingCode) => {
-      if (!bookingCode) return '';
-      return QRCode.toDataURL(`BOOKING:${bookingCode}`, {
-        width: 300,
-        margin: 2,
-        color: { dark: '#000000', light: '#FFFFFF' },
-      });
-    };
-
-    const fetchBookingDetails = async () => {
+    const load = async () => {
       setLoading(true);
+      setTicketCapabilityMessage('');
 
       try {
-        if (bookingCodeParam) {
-          const bookingDetails = await bookingService.getBookingByCode(bookingCodeParam);
-          if (cancelled) return;
+        let source = fallbackBooking;
+        if (bookingIdParam) {
+          source = await bookingService.getBookingById(bookingIdParam);
+        } else if (MOCK_API_ENABLED && bookingCodeParam) {
+          source = await bookingService.getBookingByCode(bookingCodeParam);
+        }
 
-          const seats = Array.isArray(bookingDetails.seats) ? bookingDetails.seats : [];
-          const seatNumbers = seats.length
-            ? seats.map((seat) => seat.seatName || seat.name || seat.seatNumber || seat.id).filter(Boolean).join(', ')
-            : 'Chưa có thông tin ghế';
+        if (cancelled) return;
+        const mapped = mapBooking(source || fallbackBooking);
+        setBookingData(mapped);
 
-          const startTime = formatTime(bookingDetails.showtimeStartTime);
-          const endTime = formatTime(bookingDetails.showtimeEndTime);
-          const finalAmount = bookingDetails.finalAmount ?? bookingDetails.totalAmount ?? 0;
-          const formatType = [bookingDetails.movieFormat, bookingDetails.movieAudioType].filter(Boolean).join(' ');
+        const embeddedQr = normalizeQrImage(source || fallbackBooking);
+        if (embeddedQr) {
+          setQrCodeUrl(embeddedQr);
+          return;
+        }
 
-          const combinedData = {
-            bookingId: bookingDetails.id,
-            bookingCode: bookingDetails.bookingCode,
-            status: bookingDetails.status,
-            movieTitle: bookingDetails.movieTitle,
-            cinemaName: bookingDetails.cinemaName,
-            cinemaAddress: bookingDetails.cinemaAddress,
-            roomName: bookingDetails.roomName,
-            seatNumbers,
-            seats,
-            showDate: formatDate(bookingDetails.showtimeDateTime || bookingDetails.showDate),
-            showTime: startTime,
-            showTimeEnd: endTime,
-            showTimeRange: endTime ? `${startTime} – ${endTime}` : startTime,
-            totalAmount: formatAmount(finalAmount),
-            totalAmountValue: Number(finalAmount) || 0,
-            discountAmount: Number(bookingDetails.discountAmount) || 0,
-            moviePoster: bookingDetails.moviePosterUrl || '/brand-placeholder.svg',
-            bookingDate: bookingDetails.bookingDate,
-            userName: bookingDetails.userName,
-            userEmail: bookingDetails.userEmail,
-            formatType,
-          };
+        if (!mapped.bookingId) {
+          setQrCodeUrl('');
+          return;
+        }
 
-          setBookingData(combinedData);
-          setQrCodeUrl(await createQrCode(combinedData.bookingCode));
-        } else {
-          const fallbackData = location.state?.bookingData || readStoredBooking();
-          if (cancelled) return;
-          setBookingData(fallbackData);
-          setQrCodeUrl(await createQrCode(fallbackData.bookingCode));
+        try {
+          const tickets = await ticketService.resolveBookingQrPayload(mapped.bookingId);
+          const qrPayload = tickets?.find((ticket) => ticket.qrPayload)?.qrPayload;
+          if (!qrPayload) {
+            setQrCodeUrl('');
+            setTicketCapabilityMessage('Backend chưa trả về QR token/ticket code có thể dùng làm vé điện tử.');
+            return;
+          }
+          const image = await QRCode.toDataURL(qrPayload, { width: 300, margin: 2 });
+          if (!cancelled) setQrCodeUrl(image);
+        } catch (error) {
+          if (!cancelled) {
+            setQrCodeUrl('');
+            if (error?.code === 'BACKEND_CAPABILITY_MISSING') setTicketCapabilityMessage(error.message);
+          }
         }
       } catch (error) {
         console.error('Error fetching booking details:', error);
         if (!cancelled) {
-          const fallbackData = location.state?.bookingData || readStoredBooking();
-          setBookingData(fallbackData);
-          if (fallbackData.bookingCode) setQrCodeUrl(await createQrCode(fallbackData.bookingCode));
+          setBookingData(mapBooking(fallbackBooking));
+          setQrCodeUrl(normalizeQrImage(fallbackBooking));
+          if (error?.code === 'BACKEND_CAPABILITY_MISSING') setTicketCapabilityMessage(error.message);
         }
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
 
-    fetchBookingDetails();
-    return () => {
-      cancelled = true;
-    };
-  }, [bookingCodeParam, location.state]);
+    load();
+    return () => { cancelled = true; };
+    // fallbackBooking is intentionally derived from navigation/localStorage at
+    // mount; identifiers are the stable dependencies for backend hydration.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookingCodeParam, bookingIdParam]);
 
   const handleDownloadPDF = async () => {
-    if (!bookingData.bookingId) {
-      notification.error('Không tìm thấy thông tin booking');
-      return;
-    }
-
+    if (!pdfSupported || !bookingData.bookingId) return;
     try {
-      notification.info('Đang tải vé...');
       const pdfBlob = await ticketService.downloadBookingPDF(bookingData.bookingId);
-      ticketService.triggerDownload(pdfBlob, `Ve_${bookingData.bookingId}.pdf`);
+      ticketService.triggerDownload(pdfBlob, `Ve_${bookingData.bookingCode || bookingData.bookingId}.pdf`);
       notification.success('Tải vé thành công!');
     } catch (error) {
       console.error('Error downloading PDF:', error);
-      notification.error('Không thể tải vé. Vui lòng thử lại sau.');
+      notification.error(error?.message || 'Không thể tải vé.');
     }
   };
 
   const handleSendEmail = async () => {
-    if (!bookingData.bookingId) {
-      notification.error('Không tìm thấy thông tin booking');
-      return;
-    }
-
+    if (!emailSupported || !bookingData.bookingId) return;
     try {
-      notification.info('Đang gửi email...');
       await emailService.sendTicketEmail(bookingData.bookingId);
-      notification.success('Đã gửi vé qua email thành công!');
+      notification.success('Đã gửi vé qua email.');
     } catch (error) {
       console.error('Error sending email:', error);
-      notification.error('Không thể gửi email. Vui lòng thử lại sau.');
+      notification.error(error?.message || 'Không thể gửi email.');
     }
   };
 
-  if (loading) {
-    return <ContentLoader message="Đang tải thông tin đặt vé..." />;
-  }
+  if (loading) return <ContentLoader message="Đang tải thông tin đặt vé..." />;
 
   const {
     bookingCode = '',
@@ -203,54 +218,63 @@ const BookingSuccess = () => {
           </div>
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Đặt vé thành công</h1>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-            Vé của bạn đã được ghi nhận. Hãy lưu mã QR hoặc tải vé PDF để sử dụng khi đến rạp.
+            Thông tin booking đã được ghi nhận. Vé điện tử chỉ xuất hiện khi backend phát hành ticket/QR tương ứng.
           </p>
         </header>
 
-        <Alert type="success" showIcon message="Thanh toán thành công" description="Bạn có thể kiểm tra lại thông tin vé trước khi rời trang này." />
+        {ticketCapabilityMessage && (
+          <Alert
+            variant="warning"
+            showIcon
+            message="Vé điện tử chưa được backend phát hành đầy đủ"
+            description={ticketCapabilityMessage}
+          />
+        )}
 
         <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
           <Card className="h-fit shadow-sm">
             <CardHeader>
-              <CardTitle className="text-lg">Mã vé của bạn</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-lg"><Ticket className="h-4 w-4" />Vé điện tử</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex justify-center">
                 {qrCodeUrl ? (
                   <div className="rounded-lg border border-border bg-white p-3">
-                    <img src={qrCodeUrl} alt={`QR booking ${bookingCode}`} className="h-56 w-56" />
+                    <img src={qrCodeUrl} alt={`QR ticket ${bookingCode || bookingData.bookingId}`} className="h-56 w-56" />
                   </div>
                 ) : (
-                  <div className="flex h-56 w-56 items-center justify-center rounded-lg border border-dashed border-border bg-muted text-sm text-muted-foreground">
-                    Không thể tạo QR
+                  <div className="flex h-56 w-56 items-center justify-center rounded-lg border border-dashed border-border bg-muted p-5 text-center text-sm leading-6 text-muted-foreground">
+                    Chưa có QR do backend phát hành
                   </div>
                 )}
               </div>
 
               <div className="text-center">
                 <p className="text-xs text-muted-foreground">Mã đặt vé</p>
-                <p className="mt-1 font-mono text-xl font-semibold tracking-wider">{bookingCode || 'N/A'}</p>
+                <p className="mt-1 break-all font-mono text-lg font-semibold tracking-wide">{bookingCode || 'N/A'}</p>
               </div>
 
-              <Separator />
+              {(pdfSupported || emailSupported) && <Separator />}
 
               <div className="space-y-2">
-                <Button type="button" className="w-full" onClick={handleDownloadPDF} disabled={!bookingData.bookingId}>
-                  <Download className="mr-2 h-4 w-4" />
-                  Tải vé PDF
-                </Button>
-                <Button type="button" variant="outline" className="w-full" onClick={handleSendEmail} disabled={!bookingData.bookingId}>
-                  <Mail className="mr-2 h-4 w-4" />
-                  Gửi vé qua email
-                </Button>
+                {pdfSupported && (
+                  <Button type="button" className="w-full" onClick={handleDownloadPDF} disabled={!bookingData.bookingId}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Tải vé PDF
+                  </Button>
+                )}
+                {emailSupported && (
+                  <Button type="button" variant="outline" className="w-full" onClick={handleSendEmail} disabled={!bookingData.bookingId}>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Gửi vé qua email
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
 
           <Card className="shadow-sm">
-            <CardHeader className="border-b border-border">
-              <CardTitle>Chi tiết vé</CardTitle>
-            </CardHeader>
+            <CardHeader className="border-b border-border"><CardTitle>Chi tiết booking</CardTitle></CardHeader>
             <CardContent className="pt-6">
               <div className="grid gap-6 md:grid-cols-[180px_minmax(0,1fr)]">
                 <div>
@@ -258,9 +282,7 @@ const BookingSuccess = () => {
                     src={moviePoster}
                     alt={movieTitle}
                     className="aspect-[2/3] w-full rounded-lg border border-border object-cover"
-                    onError={(event) => {
-                      event.currentTarget.src = '/brand-placeholder.svg';
-                    }}
+                    onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }}
                   />
                   <p className="mt-3 text-xs text-muted-foreground">Phim</p>
                   <p className="mt-1 font-semibold">{movieTitle}</p>
@@ -304,4 +326,5 @@ const BookingSuccess = () => {
   );
 };
 
+export { mapBooking, normalizeQrImage };
 export default BookingSuccess;
