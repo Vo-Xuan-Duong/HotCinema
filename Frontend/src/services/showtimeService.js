@@ -56,6 +56,22 @@ const normalizeShowtimeStatus = (value) => {
   return aliases[normalized] || normalized;
 };
 
+const toMockShowtimeFormat = (value) => ({
+  FORMAT_2D: 'TWO_D',
+  FORMAT_3D: 'THREE_D',
+  IMAX: 'IMAX',
+  FORMAT_4DX: 'FOUR_DX',
+  SCREENX: 'SCREEN_X',
+}[normalizeShowtimeFormat(value)] || value);
+
+const toMockShowtimeStatus = (value) => ({
+  SCHEDULED: 'UPCOMING',
+  OPEN: 'AVAILABLE',
+  CLOSED: 'SALES_ENDED',
+  CANCELLED: 'CANCELLED',
+  FINISHED: 'COMPLETED',
+}[normalizeShowtimeStatus(value)] || value);
+
 const combineDateAndTime = (date, time) => {
   if (!date || !time) return null;
   const rawTime = String(time);
@@ -70,6 +86,25 @@ const toIsoDateTime = (value, fallbackDate) => {
     : value;
   const date = new Date(candidate);
   return Number.isNaN(date.getTime()) ? candidate : date.toISOString();
+};
+
+const localDateTimeParts = (value, fallbackDate) => {
+  if (!value) return { date: fallbackDate ? String(fallbackDate).slice(0, 10) : null, time: null };
+  const raw = String(value);
+  if (/^\d{1,2}:\d{2}/.test(raw)) {
+    return {
+      date: fallbackDate ? String(fallbackDate).slice(0, 10) : null,
+      time: raw.length === 5 ? `${raw}:00` : raw.slice(0, 8),
+    };
+  }
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) {
+    const [date, time] = raw.split('T');
+    return { date: date || fallbackDate || null, time: time ? time.slice(0, 8) : null };
+  }
+  const local = new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60_000);
+  const iso = local.toISOString();
+  return { date: iso.slice(0, 10), time: iso.slice(11, 19) };
 };
 
 const toShowtimePayload = (data = {}) => {
@@ -87,6 +122,29 @@ const toShowtimePayload = (data = {}) => {
     bookingCloseAt: toIsoDateTime(data.bookingCloseAt, fallbackDate),
     status: normalizeShowtimeStatus(data.status),
     ...(normalizeResourceId(data.createdById) ? { createdById: normalizeResourceId(data.createdById) } : {}),
+  };
+};
+
+const toMockShowtimePayload = (data = {}) => {
+  const fallbackDate = data.showDate || data.date;
+  const start = localDateTimeParts(data.startTime, fallbackDate);
+  const end = localDateTimeParts(data.endTime, start.date || fallbackDate);
+  const roomId = normalizeResourceId(data.auditoriumId ?? data.roomId ?? data.theaterId);
+  const showDate = fallbackDate ? String(fallbackDate).slice(0, 10) : start.date;
+  return {
+    ...data,
+    movieId: normalizeResourceId(data.movieId),
+    cinemaId: normalizeResourceId(data.cinemaId),
+    roomId,
+    theaterId: roomId,
+    showDate,
+    date: showDate,
+    startTime: start.time || data.startTime,
+    endTime: end.time || data.endTime,
+    format: toMockShowtimeFormat(data.format),
+    audioType: data.audioType || (String(data.subtitle || '').toUpperCase() === 'NONE' ? 'ORIGINAL' : 'SUBTITLE'),
+    basePrice: Number(data.basePrice ?? data.price),
+    status: toMockShowtimeStatus(data.status),
   };
 };
 
@@ -199,12 +257,12 @@ class ShowtimeService {
   }
 
   async createShowtime(data) {
-    const payload = MOCK_API_ENABLED ? data : toShowtimePayload(data);
+    const payload = MOCK_API_ENABLED ? toMockShowtimePayload(data) : toShowtimePayload(data);
     return unwrapApiData(await apiClient.post(SHOWTIME_BASE, payload));
   }
 
   async updateShowtime(id, data) {
-    const payload = MOCK_API_ENABLED ? data : toShowtimePayload(data);
+    const payload = MOCK_API_ENABLED ? toMockShowtimePayload(data) : toShowtimePayload(data);
     return unwrapApiData(await apiClient.put(`${SHOWTIME_BASE}/${normalizeResourceId(id)}`, payload));
   }
 
@@ -214,12 +272,13 @@ class ShowtimeService {
 
   async updateShowtimeStatus(id, status) {
     const normalizedId = normalizeResourceId(id);
+    const targetStatus = MOCK_API_ENABLED ? toMockShowtimeStatus(status) : normalizeShowtimeStatus(status);
     try {
-      return unwrapApiData(await apiClient.patch(`${SHOWTIME_BASE}/${normalizedId}/status`, { status: normalizeShowtimeStatus(status) }));
+      return unwrapApiData(await apiClient.patch(`${SHOWTIME_BASE}/${normalizedId}/status`, { status: targetStatus }));
     } catch (error) {
       if (!endpointUnavailable(error)) throw error;
       const current = await this.getShowtimeById(normalizedId);
-      return this.updateShowtime(normalizedId, { ...current, status: normalizeShowtimeStatus(status) });
+      return this.updateShowtime(normalizedId, { ...current, status });
     }
   }
 
@@ -295,6 +354,7 @@ export {
   enrichRealShowtimes,
   normalizeShowtimeFormat,
   normalizeShowtimeStatus,
+  toMockShowtimePayload,
   toShowtimePayload,
 };
 export const showtimeService = new ShowtimeService();
