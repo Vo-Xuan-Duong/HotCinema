@@ -50,15 +50,21 @@ const BookingDetail = () => {
   const notification = useNotification();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const businessCommandsSupported = bookingService.isBookingStatusCommandSupported();
 
   useEffect(() => {
     let active = true;
     setLoading(true);
-    bookingService.getBookingByCode(bookingCode)
+    setLoadError('');
+    bookingService.getAdminBooking(bookingCode)
       .then((response) => active && setBooking(response || null))
       .catch((error) => {
         console.error('Error loading admin booking detail:', error);
-        if (active) notification.error('Không thể tải chi tiết đặt vé');
+        if (!active) return;
+        setBooking(null);
+        setLoadError(error?.message || 'Không thể tải chi tiết đặt vé');
+        notification.error(error?.message || 'Không thể tải chi tiết đặt vé');
       })
       .finally(() => active && setLoading(false));
     return () => { active = false; };
@@ -69,7 +75,15 @@ const BookingDetail = () => {
   }
 
   if (!booking) {
-    return <Alert variant="destructive" showIcon message="Không tìm thấy đặt vé" description={`Không có dữ liệu cho mã ${bookingCode}.`} action={<Button onClick={() => navigate('/admin/bookings')}>Quay lại danh sách</Button>} />;
+    return (
+      <Alert
+        variant="destructive"
+        showIcon
+        message="Không tìm thấy đặt vé"
+        description={loadError || `Không có dữ liệu cho mã hoặc ID ${bookingCode}.`}
+        action={<Button onClick={() => navigate('/admin/bookings')}>Quay lại danh sách</Button>}
+      />
+    );
   }
 
   const bookingStatus = bookingStatusMeta(booking.bookingStatus || booking.status);
@@ -93,6 +107,15 @@ const BookingDetail = () => {
         actions={<Button variant="outline" onClick={() => navigate('/admin/bookings')}><ArrowLeft className="h-4 w-4" />Quay lại</Button>}
       />
 
+      {!businessCommandsSupported && (
+        <Alert
+          variant="warning"
+          showIcon
+          message="Booking hiện ở chế độ quản trị chỉ đọc"
+          description="Backend hiện chỉ có CRUD Booking và chưa có command an toàn cho đổi trạng thái, hủy, hoàn tiền hoặc phát hành vé. FE không dùng PUT toàn bộ Booking DTO để giả lập các nghiệp vụ này."
+        />
+      )}
+
       {(booking.moviePosterUrl || booking.posterUrl) && (
         <Card className="overflow-hidden">
           <div className="grid md:grid-cols-[180px_minmax(0,1fr)]">
@@ -111,12 +134,14 @@ const BookingDetail = () => {
           <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Ticket className="h-4 w-4 text-muted-foreground" />Thông tin đặt vé</CardTitle></CardHeader>
           <CardContent>
             <DetailList columns={2}>
-              <DetailItem label="Mã đặt vé">{booking.bookingCode || booking.id || 'N/A'}</DetailItem>
+              <DetailItem label="Booking ID">{booking.id || 'N/A'}</DetailItem>
+              <DetailItem label="Mã đặt vé">{booking.bookingCode || booking.code || 'N/A'}</DetailItem>
               <DetailItem label="Trạng thái"><StatusBadge tone={bookingStatus.tone}>{bookingStatus.label}</StatusBadge></DetailItem>
               <DetailItem label="Ngày đặt">{formatDateTime(booking.bookingDate || booking.createdAt)}</DetailItem>
               <DetailItem label="User ID">{booking.userId || booking.user?.id || 'N/A'}</DetailItem>
-              <DetailItem label="Khách hàng">{booking.userName || booking.userFullName || booking.user?.fullName || 'N/A'}</DetailItem>
-              <DetailItem label="Email">{booking.userEmail || booking.user?.email || 'N/A'}</DetailItem>
+              <DetailItem label="Khách hàng">{booking.customerName || booking.userName || booking.userFullName || booking.user?.fullName || 'N/A'}</DetailItem>
+              <DetailItem label="Email">{booking.customerEmail || booking.userEmail || booking.user?.email || 'N/A'}</DetailItem>
+              <DetailItem label="Điện thoại">{booking.customerPhone || booking.userPhone || booking.user?.phone || 'N/A'}</DetailItem>
             </DetailList>
           </CardContent>
         </Card>
@@ -143,7 +168,7 @@ const BookingDetail = () => {
             <div className="flex flex-wrap gap-2">
               {seats.map((seat, index) => <StatusBadge key={seat.seatId || seat.id || index} tone="info">{seat.seatName || seat.seatLabel || seat.name || `Ghế ${index + 1}`}{seat.seatType || seat.type ? ` · ${seat.seatType || seat.type}` : ''}{seat.price != null ? ` · ${money(seat.price)}` : ''}</StatusBadge>)}
             </div>
-          ) : <p className="text-sm text-muted-foreground">Không có thông tin ghế.</p>}
+          ) : <p className="text-sm text-muted-foreground">Backend response hiện không kèm chi tiết ghế cho booking này.</p>}
         </CardContent>
       </Card>
 
@@ -153,7 +178,9 @@ const BookingDetail = () => {
           <DetailList columns={2}>
             <DetailItem label="Trạng thái"><StatusBadge tone={paymentStatus.tone}>{paymentStatus.label}</StatusBadge></DetailItem>
             <DetailItem label="Phương thức">{booking.paymentMethod || 'N/A'}</DetailItem>
-            <DetailItem label="Tổng ban đầu">{money(booking.totalAmount ?? booking.totalPrice ?? finalAmount)}</DetailItem>
+            <DetailItem label="Tiền ghế">{money(booking.seatAmount || 0)}</DetailItem>
+            <DetailItem label="Đồ ăn / thức uống">{money(booking.foodAmount || 0)}</DetailItem>
+            <DetailItem label="Tạm tính">{money(booking.subtotal ?? booking.totalAmount ?? finalAmount)}</DetailItem>
             <DetailItem label="Giảm giá">{money(booking.discountAmount || 0)}</DetailItem>
             <DetailItem label="Thành tiền" wide><span className="text-lg font-semibold">{money(finalAmount)}</span></DetailItem>
           </DetailList>
