@@ -148,6 +148,55 @@ const toMockShowtimePayload = (data = {}) => {
   };
 };
 
+const normalizeJoinedShowtimeSeat = (showtimeSeat = {}, seat = {}, seatType = {}) => {
+  const rowLabel = String(seat.rowLabel || '').trim().toUpperCase();
+  const seatNumber = Number(seat.seatNumber ?? seat.xPosition ?? seat.col ?? 0);
+  const physicalStatus = String(seat.status || 'ACTIVE').trim().toUpperCase();
+  const showtimeStatus = String(showtimeSeat.status || 'AVAILABLE').trim().toUpperCase();
+  const effectiveStatus = physicalStatus === 'MAINTENANCE'
+    ? 'MAINTENANCE'
+    : physicalStatus === 'DISABLED'
+      ? 'BLOCKED'
+      : showtimeStatus;
+  const displayName = seat.displayName || seat.name || `${rowLabel}${seatNumber || ''}`;
+  const seatTypeCode = seatType.code || seatType.name || seat.seatTypeCode || seat.seatType || 'REGULAR';
+
+  return {
+    ...seat,
+    showtimeSeatId: normalizeResourceId(showtimeSeat.id),
+    id: normalizeResourceId(showtimeSeat.id),
+    physicalSeatId: normalizeResourceId(seat.id ?? showtimeSeat.seatId),
+    seatId: normalizeResourceId(seat.id ?? showtimeSeat.seatId),
+    auditoriumId: normalizeResourceId(seat.auditoriumId),
+    seatTypeId: normalizeResourceId(seat.seatTypeId),
+    seatType: seatTypeCode,
+    seatTypeName: seatType.name || seatTypeCode,
+    seatTypeCode,
+    name: displayName,
+    displayName,
+    rowLabel,
+    row: Number(seat.yPosition ?? seat.row ?? 0),
+    rowNumber: Number(seat.yPosition ?? seat.row ?? 0),
+    seatNumber,
+    number: seatNumber,
+    col: Number(seat.xPosition ?? seat.col ?? seatNumber),
+    column: Number(seat.xPosition ?? seat.col ?? seatNumber),
+    xPosition: Number(seat.xPosition ?? seat.col ?? seatNumber),
+    yPosition: Number(seat.yPosition ?? seat.row ?? 0),
+    price: Number(showtimeSeat.price ?? 0),
+    status: effectiveStatus,
+    seatStatus: effectiveStatus,
+    physicalStatus,
+    lockedByUserId: normalizeResourceId(showtimeSeat.heldByUserId),
+    heldByUserId: normalizeResourceId(showtimeSeat.heldByUserId),
+    holdToken: showtimeSeat.holdToken ?? null,
+    heldAt: showtimeSeat.heldAt ?? null,
+    holdExpiresAt: showtimeSeat.holdExpiresAt ?? null,
+    bookingId: normalizeResourceId(showtimeSeat.bookingId),
+    version: showtimeSeat.version,
+  };
+};
+
 const enrichRealShowtimes = async (rows = []) => {
   if (MOCK_API_ENABLED || !rows.length) return rows;
   const [moviesResponse, auditoriumsResponse, cinemasResponse] = await Promise.all([
@@ -288,29 +337,22 @@ class ShowtimeService {
       return unwrapApiArray(await apiClient.get(`${SHOWTIME_BASE}/${normalizedShowtimeId}/seats`));
     } catch (error) {
       if (MOCK_API_ENABLED || !endpointUnavailable(error)) throw error;
-      const [showtimeSeatsResponse, seatsResponse] = await Promise.all([
-        apiClient.get(SHOWTIME_SEAT_BASE, { params: { page: 0, size: 500 } }),
-        apiClient.get(ENDPOINTS.SEATS, { params: { page: 0, size: 1000 } }),
+      const [showtimeSeatsResponse, seatsResponse, seatTypesResponse] = await Promise.all([
+        apiClient.get(SHOWTIME_SEAT_BASE, { params: { page: 0, size: 2000 } }),
+        apiClient.get(ENDPOINTS.SEATS, { params: { page: 0, size: 2000 } }),
+        apiClient.get(ENDPOINTS.SEAT_TYPES, { params: { page: 0, size: 200 } }),
       ]);
       const showtimeSeats = pageContent(showtimeSeatsResponse)
         .filter((item) => sameResourceId(item.showtimeId ?? item.showtime?.id, normalizedShowtimeId));
       const seats = pageContent(seatsResponse);
+      const seatTypes = pageContent(seatTypesResponse);
       const seatById = new Map(seats.map((seat) => [String(seat.id), seat]));
+      const seatTypeById = new Map(seatTypes.map((type) => [String(type.id), type]));
+
       return showtimeSeats.map((item) => {
         const seat = seatById.get(String(item.seatId ?? item.seat?.id)) || item.seat || {};
-        return {
-          ...seat,
-          showtimeSeatId: item.id,
-          id: item.id,
-          physicalSeatId: seat.id ?? item.seatId,
-          price: Number(item.price ?? seat.price ?? 0),
-          status: String(item.status ?? seat.status ?? 'AVAILABLE').toLowerCase(),
-          seatStatus: String(item.status ?? seat.seatStatus ?? 'AVAILABLE').toUpperCase(),
-          lockedByUserId: item.heldByUserId ?? null,
-          holdToken: item.holdToken ?? null,
-          holdExpiresAt: item.holdExpiresAt ?? null,
-          version: item.version,
-        };
+        const seatType = seatTypeById.get(String(seat.seatTypeId)) || {};
+        return normalizeJoinedShowtimeSeat(item, seat, seatType);
       });
     }
   }
@@ -352,6 +394,7 @@ class ShowtimeService {
 
 export {
   enrichRealShowtimes,
+  normalizeJoinedShowtimeSeat,
   normalizeShowtimeFormat,
   normalizeShowtimeStatus,
   toMockShowtimePayload,
