@@ -1,23 +1,47 @@
 import api from '@/utils/apiClient';
 import { unwrapApiData } from '@/utils/apiResponse';
+import { getAccessToken } from '@/utils/authStorage';
+import { MOCK_API_ENABLED } from '@/mocks/mockConfig';
+import { isEndpointUnavailable, rethrowCapabilityError } from '@/utils/backendCapability';
+import { isJwtExpired, userFromAccessToken } from '@/utils/jwt';
 
 const toAuthResult = (response) => {
   const auth = unwrapApiData(response) || {};
+  const token = auth.accessToken || auth.token || null;
+  const user = auth.userAuth || auth.user || userFromAccessToken(token);
   return {
     ...auth,
-    token: auth.accessToken,
-    refreshToken: auth.refreshToken,
-    user: auth.userAuth || auth.user,
+    accessToken: token,
+    token,
+    refreshToken: auth.refreshToken || null,
+    user,
   };
+};
+
+const verifyLocally = () => {
+  const token = getAccessToken();
+  if (!token || isJwtExpired(token)) throw new Error('Phiên đăng nhập đã hết hạn.');
+  return { valid: true, localOnly: true, user: userFromAccessToken(token) };
 };
 
 export const authService = {
   async verify() {
-    return unwrapApiData(await api.get('/auth/verify'));
+    try {
+      return unwrapApiData(await api.get('/auth/verify'));
+    } catch (error) {
+      if (!isEndpointUnavailable(error)) throw error;
+      try {
+        return unwrapApiData(await api.get('/auth/current-user'));
+      } catch (currentUserError) {
+        if (!isEndpointUnavailable(currentUserError)) throw currentUserError;
+        return verifyLocally();
+      }
+    }
   },
 
   async login(data) {
     const result = toAuthResult(await api.post('/auth/login', data));
+    if (!result.token) throw new Error('Máy chủ không trả về access token.');
     if (result.token) api.setAuthToken(result.token, result.refreshToken, result.user);
     return result;
   },
@@ -27,43 +51,101 @@ export const authService = {
   },
 
   async refreshToken(refreshToken) {
-    return unwrapApiData(await api.get('/auth/refresh', { params: { refreshToken } }));
+    if (MOCK_API_ENABLED) {
+      return toAuthResult(await api.get('/auth/refresh', { params: { refreshToken } }));
+    }
+
+    try {
+      return toAuthResult(await api.post('/auth/refresh', { refreshToken }));
+    } catch (error) {
+      if (!isEndpointUnavailable(error)) throw error;
+      // Compatibility with older servers while keeping POST as the preferred
+      // contract so refresh tokens do not normally appear in query strings.
+      return toAuthResult(await api.get('/auth/refresh', { params: { refreshToken } }));
+    }
   },
 
   async logout() {
     try {
-      return unwrapApiData(await api.get('/auth/logout'));
+      if (MOCK_API_ENABLED) return unwrapApiData(await api.get('/auth/logout'));
+      try {
+        return unwrapApiData(await api.post('/auth/logout'));
+      } catch (error) {
+        if (!isEndpointUnavailable(error)) throw error;
+        return unwrapApiData(await api.get('/auth/logout'));
+      }
     } finally {
       api.removeAuthToken();
     }
   },
 
   async forgotPassword(email) {
-    return unwrapApiData(await api.get(`/auth/forget-password?email=${encodeURIComponent(email)}`));
+    try {
+      return unwrapApiData(await api.post('/auth/forgot-password', { email }));
+    } catch (error) {
+      if (MOCK_API_ENABLED && isEndpointUnavailable(error)) {
+        return unwrapApiData(await api.get(`/auth/forget-password?email=${encodeURIComponent(email)}`));
+      }
+      rethrowCapabilityError('quên mật khẩu', error);
+    }
   },
 
   async verifyPasswordOtp(email, otp) {
-    return unwrapApiData(await api.get(`/auth/verify-otp-change-password?email=${encodeURIComponent(email)}&otpCode=${encodeURIComponent(otp)}`));
+    try {
+      return unwrapApiData(await api.post('/auth/password/verify-otp', { email, otpCode: otp }));
+    } catch (error) {
+      if (MOCK_API_ENABLED && isEndpointUnavailable(error)) {
+        return unwrapApiData(await api.get(`/auth/verify-otp-change-password?email=${encodeURIComponent(email)}&otpCode=${encodeURIComponent(otp)}`));
+      }
+      rethrowCapabilityError('xác minh OTP đổi mật khẩu', error);
+    }
   },
 
   async resetPassword(email, otpCode, newPassword) {
-    return unwrapApiData(await api.patch('/auth/change-password', { email, otpCode, newPassword }));
+    try {
+      return unwrapApiData(await api.patch('/auth/change-password', { email, otpCode, newPassword }));
+    } catch (error) {
+      rethrowCapabilityError('đổi mật khẩu', error);
+    }
   },
 
   async verifyEmail(token) {
-    return unwrapApiData(await api.post('/auth/verify-email', { token }));
+    try {
+      return unwrapApiData(await api.post('/auth/verify-email', { token }));
+    } catch (error) {
+      rethrowCapabilityError('xác minh email', error);
+    }
   },
 
   async verifyOTP(email, otpCode) {
-    return unwrapApiData(await api.get(`/auth/verify-otp?email=${encodeURIComponent(email)}&otpCode=${encodeURIComponent(otpCode)}`));
+    try {
+      return unwrapApiData(await api.post('/auth/verify-otp', { email, otpCode }));
+    } catch (error) {
+      if (MOCK_API_ENABLED && isEndpointUnavailable(error)) {
+        return unwrapApiData(await api.get(`/auth/verify-otp?email=${encodeURIComponent(email)}&otpCode=${encodeURIComponent(otpCode)}`));
+      }
+      rethrowCapabilityError('xác minh OTP', error);
+    }
   },
 
   async resendOTP(email) {
-    return unwrapApiData(await api.get(`/auth/resend-otp?email=${encodeURIComponent(email)}`));
+    try {
+      return unwrapApiData(await api.post('/auth/resend-otp', { email }));
+    } catch (error) {
+      if (MOCK_API_ENABLED && isEndpointUnavailable(error)) {
+        return unwrapApiData(await api.get(`/auth/resend-otp?email=${encodeURIComponent(email)}`));
+      }
+      rethrowCapabilityError('gửi lại OTP', error);
+    }
   },
 
   async getCurrentUser() {
-    return unwrapApiData(await api.get('/auth/current-user'));
+    try {
+      return unwrapApiData(await api.get('/auth/current-user'));
+    } catch (error) {
+      if (!isEndpointUnavailable(error)) throw error;
+      return userFromAccessToken(getAccessToken());
+    }
   },
 
   async updateProfile(userData) {
@@ -72,18 +154,28 @@ export const authService = {
   },
 
   async validateToken() {
-    return unwrapApiData(await api.get('/auth/validate_token'));
+    return this.verify();
   },
 
   async loginWithGoogle(code) {
-    const result = toAuthResult(await api.post('/auth/google', { code }));
-    if (result.token) api.setAuthToken(result.token, result.refreshToken, result.user);
-    return result;
+    try {
+      const result = toAuthResult(await api.post('/auth/google', { code }));
+      if (result.token) api.setAuthToken(result.token, result.refreshToken, result.user);
+      return result;
+    } catch (error) {
+      rethrowCapabilityError('đăng nhập Google', error);
+    }
   },
 
   async handleGoogleCallback(code) {
-    const result = toAuthResult(await api.get(`/auth/google/callback?code=${encodeURIComponent(code)}`));
-    if (result.token) api.setAuthToken(result.token, result.refreshToken, result.user);
-    return result;
+    try {
+      const result = toAuthResult(await api.get(`/auth/google/callback?code=${encodeURIComponent(code)}`));
+      if (result.token) api.setAuthToken(result.token, result.refreshToken, result.user);
+      return result;
+    } catch (error) {
+      rethrowCapabilityError('callback Google', error);
+    }
   },
 };
+
+export { toAuthResult };
