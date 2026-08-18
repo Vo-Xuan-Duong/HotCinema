@@ -1,6 +1,7 @@
 import { apiClient } from '@/utils/apiClient';
 import { unwrapApiData } from '@/utils/apiResponse';
 import { ENDPOINTS } from '@/utils/constants';
+import { MOCK_API_ENABLED } from '@/mocks/mockConfig';
 import { isEndpointUnavailable } from '@/utils/backendCapability';
 import { normalizeResourceId, sameResourceId } from '@/utils/resourceId';
 
@@ -13,6 +14,12 @@ const rowsOf = (response) => {
   return Array.isArray(data?.content) ? data.content : [];
 };
 
+const isoDateTime = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toISOString();
+};
+
 const normalizePromotion = (promotion = {}, code = null) => ({
   ...promotion,
   code: code?.code || promotion.code || null,
@@ -20,12 +27,62 @@ const normalizePromotion = (promotion = {}, code = null) => ({
   codeActive: code?.active ?? promotion.codeActive ?? null,
   codeUsageLimit: code?.usageLimit ?? promotion.codeUsageLimit ?? null,
   codeUsedCount: code?.usedCount ?? promotion.codeUsedCount ?? null,
+  minimumOrderAmount: Number(promotion.minimumOrderAmount ?? promotion.minPurchaseAmount ?? promotion.minPurchase ?? 0),
+  maxDiscountAmount: Number(promotion.maxDiscountAmount ?? promotion.maxDiscount ?? 0),
+  discountValue: Number(promotion.discountValue || 0),
+  usageLimit: Number(promotion.usageLimit || 0),
+  usagePerUser: Number(promotion.usagePerUser || 0),
   startDate: promotion.startDate || promotion.startAt,
   endDate: promotion.endDate || promotion.endAt,
   startAt: promotion.startAt || promotion.startDate,
   endAt: promotion.endAt || promotion.endDate,
-  isActive: String(promotion.status || '').toUpperCase() === 'ACTIVE' && (code?.active ?? true),
+  status: String(promotion.status || (promotion.isActive ? 'ACTIVE' : 'INACTIVE')).toUpperCase(),
+  isActive: String(promotion.status || '').toUpperCase() === 'ACTIVE' || promotion.isActive === true,
 });
+
+const normalizePromotionCode = (code = {}) => ({
+  ...code,
+  id: normalizeResourceId(code.id),
+  promotionId: normalizeResourceId(code.promotionId),
+  code: String(code.code || '').trim().toUpperCase(),
+  usageLimit: Number(code.usageLimit || 0),
+  usedCount: Number(code.usedCount || 0),
+  active: Boolean(code.active),
+});
+
+const toPromotionPayload = (data = {}) => ({
+  name: String(data.name || '').trim(),
+  description: String(data.description || '').trim(),
+  discountType: String(data.discountType || 'PERCENTAGE').trim().toUpperCase(),
+  discountValue: Number(data.discountValue || 0),
+  maxDiscountAmount: Number(data.maxDiscountAmount ?? data.maxDiscount ?? 0),
+  minimumOrderAmount: Number(data.minimumOrderAmount ?? data.minPurchaseAmount ?? data.minPurchase ?? 0),
+  startAt: isoDateTime(data.startAt ?? data.startDate),
+  endAt: isoDateTime(data.endAt ?? data.endDate),
+  usageLimit: Number(data.usageLimit || 0),
+  usagePerUser: Number(data.usagePerUser || 1),
+  status: String(data.status || 'DRAFT').trim().toUpperCase(),
+});
+
+const toPromotionCodePayload = (promotionId, data = {}) => ({
+  promotionId: normalizeResourceId(promotionId ?? data.promotionId),
+  code: String(data.code || '').trim().toUpperCase(),
+  usageLimit: Number(data.usageLimit || 0),
+  usedCount: Number(data.usedCount || 0),
+  active: Boolean(data.active),
+});
+
+const syntheticMockCode = (promotion) => {
+  if (!promotion?.code) return null;
+  return normalizePromotionCode({
+    id: `mock-code-${promotion.id}`,
+    promotionId: promotion.id,
+    code: promotion.code,
+    usageLimit: promotion.codeUsageLimit ?? promotion.usageLimit ?? 0,
+    usedCount: promotion.codeUsedCount ?? promotion.usedCount ?? 0,
+    active: promotion.codeActive ?? promotion.isActive ?? true,
+  });
+};
 
 const promotionService = {
   async getAllPromotions(page = 0, size = 10, sort = '') {
@@ -42,11 +99,14 @@ const promotionService = {
   },
 
   async createPromotion(promotionData) {
-    return normalizePromotion(unwrapApiData(await apiClient.post(base, promotionData)));
+    const payload = MOCK_API_ENABLED ? { ...toPromotionPayload(promotionData), ...promotionData } : toPromotionPayload(promotionData);
+    return normalizePromotion(unwrapApiData(await apiClient.post(base, payload)));
   },
 
   async updatePromotion(id, promotionData) {
-    return normalizePromotion(unwrapApiData(await apiClient.put(`${base}/${normalizeResourceId(id)}`, promotionData)));
+    const promotionId = normalizeResourceId(id);
+    const payload = MOCK_API_ENABLED ? { ...promotionData, ...toPromotionPayload(promotionData) } : toPromotionPayload(promotionData);
+    return normalizePromotion(unwrapApiData(await apiClient.put(`${base}/${promotionId}`, payload)));
   },
 
   async deletePromotion(id) {
@@ -55,29 +115,30 @@ const promotionService = {
 
   async activatePromotion(id) {
     const promotionId = normalizeResourceId(id);
-    try {
+    if (MOCK_API_ENABLED) {
       return normalizePromotion(unwrapApiData(await apiClient.post(`${base}/${promotionId}/activate`)));
-    } catch (error) {
-      if (!isEndpointUnavailable(error)) throw error;
-      const current = await this.getPromotionById(promotionId);
-      return this.updatePromotion(promotionId, { ...current, status: 'ACTIVE' });
     }
+    const current = await this.getPromotionById(promotionId);
+    return this.updatePromotion(promotionId, { ...current, status: 'ACTIVE' });
   },
 
   async deactivatePromotion(id) {
     const promotionId = normalizeResourceId(id);
-    try {
+    if (MOCK_API_ENABLED) {
       return normalizePromotion(unwrapApiData(await apiClient.post(`${base}/${promotionId}/deactivate`)));
-    } catch (error) {
-      if (!isEndpointUnavailable(error)) throw error;
-      const current = await this.getPromotionById(promotionId);
-      return this.updatePromotion(promotionId, { ...current, status: 'INACTIVE' });
     }
+    const current = await this.getPromotionById(promotionId);
+    return this.updatePromotion(promotionId, { ...current, status: 'INACTIVE' });
   },
 
   async getPromotionByCode(code) {
     const normalizedCode = String(code || '').trim().toUpperCase();
     if (!normalizedCode) return null;
+
+    if (MOCK_API_ENABLED) {
+      const direct = unwrapApiData(await apiClient.get(`${base}/code/${encodeURIComponent(normalizedCode)}`));
+      return direct ? normalizePromotion(direct, syntheticMockCode(direct)) : null;
+    }
 
     try {
       const direct = unwrapApiData(await apiClient.get(`${base}/code/${encodeURIComponent(normalizedCode)}`));
@@ -86,10 +147,10 @@ const promotionService = {
       if (!isEndpointUnavailable(error)) throw error;
     }
 
-    // The real backend models codes separately from promotion rules.
-    const codesResponse = await apiClient.get(codesBase, { params: { page: 0, size: 500 } });
+    const codesResponse = await apiClient.get(codesBase, { params: { page: 0, size: 1000 } });
     const promotionCode = rowsOf(codesResponse)
-      .find((item) => String(item.code || '').trim().toUpperCase() === normalizedCode);
+      .map(normalizePromotionCode)
+      .find((item) => item.code === normalizedCode);
     if (!promotionCode || promotionCode.active === false) return null;
 
     const promotion = await this.getPromotionById(promotionCode.promotionId);
@@ -127,15 +188,89 @@ const promotionService = {
       : this.activatePromotion(id);
   },
 
+  async listCodesForPromotion(promotionId) {
+    const id = normalizeResourceId(promotionId);
+    if (MOCK_API_ENABLED) {
+      const promotion = await this.getPromotionById(id);
+      const code = syntheticMockCode(promotion);
+      return code ? [code] : [];
+    }
+    const response = await apiClient.get(codesBase, { params: { page: 0, size: 1000 } });
+    return rowsOf(response)
+      .map(normalizePromotionCode)
+      .filter((item) => sameResourceId(item.promotionId, id));
+  },
+
+  async createCode(promotionId, data) {
+    const id = normalizeResourceId(promotionId);
+    const payload = toPromotionCodePayload(id, data);
+    if (MOCK_API_ENABLED) {
+      const current = await this.getPromotionById(id);
+      const updated = unwrapApiData(await apiClient.put(`${base}/${id}`, {
+        ...current,
+        code: payload.code,
+        codeUsageLimit: payload.usageLimit,
+        codeUsedCount: payload.usedCount,
+        codeActive: payload.active,
+      }));
+      return syntheticMockCode(updated);
+    }
+    return normalizePromotionCode(unwrapApiData(await apiClient.post(codesBase, payload)));
+  },
+
+  async updateCode(codeId, data) {
+    const payload = toPromotionCodePayload(data.promotionId, data);
+    if (MOCK_API_ENABLED) {
+      const promotionId = normalizeResourceId(data.promotionId);
+      const current = await this.getPromotionById(promotionId);
+      const updated = unwrapApiData(await apiClient.put(`${base}/${promotionId}`, {
+        ...current,
+        code: payload.code,
+        codeUsageLimit: payload.usageLimit,
+        codeUsedCount: payload.usedCount,
+        codeActive: payload.active,
+      }));
+      return syntheticMockCode(updated);
+    }
+    return normalizePromotionCode(unwrapApiData(
+      await apiClient.put(`${codesBase}/${normalizeResourceId(codeId)}`, payload),
+    ));
+  },
+
+  async deleteCode(codeOrId, promotionId = null) {
+    if (MOCK_API_ENABLED) {
+      const id = normalizeResourceId(promotionId ?? codeOrId?.promotionId);
+      if (!id) return null;
+      const current = await this.getPromotionById(id);
+      return unwrapApiData(await apiClient.put(`${base}/${id}`, {
+        ...current,
+        code: null,
+        codeActive: false,
+        codeUsageLimit: 0,
+        codeUsedCount: 0,
+      }));
+    }
+    const id = normalizeResourceId(typeof codeOrId === 'object' ? codeOrId.id : codeOrId);
+    return apiClient.delete(`${codesBase}/${id}`);
+  },
+
+  async toggleCode(code, active) {
+    return this.updateCode(code.id, {
+      ...code,
+      promotionId: code.promotionId,
+      active,
+    });
+  },
+
   async getVoucherByCode(code) { return this.getPromotionByCode(code); },
   async getActiveVouchers(page = 0, size = 10, sort = '') { return this.getActivePromotions(page, size, sort); },
   async toggleVoucherStatus(id, currentStatus) { return this.togglePromotionStatus(id, currentStatus); },
-
-  async listCodesForPromotion(promotionId) {
-    const response = await apiClient.get(codesBase, { params: { page: 0, size: 500 } });
-    return rowsOf(response).filter((item) => sameResourceId(item.promotionId, promotionId));
-  },
 };
 
-export { normalizePromotion };
+export {
+  normalizePromotion,
+  normalizePromotionCode,
+  toPromotionCodePayload,
+  toPromotionPayload,
+};
 export default promotionService;
