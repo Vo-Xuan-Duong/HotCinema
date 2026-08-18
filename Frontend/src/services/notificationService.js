@@ -18,6 +18,14 @@ const normalizeNotification = (notification = {}) => ({
   isRead: Boolean(notification.isRead ?? notification.read),
 });
 
+const normalizeNotificationPage = (data) => {
+  if (Array.isArray(data)) return data.map(normalizeNotification);
+  if (Array.isArray(data?.content)) {
+    return { ...data, content: data.content.map(normalizeNotification) };
+  }
+  return data;
+};
+
 const toUpdatePayload = (notification, changes = {}) => {
   const isRead = Boolean(changes.isRead ?? changes.read ?? notification.isRead ?? notification.read);
   return {
@@ -34,12 +42,38 @@ const toUpdatePayload = (notification, changes = {}) => {
 
 const notificationService = {
   async list(params = {}) {
-    const data = unwrapApiData(await apiClient.get(ENDPOINTS.NOTIFICATIONS, { params }));
-    if (Array.isArray(data)) return data.map(normalizeNotification);
-    if (Array.isArray(data?.content)) {
-      return { ...data, content: data.content.map(normalizeNotification) };
+    return normalizeNotificationPage(unwrapApiData(
+      await apiClient.get(ENDPOINTS.NOTIFICATIONS, { params }),
+    ));
+  },
+
+  async listMine(params = {}) {
+    const user = getUserInfo();
+    if (!user?.id) return { content: [], totalElements: 0, totalPages: 0, number: 0, size: Number(params.size || 100) };
+
+    if (MOCK_API_ENABLED) {
+      const response = await this.list({ page: 0, size: 1000, ...params });
+      const rows = pageRows(response).filter((item) => sameResourceId(item.userId, user.id));
+      return {
+        content: rows,
+        totalElements: rows.length,
+        totalPages: rows.length ? 1 : 0,
+        number: 0,
+        page: 0,
+        size: rows.length || Number(params.size || 100),
+      };
     }
-    return data;
+
+    try {
+      return normalizeNotificationPage(unwrapApiData(
+        await apiClient.get(`${ENDPOINTS.NOTIFICATIONS}/me`, { params }),
+      ));
+    } catch (error) {
+      if (!isEndpointUnavailable(error)) throw error;
+      // Do not GET the admin notification collection and filter it in the
+      // browser. Notification ownership must be enforced by the backend.
+      throw createCapabilityError('danh sách thông báo cá nhân có kiểm soát ownership', error);
+    }
   },
 
   async getById(id) {
@@ -80,26 +114,9 @@ const notificationService = {
       return unwrapApiData(await apiClient.post(`${ENDPOINTS.NOTIFICATIONS}/read-all`));
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
-
-      const user = getUserInfo();
-      const rows = pageRows(await apiClient.get(ENDPOINTS.NOTIFICATIONS, {
-        params: { page: 0, size: 1000 },
-      }))
-        .map(normalizeNotification)
-        .filter((item) => !item.isRead)
-        .filter((item) => !user?.id || sameResourceId(item.userId, user.id));
-
-      const changed = [];
-      for (let index = 0; index < rows.length; index += 8) {
-        const batch = rows.slice(index, index + 8);
-        changed.push(...await Promise.all(batch.map(async (item) => normalizeNotification(unwrapApiData(
-          await apiClient.put(
-            `${ENDPOINTS.NOTIFICATIONS}/${normalizeResourceId(item.id)}`,
-            toUpdatePayload(item, { isRead: true, readAt: new Date().toISOString() }),
-          ),
-        )))));
-      }
-      return { updated: changed.length, notifications: changed };
+      // Avoid fetching the full admin collection to emulate a user-scoped
+      // command. The backend must provide an ownership-aware operation.
+      throw createCapabilityError('đánh dấu tất cả thông báo cá nhân đã đọc', error);
     }
   },
 
