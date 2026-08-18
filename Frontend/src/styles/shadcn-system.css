@@ -215,3 +215,64 @@ body {
   background: hsl(var(--background));
   color: hsl(var(--foreground));
 }
+
+/*
+ * HotCinema flat visual policy.
+ * These rules are intentionally unlayered + important so they also normalize
+ * legacy CSS without removing focus rings used for keyboard accessibility.
+ */
+:root {
+  --radius: 4px;
+}
+
+:where(
+  [class~="rounded"],
+  [class*="rounded-"]:not(.rounded-full)
+) {
+  border-radius: 4px !important;
+}
+
+:where(
+  [class~="shadow"],
+  [class*="shadow-"]
+) {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+:where([class*="drop-shadow"]) {
+  filter: none !important;
+}
+
+:where(
+  .border,
+  .border-x,
+  .border-y,
+  .border-t,
+  .border-r,
+  .border-b,
+  .border-l
+) {
+  border-width: 0 !important;
+}
+
+:where([class*="divide-"]) > :not([hidden]) ~ :not([hidden]) {
+  border-width: 0 !important;
+}
+
+/* Legacy auth/message classes can contain direct box-shadow declarations. */
+.custom-input,
+.login-button,
+.register-button,
+.cancel-button,
+.social-button,
+.app-error-message,
+.error-message,
+.app-success-message,
+.success-message,
+.app-warning-message,
+.warning-message {
+  border-width: 0 !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+}
