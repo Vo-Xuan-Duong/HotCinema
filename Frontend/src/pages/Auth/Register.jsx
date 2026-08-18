@@ -25,10 +25,6 @@ const Register = () => {
     navigate('/');
   };
 
-  const handleSwitchToOTP = (email) => {
-    navigate('/auth/verify-otp', { state: { email } });
-  };
-
   return (
     <div className="flex min-h-dvh bg-background text-foreground">
       <section className="relative flex w-full flex-col overflow-y-auto lg:w-1/2">
@@ -51,7 +47,6 @@ const Register = () => {
 
             <RegisterForm
               onSwitchToLogin={handleSwitchToLogin}
-              onSwitchToOTP={handleSwitchToOTP}
               onClose={handleClose}
             />
           </div>
