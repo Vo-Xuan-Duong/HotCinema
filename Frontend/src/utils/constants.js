@@ -1,9 +1,13 @@
-// API Endpoints
-export const API_BASE_URL = 'https://api.hotcinemas.vn';
+// Runtime API configuration
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1').replace(/\/$/, '');
+
+// API endpoints. Keep UI vocabulary independent from backend naming by aliasing
+// resources here instead of scattering path strings across page components.
 export const ENDPOINTS = {
   MOVIES: '/movies',
   CINEMAS: '/cinemas',
-  SHOWTIME: '/showtime',
+  SHOWTIME: '/showtimes',
+  SHOWTIMES: '/showtimes',
   BOOKINGS: '/bookings',
   USERS: '/users',
   AUTH: '/auth',
@@ -12,8 +16,9 @@ export const ENDPOINTS = {
   REGIONS: '/regions',
   CINEMA_CLUSTERS: '/cinema-clusters',
   SEATS: '/seats',
-  ROOMS: '/rooms',
-  SHOWTIMESEATS: '/showtime-seats',
+  ROOMS: '/auditoriums',
+  AUDITORIUMS: '/auditoriums',
+  SHOWTIMESEATS: '/showtimeseats',
   PROMOTIONS: '/promotions',
   VOUCHERS: '/vouchers',
   PAYMENTS: '/payments',
@@ -84,26 +89,30 @@ export const ROOM_TYPES_DISPLAY = {
 
 // Payment Methods
 export const PAYMENT_METHODS = {
-  CASH: 'cash',
-  CREDIT_CARD: 'credit_card',
-  BANK_TRANSFER: 'bank_transfer',
-  E_WALLET: 'e_wallet',
-  QR_CODE: 'qr_code'
+  CASH: 'CASH',
+  CREDIT_CARD: 'CREDIT_CARD',
+  BANK_TRANSFER: 'BANK_TRANSFER',
+  E_WALLET: 'E_WALLET',
+  QR_CODE: 'QR_CODE',
+  MOMO: 'MOMO',
+  VNPAY: 'VNPAY',
+  ZALOPAY: 'ZALOPAY'
 };
 
-// Booking Status
+// Booking Status (backend enum format)
 export const BOOKING_STATUS = {
-  PENDING: 'pending',
-  CONFIRMED: 'confirmed',
-  CANCELLED: 'cancelled',
-  COMPLETED: 'completed'
+  PENDING: 'PENDING',
+  CONFIRMED: 'CONFIRMED',
+  CANCELLED: 'CANCELLED',
+  COMPLETED: 'COMPLETED'
 };
 
 // User Roles
 export const USER_ROLES = {
-  CUSTOMER: 'customer',
-  STAFF: 'staff',
-  ADMIN: 'admin'
+  CUSTOMER: 'CUSTOMER',
+  STAFF: 'STAFF',
+  THEATER_MANAGER: 'THEATER_MANAGER',
+  ADMIN: 'ADMIN'
 };
 
 // Local Storage Keys
@@ -115,7 +124,9 @@ export const STORAGE_KEYS = {
   CART_ITEMS: 'cart_items',
   THEME: 'theme',
   LANGUAGE: 'language',
-  REMEMBER_EMAIL: 'remembered_email'
+  REMEMBER_EMAIL: 'remembered_email',
+  PENDING_PAYMENT: 'pendingPayment',
+  LAST_BOOKING: 'lastBooking'
 };
 
 // Theme Colors
