@@ -8,13 +8,13 @@ import { normalizeResourceId } from '@/utils/resourceId';
 
 const normalizeCinema = (cinema = {}) => ({
   ...cinema,
-  city: cinema.city || cinema.cityName || cinema.regionName || '',
-  cityName: cinema.cityName || cinema.city || cinema.regionName || '',
+  city: cinema.city || cinema.cityName || '',
+  cityName: cinema.cityName || cinema.city || '',
   logoUrl: cinema.logoUrl || cinema.imageUrl || cinema.image || '',
   imageUrl: cinema.imageUrl || cinema.logoUrl || cinema.image || '',
   image: cinema.image || cinema.logoUrl || cinema.imageUrl || '',
   status: String(cinema.status || (cinema.isActive === false ? 'INACTIVE' : 'ACTIVE')).toUpperCase(),
-  isActive: String(cinema.status || '').toUpperCase() !== 'INACTIVE' && cinema.isActive !== false,
+  isActive: String(cinema.status || '').toUpperCase() === 'ACTIVE' || (!cinema.status && cinema.isActive !== false),
 });
 
 const normalizePage = (response) => {
@@ -31,6 +31,25 @@ const normalizePayload = (data = {}) => ({
   ...(data.city || data.cityName ? { city: data.city || data.cityName } : {}),
 });
 
+const isPublicCinema = (cinema) => String(cinema?.status || '').toUpperCase() === 'ACTIVE';
+
+const paginate = (rows, params = {}) => {
+  const page = Math.max(0, Number(params.page || 0));
+  const size = Math.max(1, Number(params.size || 12));
+  const start = page * size;
+  return {
+    content: rows.slice(start, start + size),
+    totalElements: rows.length,
+    totalPages: rows.length ? Math.ceil(rows.length / size) : 0,
+    number: page,
+    page,
+    size,
+    first: page === 0,
+    last: rows.length === 0 || page >= Math.ceil(rows.length / size) - 1,
+    empty: rows.length === 0,
+  };
+};
+
 const cinemaService = {
   async getAllCinemas(params = {}) {
     return normalizePage(await apiClient.get(ENDPOINTS.CINEMAS, { params }));
@@ -44,14 +63,40 @@ const cinemaService = {
     return normalizeCinema(unwrapApiData(await apiClient.get(`${ENDPOINTS.CINEMAS}/${normalizeResourceId(cinemaId)}`)));
   },
 
+  async getPublicCinemaById(cinemaId) {
+    const cinema = await this.getCinemaById(cinemaId);
+    if (!isPublicCinema(cinema)) {
+      const error = new Error('Rạp này hiện không hoạt động.');
+      error.code = 'CINEMA_NOT_PUBLIC';
+      error.status = 404;
+      throw error;
+    }
+    return cinema;
+  },
+
+  async getPublicCinemas(params = {}) {
+    const result = await this.getAllCinemas({ page: 0, size: 500 });
+    let rows = (Array.isArray(result) ? result : result?.content || []).filter(isPublicCinema);
+    const keyword = String(params.keyword || params.query || '').trim().toLowerCase();
+    const city = String(params.city || '').trim().toLowerCase();
+
+    if (keyword) {
+      rows = rows.filter((cinema) => `${cinema.name || ''} ${cinema.address || ''} ${cinema.city || ''}`.toLowerCase().includes(keyword));
+    }
+    if (city) {
+      rows = rows.filter((cinema) => String(cinema.city || '').trim().toLowerCase() === city);
+    }
+
+    rows = [...rows].sort((left, right) => String(left.name || '').localeCompare(String(right.name || ''), 'vi', { sensitivity: 'base' }));
+    return paginate(rows, params);
+  },
+
   async getCinemasByRegion(slug, params = {}) {
     if (MOCK_API_ENABLED) {
       return normalizePage(await apiClient.get(`${ENDPOINTS.CINEMAS}/region-slug/${encodeURIComponent(slug)}`, { params }));
     }
-    const result = await this.getAllCinemas({ page: 0, size: 500 });
-    const rows = Array.isArray(result) ? result : result?.content || [];
-    const needle = String(slug || '').toLowerCase().replace(/-/g, ' ');
-    return rows.filter((cinema) => String(cinema.city || '').toLowerCase().includes(needle));
+    // Current backend stores city directly on Cinema and has no region relation.
+    return this.getPublicCinemas({ ...params, city: String(slug || '').replace(/-/g, ' ') });
   },
 
   async searchCinemas(keyword, params = {}) {
@@ -65,8 +110,12 @@ const cinemaService = {
       const result = await this.getAllCinemas({ page: 0, size: 500 });
       const rows = Array.isArray(result) ? result : result?.content || [];
       const needle = String(keyword || '').trim().toLowerCase();
-      return rows.filter((cinema) => `${cinema.name} ${cinema.address} ${cinema.city}`.toLowerCase().includes(needle));
+      return rows.filter((cinema) => `${cinema.name || ''} ${cinema.address || ''} ${cinema.city || ''}`.toLowerCase().includes(needle));
     }
+  },
+
+  async searchPublicCinemas(keyword, params = {}) {
+    return this.getPublicCinemas({ ...params, keyword });
   },
 
   async getAllCinemasNoPagination() {
@@ -125,5 +174,5 @@ const cinemaService = {
   },
 };
 
-export { normalizeCinema, normalizePayload as normalizeCinemaPayload };
+export { normalizeCinema, normalizePayload as normalizeCinemaPayload, isPublicCinema };
 export default cinemaService;
