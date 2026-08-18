@@ -59,18 +59,20 @@ export const toApiSeatType = (value) => {
   }[normalized];
 };
 
-// Showtime-seat APIs use AVAILABLE/HELD/BOOKED. Physical-seat CRUD is adapted
-// separately inside seatService to ACTIVE/DISABLED/MAINTENANCE.
+// This helper is used by the physical-seat administration UI. Showtime
+// occupancy (HELD/BOOKED) belongs to ShowtimeSeat and must never be persisted
+// into the master Seat record.
 export const toApiSeatStatus = (value) => {
   const normalized = normalizeSeatStatus(value);
+  if (['held', 'booked'].includes(normalized)) {
+    throw new Error('Trạng thái giữ/đã đặt thuộc suất chiếu, không thể lưu vào ghế vật lý.');
+  }
   return {
-    available: 'AVAILABLE',
-    held: 'HELD',
-    booked: 'BOOKED',
-    unavailable: 'UNAVAILABLE',
+    available: 'ACTIVE',
+    unavailable: 'DISABLED',
     maintenance: 'MAINTENANCE',
-    blocked: 'BLOCKED',
-  }[normalized];
+    blocked: 'DISABLED',
+  }[normalized] || 'ACTIVE';
 };
 
 export const getSeatTypeLabel = (value) => SEAT_TYPE_LABELS[normalizeSeatType(value)] || SEAT_TYPE_LABELS.normal;
