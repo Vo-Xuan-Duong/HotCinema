@@ -31,10 +31,71 @@ const paginate = (rows, params = {}) => {
   };
 };
 
+const enrichRealBookings = async (bookings = []) => {
+  if (MOCK_API_ENABLED || !bookings.length) return bookings;
+
+  const showtimeIds = new Set(bookings.map((booking) => String(booking.showtimeId || '')).filter(Boolean));
+  if (!showtimeIds.size) return bookings;
+
+  const [showtimesResponse, moviesResponse, auditoriumsResponse, cinemasResponse] = await Promise.all([
+    apiClient.get(ENDPOINTS.SHOWTIMES, { params: { page: 0, size: 2000 } }),
+    apiClient.get(ENDPOINTS.MOVIES, { params: { page: 0, size: 500 } }),
+    apiClient.get(ENDPOINTS.AUDITORIUMS, { params: { page: 0, size: 500 } }),
+    apiClient.get(ENDPOINTS.CINEMAS, { params: { page: 0, size: 500 } }),
+  ]);
+
+  const showtimeMap = new Map(pageContent(showtimesResponse)
+    .filter((item) => showtimeIds.has(String(item.id)))
+    .map((item) => [String(item.id), item]));
+  const movieMap = new Map(pageContent(moviesResponse).map((item) => [String(item.id), item]));
+  const auditoriumMap = new Map(pageContent(auditoriumsResponse).map((item) => [String(item.id), item]));
+  const cinemaMap = new Map(pageContent(cinemasResponse).map((item) => [String(item.id), item]));
+
+  return bookings.map((booking) => {
+    const showtime = showtimeMap.get(String(booking.showtimeId)) || null;
+    const movie = showtime ? movieMap.get(String(showtime.movieId)) || null : null;
+    const auditorium = showtime ? auditoriumMap.get(String(showtime.auditoriumId)) || null : null;
+    const cinema = auditorium ? cinemaMap.get(String(auditorium.cinemaId)) || null : null;
+
+    return {
+      ...booking,
+      bookingStatus: booking.status,
+      showtime,
+      movie,
+      auditorium,
+      cinema,
+      movieId: movie?.id || showtime?.movieId || null,
+      movieTitle: movie?.title || null,
+      moviePosterUrl: movie?.posterUrl || null,
+      cinemaId: cinema?.id || null,
+      cinemaName: cinema?.name || null,
+      cinemaAddress: cinema?.address || null,
+      cityName: cinema?.city || null,
+      roomId: auditorium?.id || showtime?.auditoriumId || null,
+      roomName: auditorium?.name || null,
+      showtimeDateTime: showtime?.startTime || null,
+      showDate: showtime?.startTime ? String(showtime.startTime).slice(0, 10) : null,
+      startTime: showtime?.startTime || null,
+      endTime: showtime?.endTime || null,
+      movieFormat: showtime?.format || null,
+      formatType: showtime?.format || null,
+      basePrice: Number(showtime?.basePrice || 0),
+    };
+  });
+};
+
+const enrichBookingPage = async (data) => {
+  if (MOCK_API_ENABLED) return data;
+  if (Array.isArray(data)) return enrichRealBookings(data);
+  if (Array.isArray(data?.content)) return { ...data, content: await enrichRealBookings(data.content) };
+  return data;
+};
+
 const bookingService = {
   // Administrative collection APIs. Customer pages must use getMy* methods.
   async listPage(params = {}) {
-    return unwrapApiData(await apiClient.get(base, { params }));
+    const data = unwrapApiData(await apiClient.get(base, { params }));
+    return enrichBookingPage(data);
   },
 
   async list(params = {}) {
@@ -43,7 +104,9 @@ const bookingService = {
   },
 
   async getBookingById(bookingId) {
-    return unwrapApiData(await apiClient.get(`${base}/${normalizeResourceId(bookingId)}`));
+    const booking = unwrapApiData(await apiClient.get(`${base}/${normalizeResourceId(bookingId)}`));
+    if (MOCK_API_ENABLED || !booking) return booking;
+    return (await enrichRealBookings([booking]))[0] || booking;
   },
 
   async getAdminBooking(identifier) {
@@ -70,11 +133,10 @@ const bookingService = {
     }
 
     try {
-      return unwrapApiData(await apiClient.get(`${base}/my-bookings/${id}`));
+      const booking = unwrapApiData(await apiClient.get(`${base}/my-bookings/${id}`));
+      return booking ? (await enrichRealBookings([booking]))[0] || booking : null;
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
-      // Do not fall back to GET /bookings/{id}. Knowing a UUID must not be
-      // sufficient to read another customer's booking from the browser.
       rethrowCapabilityError('chi tiết booking cá nhân có kiểm soát ownership', error);
     }
   },
@@ -82,7 +144,9 @@ const bookingService = {
   async getBookingByCode(bookingCode) {
     const code = String(bookingCode || '').trim();
     try {
-      return unwrapApiData(await apiClient.get(`${base}/code/${encodeURIComponent(code)}`));
+      const booking = unwrapApiData(await apiClient.get(`${base}/code/${encodeURIComponent(code)}`));
+      if (MOCK_API_ENABLED || !booking) return booking;
+      return (await enrichRealBookings([booking]))[0] || booking;
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
       if (!MOCK_API_ENABLED) rethrowCapabilityError('tra cứu booking theo mã có kiểm soát ownership', error);
@@ -135,7 +199,8 @@ const bookingService = {
 
   async getMyBookings(params = {}) {
     try {
-      return unwrapApiData(await apiClient.get(`${base}/my-bookings`, { params }));
+      const data = unwrapApiData(await apiClient.get(`${base}/my-bookings`, { params }));
+      return enrichBookingPage(data);
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
       if (!MOCK_API_ENABLED) {
@@ -151,7 +216,10 @@ const bookingService = {
 
   async getMyBookingHistory(params = {}) {
     try {
-      return unwrapApiArray(await apiClient.get(`${base}/my-bookings/history`, { params }));
+      const data = unwrapApiData(await apiClient.get(`${base}/my-bookings/history`, { params }));
+      if (MOCK_API_ENABLED) return Array.isArray(data) ? data : data?.content || [];
+      const rows = Array.isArray(data) ? data : data?.content || [];
+      return enrichRealBookings(rows);
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
       if (!MOCK_API_ENABLED) rethrowCapabilityError('lịch sử booking của người dùng có kiểm soát ownership', error);
@@ -163,7 +231,8 @@ const bookingService = {
   async getBookingHistoryByUserId(userId, params = {}) {
     const id = normalizeResourceId(userId);
     try {
-      return unwrapApiData(await apiClient.get(`${base}/history/user/${id}`, { params }));
+      const data = unwrapApiData(await apiClient.get(`${base}/history/user/${id}`, { params }));
+      return enrichBookingPage(data);
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
       if (!MOCK_API_ENABLED) rethrowCapabilityError('lịch sử booking theo user có authorization backend', error);
@@ -175,7 +244,8 @@ const bookingService = {
   async getUserBookings(userId, params = {}) {
     const id = normalizeResourceId(userId);
     try {
-      return unwrapApiData(await apiClient.get(`${base}/user/${id}`, { params }));
+      const data = unwrapApiData(await apiClient.get(`${base}/user/${id}`, { params }));
+      return enrichBookingPage(data);
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
       if (!MOCK_API_ENABLED) rethrowCapabilityError('booking theo user có authorization backend', error);
@@ -289,4 +359,5 @@ const bookingService = {
   },
 };
 
+export { enrichRealBookings };
 export default bookingService;
