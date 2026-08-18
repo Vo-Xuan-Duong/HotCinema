@@ -16,13 +16,13 @@ import { MOCK_API_ENABLED } from '@/mocks/mockConfig';
 import notificationService from '@/services/notificationService';
 import userService from '@/services/userService';
 
-const DEFAULT_FORM = {
-  delivery: 'user',
+const makeDefaultForm = () => ({
+  delivery: MOCK_API_ENABLED ? 'broadcast' : 'user',
   userId: '',
   title: '',
   content: '',
   type: 'SYSTEM',
-};
+});
 
 const NOTIFICATION_TYPES = [
   ['SYSTEM', 'Hệ thống'],
@@ -55,10 +55,10 @@ function AdminNotifications() {
   const [users, setUsers] = useState([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  const [usersLoading, setUsersLoading] = useState(true);
+  const [usersLoading, setUsersLoading] = useState(!MOCK_API_ENABLED);
   const [sending, setSending] = useState(false);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState(DEFAULT_FORM);
+  const [form, setForm] = useState(makeDefaultForm);
 
   const loadNotifications = useCallback(async () => {
     setLoading(true);
@@ -75,6 +75,11 @@ function AdminNotifications() {
   }, [notification]);
 
   const loadUsers = useCallback(async () => {
+    if (MOCK_API_ENABLED) {
+      setUsers([]);
+      setUsersLoading(false);
+      return;
+    }
     setUsersLoading(true);
     try {
       const response = await userService.getAllUsers({ page: 0, size: 500 });
@@ -106,7 +111,7 @@ function AdminNotifications() {
 
   const closeForm = () => {
     setOpen(false);
-    setForm(DEFAULT_FORM);
+    setForm(makeDefaultForm());
   };
 
   const submit = async () => {
@@ -114,12 +119,8 @@ function AdminNotifications() {
       notification.error('Vui lòng nhập tiêu đề và nội dung');
       return;
     }
-    if (form.delivery === 'user' && !form.userId) {
+    if (!MOCK_API_ENABLED && !form.userId) {
       notification.error('Vui lòng chọn người nhận');
-      return;
-    }
-    if (form.delivery === 'broadcast' && !MOCK_API_ENABLED) {
-      notification.error('Backend hiện chưa hỗ trợ broadcast notification');
       return;
     }
 
@@ -130,7 +131,7 @@ function AdminNotifications() {
         content: form.content.trim(),
         type: form.type,
       };
-      if (form.delivery === 'broadcast') {
+      if (MOCK_API_ENABLED) {
         await notificationService.broadcast(payload);
         notification.success('Đã gửi broadcast trong mock mode');
       } else {
@@ -160,14 +161,14 @@ function AdminNotifications() {
         actions={<Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" />Tạo thông báo</Button>}
       />
 
-      {!MOCK_API_ENABLED && (
-        <Alert
-          type="info"
-          showIcon
-          message="Real backend chỉ hỗ trợ Notification CRUD"
-          description="FE gửi notification cho từng userId. Broadcast không được giả lập bằng cách client tự tạo hàng loạt notification cho toàn bộ user."
-        />
-      )}
+      <Alert
+        type="info"
+        showIcon
+        message={MOCK_API_ENABLED ? 'Mock mode sử dụng broadcast' : 'Real backend sử dụng Notification CRUD theo userId'}
+        description={MOCK_API_ENABLED
+          ? 'Mock adapter hiện chỉ có broadcast notification; FE không giả create trực tiếp cho một user.'
+          : 'Broadcast không được giả lập bằng cách client tự tạo hàng loạt notification cho toàn bộ user.'}
+      />
 
       <Card>
         <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -195,7 +196,7 @@ function AdminNotifications() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2"><p className="font-medium text-foreground">{item.title || 'Không có tiêu đề'}</p><StatusBadge tone={item.isRead ? 'neutral' : 'info'}>{item.isRead ? 'Đã đọc' : 'Chưa đọc'}</StatusBadge></div>
                     <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{item.content || item.message || 'Không có nội dung'}</p>
-                    <p className="mt-2 text-xs text-muted-foreground">Người nhận: {recipient?.fullName || recipient?.email || String(item.userId || '—')}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">Người nhận: {recipient?.fullName || recipient?.email || String(item.userId || (MOCK_API_ENABLED ? 'broadcast' : '—'))}</p>
                   </div>
                 </div>
                 <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>
@@ -209,7 +210,7 @@ function AdminNotifications() {
         open={open}
         onClose={closeForm}
         heading="Tạo thông báo"
-        description="Payload được gửi theo NotificationCreateRequest của backend."
+        description={MOCK_API_ENABLED ? 'Thông báo sẽ broadcast trong mock mode.' : 'Payload được gửi theo NotificationCreateRequest của backend.'}
         maxWidth={620}
         actions={[
           <Button key="cancel" variant="outline" onClick={closeForm}>Hủy</Button>,
@@ -217,14 +218,9 @@ function AdminNotifications() {
         ]}
       >
         <div className="space-y-4">
-          {MOCK_API_ENABLED && (
-            <div className="space-y-2"><Label>Phạm vi gửi</Label><Select value={form.delivery} onValueChange={(delivery) => setForm((current) => ({ ...current, delivery }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="user">Một người dùng</SelectItem><SelectItem value="broadcast">Broadcast mock</SelectItem></SelectContent></Select></div>
-          )}
-
-          {form.delivery === 'user' && (
+          {!MOCK_API_ENABLED && (
             <div className="space-y-2"><Label>Người nhận</Label><Select value={form.userId} onValueChange={(userId) => setForm((current) => ({ ...current, userId }))} disabled={usersLoading}><SelectTrigger><SelectValue placeholder={usersLoading ? 'Đang tải user...' : 'Chọn người nhận'} /></SelectTrigger><SelectContent>{users.map((user) => <SelectItem key={user.id} value={String(user.id)}>{user.fullName || user.email} · {user.email}</SelectItem>)}</SelectContent></Select></div>
           )}
-
           <div className="space-y-2"><Label htmlFor="notification-title">Tiêu đề</Label><Input id="notification-title" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} /></div>
           <div className="space-y-2"><Label>Loại thông báo</Label><Select value={form.type} onValueChange={(type) => setForm((current) => ({ ...current, type }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{NOTIFICATION_TYPES.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div>
           <div className="space-y-2"><Label htmlFor="notification-content">Nội dung</Label><Textarea id="notification-content" rows={6} value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} /></div>
