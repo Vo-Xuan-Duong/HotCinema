@@ -49,9 +49,9 @@ export const userRoutes = {
     { path: 'booking', element: protectedLazyElement(Booking, 'ticket', 'Đang tải trang đặt vé...') },
     { path: 'booking/seats/:showtimeId', element: protectedLazyElement(BookingSeatSelection, 'ticket', 'Đang tải sơ đồ ghế...') },
     { path: 'booking/payment', element: protectedLazyElement(BookingPayment, 'ticket', 'Đang tải trang thanh toán...') },
-    { path: 'booking/callback', element: lazyElement(PaymentCallback, 'ticket', 'Đang xử lý thanh toán...') },
-    { path: 'booking/success', element: lazyElement(BookingSuccess, 'ticket', 'Đang xác nhận...') },
-    { path: 'booking/failed', element: lazyElement(BookingFailed, 'ticket', 'Đang tải...') },
+    { path: 'booking/callback', element: protectedLazyElement(PaymentCallback, 'ticket', 'Đang xử lý thanh toán...') },
+    { path: 'booking/success', element: protectedLazyElement(BookingSuccess, 'ticket', 'Đang xác nhận...') },
+    { path: 'booking/failed', element: protectedLazyElement(BookingFailed, 'ticket', 'Đang tải...') },
     { path: '*', element: <NotFound /> },
   ],
 };
