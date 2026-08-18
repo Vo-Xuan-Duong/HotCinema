@@ -5,7 +5,6 @@ import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DetailItem, DetailList } from '@/components/ui/detail-list';
-import { Empty } from '@/components/ui/empty';
 import { StatusBadge } from '@/components/ui/status-badge';
 import ContentLoader from '@/components/Loading/ContentLoader';
 import { MOCK_API_ENABLED } from '@/mocks/mockConfig';
@@ -58,11 +57,11 @@ const BookingDetail = () => {
       try {
         const normalized = normalizeResourceId(routeIdentifier);
         const response = !MOCK_API_ENABLED && isUuid(normalized)
-          ? await bookingService.getBookingById(normalized)
+          ? await bookingService.getMyBookingById(normalized)
           : await bookingService.getBookingByCode(routeIdentifier);
         if (active) setBooking(response);
       } catch (requestError) {
-        console.error('Error loading booking detail:', requestError);
+        console.error('Error loading customer booking detail:', requestError);
         if (active) {
           setBooking(null);
           setError(requestError?.message || 'Không thể tải thông tin đặt vé');
@@ -104,7 +103,12 @@ const BookingDetail = () => {
   if (!booking) {
     return (
       <main className="container mx-auto max-w-4xl px-4 py-10">
-        <Alert type={error.includes('backend') ? 'info' : 'error'} showIcon message="Không thể tải booking" description={error || 'Booking không tồn tại hoặc không thể truy cập.'} />
+        <Alert
+          variant={error.includes('backend') || error.includes('ownership') ? 'warning' : 'destructive'}
+          showIcon
+          message="Không thể tải booking"
+          description={error || 'Booking không tồn tại hoặc không thể truy cập.'}
+        />
         <div className="mt-5"><Button variant="outline" onClick={() => navigate('/history')}><ArrowLeft className="h-4 w-4" />Quay lại lịch sử</Button></div>
       </main>
     );
@@ -133,7 +137,7 @@ const BookingDetail = () => {
         </div>
 
         {!pdfSupported && (
-          <Alert type="info" showIcon message="PDF ticket chưa được backend hỗ trợ" description="Backend hiện chỉ có Ticket CRUD. FE không tạo file PDF giả hoặc tải JSON dưới đuôi .pdf." />
+          <Alert variant="info" showIcon message="PDF ticket chưa được backend hỗ trợ" description="Backend hiện chỉ có Ticket CRUD. FE không tạo file PDF giả hoặc tải JSON dưới đuôi .pdf." />
         )}
 
         <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
@@ -142,7 +146,7 @@ const BookingDetail = () => {
               <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Ticket className="h-4 w-4" />Vé HotCinema</CardTitle></CardHeader>
               <CardContent className="space-y-5 text-center">
                 {booking.qrCodeBase64 ? (
-                  <img src={`data:image/png;base64,${booking.qrCodeBase64}`} alt="QR Code vé" className="mx-auto aspect-square w-full max-w-64 rounded-md border bg-white p-2" />
+                  <img src={String(booking.qrCodeBase64).startsWith('data:') ? booking.qrCodeBase64 : `data:image/png;base64,${booking.qrCodeBase64}`} alt="QR Code vé" className="mx-auto aspect-square w-full max-w-64 rounded-md border bg-white p-2" />
                 ) : (
                   <div className="mx-auto flex aspect-square w-full max-w-64 items-center justify-center rounded-md border bg-muted/30 text-sm text-muted-foreground">QR server-issued chưa khả dụng</div>
                 )}
