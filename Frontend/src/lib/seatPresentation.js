@@ -3,6 +3,7 @@ export const SEAT_TYPE_LABELS = {
   vip: 'VIP',
   couple: 'Đôi',
   sweetbox: 'Sweetbox',
+  wheelchair: 'Xe lăn',
 };
 
 export const SEAT_STATUS_LABELS = {
@@ -24,6 +25,7 @@ export const normalizeSeatType = (value) => {
     COUPLE: 'couple',
     SWEETBOX: 'sweetbox',
     SWEET_BOX: 'sweetbox',
+    WHEELCHAIR: 'wheelchair',
   };
   return typeMap[normalized] || 'normal';
 };
@@ -31,11 +33,14 @@ export const normalizeSeatType = (value) => {
 export const normalizeSeatStatus = (value) => {
   const normalized = String(value || '').trim().toUpperCase();
   const statusMap = {
+    ACTIVE: 'available',
     AVAILABLE: 'available',
     HELD: 'held',
     HOLD: 'held',
     RESERVED: 'held',
     BOOKED: 'booked',
+    DISABLED: 'blocked',
+    INACTIVE: 'blocked',
     UNAVAILABLE: 'unavailable',
     MAINTENANCE: 'maintenance',
     BLOCKED: 'blocked',
@@ -50,9 +55,12 @@ export const toApiSeatType = (value) => {
     vip: 'VIP',
     couple: 'COUPLE',
     sweetbox: 'SWEETBOX',
+    wheelchair: 'WHEELCHAIR',
   }[normalized];
 };
 
+// Showtime-seat APIs use AVAILABLE/HELD/BOOKED. Physical-seat CRUD is adapted
+// separately inside seatService to ACTIVE/DISABLED/MAINTENANCE.
 export const toApiSeatStatus = (value) => {
   const normalized = normalizeSeatStatus(value);
   return {
@@ -82,6 +90,7 @@ export const getSeatVisualClass = (seat, { selected = false } = {}) => {
     vip: 'seat-vip',
     couple: 'seat-couple',
     sweetbox: 'seat-sweetbox',
+    wheelchair: 'seat-normal',
   }[type] || 'seat-normal';
 };
 
