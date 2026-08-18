@@ -1,196 +1,129 @@
 import { apiClient } from '@/utils/apiClient';
+import { unwrapApiArray, unwrapApiData } from '@/utils/apiResponse';
+import { MOCK_API_ENABLED } from '@/mocks/mockConfig';
 import { ENDPOINTS } from '@/utils/constants';
 import roomService from '@/services/roomService';
+import { isEndpointUnavailable } from '@/utils/backendCapability';
+import { normalizeResourceId } from '@/utils/resourceId';
 
-/**
- * Cinema Service
- * Quản lý các API calls liên quan đến rạp chiếu phim
- */
+const normalizeCinema = (cinema = {}) => ({
+  ...cinema,
+  city: cinema.city || cinema.cityName || cinema.regionName || '',
+  cityName: cinema.cityName || cinema.city || cinema.regionName || '',
+  logoUrl: cinema.logoUrl || cinema.imageUrl || cinema.image || '',
+  imageUrl: cinema.imageUrl || cinema.logoUrl || cinema.image || '',
+  image: cinema.image || cinema.logoUrl || cinema.imageUrl || '',
+  status: String(cinema.status || (cinema.isActive === false ? 'INACTIVE' : 'ACTIVE')).toUpperCase(),
+  isActive: String(cinema.status || '').toUpperCase() !== 'INACTIVE' && cinema.isActive !== false,
+});
+
+const normalizePage = (response) => {
+  const data = unwrapApiData(response);
+  if (Array.isArray(data)) return data.map(normalizeCinema);
+  if (data?.content) return { ...data, content: data.content.map(normalizeCinema) };
+  return data;
+};
+
+const normalizePayload = (data = {}) => ({
+  ...data,
+  ...(data.status ? { status: String(data.status).toUpperCase() } : {}),
+  ...(data.logoUrl || data.imageUrl || data.image ? { logoUrl: data.logoUrl || data.imageUrl || data.image } : {}),
+  ...(data.city || data.cityName ? { city: data.city || data.cityName } : {}),
+});
+
 const cinemaService = {
-  /**
-   * Lấy tất cả rạp
-   * @param {Object} params - Query parameters (page, size, sort)
-   * @returns {Promise<Object>} Danh sách rạp (có thể có phân trang)
-   */
-  async getAllCinemas(params) {
-    return apiClient.get(ENDPOINTS.CINEMAS, { params });
+  async getAllCinemas(params = {}) {
+    return normalizePage(await apiClient.get(ENDPOINTS.CINEMAS, { params }));
   },
 
-  /**
-   * Lấy danh sách rạp với filter
-   * @param {Object} params - Filter params (cityId, isActive, etc.)
-   * @returns {Promise<Array>} Danh sách rạp
-   */
-  getCinemas: async (params) => {
-    return apiClient.get(ENDPOINTS.CINEMAS, { params });
+  async getCinemas(params = {}) {
+    return this.getAllCinemas(params);
   },
 
-  /**
-   * Lấy rạp theo ID
-   * @param {number} cinemaId - ID của rạp
-   * @returns {Promise<Object>} Thông tin rạp
-   */
-  getCinemaById: async (cinemaId) => {
-    return apiClient.get(`${ENDPOINTS.CINEMAS}/${cinemaId}`);
+  async getCinemaById(cinemaId) {
+    return normalizeCinema(unwrapApiData(await apiClient.get(`${ENDPOINTS.CINEMAS}/${normalizeResourceId(cinemaId)}`)));
   },
 
-  /**
-   * Lấy rạp theo region slug (khu vực)
-   * @param {string} slug - Slug của region (ví dụ: "ho-chi-minh", "ha-noi")
-   * @param {Object} params - Query parameters (page, size, sort)
-   * @returns {Promise<Object>} Danh sách rạp trong region với pagination
-   */
-  getCinemasByRegion: async (slug, params = {}) => {
-    return apiClient.get(`${ENDPOINTS.CINEMAS}/region-slug/${encodeURIComponent(slug)}`, {
-      params
-    });
+  async getCinemasByRegion(slug, params = {}) {
+    if (MOCK_API_ENABLED) {
+      return normalizePage(await apiClient.get(`${ENDPOINTS.CINEMAS}/region-slug/${encodeURIComponent(slug)}`, { params }));
+    }
+    const result = await this.getAllCinemas({ page: 0, size: 500 });
+    const rows = Array.isArray(result) ? result : result?.content || [];
+    const needle = String(slug || '').toLowerCase().replace(/-/g, ' ');
+    return rows.filter((cinema) => String(cinema.city || '').toLowerCase().includes(needle));
   },
 
-  /**
-   * Tìm kiếm rạp theo keyword
-   * @param {string} keyword - Từ khóa tìm kiếm
-   * @param {Object} params - Query parameters (page, size, sort)
-   * @returns {Promise<Object>} Danh sách rạp kết quả tìm kiếm với pagination
-   */
-  searchCinemas: async (keyword, params = {}) => {
-    return apiClient.get(`${ENDPOINTS.CINEMAS}/search`, {
-      params: { keyword, ...params }
-    });
+  async searchCinemas(keyword, params = {}) {
+    if (MOCK_API_ENABLED) {
+      return normalizePage(await apiClient.get(`${ENDPOINTS.CINEMAS}/search`, { params: { keyword, ...params } }));
+    }
+    try {
+      return normalizePage(await apiClient.get(`${ENDPOINTS.CINEMAS}/search`, { params: { keyword, ...params } }));
+    } catch (error) {
+      if (!isEndpointUnavailable(error)) throw error;
+      const result = await this.getAllCinemas({ page: 0, size: 500 });
+      const rows = Array.isArray(result) ? result : result?.content || [];
+      const needle = String(keyword || '').trim().toLowerCase();
+      return rows.filter((cinema) => `${cinema.name} ${cinema.address} ${cinema.city}`.toLowerCase().includes(needle));
+    }
   },
 
-  /**
-   * Lấy tất cả rạp không phân trang
-   * @returns {Promise<Array>} Danh sách tất cả rạp
-   */
-  getAllCinemasNoPagination: async () => {
-    return apiClient.get(`${ENDPOINTS.CINEMAS}/all-no-page`);
+  async getAllCinemasNoPagination() {
+    if (MOCK_API_ENABLED) return unwrapApiArray(await apiClient.get(`${ENDPOINTS.CINEMAS}/all-no-page`)).map(normalizeCinema);
+    const result = await this.getAllCinemas({ page: 0, size: 500 });
+    return Array.isArray(result) ? result : result?.content || [];
   },
 
-  /**
-   * Tạo rạp mới (Admin)
-   * @param {Object} data - Thông tin rạp
-   * @returns {Promise<Object>} Rạp vừa tạo
-   */
-  createCinema: async (data) => {
-    return apiClient.post(ENDPOINTS.CINEMAS, data);
+  async createCinema(data) {
+    return normalizeCinema(unwrapApiData(await apiClient.post(ENDPOINTS.CINEMAS, normalizePayload(data))));
   },
 
-  /**
-   * Cập nhật thông tin rạp (Admin)
-   * @param {number} cinemaId - ID của rạp
-   * @param {Object} data - Thông tin cập nhật
-   * @returns {Promise<Object>} Rạp đã cập nhật
-   */
-  updateCinema: async (cinemaId, data) => {
-    return apiClient.put(`${ENDPOINTS.CINEMAS}/${cinemaId}`, data);
+  async updateCinema(cinemaId, data) {
+    const id = normalizeResourceId(cinemaId);
+    return normalizeCinema(unwrapApiData(await apiClient.put(`${ENDPOINTS.CINEMAS}/${id}`, normalizePayload(data))));
   },
 
-  /**
-   * Cập nhật một phần thông tin rạp (Admin)
-   * @param {number} cinemaId - ID của rạp
-   * @param {Object} data - Thông tin cập nhật (chỉ các field cần cập nhật)
-   * @returns {Promise<Object>} Rạp đã cập nhật
-   */
-  partialUpdateCinema: async (cinemaId, data) => {
-    return apiClient.patch(`${ENDPOINTS.CINEMAS}/${cinemaId}`, data);
+  async partialUpdateCinema(cinemaId, data) {
+    const id = normalizeResourceId(cinemaId);
+    try {
+      return normalizeCinema(unwrapApiData(await apiClient.patch(`${ENDPOINTS.CINEMAS}/${id}`, normalizePayload(data))));
+    } catch (error) {
+      if (!isEndpointUnavailable(error)) throw error;
+      const current = await this.getCinemaById(id);
+      return this.updateCinema(id, { ...current, ...data });
+    }
   },
 
-  /**
-   * Xóa rạp (Admin)
-   * @param {number} cinemaId - ID của rạp
-   * @returns {Promise<void>}
-   */
-  deleteCinema: async (cinemaId) => {
-    return apiClient.delete(`${ENDPOINTS.CINEMAS}/${cinemaId}`);
+  async deleteCinema(cinemaId) {
+    return apiClient.delete(`${ENDPOINTS.CINEMAS}/${normalizeResourceId(cinemaId)}`);
   },
 
-  /**
-   * Thêm phòng chiếu mới cho rạp (Admin)
-   * Delegates to roomService.createRoom()
-   * @param {number} cinemaId - ID của rạp
-   * @param {Object} roomData - Thông tin phòng chiếu
-   * @param {string} roomData.name - Tên phòng
-   * @param {string} roomData.roomType - Loại phòng (STANDARD_2D, STANDARD_3D, IMAX, VIP)
-   * @param {number} roomData.rowsCount - Số hàng ghế
-   * @param {number} roomData.seatsPerRow - Số ghế mỗi hàng
-   * @param {Array<number>} roomData.rowVip - Danh sách index hàng VIP
-   * @param {number} roomData.price - Giá cơ bản
-   * @param {boolean} roomData.isActive - Trạng thái
-   * @returns {Promise<Object>} Phòng chiếu vừa tạo
-   */
-  addRoom: async (cinemaId, roomData) => {
-    // roomData đã được format đúng từ CinemaDetail.jsx
-    // Gửi trực tiếp lên API mà không cần mapping
+  async addRoom(cinemaId, roomData) {
     return roomService.createRoom(cinemaId, roomData);
   },
 
-  /**
-   * Cập nhật thông tin phòng chiếu (Admin)
-   * Delegates to roomService.updateRoom()
-   * @param {number} cinemaId - ID của rạp (không sử dụng nhưng giữ lại cho consistency)
-   * @param {number} roomId - ID của phòng chiếu
-   * @param {Object} roomData - Thông tin cập nhật
-   * @param {string} roomData.name - Tên phòng
-   * @param {string} roomData.roomType - Loại phòng (STANDARD_2D, STANDARD_3D, IMAX, VIP)
-   * @param {number} roomData.rowsCount - Số hàng ghế
-   * @param {number} roomData.seatsPerRow - Số ghế mỗi hàng
-   * @param {Array<number>} roomData.rowVip - Danh sách index hàng VIP
-   * @param {number} roomData.price - Giá cơ bản
-   * @param {boolean} roomData.isActive - Trạng thái
-   * @returns {Promise<Object>} Phòng chiếu đã cập nhật
-   */
-  updateRoom: async (cinemaId, roomId, roomData) => {
-    // roomData đã được format đúng từ CinemaDetail.jsx
-    // Gửi trực tiếp lên API mà không cần mapping
+  async updateRoom(_cinemaId, roomId, roomData) {
     return roomService.updateRoom(roomId, roomData);
   },
 
-  /**
-   * Xóa phòng chiếu (Admin)
-   * Delegates to roomService.deleteRoom()
-   * @param {number} cinemaId - ID của rạp (không sử dụng nhưng giữ lại cho consistency)
-   * @param {number} roomId - ID của phòng chiếu
-   * @returns {Promise<void>}
-   */
-  deleteRoom: async (cinemaId, roomId) => {
+  async deleteRoom(_cinemaId, roomId) {
     return roomService.deleteRoom(roomId);
   },
 
-  /**
-   * Lấy danh sách phòng chiếu của rạp
-   * Delegates to roomService.getRoomsByCinemaId()
-   * @param {number} cinemaId - ID của rạp
-   * @returns {Promise<Array>} Danh sách phòng chiếu
-   */
-  getRoomsByCinemaId: async (cinemaId) => {
+  async getRoomsByCinemaId(cinemaId) {
     return roomService.getRoomsByCinemaId(cinemaId);
   },
 
-  /**
-   * Lấy thông tin chi tiết phòng chiếu
-   * Delegates to roomService.getRoomById()
-   * @param {number} cinemaId - ID của rạp (không sử dụng nhưng giữ lại cho consistency)
-   * @param {number} roomId - ID của phòng chiếu
-   * @returns {Promise<Object>} Thông tin phòng chiếu
-   */
-  getRoomById: async (cinemaId, roomId) => {
+  async getRoomById(_cinemaId, roomId) {
     return roomService.getRoomById(roomId);
   },
 
-  /**
-   * Utility: Lấy rạp cho dropdown/select
-   * @param {number} cityId - Optional city filter
-   * @returns {Promise<Array>} Simplified cinema list
-   */
-  getCinemasForDropdown: async (cityId) => {
-    const params = cityId ? { cityId } : {};
-    const cinemas = await cinemaService.getCinemas(params);
-    return (cinemas || []).map(cinema => ({
-      value: cinema.id,
-      label: cinema.name,
-      cityId: cinema.cityId
-    }));
+  async getCinemasForDropdown() {
+    const cinemas = await this.getAllCinemasNoPagination();
+    return cinemas.map((cinema) => ({ value: cinema.id, label: cinema.name, city: cinema.city }));
   },
 };
 
+export { normalizeCinema, normalizePayload as normalizeCinemaPayload };
 export default cinemaService;
