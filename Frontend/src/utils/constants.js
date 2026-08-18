@@ -20,6 +20,7 @@ export const ENDPOINTS = {
   AUDITORIUMS: '/auditoriums',
   SHOWTIMESEATS: '/showtimeseats',
   PROMOTIONS: '/promotions',
+  PROMOTION_CODES: '/promotioncodes',
   VOUCHERS: '/vouchers',
   PAYMENTS: '/payments',
   REPORTS: '/reports',
