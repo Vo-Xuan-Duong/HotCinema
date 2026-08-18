@@ -27,6 +27,7 @@ export const ENDPOINTS = {
   PRODUCTS: '/products',
   PRODUCT_CATEGORIES: '/productcategories',
   CINEMA_PRODUCTS: '/cinemaproducts',
+  EMPLOYEE_CINEMAS: '/employeecinemas',
   REPORTS: '/reports',
   ROLES: '/roles',
   PERMISSIONS: '/permissions'
