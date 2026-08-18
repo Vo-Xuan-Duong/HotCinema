@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeUserProfile } from './authService';
+import { buildRegisterPayload, normalizeUserProfile } from './authService';
 
 const base64Url = (value) => window.btoa(JSON.stringify(value))
   .replace(/=/g, '')
@@ -42,5 +42,23 @@ describe('authService profile normalization', () => {
     expect(user.phoneNumber).toBe('0912345678');
     expect(user.birthDate).toBe('2001-02-03');
     expect(user.avatar).toBe('/avatar.png');
+  });
+});
+
+describe('authService registration mapping', () => {
+  it('maps the UI phoneNumber alias to the backend phone field', () => {
+    expect(buildRegisterPayload({
+      email: ' customer@example.com ',
+      fullName: ' Customer Name ',
+      phoneNumber: ' 0912345678 ',
+      password: 'secret123',
+      confirmPassword: 'secret123',
+    })).toEqual({
+      email: 'customer@example.com',
+      fullName: 'Customer Name',
+      phone: '0912345678',
+      password: 'secret123',
+      confirmPassword: 'secret123',
+    });
   });
 });
