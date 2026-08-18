@@ -24,6 +24,9 @@ export const ENDPOINTS = {
   PROMOTION_CODES: '/promotioncodes',
   VOUCHERS: '/vouchers',
   PAYMENTS: '/payments',
+  PRODUCTS: '/products',
+  PRODUCT_CATEGORIES: '/productcategories',
+  CINEMA_PRODUCTS: '/cinemaproducts',
   REPORTS: '/reports',
   ROLES: '/roles',
   PERMISSIONS: '/permissions'
