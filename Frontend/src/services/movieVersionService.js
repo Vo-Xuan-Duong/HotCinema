@@ -1,31 +1,36 @@
-import { apiClient } from '@/utils/apiClient';
-import { ENDPOINTS } from '@/utils/constants';
+import { createCapabilityError } from '@/utils/backendCapability';
 
-const BASE_PATH = ENDPOINTS.MOVIE_VERSIONS;
+const unsupported = () => {
+  throw createCapabilityError('movie version; backend hiện không có MovieVersion resource/controller');
+};
 
 const movieVersionService = {
-  async createMovieVersion(data) {
-    return apiClient.post(BASE_PATH, data);
+  isSupported() {
+    return false;
   },
 
-  async getMovieVersionById(id) {
-    return apiClient.get(`${BASE_PATH}/${id}`);
+  async createMovieVersion() {
+    return unsupported();
+  },
+
+  async getMovieVersionById() {
+    return unsupported();
   },
 
   async getAllMovieVersions() {
-    return apiClient.get(BASE_PATH);
+    return unsupported();
   },
 
-  async getMovieVersionsByMovieId(movieId) {
-    return apiClient.get(BASE_PATH, { params: { movieId } });
+  async getMovieVersionsByMovieId() {
+    return unsupported();
   },
 
-  async updateMovieVersion(id, data) {
-    return apiClient.put(`${BASE_PATH}/${id}`, data);
+  async updateMovieVersion() {
+    return unsupported();
   },
 
-  async deleteMovieVersion(id) {
-    return apiClient.delete(`${BASE_PATH}/${id}`);
+  async deleteMovieVersion() {
+    return unsupported();
   },
 };
 
