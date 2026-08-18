@@ -21,7 +21,7 @@ const EMPTY_FORM = {
   agreement: false,
 };
 
-const RegisterForm = ({ onSwitchToLogin, onSwitchToOTP, onClose }) => {
+const RegisterForm = ({ onSwitchToLogin, onClose }) => {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -42,8 +42,11 @@ const RegisterForm = ({ onSwitchToLogin, onSwitchToOTP, onClose }) => {
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) nextErrors.email = 'Email không hợp lệ!';
     else if (formData.email.length > 100) nextErrors.email = 'Email không được vượt quá 100 ký tự!';
 
-    if (formData.fullName && formData.fullName.length > 100) nextErrors.fullName = 'Họ tên không được vượt quá 100 ký tự!';
-    if (formData.phoneNumber && !/^[+]?[0-9]{10,15}$/.test(formData.phoneNumber)) nextErrors.phoneNumber = 'Số điện thoại phải từ 10-15 số!';
+    if (!formData.fullName.trim()) nextErrors.fullName = 'Vui lòng nhập họ và tên!';
+    else if (formData.fullName.trim().length > 100) nextErrors.fullName = 'Họ tên không được vượt quá 100 ký tự!';
+
+    if (!formData.phoneNumber.trim()) nextErrors.phoneNumber = 'Vui lòng nhập số điện thoại!';
+    else if (!/^[+]?[0-9]{10,15}$/.test(formData.phoneNumber.trim())) nextErrors.phoneNumber = 'Số điện thoại phải từ 10-15 số!';
 
     if (!formData.password) nextErrors.password = 'Vui lòng nhập mật khẩu!';
     else if (formData.password.length < 6 || formData.password.length > 100) nextErrors.password = 'Mật khẩu phải từ 6-100 ký tự!';
@@ -63,8 +66,7 @@ const RegisterForm = ({ onSwitchToLogin, onSwitchToOTP, onClose }) => {
 
     setLoading(true);
     try {
-      const submittedEmail = formData.email;
-      const response = await register({
+      await register({
         email: formData.email,
         password: formData.password,
         confirmPassword: formData.confirmPassword,
@@ -72,12 +74,10 @@ const RegisterForm = ({ onSwitchToLogin, onSwitchToOTP, onClose }) => {
         phoneNumber: formData.phoneNumber,
       });
 
-      if (response) {
-        notification.success('Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.');
-        setFormData(EMPTY_FORM);
-        setErrors({});
-        onSwitchToOTP?.(submittedEmail);
-      }
+      notification.success('Đăng ký thành công. Bạn có thể đăng nhập bằng tài khoản vừa tạo.');
+      setFormData(EMPTY_FORM);
+      setErrors({});
+      onSwitchToLogin?.();
     } catch (error) {
       const response = error?.response;
       if (!response) {
@@ -87,7 +87,8 @@ const RegisterForm = ({ onSwitchToLogin, onSwitchToOTP, onClose }) => {
         if (status === 400 && Array.isArray(data?.errors)) {
           const nextErrors = {};
           data.errors.forEach((item) => {
-            const field = item.field || item.path;
+            const backendField = item.field || item.path;
+            const field = backendField === 'phone' ? 'phoneNumber' : backendField;
             const message = item.message || item.defaultMessage || String(item);
             if (field) nextErrors[field] = message;
           });
@@ -114,13 +115,13 @@ const RegisterForm = ({ onSwitchToLogin, onSwitchToOTP, onClose }) => {
       const googleResponse = await signInWithGoogle();
       if (!googleResponse.code) throw new Error('Không nhận được authorization code từ Google');
       await loginWithGoogle(googleResponse.code);
-      notification.success('Đăng ký bằng Google thành công!');
+      notification.success('Đăng nhập bằng Google thành công!');
       setFormData(EMPTY_FORM);
       setErrors({});
       if (onClose) onClose();
       else navigate('/');
     } catch (error) {
-      notification.error(error?.message || 'Đăng ký bằng Google thất bại. Vui lòng thử lại!');
+      notification.error(error?.message || 'Đăng nhập bằng Google chưa khả dụng.');
     } finally {
       setGoogleLoading(false);
     }
@@ -148,9 +149,9 @@ const RegisterForm = ({ onSwitchToLogin, onSwitchToOTP, onClose }) => {
   return (
     <div className="w-full">
       <Form onSubmit={handleSubmit}>
-        {textField('email', 'Email', Mail, { type: 'email', autoComplete: 'email', placeholder: 'you@example.com' })}
-        {textField('fullName', 'Họ và tên (tùy chọn)', User, { autoComplete: 'name', placeholder: 'Nguyễn Văn A' })}
-        {textField('phoneNumber', 'Số điện thoại (tùy chọn)', Phone, { autoComplete: 'tel', placeholder: '0912345678' })}
+        {textField('email', 'Email', Mail, { type: 'email', autoComplete: 'email', placeholder: 'you@example.com', required: true })}
+        {textField('fullName', 'Họ và tên', User, { autoComplete: 'name', placeholder: 'Nguyễn Văn A', required: true })}
+        {textField('phoneNumber', 'Số điện thoại', Phone, { autoComplete: 'tel', placeholder: '0912345678', required: true })}
 
         <div className="grid gap-4 md:grid-cols-2">
           <FormItem>
@@ -226,7 +227,7 @@ const RegisterForm = ({ onSwitchToLogin, onSwitchToOTP, onClose }) => {
               <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
               <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
             </svg>
-            Đăng ký bằng Google
+            Tiếp tục với Google
           </>
         )}
       </Button>
