@@ -5,6 +5,8 @@ import { MOCK_API_ENABLED } from '@/mocks/mockConfig';
 import { getAccessToken, getUserInfo } from '@/utils/authStorage';
 import { normalizeResourceId } from '@/utils/resourceId';
 
+const BOOKING_WS_URL = String(import.meta.env.VITE_BOOKING_WS_URL || '').trim();
+
 const statusToUpdateType = (status) => {
   switch (String(status || '').toUpperCase()) {
     case 'HELD': return 'locked';
@@ -18,6 +20,7 @@ const statusToUpdateType = (status) => {
 };
 
 const useSeatWebSocket = (showtimeId, onSeatUpdate) => {
+  const isSupported = MOCK_API_ENABLED || Boolean(BOOKING_WS_URL);
   const [isConnected, setIsConnected] = useState(MOCK_API_ENABLED);
   const stompClientRef = useRef(null);
   const subscriptionRef = useRef(null);
@@ -51,7 +54,7 @@ const useSeatWebSocket = (showtimeId, onSeatUpdate) => {
   }, [onSeatUpdate]);
 
   useEffect(() => {
-    if (!showtimeId) {
+    if (!showtimeId || !isSupported) {
       setIsConnected(false);
       return undefined;
     }
@@ -64,13 +67,13 @@ const useSeatWebSocket = (showtimeId, onSeatUpdate) => {
     const token = getAccessToken();
     const userId = getUserId();
     const client = new Client({
-      webSocketFactory: () => new SockJS(import.meta.env.VITE_BOOKING_WS_URL || 'http://localhost:8080/ws-booking'),
+      webSocketFactory: () => new SockJS(BOOKING_WS_URL),
       connectHeaders: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(userId ? { userId: String(userId) } : {}),
       },
       debug: import.meta.env.DEV ? (message) => console.debug('STOMP:', message) : undefined,
-      reconnectDelay: 3000,
+      reconnectDelay: 5000,
       heartbeatIncoming: 30000,
       heartbeatOutgoing: 30000,
       onConnect: () => {
@@ -98,9 +101,10 @@ const useSeatWebSocket = (showtimeId, onSeatUpdate) => {
       stompClientRef.current = null;
       setIsConnected(false);
     };
-  }, [showtimeId, handleMessage, getUserId]);
+  }, [showtimeId, handleMessage, getUserId, isSupported]);
 
-  return { isConnected };
+  return { isConnected, isSupported };
 };
 
+export { statusToUpdateType };
 export default useSeatWebSocket;
