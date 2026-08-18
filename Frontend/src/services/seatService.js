@@ -3,7 +3,7 @@ import { unwrapApiArray, unwrapApiData } from '@/utils/apiResponse';
 import { ENDPOINTS } from '@/utils/constants';
 import { MOCK_API_ENABLED } from '@/mocks/mockConfig';
 import { normalizeSeatStatus, normalizeSeatType } from '@/lib/seatPresentation';
-import { normalizeResourceId, sameResourceId } from '@/utils/resourceId';
+import { isUuid, normalizeResourceId, sameResourceId } from '@/utils/resourceId';
 
 let seatTypeCache = null;
 
@@ -94,11 +94,13 @@ const normalizeBackendSeat = (seat, typeById = new Map()) => {
 
 const resolveSeatTypeId = async (data, existing = {}) => {
   const explicit = normalizeResourceId(data.seatTypeId);
-  if (explicit) return explicit;
+  // Real SeatType ids are UUIDs. UI fallback option values such as REGULAR/VIP
+  // are codes, not ids; ignore those and resolve them against backend types.
+  if (explicit && isUuid(explicit)) return explicit;
 
   const currentId = normalizeResourceId(existing.seatTypeId);
   const requested = data.seatType ?? data.type;
-  if (requested == null && currentId) return currentId;
+  if (requested == null && currentId && isUuid(currentId)) return currentId;
 
   const requestedUiType = normalizeSeatType(requested || 'REGULAR');
   const types = await fetchSeatTypes();
