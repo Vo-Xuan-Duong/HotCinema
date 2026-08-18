@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { RefreshCw, Search, SlidersHorizontal } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import MovieCard from '@/components/MovieCard/MovieCard';
 import ContentLoader from '@/components/Loading/ContentLoader';
+import { Alert } from '@/components/ui/alert';
 import { BadgeRibbon } from '@/components/ui/badge-ribbon';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,59 +11,31 @@ import { Empty } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import genreService from '@/services/genreService';
 import movieService from '@/services/movieService';
 
 const DEFAULT_PAGE_SIZE = 15;
+const PUBLIC_STATUS_VALUES = new Set(['all', 'NOW_SHOWING', 'COMING_SOON', 'ENDED']);
 
 const getMovieStatus = (movie) => {
-  if (movie.status === 'COMING_SOON') return 'upcoming';
-  if (movie.status === 'ARCHIVED') return 'archived';
-  if (movie.status === 'NOW_SHOWING') return 'now-showing';
-
-  if (!movie.releaseDateRaw) return 'now-showing';
-
-  const releaseDate = new Date(movie.releaseDateRaw);
-  if (Number.isNaN(releaseDate.getTime())) return 'now-showing';
-
-  return releaseDate.getFullYear() > new Date().getFullYear() ? 'upcoming' : 'now-showing';
+  const status = String(movie?.status || '').toUpperCase();
+  if (status === 'COMING_SOON') return 'upcoming';
+  if (status === 'ENDED') return 'ended';
+  return 'now-showing';
 };
 
 const movieStatusPresentation = {
   upcoming: { text: 'Sắp chiếu', tone: 'info' },
-  archived: { text: 'Đã chiếu', tone: 'neutral' },
+  ended: { text: 'Đã kết thúc', tone: 'neutral' },
   'now-showing': { text: 'Đang chiếu', tone: 'warning' },
 };
 
 const formatReleaseDate = (value) => {
   if (!value) return '';
-
-  if (typeof value === 'string') {
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('vi-VN');
-  }
-
-  if (value.year && value.month && value.day) {
+  if (typeof value === 'object' && value.year && value.month && value.day) {
     return `${String(value.day).padStart(2, '0')}/${String(value.month).padStart(2, '0')}/${value.year}`;
   }
-
-  return '';
-};
-
-const formatGenre = (genre) => {
-  if (!genre) return 'Chưa phân loại';
-
-  const values = Array.isArray(genre) ? genre : [genre];
-  const names = values
-    .flatMap((item) => {
-      if (typeof item === 'string') return item.split(',');
-      return item?.name ? [item.name] : [];
-    })
-    .map((name) => name.replace(/Phim\s+/gi, '').trim())
-    .filter(Boolean);
-
-  if (!names.length) return 'Chưa phân loại';
-  return names.slice(0, 2).join(', ');
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString('vi-VN');
 };
 
 const normalizeMovie = (movie, index) => ({
@@ -70,41 +43,34 @@ const normalizeMovie = (movie, index) => ({
   id: movie.id ?? movie._id ?? index + 1,
   poster: movie.posterUrl || movie.posterPath || movie.poster || '/brand-placeholder.svg',
   rating: Number(movie.averageRating ?? movie.rating ?? 0),
-  genre: formatGenre(movie.genres || movie.genre),
   releaseDate: formatReleaseDate(movie.releaseDate),
   releaseDateRaw: movie.releaseDate,
   duration: movie.durationFormatted || (movie.durationMinutes ? `${movie.durationMinutes} phút` : movie.duration || ''),
-  description: movie.overview || movie.description || '',
+  description: movie.description || movie.overview || '',
 });
 
 const Movies = () => {
   const location = useLocation();
+  const initialStatus = PUBLIC_STATUS_VALUES.has(location.state?.defaultFilter)
+    ? location.state.defaultFilter
+    : 'all';
+
   const [movies, setMovies] = useState([]);
-  const [genres, setGenres] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
   const [searchText, setSearchText] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [selectedGenre, setSelectedGenre] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState(location.state?.defaultFilter || 'all');
+  const [selectedStatus, setSelectedStatus] = useState(initialStatus);
   const [selectedYear, setSelectedYear] = useState('all');
-  const [sort, setSort] = useState('id:desc');
+  const [sort, setSort] = useState('updatedAt:desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [totalMovies, setTotalMovies] = useState(0);
 
   const years = useMemo(() => {
     const currentYear = new Date().getFullYear();
-    return Array.from({ length: 7 }, (_, index) => String(currentYear - index));
-  }, []);
-
-  useEffect(() => {
-    genreService
-      .getAllGenres()
-      .then((response) => setGenres(Array.isArray(response) ? response : []))
-      .catch((error) => {
-        console.error('Failed to load genres:', error);
-        setGenres([]);
-      });
+    return Array.from({ length: 12 }, (_, index) => String(currentYear - index));
   }, []);
 
   useEffect(() => {
@@ -114,14 +80,14 @@ const Movies = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, selectedGenre, selectedStatus, selectedYear, sort]);
+  }, [debouncedSearch, selectedStatus, selectedYear, sort]);
 
   useEffect(() => {
     let cancelled = false;
 
     const loadMovies = async () => {
       setLoading(true);
-
+      setErrorMessage('');
       try {
         const [sortBy, sortOrder] = sort.split(':');
         const params = {
@@ -129,37 +95,33 @@ const Movies = () => {
           size: pageSize,
           sort: `${sortBy},${sortOrder}`,
         };
-
         if (debouncedSearch) params.keyword = debouncedSearch;
-        if (selectedGenre !== 'all') params.genre = selectedGenre;
         if (selectedStatus !== 'all') params.status = selectedStatus;
         if (selectedYear !== 'all') params.releaseYear = selectedYear;
 
-        const response = await movieService.searchPage(params);
+        const response = await movieService.searchPublicPage(params);
         if (cancelled) return;
 
         const content = Array.isArray(response) ? response : response?.content || [];
         const total = Array.isArray(response)
           ? response.length
-          : response?.totalElements ?? response?.total ?? content.length;
-
+          : Number(response?.totalElements ?? response?.total) || content.length;
         setMovies(content.map(normalizeMovie));
         setTotalMovies(total);
       } catch (error) {
         if (cancelled) return;
-        console.error('Failed to fetch movies:', error);
+        console.error('Failed to fetch public movies:', error);
         setMovies([]);
         setTotalMovies(0);
+        setErrorMessage(error?.message || 'Không thể tải danh sách phim.');
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
 
     loadMovies();
-    return () => {
-      cancelled = true;
-    };
-  }, [currentPage, pageSize, sort, debouncedSearch, selectedGenre, selectedStatus, selectedYear]);
+    return () => { cancelled = true; };
+  }, [currentPage, pageSize, sort, debouncedSearch, selectedStatus, selectedYear, refreshKey]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -167,22 +129,20 @@ const Movies = () => {
 
   const resetFilters = () => {
     setSearchText('');
-    setSelectedGenre('all');
     setSelectedStatus('all');
     setSelectedYear('all');
-    setSort('id:desc');
+    setSort('updatedAt:desc');
     setCurrentPage(1);
   };
 
   const hasActiveFilters = Boolean(
     searchText.trim()
-    || selectedGenre !== 'all'
     || selectedStatus !== 'all'
     || selectedYear !== 'all'
-    || sort !== 'id:desc'
+    || sort !== 'updatedAt:desc'
   );
 
-  if (loading && movies.length === 0) {
+  if (loading && movies.length === 0 && !errorMessage) {
     return <ContentLoader message="Đang tải danh sách phim..." />;
   }
 
@@ -194,7 +154,7 @@ const Movies = () => {
             <p className="text-xs font-medium text-primary">HotCinema</p>
             <h1 className="mt-0.5 text-2xl font-semibold tracking-tight sm:text-3xl">Phim đang chiếu & sắp chiếu</h1>
             <p className="mt-1 max-w-3xl text-sm leading-5 text-muted-foreground">
-              Lọc nhanh theo thể loại, trạng thái, năm phát hành và chọn suất chiếu phù hợp.
+              Dữ liệu công khai chỉ gồm phim đang chiếu, sắp chiếu và phim đã kết thúc; DRAFT/HIDDEN không được đưa ra customer UI.
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
@@ -203,71 +163,66 @@ const Movies = () => {
           </div>
         </header>
 
+        {errorMessage && (
+          <Alert
+            variant="destructive"
+            showIcon
+            message="Không thể tải danh sách phim"
+            description={errorMessage}
+            action={(
+              <Button type="button" variant="outline" size="sm" onClick={() => setRefreshKey((value) => value + 1)}>
+                <RefreshCw className="h-4 w-4" />
+                Thử lại
+              </Button>
+            )}
+            className="mb-4"
+          />
+        )}
+
         <Card className="mb-4">
           <CardContent className="p-3">
             <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
               Bộ lọc
             </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[minmax(260px,1.4fr)_180px_180px_150px_180px_auto]">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(260px,1.4fr)_180px_150px_190px_auto]">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={searchText}
                   onChange={(event) => setSearchText(event.target.value)}
-                  placeholder="Tìm kiếm phim..."
+                  placeholder="Tìm theo tên, đạo diễn, diễn viên..."
                   className="pl-9"
                   aria-label="Tìm kiếm phim"
                 />
               </div>
 
-              <Select value={selectedGenre} onValueChange={setSelectedGenre}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Tất cả thể loại" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả thể loại</SelectItem>
-                  {genres.map((genre) => (
-                    <SelectItem key={genre.id ?? genre.name} value={genre.name}>
-                      {genre.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Tất cả trạng thái" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Tất cả trạng thái" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="all">Đang/sắp chiếu</SelectItem>
                   <SelectItem value="NOW_SHOWING">Đang chiếu</SelectItem>
                   <SelectItem value="COMING_SOON">Sắp chiếu</SelectItem>
-                  <SelectItem value="ARCHIVED">Đã chiếu</SelectItem>
+                  <SelectItem value="ENDED">Đã kết thúc</SelectItem>
                 </SelectContent>
               </Select>
 
               <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Tất cả năm" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Tất cả năm" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tất cả năm</SelectItem>
-                  {years.map((year) => (
-                    <SelectItem key={year} value={year}>{year}</SelectItem>
-                  ))}
+                  {years.map((year) => <SelectItem key={year} value={year}>{year}</SelectItem>)}
                 </SelectContent>
               </Select>
 
               <Select value={sort} onValueChange={setSort}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sắp xếp" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Sắp xếp" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="id:desc">Mới cập nhật</SelectItem>
+                  <SelectItem value="updatedAt:desc">Mới cập nhật</SelectItem>
                   <SelectItem value="title:asc">Tên A → Z</SelectItem>
                   <SelectItem value="title:desc">Tên Z → A</SelectItem>
                   <SelectItem value="releaseDate:desc">Ngày phát hành mới</SelectItem>
+                  <SelectItem value="releaseDate:asc">Ngày phát hành cũ</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -308,20 +263,20 @@ const Movies = () => {
               />
             </div>
           </>
-        ) : (
+        ) : !loading && !errorMessage ? (
           <Card>
             <CardContent className="py-3">
               <Empty
-                description={
+                description={(
                   <div className="flex flex-col items-center gap-2">
                     <p>Không tìm thấy phim phù hợp với bộ lọc hiện tại.</p>
                     <Button type="button" variant="outline" size="sm" onClick={resetFilters}>Đặt lại bộ lọc</Button>
                   </div>
-                }
+                )}
               />
             </CardContent>
           </Card>
-        )}
+        ) : null}
       </div>
     </div>
   );
