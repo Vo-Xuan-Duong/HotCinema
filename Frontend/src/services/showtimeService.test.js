@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  groupShowtimesByCinema,
+  groupShowtimesByMovie,
   normalizeJoinedShowtimeSeat,
   normalizeShowtimeFormat,
   normalizeShowtimeStatus,
@@ -99,5 +101,69 @@ describe('showtimeService backend adapters', () => {
       { code: 'REGULAR' },
     );
     expect(result.status).toBe('BLOCKED');
+  });
+
+  it('groups real showtimes by cinema for movie detail', () => {
+    const page = groupShowtimesByCinema([
+      {
+        id: 'showtime-1',
+        cinemaId: 'cinema-1',
+        cinemaName: 'HotCinema Central',
+        cinemaAddress: '1 Main Street',
+        cityName: 'Hồ Chí Minh',
+        cinema: { id: 'cinema-1', status: 'ACTIVE' },
+        auditoriumId: 'room-1',
+        roomName: 'Room 1',
+        startTime: '2026-08-18T19:00:00+07:00',
+        endTime: '2026-08-18T21:00:00+07:00',
+        format: 'FORMAT_2D',
+        basePrice: 120000,
+        status: 'OPEN',
+      },
+      {
+        id: 'showtime-2',
+        cinemaId: 'cinema-1',
+        cinemaName: 'HotCinema Central',
+        cinema: { id: 'cinema-1', status: 'ACTIVE' },
+        auditoriumId: 'room-2',
+        startTime: '2026-08-18T21:30:00+07:00',
+        format: 'IMAX',
+        basePrice: 180000,
+        status: 'SCHEDULED',
+      },
+    ], { page: 0, size: 5 });
+
+    expect(page.totalElements).toBe(1);
+    expect(page.content[0].cinemaId).toBe('cinema-1');
+    expect(page.content[0].formats).toHaveLength(2);
+    expect(page.content[0].formats[0].showtimes[0].showtimeId).toBe('showtime-1');
+  });
+
+  it('groups real showtimes by movie for cinema detail and excludes hidden movies', () => {
+    const page = groupShowtimesByMovie([
+      {
+        id: 'showtime-1',
+        movieId: 'movie-1',
+        movieTitle: 'Public Movie',
+        moviePoster: '/poster.jpg',
+        movie: { id: 'movie-1', status: 'NOW_SHOWING' },
+        startTime: '2026-08-18T19:00:00+07:00',
+        format: 'FORMAT_2D',
+        status: 'OPEN',
+      },
+      {
+        id: 'showtime-hidden',
+        movieId: 'movie-hidden',
+        movieTitle: 'Hidden Movie',
+        movie: { id: 'movie-hidden', status: 'HIDDEN' },
+        startTime: '2026-08-18T20:00:00+07:00',
+        format: 'FORMAT_2D',
+        status: 'OPEN',
+      },
+    ], { page: 0, size: 5 });
+
+    expect(page.totalElements).toBe(1);
+    expect(page.content[0].movieId).toBe('movie-1');
+    expect(page.content[0].formats[0].showtimes[0].status).toBe('OPEN');
   });
 });
