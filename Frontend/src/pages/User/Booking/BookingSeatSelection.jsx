@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import { Clock3, Loader2, Tag, Wifi } from 'lucide-react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import ContentLoader from '@/components/Loading/ContentLoader';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,7 @@ import showtimeService from '@/services/showtimeService';
 import { normalizeResourceId, normalizeResourceIds, sameResourceId } from '@/utils/resourceId';
 
 const MAX_SEATS = 10;
+const BOOKABLE_SHOWTIME_STATUSES = new Set(['OPEN', 'AVAILABLE']);
 const EMPTY_LAYOUT = { rows: [], totalSeats: 0, availableSeats: 0, bookedSeats: 0, heldSeats: 0 };
 
 const rowLabelFromNumber = (rowNumber) => {
@@ -159,17 +161,24 @@ const BookingSeatSelection = () => {
     });
   }, [updateSeatStatus]);
 
-  const { isConnected: wsConnected } = useSeatWebSocket(normalizedShowtimeId, handleSeatUpdate);
+  const { isConnected: wsConnected, isSupported: wsSupported } = useSeatWebSocket(normalizedShowtimeId, handleSeatUpdate);
 
   const loadShowtimeDetails = useCallback(async () => {
     if (!normalizedShowtimeId) return;
     setLoading(true);
     setLoadError('');
     try {
-      const [showtime, seats] = await Promise.all([
-        showtimeService.getShowtimeById(normalizedShowtimeId),
-        showtimeService.getSeatsByShowtimeId(normalizedShowtimeId),
-      ]);
+      const showtime = await showtimeService.getShowtimeById(normalizedShowtimeId);
+      const showtimeStatus = String(showtime?.status || '').toUpperCase();
+      if (!BOOKABLE_SHOWTIME_STATUSES.has(showtimeStatus)) {
+        setSeatLayout(EMPTY_LAYOUT);
+        setSelectedSeats([]);
+        setShowtimeInfo((previous) => ({ ...previous, ...showtime }));
+        setLoadError(`Suất chiếu hiện ở trạng thái ${showtimeStatus || 'không xác định'} và chưa thể đặt ghế.`);
+        return;
+      }
+
+      const seats = await showtimeService.getSeatsByShowtimeId(normalizedShowtimeId);
       setShowtimeInfo((previous) => ({
         ...previous,
         ...showtime,
@@ -188,7 +197,7 @@ const BookingSeatSelection = () => {
       setSeatLayout(EMPTY_LAYOUT);
       const message = error?.code === 'BACKEND_CAPABILITY_MISSING'
         ? error.message
-        : 'Không thể tải sơ đồ ghế của suất chiếu.';
+        : error?.message || 'Không thể tải sơ đồ ghế của suất chiếu.';
       setLoadError(message);
       notification.error(message);
     } finally {
@@ -231,7 +240,8 @@ const BookingSeatSelection = () => {
         setSelectedSeats((previous) => previous.filter((item) => !sameResourceId(item.id, seat.id)));
         updateSeatStatus([seat.id], 'available');
       } else {
-        const result = await showtimeService.lockSeats(normalizedShowtimeId, seat.id, currentUserId);
+        const rawResult = await showtimeService.lockSeats(normalizedShowtimeId, seat.id, currentUserId);
+        const result = Array.isArray(rawResult) ? rawResult[0] : rawResult;
         const selected = {
           ...seat,
           status: 'held',
@@ -245,7 +255,7 @@ const BookingSeatSelection = () => {
     } catch (error) {
       if (error?.status === 409) notification.error('Ghế vừa được người khác giữ. Sơ đồ sẽ được tải lại.');
       else if (error?.code === 'BACKEND_CAPABILITY_MISSING' || [404, 405, 501].includes(error?.status)) {
-        notification.error('Backend chưa hỗ trợ giữ ghế theo thời gian thực cho môi trường này.');
+        notification.error(error?.message || 'Backend chưa hỗ trợ giữ ghế theo thời gian thực cho môi trường này.');
       } else notification.error(error?.message || 'Không thể cập nhật trạng thái ghế.');
       await loadShowtimeDetails();
     } finally {
@@ -260,9 +270,16 @@ const BookingSeatSelection = () => {
 
   const previewDiscount = useMemo(() => {
     if (!promotionInfo) return 0;
-    const value = Number(promotionInfo.discountValue ?? promotionInfo.value ?? 0);
-    if (String(promotionInfo.discountType).toUpperCase() === 'PERCENTAGE') return Math.min(subtotal, subtotal * value / 100);
-    return Math.min(subtotal, value);
+    const minimum = Number(promotionInfo.minimumOrderAmount || 0);
+    if (minimum > 0 && subtotal < minimum) return 0;
+
+    const value = Math.max(0, Number(promotionInfo.discountValue ?? promotionInfo.value ?? 0));
+    let discount = String(promotionInfo.discountType).toUpperCase() === 'PERCENTAGE'
+      ? subtotal * value / 100
+      : value;
+    const maximum = Number(promotionInfo.maxDiscountAmount || 0);
+    if (maximum > 0) discount = Math.min(discount, maximum);
+    return Math.min(subtotal, Math.max(0, discount));
   }, [promotionInfo, subtotal]);
   const previewTotal = Math.max(0, subtotal - previewDiscount);
 
@@ -286,19 +303,28 @@ const BookingSeatSelection = () => {
   const validatePromotion = async () => {
     const code = promotionCode.trim();
     if (!code) return notification.warning('Vui lòng nhập mã giảm giá.');
+    if (!subtotal) return notification.warning('Vui lòng chọn ghế trước khi kiểm tra mã giảm giá.');
+
     setIsValidatingPromotion(true);
     try {
-      const promotion = await promotionService.getPromotionByCode(code);
-      if (!promotion) throw new Error('Mã giảm giá không tồn tại.');
+      const promotion = await promotionService.validateCodeForCheckout(code, {
+        showtimeId: normalizedShowtimeId,
+        subtotal,
+      });
+      if (!promotion) throw new Error('Mã giảm giá không hợp lệ.');
+
       const nowDate = dayjs();
-      const start = dayjs(promotion.startDate);
-      const end = dayjs(promotion.endDate);
+      const start = dayjs(promotion.startAt || promotion.startDate);
+      const end = dayjs(promotion.endAt || promotion.endDate);
       const active = ['ACTIVE', 'TRUE'].includes(String(promotion.status ?? promotion.isActive).toUpperCase());
+      const minimum = Number(promotion.minimumOrderAmount || 0);
       if (!active) throw new Error('Mã giảm giá hiện không hoạt động.');
       if (start.isValid() && nowDate.isBefore(start)) throw new Error(`Mã giảm giá bắt đầu từ ${start.format('DD/MM/YYYY')}.`);
       if (end.isValid() && nowDate.isAfter(end)) throw new Error('Mã giảm giá đã hết hạn.');
-      setPromotionInfo({ ...promotion, code: promotion.code || code });
-      notification.success('Đã áp dụng mã giảm giá để xem trước. Giá cuối cùng sẽ do máy chủ xác nhận.');
+      if (minimum > 0 && subtotal < minimum) throw new Error(`Đơn hàng tối thiểu ${minimum.toLocaleString('vi-VN')} ₫ để áp dụng mã này.`);
+
+      setPromotionInfo({ ...promotion, code: promotion.code || code.toUpperCase() });
+      notification.success('Đã xác thực mã giảm giá để xem trước. Giá cuối cùng vẫn do checkout backend xác nhận.');
     } catch (error) {
       setPromotionInfo(null);
       notification.error(error?.message || 'Không thể kiểm tra mã giảm giá.');
@@ -316,7 +342,7 @@ const BookingSeatSelection = () => {
       const booking = await bookingService.createBooking({
         showtimeId: normalizedShowtimeId,
         seatIds: normalizeResourceIds(selectedSeats.map((seat) => seat.id)),
-        promotionCode: promotionInfo?.code || promotionCode.trim() || null,
+        promotionCode: promotionInfo?.code || null,
       });
       const authoritativeTotal = Number(booking?.totalAmount);
       navigate('/booking/payment', {
@@ -357,7 +383,7 @@ const BookingSeatSelection = () => {
     return (
       <main className="min-h-dvh bg-background px-4 pb-16 pt-24">
         <Card className="mx-auto max-w-xl">
-          <CardHeader><CardTitle>Không thể tải sơ đồ ghế</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Không thể đặt ghế cho suất chiếu</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">{loadError}</p>
             <div className="flex gap-2">
@@ -389,6 +415,15 @@ const BookingSeatSelection = () => {
           </CardContent>
         </Card>
 
+        {!wsSupported && (
+          <Alert
+            variant="warning"
+            showIcon
+            message="Realtime seat channel chưa được cấu hình"
+            description="FE đang hiển thị snapshot ghế từ API. Khi backend chưa có atomic hold/release command, thao tác chọn ghế sẽ bị chặn thay vì giả lập giữ ghế ở browser."
+          />
+        )}
+
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           <section className="space-y-5">
             <div className="flex flex-wrap items-end justify-between gap-3">
@@ -398,7 +433,7 @@ const BookingSeatSelection = () => {
               </div>
               <div className="flex items-center gap-2">
                 <StatusBadge tone={wsConnected ? 'success' : 'neutral'} leading={<Wifi className="h-3 w-3" />}>
-                  {wsConnected ? 'Real-time' : 'Polling/API'}
+                  {wsConnected ? 'WebSocket realtime' : wsSupported ? 'WebSocket chưa kết nối' : 'API snapshot'}
                 </StatusBadge>
                 {holdSecondsLeft != null && (
                   <StatusBadge tone={holdSecondsLeft <= 60 ? 'warning' : 'neutral'} leading={<Clock3 className="h-3 w-3" />}>
@@ -486,7 +521,7 @@ const BookingSeatSelection = () => {
                       {isValidatingPromotion ? <Loader2 className="h-4 w-4 animate-spin" /> : <Tag className="h-4 w-4" />}
                     </Button>
                   </div>
-                  {promotionInfo && <p className="text-xs text-muted-foreground">Đã áp dụng {promotionInfo.code} để ước tính. Máy chủ sẽ tính lại giá khi tạo booking.</p>}
+                  {promotionInfo && <p className="text-xs text-muted-foreground">Đã xác thực {promotionInfo.code} để ước tính. Checkout backend vẫn là nguồn giá cuối cùng.</p>}
                 </div>
 
                 <Separator />
@@ -511,4 +546,5 @@ const BookingSeatSelection = () => {
   );
 };
 
+export { buildLayout, normalizeSeat };
 export default BookingSeatSelection;
