@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import UserLayout from '@/layouts/UserLayout';
 import NotFound from '@/pages/Common/ErrorPages/NotFound';
+import RouteErrorBoundary from '@/components/ErrorPage/RouteErrorBoundary';
 import { lazyElement, protectedLazyElement } from './routeElements';
 
 const Home = React.lazy(() => import('@/pages/User/Home/Home'));
@@ -30,7 +31,7 @@ const CinemaScheduleRedirect = () => {
 export const userRoutes = {
   path: '/',
   element: <UserLayout />,
-  errorElement: <NotFound />,
+  errorElement: <RouteErrorBoundary />,
   children: [
     { index: true, element: lazyElement(Home, 'movie', 'Đang tải HotCinema...') },
     { path: 'profile', element: protectedLazyElement(AccountSettings, 'modern', 'Đang tải hồ sơ cá nhân...') },
@@ -51,5 +52,6 @@ export const userRoutes = {
     { path: 'booking/callback', element: lazyElement(PaymentCallback, 'ticket', 'Đang xử lý thanh toán...') },
     { path: 'booking/success', element: lazyElement(BookingSuccess, 'ticket', 'Đang xác nhận...') },
     { path: 'booking/failed', element: lazyElement(BookingFailed, 'ticket', 'Đang tải...') },
+    { path: '*', element: <NotFound /> },
   ],
 };
