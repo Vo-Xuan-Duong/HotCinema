@@ -23,23 +23,46 @@ const pageOf = (rows, page = 0, size = 10) => {
 };
 
 const normalizeUserStatus = (value) => {
-  const status = String(value || 'ACTIVE').toUpperCase();
+  const status = String(value || '').toUpperCase();
   if (status === 'INACTIVE') return 'DISABLED';
-  return ['ACTIVE', 'LOCKED', 'DISABLED'].includes(status) ? status : 'ACTIVE';
+  return ['ACTIVE', 'LOCKED', 'DISABLED'].includes(status) ? status : '';
 };
 
-const buildUserUpdatePayload = (current, changes = {}) => ({
-  email: String(changes.email ?? current.email ?? '').trim(),
-  phone: String(changes.phone ?? changes.phoneNumber ?? current.phone ?? current.phoneNumber ?? '').trim(),
-  fullName: String(changes.fullName ?? current.fullName ?? '').trim(),
-  dateOfBirth: changes.dateOfBirth ?? changes.birthDate ?? current.dateOfBirth ?? current.birthDate ?? '1970-01-01',
-  gender: String(changes.gender ?? current.gender ?? 'OTHER').toUpperCase(),
-  avatarUrl: String(changes.avatarUrl ?? changes.avatar ?? current.avatarUrl ?? current.avatar ?? '/brand-placeholder.svg').trim() || '/brand-placeholder.svg',
-  status: normalizeUserStatus(changes.status ?? current.status),
-  emailVerified: Boolean(changes.emailVerified ?? current.emailVerified ?? false),
-  phoneVerified: Boolean(changes.phoneVerified ?? current.phoneVerified ?? false),
-  lastLoginAt: changes.lastLoginAt ?? current.lastLoginAt ?? new Date().toISOString(),
-});
+const buildUserUpdatePayload = (current = {}, changes = {}) => {
+  const payload = {
+    email: String(changes.email ?? current.email ?? '').trim(),
+    phone: String(changes.phone ?? changes.phoneNumber ?? current.phone ?? current.phoneNumber ?? '').trim(),
+    fullName: String(changes.fullName ?? current.fullName ?? '').trim(),
+    dateOfBirth: changes.dateOfBirth ?? changes.birthDate ?? current.dateOfBirth ?? current.birthDate ?? null,
+    gender: String(changes.gender ?? current.gender ?? '').toUpperCase(),
+    avatarUrl: String(changes.avatarUrl ?? changes.avatar ?? current.avatarUrl ?? current.avatar ?? '').trim(),
+    status: normalizeUserStatus(changes.status ?? current.status),
+    emailVerified: Boolean(changes.emailVerified ?? current.emailVerified ?? false),
+    phoneVerified: Boolean(changes.phoneVerified ?? current.phoneVerified ?? false),
+    lastLoginAt: changes.lastLoginAt ?? current.lastLoginAt ?? null,
+  };
+
+  const missing = [];
+  if (!payload.email) missing.push('email');
+  if (!payload.phone) missing.push('phone');
+  if (!payload.fullName) missing.push('fullName');
+  if (!payload.dateOfBirth) missing.push('dateOfBirth');
+  if (!payload.gender) missing.push('gender');
+  if (!payload.avatarUrl) missing.push('avatarUrl');
+  if (!payload.status) missing.push('status');
+  if (!payload.lastLoginAt) missing.push('lastLoginAt');
+
+  if (missing.length > 0) {
+    const error = new Error(
+      `Không thể cập nhật người dùng vì backend UserUpdateRequest bắt buộc các trường còn thiếu: ${missing.join(', ')}.`,
+    );
+    error.code = 'BACKEND_USER_UPDATE_INCOMPLETE';
+    error.missingFields = missing;
+    throw error;
+  }
+
+  return payload;
+};
 
 const userService = {
   async createUser(data) {
