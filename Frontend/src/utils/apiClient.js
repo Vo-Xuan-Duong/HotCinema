@@ -1,278 +1,185 @@
 import axios from 'axios';
-import { ERROR_MESSAGES } from '@/utils/constants';
+import { API_BASE_URL, ERROR_MESSAGES } from '@/utils/constants';
 import {
   saveAuthData,
   clearAuthData,
   getAccessToken,
-  getRefreshToken
+  getRefreshToken,
 } from '@/utils/authStorage.js';
+import { isJwtExpired } from '@/utils/jwt.js';
 
-// Event emitter for 401 errors - để trigger auth modal
 let authErrorCallback = null;
-
-export const setAuthErrorCallback = (callback) => {
-  authErrorCallback = callback;
-};
-
+export const setAuthErrorCallback = (callback) => { authErrorCallback = callback; };
 const emitAuthError = (error) => {
-  if (authErrorCallback && typeof authErrorCallback === 'function') {
-    authErrorCallback(error);
-  }
+  if (typeof authErrorCallback === 'function') authErrorCallback(error);
 };
 
-// API base URL is configurable per deployment environment.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
-
-// Create axios instance
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// Token management
-let currentToken = null;
+let currentToken = getAccessToken();
 let isRefreshing = false;
 let failedQueue = [];
 
 const processQueue = (error, token = null) => {
-  failedQueue.forEach(prom => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
-  });
-
+  failedQueue.forEach(({ resolve, reject }) => (error ? reject(error) : resolve(token)));
   failedQueue = [];
 };
 
-/**
- * Set authentication token in memory and localStorage
- * This is the CENTRALIZED place where tokens are saved
- */
-const setAuthToken = (access_token, refresh_token, userInfo) => {
-  currentToken = access_token;
+const isAuthEndpoint = (url = '') => [
+  '/auth/login',
+  '/auth/register',
+  '/auth/google',
+  '/auth/refresh',
+].some((endpoint) => String(url).includes(endpoint));
 
-  if (access_token) {
-    // Save to localStorage using centralized utility
-    saveAuthData({
-      accessToken: access_token,
-      refreshToken: refresh_token,
-      user: userInfo
-    });
+const setAuthToken = (accessToken, refreshToken, userInfo) => {
+  currentToken = accessToken || null;
+  if (!accessToken) return;
 
-    // Set Authorization header
-    apiClient.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-  }
+  saveAuthData({ accessToken, refreshToken, user: userInfo });
+  apiClient.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
 };
 
-/**
- * Remove authentication token from memory and localStorage
- * This is the CENTRALIZED place where tokens are cleared
- */
 const removeAuthToken = () => {
   currentToken = null;
-
-  // Clear from localStorage using centralized utility
   clearAuthData();
-
-  // Remove Authorization header
-  delete apiClient.defaults.headers.common['Authorization'];
+  delete apiClient.defaults.headers.common.Authorization;
 };
 
-// Kiểm tra token có hết hạn không
-const isTokenExpired = (token) => {
-  if (!token) return true;
+const isTokenExpired = (token) => isJwtExpired(token, 5 * 60 * 1000);
 
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const expiryTime = payload.exp * 1000; // Convert to milliseconds
-    const currentTime = Date.now();
-
-    // Token sắp hết hạn trong vòng 5 phút
-    return expiryTime - currentTime < 5 * 60 * 1000;
-  } catch (error) {
-    console.error('Error parsing token:', error);
-    return true;
-  }
-};
-
-// Refresh token
 const refreshAccessToken = async () => {
   const refreshToken = getRefreshToken();
-
-  if (!refreshToken) {
-    throw new Error('No refresh token available');
-  }
+  if (!refreshToken) throw new Error('No refresh token available');
 
   try {
-    // Gọi API refresh token (điều chỉnh endpoint theo backend)
-    const response = await axios.get(`${API_BASE_URL}/auth/refresh`, {
-      params: { refreshToken }
-    });
+    let response;
+    try {
+      response = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken }, {
+        timeout: 30000,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (postError) {
+      if (![404, 405].includes(postError?.response?.status)) throw postError;
+      response = await axios.get(`${API_BASE_URL}/auth/refresh`, {
+        params: { refreshToken },
+        timeout: 30000,
+      });
+    }
 
-    const { accessToken, refreshToken: newRefreshToken } = response.data.data || response.data;
+    const body = response?.data?.data || response?.data || {};
+    const accessToken = body.accessToken || body.token;
+    const nextRefreshToken = body.refreshToken || refreshToken;
+    if (!accessToken) throw new Error('Refresh response does not contain an access token');
 
-    // Lưu token mới - ONLY place where tokens are saved after refresh
-    setAuthToken(accessToken, newRefreshToken || refreshToken);
-
+    setAuthToken(accessToken, nextRefreshToken);
     return accessToken;
   } catch (error) {
-    console.error('Error refreshing token:', error);
     removeAuthToken();
-    // Không redirect, chỉ throw error để component xử lý
     throw error;
   }
 };
 
-// Request interceptor to add token and check expiry
 apiClient.interceptors.request.use(
   async (config) => {
-    // Bỏ qua kiểm tra token cho các endpoint auth
-    if (config.url?.includes('/auth/login') ||
-      config.url?.includes('/auth/register') ||
-      config.url?.includes('/auth/google') ||
-      config.url?.includes('/auth/refresh')) {
-      return config;
-    }
+    if (isAuthEndpoint(config.url)) return config;
 
     let token = currentToken || getAccessToken();
-
-    // Kiểm tra token có tồn tại và còn hạn không
     if (token && isTokenExpired(token)) {
-      console.log('Token expired or expiring soon, refreshing...');
-
       if (!isRefreshing) {
         isRefreshing = true;
-
         try {
           token = await refreshAccessToken();
-          isRefreshing = false;
           processQueue(null, token);
         } catch (error) {
-          isRefreshing = false;
           processQueue(error, null);
-          return Promise.reject(error);
+          throw error;
+        } finally {
+          isRefreshing = false;
         }
       } else {
-        // Đợi refresh token hoàn thành
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        }).then(token => {
-          config.headers['Authorization'] = `Bearer ${token}`;
-          return config;
-        }).catch(err => {
-          return Promise.reject(err);
-        });
+        token = await new Promise((resolve, reject) => failedQueue.push({ resolve, reject }));
       }
     }
 
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
-// Response interceptor for error handling
 apiClient.interceptors.response.use(
-  (response) => {
-    return response.data;
-  },
+  (response) => response.data,
   async (error) => {
-    const originalRequest = error.config;
+    const originalRequest = error.config || {};
     const status = error.response?.status;
-    let message = ERROR_MESSAGES.SERVER_ERROR;
     const isNetworkError = error.code === 'ECONNABORTED' || error.message === 'Network Error';
 
-    // Xử lý lỗi kết nối
-    if (isNetworkError) {
-      message = ERROR_MESSAGES.NETWORK_ERROR || 'Không thể kết nối máy chủ. Vui lòng thử lại.';
-    }
-    // Xử lý 401 Unauthorized - Token hết hạn
-    else if (status === 401 && !originalRequest._retry) {
-      // Nếu đang ở trang login, register, google auth hoặc refresh token thì không retry
-      if (originalRequest.url?.includes('/auth/login') ||
-        originalRequest.url?.includes('/auth/register') ||
-        originalRequest.url?.includes('/auth/google') ||
-        originalRequest.url?.includes('/auth/refresh')) {
-        message = error.response?.data?.message || ERROR_MESSAGES.UNAUTHORIZED || 'Xác thực thất bại.';
-        // Không remove token cho auth endpoints vì user đang cố đăng nhập
-      } else {
-        // Đánh dấu request đã retry để tránh loop
-        originalRequest._retry = true;
-
-        if (!isRefreshing) {
-          isRefreshing = true;
-
-          try {
-            const newToken = await refreshAccessToken();
-            isRefreshing = false;
-            processQueue(null, newToken);
-
-            // Retry request với token mới
-            originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
-            return apiClient(originalRequest);
-          } catch (refreshError) {
-            isRefreshing = false;
-            processQueue(refreshError, null);
-            removeAuthToken();
-            // Emit auth error để tự động mở modal
-            emitAuthError(refreshError);
-            console.warn('Token refresh failed. Please re-authenticate.');
-            return Promise.reject(refreshError);
-          }
-        } else {
-          // Đợi refresh token hoàn thành
-          return new Promise((resolve, reject) => {
-            failedQueue.push({ resolve, reject });
-          }).then(token => {
-            originalRequest.headers['Authorization'] = `Bearer ${token}`;
-            return apiClient(originalRequest);
-          }).catch(err => {
-            return Promise.reject(err);
-          });
+    if (status === 401 && !originalRequest._retry && !isAuthEndpoint(originalRequest.url)) {
+      originalRequest._retry = true;
+      if (!isRefreshing) {
+        isRefreshing = true;
+        try {
+          const newToken = await refreshAccessToken();
+          processQueue(null, newToken);
+          originalRequest.headers = originalRequest.headers || {};
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return apiClient(originalRequest);
+        } catch (refreshError) {
+          processQueue(refreshError, null);
+          removeAuthToken();
+          emitAuthError(refreshError);
+          throw refreshError;
+        } finally {
+          isRefreshing = false;
         }
       }
+
+      const token = await new Promise((resolve, reject) => failedQueue.push({ resolve, reject }));
+      originalRequest.headers = originalRequest.headers || {};
+      originalRequest.headers.Authorization = `Bearer ${token}`;
+      return apiClient(originalRequest);
     }
-    else if (status === 403) {
-      message = ERROR_MESSAGES.FORBIDDEN || 'Bạn không có quyền truy cập.';
-    } else if (status === 404) {
-      message = ERROR_MESSAGES.NOT_FOUND || 'Không tìm thấy thông tin.';
-    } else if (status === 422) {
-      message = error.response?.data?.message || ERROR_MESSAGES.VALIDATION_ERROR || 'Dữ liệu không hợp lệ.';
-    } else if (status === 400) {
-      message = error.response?.data?.message || 'Yêu cầu không hợp lệ.';
-    } else if (error.response?.data?.message) {
-      message = error.response.data.message;
+
+    let message = ERROR_MESSAGES.SERVER_ERROR;
+    if (isNetworkError) message = ERROR_MESSAGES.NETWORK_ERROR;
+    else if (status === 401) message = error.response?.data?.message || ERROR_MESSAGES.UNAUTHORIZED;
+    else if (status === 403) message = error.response?.data?.message || ERROR_MESSAGES.FORBIDDEN;
+    else if (status === 404) message = error.response?.data?.message || ERROR_MESSAGES.NOT_FOUND;
+    else if (status === 400 || status === 422) {
+      message = error.response?.data?.message
+        || error.response?.data?.detail
+        || ERROR_MESSAGES.VALIDATION_ERROR;
+    } else if (error.response?.data?.message || error.response?.data?.detail) {
+      message = error.response.data.message || error.response.data.detail;
     }
 
     const customError = new Error(message);
+    customError.name = 'ApiError';
     customError.status = status;
+    customError.code = error.response?.data?.code || error.code;
+    customError.validationErrors = error.response?.data?.errors || null;
     customError.response = error.response;
+    customError.config = originalRequest;
+    customError.cause = error;
     throw customError;
-  }
+  },
 );
 
-// Enhanced API methods
 const api = {
-  // Auth endpoints
-  post: (url, data) => apiClient.post(url, data),
-  get: (url, params) => apiClient.get(url, params),
-  put: (url, data) => apiClient.put(url, data),
-  patch: (url, data) => apiClient.patch(url, data),
-  delete: (url) => apiClient.delete(url),
-
-  // Token management
+  post: (url, data, config) => apiClient.post(url, data, config),
+  get: (url, config) => apiClient.get(url, config),
+  put: (url, data, config) => apiClient.put(url, data, config),
+  patch: (url, data, config) => apiClient.patch(url, data, config),
+  delete: (url, config) => apiClient.delete(url, config),
   setAuthToken,
   removeAuthToken,
   isTokenExpired,
-  refreshAccessToken
+  refreshAccessToken,
 };
 
 export {
@@ -281,6 +188,6 @@ export {
   removeAuthToken,
   isTokenExpired,
   refreshAccessToken,
-  api
+  api,
 };
-export default api; 
+export default api;
