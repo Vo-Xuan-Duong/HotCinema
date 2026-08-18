@@ -42,16 +42,12 @@ describe('userService backend DTO helpers', () => {
     });
   });
 
-  it('supplies valid backend defaults for incomplete legacy users', () => {
-    const result = buildUserUpdatePayload({
+  it('rejects incomplete legacy users instead of inventing personal data', () => {
+    expect(() => buildUserUpdatePayload({
       email: 'legacy@example.com',
+      phone: '0900000000',
       fullName: 'Legacy User',
-    }, {});
-
-    expect(result.dateOfBirth).toBe('1970-01-01');
-    expect(result.gender).toBe('OTHER');
-    expect(result.status).toBe('ACTIVE');
-    expect(result.avatarUrl).toBe('/brand-placeholder.svg');
-    expect(result.lastLoginAt).toBeTruthy();
+      status: 'ACTIVE',
+    }, {})).toThrow(/dateOfBirth.*gender.*avatarUrl.*lastLoginAt/i);
   });
 });
