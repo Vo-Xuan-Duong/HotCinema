@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Clock3, Loader2, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock3, Loader2, ShieldAlert, XCircle } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import paymentService from '@/services/paymentService';
 import { STORAGE_KEYS } from '@/utils/constants';
-import { sameResourceId } from '@/utils/resourceId';
 
 const MAX_AUTO_CHECKS = 10;
 const POLL_INTERVAL_MS = 3000;
@@ -42,17 +41,16 @@ const PaymentCallback = () => {
   const verifyPayment = useCallback(async ({ manual = false } = {}) => {
     if (!context.bookingId) {
       setStatus('failed');
-      setMessage('Không tìm thấy mã booking để xác nhận giao dịch.');
+      setMessage('Không tìm thấy Booking ID để xác nhận giao dịch.');
       return 'failed';
     }
 
     setChecking(true);
     try {
-      const payments = await paymentService.getPaymentsByBookingId(context.bookingId);
-      const payment = payments.find((item) => (
-        (context.paymentId && sameResourceId(item.id, context.paymentId))
-        || (context.transactionId && String(item.transactionId || item.providerTransactionId || '') === String(context.transactionId))
-      )) || payments[0];
+      const payment = await paymentService.getMyPaymentForBooking(context.bookingId, {
+        paymentId: context.paymentId,
+        transactionId: context.transactionId,
+      });
 
       if (!payment) {
         setStatus('pending');
@@ -74,7 +72,7 @@ const PaymentCallback = () => {
         localStorage.setItem(STORAGE_KEYS.LAST_BOOKING, JSON.stringify(completedBooking));
         localStorage.removeItem(STORAGE_KEYS.PENDING_PAYMENT);
         setStatus('success');
-        setMessage('Thanh toán đã được xác nhận.');
+        setMessage('Thanh toán đã được backend xác nhận.');
         navigate(`/booking/success?bookingCode=${encodeURIComponent(completedBooking.bookingCode || '')}`, {
           replace: true,
           state: { bookingData: completedBooking },
@@ -94,6 +92,11 @@ const PaymentCallback = () => {
         : 'Giao dịch đang được xử lý. Hệ thống sẽ tự kiểm tra lại.');
       return 'pending';
     } catch (error) {
+      if (error?.code === 'BACKEND_CAPABILITY_MISSING') {
+        setStatus('unsupported');
+        setMessage(`${error.message} Frontend không tải collection payment toàn hệ thống để tự lọc theo Booking ID.`);
+        return 'unsupported';
+      }
       setStatus('failed');
       setMessage(error?.message || 'Không thể xác nhận trạng thái thanh toán.');
       return 'failed';
@@ -130,9 +133,11 @@ const PaymentCallback = () => {
     ? CheckCircle2
     : status === 'pending'
       ? Clock3
-      : status === 'failed'
-        ? XCircle
-        : Loader2;
+      : status === 'unsupported'
+        ? ShieldAlert
+        : status === 'failed'
+          ? XCircle
+          : Loader2;
 
   return (
     <main className="container mx-auto flex min-h-[70vh] max-w-xl items-center px-4 py-10">
@@ -145,15 +150,17 @@ const PaymentCallback = () => {
         </CardHeader>
         <CardContent className="space-y-5">
           <Alert
-            variant={status === 'failed' ? 'destructive' : status === 'success' ? 'success' : 'warning'}
+            variant={status === 'failed' || status === 'unsupported' ? 'destructive' : status === 'success' ? 'success' : 'warning'}
             description={message}
           />
           {context.bookingCode && <p className="text-sm text-muted-foreground">Booking: <strong>{context.bookingCode}</strong></p>}
           {status !== 'success' && (
             <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-              <Button onClick={() => verifyPayment({ manual: true })} disabled={checking}>
-                {checking && <Loader2 className="h-4 w-4 animate-spin" />}Kiểm tra lại
-              </Button>
+              {status !== 'unsupported' && (
+                <Button onClick={() => verifyPayment({ manual: true })} disabled={checking}>
+                  {checking && <Loader2 className="h-4 w-4 animate-spin" />}Kiểm tra lại
+                </Button>
+              )}
               <Button variant="outline" onClick={() => navigate('/history')}>Xem lịch sử đặt vé</Button>
             </div>
           )}
