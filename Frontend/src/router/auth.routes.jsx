@@ -1,5 +1,7 @@
 import React from 'react';
+import { Navigate } from 'react-router-dom';
 import AuthLayout from '@/layouts/AuthLayout';
+import RouteErrorBoundary from '@/components/ErrorPage/RouteErrorBoundary';
 import { lazyElement } from './routeElements';
 
 const Login = React.lazy(() => import('@/pages/Auth/Login'));
@@ -11,11 +13,13 @@ const ResetPassword = React.lazy(() => import('@/pages/Auth/ResetPassword'));
 export const authRoutes = {
   path: '/auth',
   element: <AuthLayout />,
+  errorElement: <RouteErrorBoundary />,
   children: [
     { path: 'login', element: lazyElement(Login) },
     { path: 'register', element: lazyElement(Register) },
     { path: 'verify-otp', element: lazyElement(VerifyOTP) },
     { path: 'forgot-password', element: lazyElement(ForgotPassword) },
     { path: 'reset-password', element: lazyElement(ResetPassword) },
+    { path: '*', element: <Navigate to="/auth/login" replace /> },
   ],
 };
