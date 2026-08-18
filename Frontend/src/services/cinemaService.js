@@ -24,11 +24,20 @@ const normalizePage = (response) => {
   return data;
 };
 
-const normalizePayload = (data = {}) => ({
-  ...data,
-  ...(data.status ? { status: String(data.status).toUpperCase() } : {}),
-  ...(data.logoUrl || data.imageUrl || data.image ? { logoUrl: data.logoUrl || data.imageUrl || data.image } : {}),
-  ...(data.city || data.cityName ? { city: data.city || data.cityName } : {}),
+const toCinemaPayload = (data = {}) => ({
+  code: String(data.code || '').trim().toUpperCase(),
+  name: String(data.name || '').trim(),
+  address: String(data.address || '').trim(),
+  ward: String(data.ward || '').trim(),
+  district: String(data.district || '').trim(),
+  city: String(data.city || data.cityName || '').trim(),
+  latitude: Number(data.latitude),
+  longitude: Number(data.longitude),
+  phone: String(data.phone || '').trim(),
+  email: String(data.email || '').trim(),
+  description: String(data.description || '').trim(),
+  logoUrl: String(data.logoUrl || data.imageUrl || data.image || '').trim(),
+  status: String(data.status || (data.isActive === false ? 'INACTIVE' : 'ACTIVE')).trim().toUpperCase(),
 });
 
 const isPublicCinema = (cinema) => String(cinema?.status || '').toUpperCase() === 'ACTIVE';
@@ -95,7 +104,6 @@ const cinemaService = {
     if (MOCK_API_ENABLED) {
       return normalizePage(await apiClient.get(`${ENDPOINTS.CINEMAS}/region-slug/${encodeURIComponent(slug)}`, { params }));
     }
-    // Current backend stores city directly on Cinema and has no region relation.
     return this.getPublicCinemas({ ...params, city: String(slug || '').replace(/-/g, ' ') });
   },
 
@@ -125,18 +133,18 @@ const cinemaService = {
   },
 
   async createCinema(data) {
-    return normalizeCinema(unwrapApiData(await apiClient.post(ENDPOINTS.CINEMAS, normalizePayload(data))));
+    return normalizeCinema(unwrapApiData(await apiClient.post(ENDPOINTS.CINEMAS, toCinemaPayload(data))));
   },
 
   async updateCinema(cinemaId, data) {
     const id = normalizeResourceId(cinemaId);
-    return normalizeCinema(unwrapApiData(await apiClient.put(`${ENDPOINTS.CINEMAS}/${id}`, normalizePayload(data))));
+    return normalizeCinema(unwrapApiData(await apiClient.put(`${ENDPOINTS.CINEMAS}/${id}`, toCinemaPayload(data))));
   },
 
   async partialUpdateCinema(cinemaId, data) {
     const id = normalizeResourceId(cinemaId);
     try {
-      return normalizeCinema(unwrapApiData(await apiClient.patch(`${ENDPOINTS.CINEMAS}/${id}`, normalizePayload(data))));
+      return normalizeCinema(unwrapApiData(await apiClient.patch(`${ENDPOINTS.CINEMAS}/${id}`, toCinemaPayload(data))));
     } catch (error) {
       if (!isEndpointUnavailable(error)) throw error;
       const current = await this.getCinemaById(id);
@@ -174,5 +182,5 @@ const cinemaService = {
   },
 };
 
-export { normalizeCinema, normalizePayload as normalizeCinemaPayload, isPublicCinema };
+export { normalizeCinema, toCinemaPayload, isPublicCinema };
 export default cinemaService;
