@@ -16,6 +16,7 @@ export const ENDPOINTS = {
   REGIONS: '/regions',
   CINEMA_CLUSTERS: '/cinema-clusters',
   SEATS: '/seats',
+  SEAT_TYPES: '/seattypes',
   ROOMS: '/auditoriums',
   AUDITORIUMS: '/auditoriums',
   SHOWTIMESEATS: '/showtimeseats',
@@ -57,11 +58,11 @@ export const MOVIE_GENRES = [
 
 // Age Ratings
 export const AGE_RATINGS = {
-  G: 'G - Mọi lứa tuổi',
-  PG: 'PG - Có sự hướng dẫn của phụ huynh',
-  PG13: 'PG-13 - Không khuyến khích cho trẻ dưới 13 tuổi',
-  R: 'R - Hạn chế cho trẻ dưới 17 tuổi',
-  NC17: 'NC-17 - Chỉ dành cho người từ 17 tuổi trở lên'
+  P: 'P - Mọi lứa tuổi',
+  K: 'K - Dưới 13 tuổi xem cùng cha mẹ/người giám hộ',
+  T13: 'T13 - Từ 13 tuổi',
+  T16: 'T16 - Từ 16 tuổi',
+  T18: 'T18 - Từ 18 tuổi'
 };
 
 // Seat Types
@@ -74,18 +75,18 @@ export const SEAT_TYPES = {
 
 // Room Types (Backend format)
 export const ROOM_TYPES = {
-  STANDARD_2D: 'STANDARD_2D',
-  STANDARD_3D: 'STANDARD_3D',
+  STANDARD: 'STANDARD',
   IMAX: 'IMAX',
-  VIP: 'VIP'
+  TYPE_4DX: 'TYPE_4DX',
+  SCREENX: 'SCREENX'
 };
 
 // Room Types Display (Frontend format)
 export const ROOM_TYPES_DISPLAY = {
-  '2D': '2D',
-  '3D': '3D',
-  'IMAX': 'IMAX',
-  'VIP': 'VIP'
+  '2D': 'STANDARD',
+  IMAX: 'IMAX',
+  '4DX': 'TYPE_4DX',
+  SCREENX: 'SCREENX'
 };
 
 // Payment Methods
