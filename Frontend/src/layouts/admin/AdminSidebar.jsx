@@ -22,7 +22,7 @@ const AdminSidebar = ({ open, isMobile, currentPath, onNavigate }) => {
       <SidebarHeader className={cn('border-b border-border/70 px-3 py-3.5', compact && 'px-2')}>
         <div className={cn('flex min-w-0 items-center gap-2.5', compact && 'justify-center')}>
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Clapperboard className="h-4.5 w-4.5" />
+            <Clapperboard className="h-[18px] w-[18px]" />
           </div>
           {!compact && (
             <div className="min-w-0">
