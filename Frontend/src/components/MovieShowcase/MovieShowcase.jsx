@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Play, Star } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Film, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MovieCard from '@/components/MovieCard/MovieCard';
 import { Button } from '@/components/ui/button';
@@ -40,6 +40,13 @@ const normalizeMovie = (movie) => ({
   trailer: movie.trailer || movie.trailerUrl,
 });
 
+const sectionMeta = {
+  upcoming: { eyebrow: 'Sắp ra mắt', description: 'Những bộ phim chuẩn bị có mặt tại HotCinema.' },
+  'now-showing': { eyebrow: 'Đang bán vé', description: 'Chọn phim đang chiếu và xem lịch suất phù hợp.' },
+  recent: { eyebrow: 'Mới cập nhật', description: 'Danh sách vừa được cập nhật từ hệ thống.' },
+  all: { eyebrow: 'Khám phá', description: 'Khám phá các lựa chọn nổi bật tại HotCinema.' },
+};
+
 const MovieShowcase = ({
   movies = [],
   title = 'Phim đặc sắc',
@@ -58,6 +65,7 @@ const MovieShowcase = ({
     () => movies.slice(0, maxItems).map(normalizeMovie),
     [movies, maxItems]
   );
+  const meta = sectionMeta[category] || sectionMeta.all;
 
   const checkScrollButtons = useCallback(() => {
     const element = scrollContainerRef.current;
@@ -84,7 +92,7 @@ const MovieShowcase = ({
   const scrollByPage = (direction) => {
     const element = scrollContainerRef.current;
     if (!element) return;
-    element.scrollBy({ left: direction * element.clientWidth * 0.92, behavior: 'smooth' });
+    element.scrollBy({ left: direction * element.clientWidth * 0.88, behavior: 'smooth' });
     window.setTimeout(checkScrollButtons, 350);
   };
 
@@ -100,9 +108,10 @@ const MovieShowcase = ({
 
   if (loading) {
     return (
-      <section className="py-4 sm:py-5">
+      <section className="border-b border-border/60 py-7 sm:py-8">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <Skeleton className="mb-3 h-7 w-48" />
+          <Skeleton className="mb-2 h-3 w-24" />
+          <Skeleton className="mb-5 h-8 w-56" />
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
             {Array.from({ length: Math.min(maxItems, 7) }).map((_, index) => (
               <div key={index} className="space-y-2">
@@ -118,20 +127,22 @@ const MovieShowcase = ({
   }
 
   return (
-    <section className="py-4 sm:py-5">
+    <section className="border-b border-border/60 py-7 sm:py-8 last:border-b-0">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-              <Star className="h-4 w-4" />
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0">
+            <div className="mb-1.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+              <Film className="h-3.5 w-3.5" />
+              <span>{meta.eyebrow}</span>
             </div>
-            <h2 className="truncate text-xl font-semibold tracking-tight text-foreground sm:text-2xl">{title}</h2>
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[28px]">{title}</h2>
+            <p className="mt-1 max-w-xl text-sm text-muted-foreground">{meta.description}</p>
           </div>
 
           {filteredMovies.length > 0 && category !== 'top-rated' && (
-            <Button type="button" variant="ghost" size="sm" onClick={showMore}>
+            <Button type="button" variant="ghost" size="sm" onClick={showMore} className="text-muted-foreground hover:text-foreground">
               Xem tất cả
-              <ChevronRight className="ml-1 h-4 w-4" />
+              <ArrowRight className="h-4 w-4" />
             </Button>
           )}
         </div>
@@ -145,7 +156,7 @@ const MovieShowcase = ({
                 type="button"
                 variant="secondary"
                 size="icon"
-                className="absolute -left-2 top-1/2 z-20 hidden -translate-y-1/2 rounded-full md:inline-flex"
+                className="absolute -left-2 top-[38%] z-20 hidden rounded-full border border-border bg-background/95 md:inline-flex"
                 onClick={() => scrollByPage(-1)}
                 aria-label="Xem phim phía trước"
               >
@@ -156,19 +167,19 @@ const MovieShowcase = ({
             <div
               ref={scrollContainerRef}
               onScroll={checkScrollButtons}
-              className={enableSlider ? 'custom-scrollbar overflow-x-auto scroll-smooth pb-2' : ''}
+              className={enableSlider ? 'scrollbar-hide overflow-x-auto scroll-smooth pb-1' : ''}
             >
               <div
                 className={
                   enableSlider
-                    ? 'flex gap-3'
-                    : 'grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7'
+                    ? 'flex gap-3.5'
+                    : 'grid grid-cols-2 gap-3.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7'
                 }
               >
                 {filteredMovies.map((movie, index) => (
                   <div
                     key={movie.id || `${movie.title}-${index}`}
-                    className={enableSlider ? 'w-[62vw] max-w-[220px] shrink-0 sm:w-[210px] lg:w-[200px] xl:w-[190px]' : 'min-w-0'}
+                    className={enableSlider ? 'w-[58vw] max-w-[218px] shrink-0 sm:w-[205px] lg:w-[198px] xl:w-[192px]' : 'min-w-0'}
                   >
                     <MovieCard
                       movie={movie}
@@ -184,7 +195,7 @@ const MovieShowcase = ({
                 type="button"
                 variant="secondary"
                 size="icon"
-                className="absolute -right-2 top-1/2 z-20 hidden -translate-y-1/2 rounded-full md:inline-flex"
+                className="absolute -right-2 top-[38%] z-20 hidden rounded-full border border-border bg-background/95 md:inline-flex"
                 onClick={() => scrollByPage(1)}
                 aria-label="Xem thêm phim"
               >
