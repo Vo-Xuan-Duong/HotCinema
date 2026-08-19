@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { RefreshCw, Search, SlidersHorizontal } from 'lucide-react';
+import { Film, RefreshCw, Search, SlidersHorizontal } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import MovieCard from '@/components/MovieCard/MovieCard';
 import ContentLoader from '@/components/Loading/ContentLoader';
@@ -147,19 +147,24 @@ const Movies = () => {
   }
 
   return (
-    <div className="min-h-dvh bg-background pb-8 pt-20 text-foreground">
+    <div className="min-h-dvh bg-background pb-10 pt-20 text-foreground">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        <header className="mb-4 flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
-          <div className="min-w-0">
-            <p className="text-xs font-medium text-primary">HotCinema</p>
-            <h1 className="mt-0.5 text-2xl font-semibold tracking-tight sm:text-3xl">Phim đang chiếu & sắp chiếu</h1>
-            <p className="mt-1 max-w-3xl text-sm leading-5 text-muted-foreground">
-              Dữ liệu công khai chỉ gồm phim đang chiếu, sắp chiếu và phim đã kết thúc; DRAFT/HIDDEN không được đưa ra customer UI.
-            </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
-            <span>{totalMovies > 0 ? `${totalMovies.toLocaleString('vi-VN')} phim` : 'Không có kết quả'}</span>
-            {loading && <span className="text-xs">· Đang cập nhật</span>}
+        <header className="mb-5 border-b border-border/70 pb-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between lg:gap-8">
+            <div className="min-w-0 max-w-3xl">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-primary">
+                <Film className="h-3.5 w-3.5" />
+                <span>Khám phá phim</span>
+              </div>
+              <h1 className="mt-2 text-3xl font-semibold tracking-[-0.025em] sm:text-4xl">Phim tại HotCinema</h1>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">
+                Tìm phim đang chiếu, xem các tựa phim sắp ra mắt và chọn lịch chiếu phù hợp với bạn.
+              </p>
+            </div>
+            <div className="shrink-0 text-sm text-muted-foreground">
+              <strong className="font-semibold text-foreground">{totalMovies.toLocaleString('vi-VN')}</strong> phim
+              {loading && <span className="text-xs"> · Đang cập nhật</span>}
+            </div>
           </div>
         </header>
 
@@ -179,14 +184,20 @@ const Movies = () => {
           />
         )}
 
-        <Card className="mb-4">
-          <CardContent className="p-3">
-            <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
-              Bộ lọc
+        <Card className="mb-5 bg-muted/20">
+          <CardContent className="p-3.5 sm:p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
+                Bộ lọc phim
+              </div>
+              {hasActiveFilters && (
+                <Button type="button" variant="ghost" size="sm" onClick={resetFilters}>Đặt lại</Button>
+              )}
             </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(260px,1.4fr)_180px_150px_190px_auto]">
-              <div className="relative">
+
+            <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-[minmax(260px,1.4fr)_180px_150px_190px]">
+              <div className="relative sm:col-span-2 lg:col-span-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={searchText}
@@ -200,7 +211,7 @@ const Movies = () => {
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
                 <SelectTrigger><SelectValue placeholder="Tất cả trạng thái" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Đang/sắp chiếu</SelectItem>
+                  <SelectItem value="all">Tất cả phim</SelectItem>
                   <SelectItem value="NOW_SHOWING">Đang chiếu</SelectItem>
                   <SelectItem value="COMING_SOON">Sắp chiếu</SelectItem>
                   <SelectItem value="ENDED">Đã kết thúc</SelectItem>
@@ -221,21 +232,17 @@ const Movies = () => {
                   <SelectItem value="updatedAt:desc">Mới cập nhật</SelectItem>
                   <SelectItem value="title:asc">Tên A → Z</SelectItem>
                   <SelectItem value="title:desc">Tên Z → A</SelectItem>
-                  <SelectItem value="releaseDate:desc">Ngày phát hành mới</SelectItem>
-                  <SelectItem value="releaseDate:asc">Ngày phát hành cũ</SelectItem>
+                  <SelectItem value="releaseDate:desc">Phát hành mới nhất</SelectItem>
+                  <SelectItem value="releaseDate:asc">Phát hành sớm nhất</SelectItem>
                 </SelectContent>
               </Select>
-
-              <Button type="button" variant="outline" disabled={!hasActiveFilters} onClick={resetFilters}>
-                Đặt lại
-              </Button>
             </div>
           </CardContent>
         </Card>
 
         {movies.length > 0 ? (
           <>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+            <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
               {movies.map((movie) => {
                 const status = movieStatusPresentation[getMovieStatus(movie)];
                 return (
@@ -246,7 +253,7 @@ const Movies = () => {
               })}
             </div>
 
-            <div className="mt-5 border-t border-border pt-3">
+            <div className="mt-6 border-t border-border pt-4">
               <Pagination
                 page={currentPage}
                 itemsPerPage={pageSize}
@@ -265,11 +272,11 @@ const Movies = () => {
           </>
         ) : !loading && !errorMessage ? (
           <Card>
-            <CardContent className="py-3">
+            <CardContent className="py-6">
               <Empty
                 description={(
                   <div className="flex flex-col items-center gap-2">
-                    <p>Không tìm thấy phim phù hợp với bộ lọc hiện tại.</p>
+                    <p>Không tìm thấy phim phù hợp với lựa chọn hiện tại.</p>
                     <Button type="button" variant="outline" size="sm" onClick={resetFilters}>Đặt lại bộ lọc</Button>
                   </div>
                 )}
