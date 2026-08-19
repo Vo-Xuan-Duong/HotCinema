@@ -175,18 +175,19 @@ const Header = () => {
   };
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <header className="fixed inset-x-0 top-0 z-50 h-16 border-b border-border/80 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85">
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
         <Button
           type="button"
           variant="ghost"
-          className="h-10 shrink-0 gap-2 px-2 font-semibold"
+          className="h-10 shrink-0 gap-2 px-1.5 font-semibold hover:bg-transparent"
           onClick={() => handleNavigate('/')}
+          aria-label="Về trang chủ HotCinema"
         >
           <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <Clapperboard className="h-4 w-4" />
           </span>
-          <span className="hidden sm:inline">HotCinema</span>
+          <span className="hidden text-[15px] font-semibold tracking-tight sm:inline">HotCinema</span>
         </Button>
 
         <NavLinks
@@ -197,28 +198,28 @@ const Header = () => {
           className="hidden min-w-0 flex-1 justify-center md:flex"
         />
 
-        <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-2">
-          <div className="relative hidden w-48 lg:block xl:w-64">
+        <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-1.5">
+          <div className="relative hidden w-52 lg:block xl:w-72">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={searchValue}
               onChange={(event) => setSearchValue(event.target.value)}
               onKeyDown={(event) => event.key === 'Enter' && handleSearch()}
-              placeholder="Tìm phim, rạp..."
-              className="h-9 pl-9 pr-9"
+              placeholder="Tìm phim hoặc rạp..."
+              className="h-10 bg-muted/20 pl-9 pr-10"
+              aria-label="Tìm kiếm phim hoặc rạp"
             />
-            {searchValue && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-0 h-9 w-9"
-                onClick={handleSearch}
-                aria-label="Tìm kiếm"
-              >
-                <Search className="h-4 w-4" />
-              </Button>
-            )}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-0 top-0 h-10 w-10 text-muted-foreground hover:text-foreground"
+              onClick={handleSearch}
+              disabled={!searchValue.trim()}
+              aria-label="Tìm kiếm"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
           </div>
 
           <Button
@@ -241,12 +242,12 @@ const Header = () => {
                   </Badge>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[min(22rem,calc(100vw-2rem))] p-0">
-                <div className="flex items-center justify-between border-b p-3">
+              <DropdownMenuContent align="end" className="w-[min(23rem,calc(100vw-2rem))] p-0">
+                <div className="flex items-center justify-between border-b border-border/70 p-3.5">
                   <div>
                     <p className="text-sm font-semibold">Thông báo</p>
-                    <p className="text-xs text-muted-foreground">
-                      {notificationsCapabilityMissing ? 'Backend chưa hỗ trợ API cá nhân an toàn' : `${notificationCount} chưa đọc`}
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {notificationsCapabilityMissing ? 'Thông báo cá nhân tạm thời chưa khả dụng' : `${notificationCount} chưa đọc`}
                     </p>
                   </div>
                   {notificationCount > 0 && !notificationsCapabilityMissing && (
@@ -256,25 +257,30 @@ const Header = () => {
                   )}
                 </div>
 
-                <div className="max-h-80 overflow-y-auto p-1">
+                <div className="max-h-80 overflow-y-auto p-1.5">
                   {notificationsLoading ? (
                     <div className="flex items-center justify-center gap-2 p-6 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Đang tải...
                     </div>
                   ) : notificationsCapabilityMissing ? (
-                    <p className="p-6 text-center text-sm leading-6 text-muted-foreground">
-                      Chưa thể đọc hoặc cập nhật thông báo cá nhân an toàn. FE không dùng generic notification CRUD trong customer context.
-                    </p>
+                    <div className="p-6 text-center">
+                      <Bell className="mx-auto h-5 w-5 text-muted-foreground/50" />
+                      <p className="mt-2 text-sm font-medium">Chưa thể tải thông báo</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">Tính năng thông báo cá nhân hiện chưa sẵn sàng.</p>
+                    </div>
                   ) : notifications.length === 0 ? (
-                    <p className="p-6 text-center text-sm text-muted-foreground">Không có thông báo</p>
+                    <div className="p-6 text-center">
+                      <Bell className="mx-auto h-5 w-5 text-muted-foreground/50" />
+                      <p className="mt-2 text-sm font-medium">Chưa có thông báo mới</p>
+                    </div>
                   ) : (
                     notifications.map((item) => {
                       const unread = isUnread(item);
                       return (
                         <div
                           key={item.id}
-                          className={`group rounded-md p-3 ${unread ? 'bg-muted/60' : 'bg-background'}`}
+                          className={`group rounded-md border-l-2 p-3 ${unread ? 'border-primary bg-primary/5' : 'border-transparent bg-background'}`}
                         >
                           <div className="flex items-start gap-3">
                             <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
@@ -284,13 +290,13 @@ const Header = () => {
                               <p className="text-sm font-medium text-foreground">{item.title || 'Thông báo'}</p>
                               <p className="mt-1 line-clamp-3 text-xs leading-5 text-muted-foreground">{item.content || item.message || 'Không có nội dung'}</p>
                               {item.createdAt && (
-                                <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                                <p className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
                                   <Clock className="h-3 w-3" />
                                   {formatNotificationTime(item.createdAt)}
                                 </p>
                               )}
                             </div>
-                            <div className="flex shrink-0 gap-1">
+                            <div className="flex shrink-0 gap-0.5">
                               {unread && (
                                 <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => markAsRead(item)}>
                                   <Check className="h-3.5 w-3.5" />
@@ -315,7 +321,7 @@ const Header = () => {
                   )}
                 </div>
 
-                <div className="border-t p-2">
+                <div className="border-t border-border/70 p-2">
                   <Button type="button" variant="ghost" className="w-full" onClick={() => handleNavigate('/notifications')}>
                     Xem tất cả thông báo
                   </Button>
@@ -330,26 +336,28 @@ const Header = () => {
                 <Button type="button" variant="ghost" className="h-10 gap-2 px-2">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={user?.avatarUrl} alt={displayName} />
-                    <AvatarFallback className="bg-muted text-muted-foreground">
+                    <AvatarFallback className="bg-primary/10 text-primary">
                       <User className="h-4 w-4" />
                     </AvatarFallback>
                   </Avatar>
-                  <span className="hidden max-w-32 truncate text-sm font-medium xl:inline">{displayName}</span>
+                  <span className="hidden max-w-32 truncate text-sm font-semibold xl:inline">{displayName}</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="px-2 py-1.5">
+                  <p className="truncate text-sm font-semibold">{displayName}</p>
+                  {user?.email && <p className="truncate text-xs text-muted-foreground">{user.email}</p>}
+                </div>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => handleNavigate('/profile')}>
                   <User className="mr-2 h-4 w-4" />
                   Hồ sơ cá nhân
                 </DropdownMenuItem>
                 {userHasAdminAccess(user) && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => handleNavigate('/admin/dashboard')}>
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      Quản trị
-                    </DropdownMenuItem>
-                  </>
+                  <DropdownMenuItem onClick={() => handleNavigate('/admin/dashboard')}>
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    Quản trị
+                  </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
@@ -360,7 +368,7 @@ const Header = () => {
             </DropdownMenu>
           ) : (
             <div className="hidden items-center gap-2 sm:flex">
-              <Button type="button" variant="outline" size="sm" onClick={() => handleNavigate('/auth/register')}>
+              <Button type="button" variant="ghost" size="sm" onClick={() => handleNavigate('/auth/register')}>
                 Đăng ký
               </Button>
               <Button type="button" size="sm" onClick={() => handleNavigate('/auth/login')}>
@@ -383,7 +391,7 @@ const Header = () => {
       </div>
 
       <Drawer open={mobileMenuVisible} onOpenChange={setMobileMenuVisible} placement="left" className="md:hidden">
-        <DrawerHeader className="border-b">
+        <DrawerHeader className="border-b border-border/70">
           <div className="flex items-center justify-between">
             <DrawerTitle className="flex items-center gap-2 text-base font-semibold">
               <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
@@ -403,20 +411,23 @@ const Header = () => {
               orientation="vertical"
             />
 
-            <div className="mt-4 border-t pt-4">
+            <div className="mt-5 border-t border-border/70 pt-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={searchValue}
                   onChange={(event) => setSearchValue(event.target.value)}
                   onKeyDown={(event) => event.key === 'Enter' && handleSearch()}
-                  placeholder="Tìm phim, rạp..."
-                  className="pl-9"
+                  placeholder="Tìm phim hoặc rạp..."
+                  className="pl-9 pr-10"
                 />
+                <Button type="button" variant="ghost" size="icon" className="absolute right-0 top-0 h-10 w-10" onClick={handleSearch} disabled={!searchValue.trim()} aria-label="Tìm kiếm">
+                  <Search className="h-4 w-4" />
+                </Button>
               </div>
 
               <Button type="button" variant="outline" className="mt-3 w-full justify-start" onClick={toggleTheme}>
-                {theme === 'dark' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 {theme === 'dark' ? 'Giao diện sáng' : 'Giao diện tối'}
               </Button>
 
