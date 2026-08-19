@@ -61,7 +61,7 @@ const AdminLayout = () => {
         <button
           type="button"
           aria-label="Đóng thanh điều hướng"
-          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-black/35 backdrop-blur-[2px] md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -76,12 +76,12 @@ const AdminLayout = () => {
       <SidebarInset>
         <AdminHeader user={user} onNavigate={handleNavigate} onLogout={handleLogout} />
 
-        <div className="flex-1 bg-muted/30">
-          <div className="mx-auto w-full max-w-[1800px] px-3 py-3 sm:px-4 lg:px-5 lg:py-4">
+        <main className="flex-1 bg-muted/20">
+          <div className="mx-auto w-full max-w-[1800px] px-3 py-4 sm:px-4 lg:px-6 lg:py-5">
             <ScrollToTop />
             <Outlet />
           </div>
-        </div>
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );
