@@ -12,6 +12,15 @@
   --radius: 4px;
   --app-content-max: 90rem;
   --app-content-medium: 82rem;
+  --surface-subtle: hsl(var(--muted) / 0.38);
+  --surface-hover: hsl(var(--muted) / 0.55);
+  --surface-accent: hsl(var(--primary) / 0.07);
+  --content-rule: hsl(var(--border) / 0.78);
+}
+
+::selection {
+  background: hsl(var(--primary) / 0.18);
+  color: hsl(var(--foreground));
 }
 
 /* Use more of wide desktop screens while keeping readable mobile padding. */
@@ -60,6 +69,12 @@ button[role="combobox"] {
   background-color: hsl(var(--background)) !important;
 }
 
+input:not([type="checkbox"]):not([type="radio"]):hover,
+textarea:hover,
+button[role="combobox"]:hover {
+  border-color: hsl(var(--foreground) / 0.22) !important;
+}
+
 [role="checkbox"][data-state="unchecked"],
 [role="radio"][data-state="unchecked"] {
   border-color: hsl(var(--input) / 0.9) !important;
@@ -70,6 +85,33 @@ button[class*="border-input"],
 a[class*="border-input"] {
   border-color: hsl(var(--input) / 0.85) !important;
   background-color: hsl(var(--background)) !important;
+}
+
+/* Give flat surfaces hierarchy through tone instead of depth/shadow. */
+:where(.bg-card) {
+  background-color: hsl(var(--card)) !important;
+}
+
+:where(.bg-muted\/20, .bg-muted\/30) {
+  background-color: hsl(var(--muted) / 0.28) !important;
+}
+
+:where(.border-border) {
+  border-color: var(--content-rule) !important;
+}
+
+/* Improve information density and scanability in data-heavy screens. */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+thead th {
+  letter-spacing: 0.045em;
+}
+
+tbody tr {
+  transition: background-color 120ms ease;
 }
 
 /* Compact common page spacing without collapsing content hierarchy. */
@@ -117,11 +159,30 @@ a[class*="border-input"] {
 :where([class~="mb-6"]) { margin-bottom: 0.875rem !important; }
 :where([class~="mt-6"]) { margin-top: 0.875rem !important; }
 
+/* Keep page headings compact but visually distinct from card headings. */
+main h1,
+[role="main"] h1 {
+  text-wrap: balance;
+}
+
+main h2,
+[role="main"] h2 {
+  text-wrap: balance;
+}
+
 /* Preserve keyboard accessibility without reintroducing a shadow. */
 :focus-visible {
   outline: 2px solid hsl(var(--ring)) !important;
   outline-offset: 2px !important;
   box-shadow: none !important;
+}
+
+/* Make touch targets reliable on compact/mobile layouts. */
+@media (pointer: coarse) {
+  button:not([role="switch"]),
+  a[role="button"] {
+    min-height: 40px;
+  }
 }
 
 /* Legacy auth/message surfaces. */
@@ -159,4 +220,19 @@ a[class*="border-input"] {
 .custom-divider {
   margin-top: 0.625rem !important;
   margin-bottom: 0.625rem !important;
+}
+
+/* Respect motion preferences without removing essential state feedback. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
