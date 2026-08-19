@@ -184,7 +184,7 @@ const BookingSeatSelection = () => {
     });
   }, [updateSeatStatus]);
 
-  const { isConnected: wsConnected, isSupported: wsSupported } = useSeatWebSocket(normalizedShowtimeId, handleSeatUpdate);
+  const { isSupported: wsSupported } = useSeatWebSocket(normalizedShowtimeId, handleSeatUpdate);
 
   const loadShowtimeDetails = useCallback(async () => {
     if (!normalizedShowtimeId) return;
