@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarDays, Loader2, MapPin, RefreshCw } from 'lucide-react';
+import { ArrowRight, Building2, CalendarDays, Film, Loader2, MapPin, RefreshCw, Ticket } from 'lucide-react';
 import movieService from '@/services/movieService';
 import cinemaService from '@/services/cinemaService';
 import showtimeService from '@/services/showtimeService';
@@ -24,6 +24,22 @@ const formatTime = (value) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? text : date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 };
+
+const BookingProgress = () => (
+  <div className="grid grid-cols-3 border border-border/80 bg-muted/20 text-xs sm:text-sm" aria-label="Tiến trình đặt vé">
+    {[
+      ['01', 'Chọn suất', true],
+      ['02', 'Chọn ghế', false],
+      ['03', 'Thanh toán', false],
+    ].map(([number, label, active], index) => (
+      <div key={number} className={`relative flex items-center gap-2 px-3 py-3 sm:px-4 ${index > 0 ? 'border-l border-border/70' : ''}`}>
+        <span className={`font-semibold ${active ? 'text-primary' : 'text-muted-foreground'}`}>{number}</span>
+        <span className={active ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground'}>{label}</span>
+        {active && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary" />}
+      </div>
+    ))}
+  </div>
+);
 
 const Booking = () => {
   const navigate = useNavigate();
@@ -95,6 +111,14 @@ const Booking = () => {
     return () => { active = false; };
   }, [movieId, cinemaId]);
 
+  const selectedMovie = useMemo(
+    () => movies.find((item) => sameResourceId(item.id, movieId)),
+    [movies, movieId],
+  );
+  const selectedCinema = useMemo(
+    () => cinemas.find((item) => sameResourceId(item.id, cinemaId)),
+    [cinemas, cinemaId],
+  );
   const selectedShowtime = useMemo(
     () => showtimes.find((item) => sameResourceId(item.id, showtimeId)),
     [showtimes, showtimeId],
@@ -118,70 +142,117 @@ const Booking = () => {
   };
 
   return (
-    <main className="container mx-auto max-w-3xl px-4 py-8 sm:py-12">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl sm:text-3xl">Đặt vé xem phim</CardTitle>
-          <CardDescription>Chọn phim NOW_SHOWING, rạp ACTIVE và suất OPEN trước khi chọn ghế.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {error && (
-            <Alert variant="destructive" message="Không thể tải dữ liệu">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <span>{error}</span>
-                <Button variant="outline" size="sm" onClick={loadOptions}><RefreshCw className="mr-2 size-4" />Thử lại</Button>
-              </div>
-            </Alert>
-          )}
+    <main className="min-h-dvh bg-background px-4 pb-10 pt-20 text-foreground">
+      <div className="mx-auto w-full max-w-5xl space-y-5">
+        <header className="border-b border-border/70 pb-5">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-primary">
+            <Ticket className="h-3.5 w-3.5" />
+            Đặt vé HotCinema
+          </div>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.025em] sm:text-4xl">Chọn suất chiếu</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+            Chọn phim, rạp và thời gian. Bạn sẽ chọn ghế ở bước tiếp theo.
+          </p>
+        </header>
 
-          {loading ? (
-            <div className="flex min-h-48 items-center justify-center text-muted-foreground"><Loader2 className="mr-2 size-5 animate-spin" />Đang tải dữ liệu đặt vé...</div>
-          ) : (
-            <>
-              <div className="grid gap-5 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="booking-movie">Phim</Label>
-                  <Select value={movieId} onValueChange={setMovieId}>
-                    <SelectTrigger id="booking-movie"><SelectValue placeholder="Chọn phim đang chiếu" /></SelectTrigger>
-                    <SelectContent>{movies.map((movie) => <SelectItem key={movie.id} value={String(movie.id)}>{movie.title || movie.name}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="booking-cinema">Rạp</Label>
-                  <Select value={cinemaId} onValueChange={setCinemaId}>
-                    <SelectTrigger id="booking-cinema"><SelectValue placeholder="Chọn rạp đang hoạt động" /></SelectTrigger>
-                    <SelectContent>{cinemas.map((cinema) => <SelectItem key={cinema.id} value={String(cinema.id)}>{cinema.name}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-              </div>
+        <BookingProgress />
 
-              <div className="space-y-2">
-                <Label htmlFor="booking-showtime">Suất chiếu đang mở bán</Label>
-                <Select value={showtimeId} onValueChange={setShowtimeId} disabled={!movieId || !cinemaId || loadingShowtimes}>
-                  <SelectTrigger id="booking-showtime"><SelectValue placeholder={loadingShowtimes ? 'Đang tải suất chiếu...' : 'Chọn suất OPEN'} /></SelectTrigger>
-                  <SelectContent>
-                    {showtimes.map((showtime) => (
-                      <SelectItem key={showtime.id} value={String(showtime.id)}>
-                        {String(showtime.date || showtime.showDate || showtime.startTime || '').slice(0, 10)} · {formatTime(showtime.startTime)} · {showtime.roomName || showtime.auditorium?.name || 'Phòng chiếu'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {movieId && cinemaId && !loadingShowtimes && showtimes.length === 0 && !error && <p className="text-sm text-muted-foreground">Hiện chưa có suất OPEN phù hợp.</p>}
+        {error && (
+          <Alert variant="destructive" message="Không thể tải dữ liệu">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <span>{error}</span>
+              <Button variant="outline" size="sm" onClick={loadOptions}><RefreshCw className="size-4" />Thử lại</Button>
+            </div>
+          </Alert>
+        )}
+
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.75fr)]">
+          <Card>
+            <CardHeader className="border-b border-border/70">
+              <CardTitle>Thông tin suất chiếu</CardTitle>
+              <CardDescription>Hoàn tất ba lựa chọn để tiếp tục.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5 pt-[18px]">
+              {loading ? (
+                <div className="flex min-h-52 items-center justify-center text-muted-foreground"><Loader2 className="mr-2 size-5 animate-spin" />Đang tải dữ liệu đặt vé...</div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="booking-movie" className="flex items-center gap-2"><Film className="h-4 w-4 text-primary" />Phim</Label>
+                    <Select value={movieId} onValueChange={setMovieId}>
+                      <SelectTrigger id="booking-movie"><SelectValue placeholder="Chọn phim đang chiếu" /></SelectTrigger>
+                      <SelectContent>{movies.map((movie) => <SelectItem key={movie.id} value={String(movie.id)}>{movie.title || movie.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="booking-cinema" className="flex items-center gap-2"><Building2 className="h-4 w-4 text-primary" />Rạp</Label>
+                    <Select value={cinemaId} onValueChange={setCinemaId}>
+                      <SelectTrigger id="booking-cinema"><SelectValue placeholder="Chọn rạp" /></SelectTrigger>
+                      <SelectContent>{cinemas.map((cinema) => <SelectItem key={cinema.id} value={String(cinema.id)}>{cinema.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="booking-showtime" className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-primary" />Suất chiếu</Label>
+                    <Select value={showtimeId} onValueChange={setShowtimeId} disabled={!movieId || !cinemaId || loadingShowtimes}>
+                      <SelectTrigger id="booking-showtime"><SelectValue placeholder={loadingShowtimes ? 'Đang tải suất chiếu...' : 'Chọn ngày và giờ chiếu'} /></SelectTrigger>
+                      <SelectContent>
+                        {showtimes.map((showtime) => (
+                          <SelectItem key={showtime.id} value={String(showtime.id)}>
+                            {String(showtime.date || showtime.showDate || showtime.startTime || '').slice(0, 10)} · {formatTime(showtime.startTime)} · {showtime.roomName || showtime.auditorium?.name || 'Phòng chiếu'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {movieId && cinemaId && !loadingShowtimes && showtimes.length === 0 && !error && <p className="text-sm text-muted-foreground">Chưa có suất chiếu đang mở bán cho lựa chọn này.</p>}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="h-fit bg-muted/20 lg:sticky lg:top-20">
+            <CardHeader className="border-b border-border/70">
+              <CardTitle className="text-base">Lựa chọn của bạn</CardTitle>
+              <CardDescription>Kiểm tra nhanh trước khi chọn ghế.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-[18px]">
+              <div className="space-y-3 text-sm">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">Phim</p>
+                  <p className="mt-1 font-semibold">{selectedMovie?.title || selectedMovie?.name || 'Chưa chọn phim'}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">Rạp</p>
+                  <p className="mt-1 font-semibold">{selectedCinema?.name || 'Chưa chọn rạp'}</p>
+                  {selectedCinema?.address && <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-muted-foreground">{selectedCinema.address}</p>}
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">Thời gian</p>
+                  <p className="mt-1 font-semibold">
+                    {selectedShowtime
+                      ? `${String(selectedShowtime.date || selectedShowtime.showDate || selectedShowtime.startTime || '').slice(0, 10)} · ${formatTime(selectedShowtime.startTime)}`
+                      : 'Chưa chọn suất chiếu'}
+                  </p>
+                </div>
               </div>
 
               {selectedShowtime && (
-                <div className="grid gap-3 rounded-lg border bg-muted/40 p-4 text-sm sm:grid-cols-2">
-                  <span className="flex items-center gap-2"><CalendarDays className="size-4" />{String(selectedShowtime.date || selectedShowtime.showDate || selectedShowtime.startTime || '').slice(0, 10)} · {formatTime(selectedShowtime.startTime)}</span>
-                  <span className="flex items-center gap-2"><MapPin className="size-4" />{selectedShowtime.cinemaName || cinemas.find((item) => sameResourceId(item.id, cinemaId))?.name}</span>
+                <div className="flex items-start gap-2 border-t border-border/70 pt-3 text-xs leading-5 text-muted-foreground">
+                  <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                  <span>{selectedShowtime.cinemaName || selectedCinema?.name}{selectedShowtime.roomName || selectedShowtime.auditorium?.name ? ` · ${selectedShowtime.roomName || selectedShowtime.auditorium?.name}` : ''}</span>
                 </div>
               )}
 
-              <Button className="w-full sm:w-auto" onClick={continueToSeats} disabled={!showtimeId}>Tiếp tục chọn ghế</Button>
-            </>
-          )}
-        </CardContent>
-      </Card>
+              <Button className="w-full" size="lg" onClick={continueToSeats} disabled={!showtimeId}>
+                Tiếp tục chọn ghế
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </main>
   );
 };
