@@ -26,7 +26,7 @@ public class PaymentWebhook {
     @Column(name = "external_event_id", length = 255)
     private String externalEventId;
 
-    @Column(nullable = false, columnDefinition = "jsonb")
+    @Column(nullable = false, columnDefinition = "JSON")
     private String payload;
 
     @Column(columnDefinition = "TEXT")

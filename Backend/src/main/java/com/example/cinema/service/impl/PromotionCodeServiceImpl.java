@@ -4,6 +4,9 @@ import com.example.cinema.common.response.PageMapper;
 import com.example.cinema.common.response.PageResponse;
 
 import com.example.cinema.entity.PromotionCode;
+import com.example.cinema.dto.promotioncode.PromotionCodeCreateRequest;
+import com.example.cinema.dto.promotioncode.PromotionCodeUpdateRequest;
+import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.promotioncode.PromotionCodeResponse;
 import com.example.cinema.mapper.PromotionCodeMapper;
 import com.example.cinema.repository.PromotionCodeRepository;
@@ -16,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import org.springframework.data.domain.Pageable;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -41,15 +43,28 @@ public class PromotionCodeServiceImpl implements PromotionCodeService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "promotioncodes", key = "#id")
-    public Optional<PromotionCode> findById(UUID id) {
-        return repository.findById(id);
+    public PromotionCodeResponse findById(UUID id) {
+        return repository.findById(id)
+                .map(promotionCodeMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("PromotionCode", id.toString()));
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "promotioncodes", key = "#result.id")
-    public PromotionCode save(PromotionCode entity) {
-        return repository.save(entity);
+    @CacheEvict(value = "promotioncodes", allEntries = true)
+    public PromotionCodeResponse create(PromotionCodeCreateRequest request) {
+        PromotionCode entity = promotionCodeMapper.toEntity(request);
+        return promotionCodeMapper.toResponse(repository.save(entity));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "promotioncodes", allEntries = true)
+    public PromotionCodeResponse update(UUID id, PromotionCodeUpdateRequest request) {
+        PromotionCode entity = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("PromotionCode", id.toString()));
+        promotionCodeMapper.updateEntityFromRequest(request, entity);
+        return promotionCodeMapper.toResponse(repository.save(entity));
     }
 
     @Override

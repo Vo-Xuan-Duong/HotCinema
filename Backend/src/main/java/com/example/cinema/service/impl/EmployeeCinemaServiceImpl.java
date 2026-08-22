@@ -4,6 +4,9 @@ import com.example.cinema.common.response.PageMapper;
 import com.example.cinema.common.response.PageResponse;
 
 import com.example.cinema.entity.EmployeeCinema;
+import com.example.cinema.dto.employeecinema.EmployeeCinemaCreateRequest;
+import com.example.cinema.dto.employeecinema.EmployeeCinemaUpdateRequest;
+import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.employeecinema.EmployeeCinemaResponse;
 import com.example.cinema.mapper.EmployeeCinemaMapper;
 import com.example.cinema.repository.EmployeeCinemaRepository;
@@ -16,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import org.springframework.data.domain.Pageable;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -41,15 +43,28 @@ public class EmployeeCinemaServiceImpl implements EmployeeCinemaService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "employeecinemas", key = "#id")
-    public Optional<EmployeeCinema> findById(UUID id) {
-        return repository.findById(id);
+    public EmployeeCinemaResponse findById(UUID id) {
+        return repository.findById(id)
+                .map(employeeCinemaMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("EmployeeCinema", id.toString()));
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "employeecinemas", key = "#result.id")
-    public EmployeeCinema save(EmployeeCinema entity) {
-        return repository.save(entity);
+    @CacheEvict(value = "employeecinemas", allEntries = true)
+    public EmployeeCinemaResponse create(EmployeeCinemaCreateRequest request) {
+        EmployeeCinema entity = employeeCinemaMapper.toEntity(request);
+        return employeeCinemaMapper.toResponse(repository.save(entity));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "employeecinemas", allEntries = true)
+    public EmployeeCinemaResponse update(UUID id, EmployeeCinemaUpdateRequest request) {
+        EmployeeCinema entity = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("EmployeeCinema", id.toString()));
+        employeeCinemaMapper.updateEntityFromRequest(request, entity);
+        return employeeCinemaMapper.toResponse(repository.save(entity));
     }
 
     @Override

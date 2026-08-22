@@ -1,13 +1,10 @@
 package com.example.cinema.controller;
 
-import com.example.cinema.entity.BookingSeat;
 import com.example.cinema.service.BookingSeatService;
 import com.example.cinema.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-import com.example.cinema.mapper.BookingSeatMapper;
-import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.bookingseat.BookingSeatCreateRequest;
 import com.example.cinema.dto.bookingseat.BookingSeatUpdateRequest;
 import com.example.cinema.dto.bookingseat.BookingSeatResponse;
@@ -23,11 +20,9 @@ import java.util.UUID;
 public class BookingSeatController {
 
     private final BookingSeatService bookingSeatService;
-    private final BookingSeatMapper bookingSeatMapper;
 
-    public BookingSeatController(BookingSeatService bookingSeatService, BookingSeatMapper bookingSeatMapper) {
+    public BookingSeatController(BookingSeatService bookingSeatService) {
         this.bookingSeatService = bookingSeatService;
-        this.bookingSeatMapper = bookingSeatMapper;
     }
 
     @GetMapping
@@ -45,32 +40,21 @@ public class BookingSeatController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<BookingSeatResponse>> getById(@PathVariable UUID id) {
-        BookingSeatResponse res = bookingSeatService.findById(id)
-                .map(bookingSeatMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("BookingSeat", id.toString()));
-        return ResponseEntity.ok(new ApiResponse<>(res));
+        return ResponseEntity.ok(new ApiResponse<>(bookingSeatService.findById(id)));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<BookingSeatResponse>> create(@Valid @RequestBody BookingSeatCreateRequest request) {
-        BookingSeat entity = bookingSeatMapper.toEntity(request);
-        BookingSeat saved = bookingSeatService.save(entity);
-        return ResponseEntity.ok(new ApiResponse<>(bookingSeatMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(bookingSeatService.create(request)));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<BookingSeatResponse>> update(@PathVariable UUID id, @Valid @RequestBody BookingSeatUpdateRequest request) {
-        BookingSeat existing = bookingSeatService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("BookingSeat", id.toString()));
-        bookingSeatMapper.updateEntityFromRequest(request, existing);
-        BookingSeat saved = bookingSeatService.save(existing);
-        return ResponseEntity.ok(new ApiResponse<>(bookingSeatMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(bookingSeatService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        bookingSeatService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("BookingSeat", id.toString()));
         bookingSeatService.deleteById(id);
         return ResponseEntity.noContent().build();
     }

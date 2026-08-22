@@ -4,6 +4,9 @@ import com.example.cinema.common.response.PageMapper;
 import com.example.cinema.common.response.PageResponse;
 
 import com.example.cinema.entity.Product;
+import com.example.cinema.dto.product.ProductCreateRequest;
+import com.example.cinema.dto.product.ProductUpdateRequest;
+import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.product.ProductResponse;
 import com.example.cinema.mapper.ProductMapper;
 import com.example.cinema.repository.ProductRepository;
@@ -17,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import org.springframework.data.domain.Pageable;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -42,25 +44,38 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "products", key = "#id")
-    public Optional<Product> findById(UUID id) {
-        return repository.findByIdAndIsActiveTrue(id);
+    public ProductResponse findById(UUID id) {
+        return repository.findByIdAndIsActiveTrue(id)
+                .map(productMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("Product", id.toString()));
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "products", key = "#result.id")
-    public Product save(Product entity) {
-        return repository.save(entity);
+    @CacheEvict(value = "products", allEntries = true)
+    public ProductResponse create(ProductCreateRequest request) {
+        Product entity = productMapper.toEntity(request);
+        return productMapper.toResponse(repository.save(entity));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "products", allEntries = true)
+    public ProductResponse update(UUID id, ProductUpdateRequest request) {
+        Product entity = repository.findByIdAndIsActiveTrue(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product", id.toString()));
+        productMapper.updateEntityFromRequest(request, entity);
+        return productMapper.toResponse(repository.save(entity));
     }
 
     @Override
     @Transactional
     @CacheEvict(value = "products", key = "#id")
     public void deleteById(UUID id) {
-        repository.findByIdAndIsActiveTrue(id).ifPresent(entity -> {
-            entity.setActive(false);
-            entity.setDeletedAt(ZonedDateTime.now());
-            repository.save(entity);
-        });
+        Product entity = repository.findByIdAndIsActiveTrue(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product", id.toString()));
+        entity.setActive(false);
+        entity.setDeletedAt(ZonedDateTime.now());
+        repository.save(entity);
     }
 }

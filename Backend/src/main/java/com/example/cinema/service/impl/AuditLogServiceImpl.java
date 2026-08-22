@@ -4,6 +4,9 @@ import com.example.cinema.common.response.PageMapper;
 import com.example.cinema.common.response.PageResponse;
 
 import com.example.cinema.entity.AuditLog;
+import com.example.cinema.dto.auditlog.AuditLogCreateRequest;
+import com.example.cinema.dto.auditlog.AuditLogUpdateRequest;
+import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.auditlog.AuditLogResponse;
 import com.example.cinema.mapper.AuditLogMapper;
 import com.example.cinema.repository.AuditLogRepository;
@@ -16,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import org.springframework.data.domain.Pageable;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -41,15 +43,28 @@ public class AuditLogServiceImpl implements AuditLogService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "auditlogs", key = "#id")
-    public Optional<AuditLog> findById(UUID id) {
-        return repository.findById(id);
+    public AuditLogResponse findById(UUID id) {
+        return repository.findById(id)
+                .map(auditLogMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("AuditLog", id.toString()));
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "auditlogs", key = "#result.id")
-    public AuditLog save(AuditLog entity) {
-        return repository.save(entity);
+    @CacheEvict(value = "auditlogs", allEntries = true)
+    public AuditLogResponse create(AuditLogCreateRequest request) {
+        AuditLog entity = auditLogMapper.toEntity(request);
+        return auditLogMapper.toResponse(repository.save(entity));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "auditlogs", allEntries = true)
+    public AuditLogResponse update(UUID id, AuditLogUpdateRequest request) {
+        AuditLog entity = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("AuditLog", id.toString()));
+        auditLogMapper.updateEntityFromRequest(request, entity);
+        return auditLogMapper.toResponse(repository.save(entity));
     }
 
     @Override

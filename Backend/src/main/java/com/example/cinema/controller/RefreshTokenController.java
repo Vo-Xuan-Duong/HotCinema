@@ -1,13 +1,10 @@
 package com.example.cinema.controller;
 
-import com.example.cinema.entity.RefreshToken;
 import com.example.cinema.service.RefreshTokenService;
 import com.example.cinema.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-import com.example.cinema.mapper.RefreshTokenMapper;
-import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.refreshtoken.RefreshTokenCreateRequest;
 import com.example.cinema.dto.refreshtoken.RefreshTokenUpdateRequest;
 import com.example.cinema.dto.refreshtoken.RefreshTokenResponse;
@@ -23,11 +20,9 @@ import java.util.UUID;
 public class RefreshTokenController {
 
     private final RefreshTokenService refreshTokenService;
-    private final RefreshTokenMapper refreshTokenMapper;
 
-    public RefreshTokenController(RefreshTokenService refreshTokenService, RefreshTokenMapper refreshTokenMapper) {
+    public RefreshTokenController(RefreshTokenService refreshTokenService) {
         this.refreshTokenService = refreshTokenService;
-        this.refreshTokenMapper = refreshTokenMapper;
     }
 
     @GetMapping
@@ -45,32 +40,21 @@ public class RefreshTokenController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<RefreshTokenResponse>> getById(@PathVariable UUID id) {
-        RefreshTokenResponse res = refreshTokenService.findById(id)
-                .map(refreshTokenMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("RefreshToken", id.toString()));
-        return ResponseEntity.ok(new ApiResponse<>(res));
+        return ResponseEntity.ok(new ApiResponse<>(refreshTokenService.findById(id)));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<RefreshTokenResponse>> create(@Valid @RequestBody RefreshTokenCreateRequest request) {
-        RefreshToken entity = refreshTokenMapper.toEntity(request);
-        RefreshToken saved = refreshTokenService.save(entity);
-        return ResponseEntity.ok(new ApiResponse<>(refreshTokenMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(refreshTokenService.create(request)));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<RefreshTokenResponse>> update(@PathVariable UUID id, @Valid @RequestBody RefreshTokenUpdateRequest request) {
-        RefreshToken existing = refreshTokenService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("RefreshToken", id.toString()));
-        refreshTokenMapper.updateEntityFromRequest(request, existing);
-        RefreshToken saved = refreshTokenService.save(existing);
-        return ResponseEntity.ok(new ApiResponse<>(refreshTokenMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(refreshTokenService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        refreshTokenService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("RefreshToken", id.toString()));
         refreshTokenService.deleteById(id);
         return ResponseEntity.noContent().build();
     }

@@ -4,6 +4,9 @@ import com.example.cinema.common.response.PageMapper;
 import com.example.cinema.common.response.PageResponse;
 
 import com.example.cinema.entity.User;
+import com.example.cinema.dto.user.UserCreateRequest;
+import com.example.cinema.dto.user.UserUpdateRequest;
+import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.user.UserResponse;
 import com.example.cinema.mapper.UserMapper;
 import com.example.cinema.repository.UserRepository;
@@ -17,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import org.springframework.data.domain.Pageable;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -42,25 +44,38 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "users", key = "#id")
-    public Optional<User> findById(UUID id) {
-        return repository.findByIdAndIsActiveTrue(id);
+    public UserResponse findById(UUID id) {
+        return repository.findByIdAndIsActiveTrue(id)
+                .map(userMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("User", id.toString()));
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "users", key = "#result.id")
-    public User save(User entity) {
-        return repository.save(entity);
+    @CacheEvict(value = "users", allEntries = true)
+    public UserResponse create(UserCreateRequest request) {
+        User entity = userMapper.toEntity(request);
+        return userMapper.toResponse(repository.save(entity));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "users", allEntries = true)
+    public UserResponse update(UUID id, UserUpdateRequest request) {
+        User entity = repository.findByIdAndIsActiveTrue(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User", id.toString()));
+        userMapper.updateEntityFromRequest(request, entity);
+        return userMapper.toResponse(repository.save(entity));
     }
 
     @Override
     @Transactional
     @CacheEvict(value = "users", key = "#id")
     public void deleteById(UUID id) {
-        repository.findByIdAndIsActiveTrue(id).ifPresent(entity -> {
-            entity.setActive(false);
-            entity.setDeletedAt(ZonedDateTime.now());
-            repository.save(entity);
-        });
+        User entity = repository.findByIdAndIsActiveTrue(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User", id.toString()));
+        entity.setActive(false);
+        entity.setDeletedAt(ZonedDateTime.now());
+        repository.save(entity);
     }
 }

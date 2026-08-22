@@ -4,6 +4,9 @@ import com.example.cinema.common.response.PageMapper;
 import com.example.cinema.common.response.PageResponse;
 
 import com.example.cinema.entity.ShowtimePrice;
+import com.example.cinema.dto.showtimeprice.ShowtimePriceCreateRequest;
+import com.example.cinema.dto.showtimeprice.ShowtimePriceUpdateRequest;
+import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.showtimeprice.ShowtimePriceResponse;
 import com.example.cinema.mapper.ShowtimePriceMapper;
 import com.example.cinema.repository.ShowtimePriceRepository;
@@ -16,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import org.springframework.data.domain.Pageable;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -41,15 +43,28 @@ public class ShowtimePriceServiceImpl implements ShowtimePriceService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "showtimeprices", key = "#id")
-    public Optional<ShowtimePrice> findById(UUID id) {
-        return repository.findById(id);
+    public ShowtimePriceResponse findById(UUID id) {
+        return repository.findById(id)
+                .map(showtimePriceMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("ShowtimePrice", id.toString()));
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "showtimeprices", key = "#result.id")
-    public ShowtimePrice save(ShowtimePrice entity) {
-        return repository.save(entity);
+    @CacheEvict(value = "showtimeprices", allEntries = true)
+    public ShowtimePriceResponse create(ShowtimePriceCreateRequest request) {
+        ShowtimePrice entity = showtimePriceMapper.toEntity(request);
+        return showtimePriceMapper.toResponse(repository.save(entity));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "showtimeprices", allEntries = true)
+    public ShowtimePriceResponse update(UUID id, ShowtimePriceUpdateRequest request) {
+        ShowtimePrice entity = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("ShowtimePrice", id.toString()));
+        showtimePriceMapper.updateEntityFromRequest(request, entity);
+        return showtimePriceMapper.toResponse(repository.save(entity));
     }
 
     @Override

@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: cinema
+
+  config:
+    import: optional:file:.env[.properties]
+
+  # Database configuration (MySQL)
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:cinema}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # JPA / Hibernate
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      # Tùy chọn: update (tự động cập nhật), validate (kiểm tra schema), none (tắt).
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+  # Tắt tạm thời nếu đang dùng ddl-auto=update để kiểm thử.
+  flyway:
+    enabled: ${FLYWAY_ENABLED:false}
+
+  # Redis cache
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:}
+      password: ${REDIS_PASSWORD:}
+
+app:
+  security:
+    jwt:
+      # Chỉ dùng làm fallback khi phát triển. Hãy đặt JWT_SECRET ở staging/production.
+      secret: ${JWT_SECRET:hotcinema-dev-secret-key-change-before-production-2026}
+      issuer: ${JWT_ISSUER:hotcinema}
+      access-token-seconds: ${JWT_ACCESS_TOKEN_SECONDS:900}
+      refresh-token-seconds: ${JWT_REFRESH_TOKEN_SECONDS:604800}

@@ -4,6 +4,9 @@ import com.example.cinema.common.response.PageMapper;
 import com.example.cinema.common.response.PageResponse;
 
 import com.example.cinema.entity.MovieMedia;
+import com.example.cinema.dto.moviemedia.MovieMediaCreateRequest;
+import com.example.cinema.dto.moviemedia.MovieMediaUpdateRequest;
+import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.moviemedia.MovieMediaResponse;
 import com.example.cinema.mapper.MovieMediaMapper;
 import com.example.cinema.repository.MovieMediaRepository;
@@ -16,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import org.springframework.data.domain.Pageable;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -41,15 +43,28 @@ public class MovieMediaServiceImpl implements MovieMediaService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "moviemedias", key = "#id")
-    public Optional<MovieMedia> findById(UUID id) {
-        return repository.findById(id);
+    public MovieMediaResponse findById(UUID id) {
+        return repository.findById(id)
+                .map(movieMediaMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("MovieMedia", id.toString()));
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "moviemedias", key = "#result.id")
-    public MovieMedia save(MovieMedia entity) {
-        return repository.save(entity);
+    @CacheEvict(value = "moviemedias", allEntries = true)
+    public MovieMediaResponse create(MovieMediaCreateRequest request) {
+        MovieMedia entity = movieMediaMapper.toEntity(request);
+        return movieMediaMapper.toResponse(repository.save(entity));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "moviemedias", allEntries = true)
+    public MovieMediaResponse update(UUID id, MovieMediaUpdateRequest request) {
+        MovieMedia entity = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("MovieMedia", id.toString()));
+        movieMediaMapper.updateEntityFromRequest(request, entity);
+        return movieMediaMapper.toResponse(repository.save(entity));
     }
 
     @Override

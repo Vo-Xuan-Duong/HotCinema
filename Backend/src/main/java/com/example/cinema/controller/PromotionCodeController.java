@@ -1,13 +1,10 @@
 package com.example.cinema.controller;
 
-import com.example.cinema.entity.PromotionCode;
 import com.example.cinema.service.PromotionCodeService;
 import com.example.cinema.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-import com.example.cinema.mapper.PromotionCodeMapper;
-import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.promotioncode.PromotionCodeCreateRequest;
 import com.example.cinema.dto.promotioncode.PromotionCodeUpdateRequest;
 import com.example.cinema.dto.promotioncode.PromotionCodeResponse;
@@ -23,11 +20,9 @@ import java.util.UUID;
 public class PromotionCodeController {
 
     private final PromotionCodeService promotionCodeService;
-    private final PromotionCodeMapper promotionCodeMapper;
 
-    public PromotionCodeController(PromotionCodeService promotionCodeService, PromotionCodeMapper promotionCodeMapper) {
+    public PromotionCodeController(PromotionCodeService promotionCodeService) {
         this.promotionCodeService = promotionCodeService;
-        this.promotionCodeMapper = promotionCodeMapper;
     }
 
     @GetMapping
@@ -45,32 +40,21 @@ public class PromotionCodeController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<PromotionCodeResponse>> getById(@PathVariable UUID id) {
-        PromotionCodeResponse res = promotionCodeService.findById(id)
-                .map(promotionCodeMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("PromotionCode", id.toString()));
-        return ResponseEntity.ok(new ApiResponse<>(res));
+        return ResponseEntity.ok(new ApiResponse<>(promotionCodeService.findById(id)));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<PromotionCodeResponse>> create(@Valid @RequestBody PromotionCodeCreateRequest request) {
-        PromotionCode entity = promotionCodeMapper.toEntity(request);
-        PromotionCode saved = promotionCodeService.save(entity);
-        return ResponseEntity.ok(new ApiResponse<>(promotionCodeMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(promotionCodeService.create(request)));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<PromotionCodeResponse>> update(@PathVariable UUID id, @Valid @RequestBody PromotionCodeUpdateRequest request) {
-        PromotionCode existing = promotionCodeService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("PromotionCode", id.toString()));
-        promotionCodeMapper.updateEntityFromRequest(request, existing);
-        PromotionCode saved = promotionCodeService.save(existing);
-        return ResponseEntity.ok(new ApiResponse<>(promotionCodeMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(promotionCodeService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        promotionCodeService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("PromotionCode", id.toString()));
         promotionCodeService.deleteById(id);
         return ResponseEntity.noContent().build();
     }

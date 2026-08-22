@@ -1,13 +1,10 @@
 package com.example.cinema.controller;
 
-import com.example.cinema.entity.Payment;
 import com.example.cinema.service.PaymentService;
 import com.example.cinema.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-import com.example.cinema.mapper.PaymentMapper;
-import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.payment.PaymentCreateRequest;
 import com.example.cinema.dto.payment.PaymentUpdateRequest;
 import com.example.cinema.dto.payment.PaymentResponse;
@@ -23,11 +20,9 @@ import java.util.UUID;
 public class PaymentController {
 
     private final PaymentService paymentService;
-    private final PaymentMapper paymentMapper;
 
-    public PaymentController(PaymentService paymentService, PaymentMapper paymentMapper) {
+    public PaymentController(PaymentService paymentService) {
         this.paymentService = paymentService;
-        this.paymentMapper = paymentMapper;
     }
 
     @GetMapping
@@ -45,32 +40,21 @@ public class PaymentController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<PaymentResponse>> getById(@PathVariable UUID id) {
-        PaymentResponse res = paymentService.findById(id)
-                .map(paymentMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment", id.toString()));
-        return ResponseEntity.ok(new ApiResponse<>(res));
+        return ResponseEntity.ok(new ApiResponse<>(paymentService.findById(id)));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<PaymentResponse>> create(@Valid @RequestBody PaymentCreateRequest request) {
-        Payment entity = paymentMapper.toEntity(request);
-        Payment saved = paymentService.save(entity);
-        return ResponseEntity.ok(new ApiResponse<>(paymentMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(paymentService.create(request)));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<PaymentResponse>> update(@PathVariable UUID id, @Valid @RequestBody PaymentUpdateRequest request) {
-        Payment existing = paymentService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment", id.toString()));
-        paymentMapper.updateEntityFromRequest(request, existing);
-        Payment saved = paymentService.save(existing);
-        return ResponseEntity.ok(new ApiResponse<>(paymentMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(paymentService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        paymentService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment", id.toString()));
         paymentService.deleteById(id);
         return ResponseEntity.noContent().build();
     }

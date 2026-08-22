@@ -1,13 +1,10 @@
 package com.example.cinema.controller;
 
-import com.example.cinema.entity.Product;
 import com.example.cinema.service.ProductService;
 import com.example.cinema.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-import com.example.cinema.mapper.ProductMapper;
-import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.product.ProductCreateRequest;
 import com.example.cinema.dto.product.ProductUpdateRequest;
 import com.example.cinema.dto.product.ProductResponse;
@@ -23,11 +20,9 @@ import java.util.UUID;
 public class ProductController {
 
     private final ProductService productService;
-    private final ProductMapper productMapper;
 
-    public ProductController(ProductService productService, ProductMapper productMapper) {
+    public ProductController(ProductService productService) {
         this.productService = productService;
-        this.productMapper = productMapper;
     }
 
     @GetMapping
@@ -45,32 +40,21 @@ public class ProductController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ProductResponse>> getById(@PathVariable UUID id) {
-        ProductResponse res = productService.findById(id)
-                .map(productMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("Product", id.toString()));
-        return ResponseEntity.ok(new ApiResponse<>(res));
+        return ResponseEntity.ok(new ApiResponse<>(productService.findById(id)));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<ProductResponse>> create(@Valid @RequestBody ProductCreateRequest request) {
-        Product entity = productMapper.toEntity(request);
-        Product saved = productService.save(entity);
-        return ResponseEntity.ok(new ApiResponse<>(productMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(productService.create(request)));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<ProductResponse>> update(@PathVariable UUID id, @Valid @RequestBody ProductUpdateRequest request) {
-        Product existing = productService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product", id.toString()));
-        productMapper.updateEntityFromRequest(request, existing);
-        Product saved = productService.save(existing);
-        return ResponseEntity.ok(new ApiResponse<>(productMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(productService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        productService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Product", id.toString()));
         productService.deleteById(id);
         return ResponseEntity.noContent().build();
     }

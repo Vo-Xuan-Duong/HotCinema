@@ -4,6 +4,9 @@ import com.example.cinema.common.response.PageMapper;
 import com.example.cinema.common.response.PageResponse;
 
 import com.example.cinema.entity.BookingStatusHistory;
+import com.example.cinema.dto.bookingstatushistory.BookingStatusHistoryCreateRequest;
+import com.example.cinema.dto.bookingstatushistory.BookingStatusHistoryUpdateRequest;
+import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.bookingstatushistory.BookingStatusHistoryResponse;
 import com.example.cinema.mapper.BookingStatusHistoryMapper;
 import com.example.cinema.repository.BookingStatusHistoryRepository;
@@ -16,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import org.springframework.data.domain.Pageable;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -41,15 +43,28 @@ public class BookingStatusHistoryServiceImpl implements BookingStatusHistoryServ
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "bookingstatushistorys", key = "#id")
-    public Optional<BookingStatusHistory> findById(UUID id) {
-        return repository.findById(id);
+    public BookingStatusHistoryResponse findById(UUID id) {
+        return repository.findById(id)
+                .map(bookingStatusHistoryMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("BookingStatusHistory", id.toString()));
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "bookingstatushistorys", key = "#result.id")
-    public BookingStatusHistory save(BookingStatusHistory entity) {
-        return repository.save(entity);
+    @CacheEvict(value = "bookingstatushistorys", allEntries = true)
+    public BookingStatusHistoryResponse create(BookingStatusHistoryCreateRequest request) {
+        BookingStatusHistory entity = bookingStatusHistoryMapper.toEntity(request);
+        return bookingStatusHistoryMapper.toResponse(repository.save(entity));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "bookingstatushistorys", allEntries = true)
+    public BookingStatusHistoryResponse update(UUID id, BookingStatusHistoryUpdateRequest request) {
+        BookingStatusHistory entity = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("BookingStatusHistory", id.toString()));
+        bookingStatusHistoryMapper.updateEntityFromRequest(request, entity);
+        return bookingStatusHistoryMapper.toResponse(repository.save(entity));
     }
 
     @Override

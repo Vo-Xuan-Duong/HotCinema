@@ -39,10 +39,10 @@ public class PaymentTransaction {
     @Column(nullable = false, length = 30)
     private PaymentTransactionStatus status;
 
-    @Column(name = "request_payload", columnDefinition = "jsonb")
+    @Column(name = "request_payload", columnDefinition = "JSON")
     private String requestPayload;
 
-    @Column(name = "response_payload", columnDefinition = "jsonb")
+    @Column(name = "response_payload", columnDefinition = "JSON")
     private String responsePayload;
 
     @Column(name = "created_at", nullable = false, updatable = false)

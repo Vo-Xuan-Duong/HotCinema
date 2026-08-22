@@ -4,6 +4,9 @@ import com.example.cinema.common.response.PageMapper;
 import com.example.cinema.common.response.PageResponse;
 
 import com.example.cinema.entity.TicketScan;
+import com.example.cinema.dto.ticketscan.TicketScanCreateRequest;
+import com.example.cinema.dto.ticketscan.TicketScanUpdateRequest;
+import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.ticketscan.TicketScanResponse;
 import com.example.cinema.mapper.TicketScanMapper;
 import com.example.cinema.repository.TicketScanRepository;
@@ -16,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import org.springframework.data.domain.Pageable;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -41,15 +43,28 @@ public class TicketScanServiceImpl implements TicketScanService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "ticketscans", key = "#id")
-    public Optional<TicketScan> findById(UUID id) {
-        return repository.findById(id);
+    public TicketScanResponse findById(UUID id) {
+        return repository.findById(id)
+                .map(ticketScanMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("TicketScan", id.toString()));
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "ticketscans", key = "#result.id")
-    public TicketScan save(TicketScan entity) {
-        return repository.save(entity);
+    @CacheEvict(value = "ticketscans", allEntries = true)
+    public TicketScanResponse create(TicketScanCreateRequest request) {
+        TicketScan entity = ticketScanMapper.toEntity(request);
+        return ticketScanMapper.toResponse(repository.save(entity));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "ticketscans", allEntries = true)
+    public TicketScanResponse update(UUID id, TicketScanUpdateRequest request) {
+        TicketScan entity = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("TicketScan", id.toString()));
+        ticketScanMapper.updateEntityFromRequest(request, entity);
+        return ticketScanMapper.toResponse(repository.save(entity));
     }
 
     @Override

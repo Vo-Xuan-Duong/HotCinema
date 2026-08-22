@@ -1,13 +1,10 @@
 package com.example.cinema.controller;
 
-import com.example.cinema.entity.ShowtimeSeat;
 import com.example.cinema.service.ShowtimeSeatService;
 import com.example.cinema.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-import com.example.cinema.mapper.ShowtimeSeatMapper;
-import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.showtimeseat.ShowtimeSeatCreateRequest;
 import com.example.cinema.dto.showtimeseat.ShowtimeSeatUpdateRequest;
 import com.example.cinema.dto.showtimeseat.ShowtimeSeatResponse;
@@ -23,11 +20,9 @@ import java.util.UUID;
 public class ShowtimeSeatController {
 
     private final ShowtimeSeatService showtimeSeatService;
-    private final ShowtimeSeatMapper showtimeSeatMapper;
 
-    public ShowtimeSeatController(ShowtimeSeatService showtimeSeatService, ShowtimeSeatMapper showtimeSeatMapper) {
+    public ShowtimeSeatController(ShowtimeSeatService showtimeSeatService) {
         this.showtimeSeatService = showtimeSeatService;
-        this.showtimeSeatMapper = showtimeSeatMapper;
     }
 
     @GetMapping
@@ -45,32 +40,21 @@ public class ShowtimeSeatController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ShowtimeSeatResponse>> getById(@PathVariable UUID id) {
-        ShowtimeSeatResponse res = showtimeSeatService.findById(id)
-                .map(showtimeSeatMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("ShowtimeSeat", id.toString()));
-        return ResponseEntity.ok(new ApiResponse<>(res));
+        return ResponseEntity.ok(new ApiResponse<>(showtimeSeatService.findById(id)));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<ShowtimeSeatResponse>> create(@Valid @RequestBody ShowtimeSeatCreateRequest request) {
-        ShowtimeSeat entity = showtimeSeatMapper.toEntity(request);
-        ShowtimeSeat saved = showtimeSeatService.save(entity);
-        return ResponseEntity.ok(new ApiResponse<>(showtimeSeatMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(showtimeSeatService.create(request)));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<ShowtimeSeatResponse>> update(@PathVariable UUID id, @Valid @RequestBody ShowtimeSeatUpdateRequest request) {
-        ShowtimeSeat existing = showtimeSeatService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("ShowtimeSeat", id.toString()));
-        showtimeSeatMapper.updateEntityFromRequest(request, existing);
-        ShowtimeSeat saved = showtimeSeatService.save(existing);
-        return ResponseEntity.ok(new ApiResponse<>(showtimeSeatMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(showtimeSeatService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        showtimeSeatService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("ShowtimeSeat", id.toString()));
         showtimeSeatService.deleteById(id);
         return ResponseEntity.noContent().build();
     }

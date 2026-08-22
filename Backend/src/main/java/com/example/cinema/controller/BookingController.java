@@ -1,13 +1,10 @@
 package com.example.cinema.controller;
 
-import com.example.cinema.entity.Booking;
 import com.example.cinema.service.BookingService;
 import com.example.cinema.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-import com.example.cinema.mapper.BookingMapper;
-import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.booking.BookingCreateRequest;
 import com.example.cinema.dto.booking.BookingUpdateRequest;
 import com.example.cinema.dto.booking.BookingResponse;
@@ -23,11 +20,9 @@ import java.util.UUID;
 public class BookingController {
 
     private final BookingService bookingService;
-    private final BookingMapper bookingMapper;
 
-    public BookingController(BookingService bookingService, BookingMapper bookingMapper) {
+    public BookingController(BookingService bookingService) {
         this.bookingService = bookingService;
-        this.bookingMapper = bookingMapper;
     }
 
     @GetMapping
@@ -45,32 +40,21 @@ public class BookingController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<BookingResponse>> getById(@PathVariable UUID id) {
-        BookingResponse res = bookingService.findById(id)
-                .map(bookingMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking", id.toString()));
-        return ResponseEntity.ok(new ApiResponse<>(res));
+        return ResponseEntity.ok(new ApiResponse<>(bookingService.findById(id)));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<BookingResponse>> create(@Valid @RequestBody BookingCreateRequest request) {
-        Booking entity = bookingMapper.toEntity(request);
-        Booking saved = bookingService.save(entity);
-        return ResponseEntity.ok(new ApiResponse<>(bookingMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(bookingService.create(request)));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<BookingResponse>> update(@PathVariable UUID id, @Valid @RequestBody BookingUpdateRequest request) {
-        Booking existing = bookingService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking", id.toString()));
-        bookingMapper.updateEntityFromRequest(request, existing);
-        Booking saved = bookingService.save(existing);
-        return ResponseEntity.ok(new ApiResponse<>(bookingMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(bookingService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        bookingService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking", id.toString()));
         bookingService.deleteById(id);
         return ResponseEntity.noContent().build();
     }

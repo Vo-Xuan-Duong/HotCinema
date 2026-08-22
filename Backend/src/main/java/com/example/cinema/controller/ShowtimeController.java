@@ -1,13 +1,10 @@
 package com.example.cinema.controller;
 
-import com.example.cinema.entity.Showtime;
 import com.example.cinema.service.ShowtimeService;
 import com.example.cinema.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-import com.example.cinema.mapper.ShowtimeMapper;
-import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.showtime.ShowtimeCreateRequest;
 import com.example.cinema.dto.showtime.ShowtimeUpdateRequest;
 import com.example.cinema.dto.showtime.ShowtimeResponse;
@@ -23,11 +20,9 @@ import java.util.UUID;
 public class ShowtimeController {
 
     private final ShowtimeService showtimeService;
-    private final ShowtimeMapper showtimeMapper;
 
-    public ShowtimeController(ShowtimeService showtimeService, ShowtimeMapper showtimeMapper) {
+    public ShowtimeController(ShowtimeService showtimeService) {
         this.showtimeService = showtimeService;
-        this.showtimeMapper = showtimeMapper;
     }
 
     @GetMapping
@@ -45,32 +40,21 @@ public class ShowtimeController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ShowtimeResponse>> getById(@PathVariable UUID id) {
-        ShowtimeResponse res = showtimeService.findById(id)
-                .map(showtimeMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("Showtime", id.toString()));
-        return ResponseEntity.ok(new ApiResponse<>(res));
+        return ResponseEntity.ok(new ApiResponse<>(showtimeService.findById(id)));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<ShowtimeResponse>> create(@Valid @RequestBody ShowtimeCreateRequest request) {
-        Showtime entity = showtimeMapper.toEntity(request);
-        Showtime saved = showtimeService.save(entity);
-        return ResponseEntity.ok(new ApiResponse<>(showtimeMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(showtimeService.create(request)));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<ShowtimeResponse>> update(@PathVariable UUID id, @Valid @RequestBody ShowtimeUpdateRequest request) {
-        Showtime existing = showtimeService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Showtime", id.toString()));
-        showtimeMapper.updateEntityFromRequest(request, existing);
-        Showtime saved = showtimeService.save(existing);
-        return ResponseEntity.ok(new ApiResponse<>(showtimeMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(showtimeService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        showtimeService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Showtime", id.toString()));
         showtimeService.deleteById(id);
         return ResponseEntity.noContent().build();
     }

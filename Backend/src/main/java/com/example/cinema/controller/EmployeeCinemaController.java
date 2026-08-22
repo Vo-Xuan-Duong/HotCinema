@@ -1,13 +1,10 @@
 package com.example.cinema.controller;
 
-import com.example.cinema.entity.EmployeeCinema;
 import com.example.cinema.service.EmployeeCinemaService;
 import com.example.cinema.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-import com.example.cinema.mapper.EmployeeCinemaMapper;
-import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.employeecinema.EmployeeCinemaCreateRequest;
 import com.example.cinema.dto.employeecinema.EmployeeCinemaUpdateRequest;
 import com.example.cinema.dto.employeecinema.EmployeeCinemaResponse;
@@ -23,11 +20,9 @@ import java.util.UUID;
 public class EmployeeCinemaController {
 
     private final EmployeeCinemaService employeeCinemaService;
-    private final EmployeeCinemaMapper employeeCinemaMapper;
 
-    public EmployeeCinemaController(EmployeeCinemaService employeeCinemaService, EmployeeCinemaMapper employeeCinemaMapper) {
+    public EmployeeCinemaController(EmployeeCinemaService employeeCinemaService) {
         this.employeeCinemaService = employeeCinemaService;
-        this.employeeCinemaMapper = employeeCinemaMapper;
     }
 
     @GetMapping
@@ -45,32 +40,21 @@ public class EmployeeCinemaController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<EmployeeCinemaResponse>> getById(@PathVariable UUID id) {
-        EmployeeCinemaResponse res = employeeCinemaService.findById(id)
-                .map(employeeCinemaMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("EmployeeCinema", id.toString()));
-        return ResponseEntity.ok(new ApiResponse<>(res));
+        return ResponseEntity.ok(new ApiResponse<>(employeeCinemaService.findById(id)));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<EmployeeCinemaResponse>> create(@Valid @RequestBody EmployeeCinemaCreateRequest request) {
-        EmployeeCinema entity = employeeCinemaMapper.toEntity(request);
-        EmployeeCinema saved = employeeCinemaService.save(entity);
-        return ResponseEntity.ok(new ApiResponse<>(employeeCinemaMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(employeeCinemaService.create(request)));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<EmployeeCinemaResponse>> update(@PathVariable UUID id, @Valid @RequestBody EmployeeCinemaUpdateRequest request) {
-        EmployeeCinema existing = employeeCinemaService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("EmployeeCinema", id.toString()));
-        employeeCinemaMapper.updateEntityFromRequest(request, existing);
-        EmployeeCinema saved = employeeCinemaService.save(existing);
-        return ResponseEntity.ok(new ApiResponse<>(employeeCinemaMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(employeeCinemaService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        employeeCinemaService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("EmployeeCinema", id.toString()));
         employeeCinemaService.deleteById(id);
         return ResponseEntity.noContent().build();
     }

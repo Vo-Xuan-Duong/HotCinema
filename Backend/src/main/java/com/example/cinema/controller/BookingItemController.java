@@ -1,13 +1,10 @@
 package com.example.cinema.controller;
 
-import com.example.cinema.entity.BookingItem;
 import com.example.cinema.service.BookingItemService;
 import com.example.cinema.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-import com.example.cinema.mapper.BookingItemMapper;
-import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.bookingitem.BookingItemCreateRequest;
 import com.example.cinema.dto.bookingitem.BookingItemUpdateRequest;
 import com.example.cinema.dto.bookingitem.BookingItemResponse;
@@ -23,11 +20,9 @@ import java.util.UUID;
 public class BookingItemController {
 
     private final BookingItemService bookingItemService;
-    private final BookingItemMapper bookingItemMapper;
 
-    public BookingItemController(BookingItemService bookingItemService, BookingItemMapper bookingItemMapper) {
+    public BookingItemController(BookingItemService bookingItemService) {
         this.bookingItemService = bookingItemService;
-        this.bookingItemMapper = bookingItemMapper;
     }
 
     @GetMapping
@@ -45,32 +40,21 @@ public class BookingItemController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<BookingItemResponse>> getById(@PathVariable UUID id) {
-        BookingItemResponse res = bookingItemService.findById(id)
-                .map(bookingItemMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("BookingItem", id.toString()));
-        return ResponseEntity.ok(new ApiResponse<>(res));
+        return ResponseEntity.ok(new ApiResponse<>(bookingItemService.findById(id)));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<BookingItemResponse>> create(@Valid @RequestBody BookingItemCreateRequest request) {
-        BookingItem entity = bookingItemMapper.toEntity(request);
-        BookingItem saved = bookingItemService.save(entity);
-        return ResponseEntity.ok(new ApiResponse<>(bookingItemMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(bookingItemService.create(request)));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<BookingItemResponse>> update(@PathVariable UUID id, @Valid @RequestBody BookingItemUpdateRequest request) {
-        BookingItem existing = bookingItemService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("BookingItem", id.toString()));
-        bookingItemMapper.updateEntityFromRequest(request, existing);
-        BookingItem saved = bookingItemService.save(existing);
-        return ResponseEntity.ok(new ApiResponse<>(bookingItemMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(bookingItemService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        bookingItemService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("BookingItem", id.toString()));
         bookingItemService.deleteById(id);
         return ResponseEntity.noContent().build();
     }

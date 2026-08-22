@@ -1,13 +1,10 @@
 package com.example.cinema.controller;
 
-import com.example.cinema.entity.SeatType;
 import com.example.cinema.service.SeatTypeService;
 import com.example.cinema.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-import com.example.cinema.mapper.SeatTypeMapper;
-import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.seattype.SeatTypeCreateRequest;
 import com.example.cinema.dto.seattype.SeatTypeUpdateRequest;
 import com.example.cinema.dto.seattype.SeatTypeResponse;
@@ -23,11 +20,9 @@ import java.util.UUID;
 public class SeatTypeController {
 
     private final SeatTypeService seatTypeService;
-    private final SeatTypeMapper seatTypeMapper;
 
-    public SeatTypeController(SeatTypeService seatTypeService, SeatTypeMapper seatTypeMapper) {
+    public SeatTypeController(SeatTypeService seatTypeService) {
         this.seatTypeService = seatTypeService;
-        this.seatTypeMapper = seatTypeMapper;
     }
 
     @GetMapping
@@ -45,32 +40,21 @@ public class SeatTypeController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<SeatTypeResponse>> getById(@PathVariable UUID id) {
-        SeatTypeResponse res = seatTypeService.findById(id)
-                .map(seatTypeMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("SeatType", id.toString()));
-        return ResponseEntity.ok(new ApiResponse<>(res));
+        return ResponseEntity.ok(new ApiResponse<>(seatTypeService.findById(id)));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<SeatTypeResponse>> create(@Valid @RequestBody SeatTypeCreateRequest request) {
-        SeatType entity = seatTypeMapper.toEntity(request);
-        SeatType saved = seatTypeService.save(entity);
-        return ResponseEntity.ok(new ApiResponse<>(seatTypeMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(seatTypeService.create(request)));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<SeatTypeResponse>> update(@PathVariable UUID id, @Valid @RequestBody SeatTypeUpdateRequest request) {
-        SeatType existing = seatTypeService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("SeatType", id.toString()));
-        seatTypeMapper.updateEntityFromRequest(request, existing);
-        SeatType saved = seatTypeService.save(existing);
-        return ResponseEntity.ok(new ApiResponse<>(seatTypeMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(seatTypeService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        seatTypeService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("SeatType", id.toString()));
         seatTypeService.deleteById(id);
         return ResponseEntity.noContent().build();
     }

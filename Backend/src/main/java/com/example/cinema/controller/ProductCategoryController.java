@@ -1,13 +1,10 @@
 package com.example.cinema.controller;
 
-import com.example.cinema.entity.ProductCategory;
 import com.example.cinema.service.ProductCategoryService;
 import com.example.cinema.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-import com.example.cinema.mapper.ProductCategoryMapper;
-import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.productcategory.ProductCategoryCreateRequest;
 import com.example.cinema.dto.productcategory.ProductCategoryUpdateRequest;
 import com.example.cinema.dto.productcategory.ProductCategoryResponse;
@@ -23,11 +20,9 @@ import java.util.UUID;
 public class ProductCategoryController {
 
     private final ProductCategoryService productCategoryService;
-    private final ProductCategoryMapper productCategoryMapper;
 
-    public ProductCategoryController(ProductCategoryService productCategoryService, ProductCategoryMapper productCategoryMapper) {
+    public ProductCategoryController(ProductCategoryService productCategoryService) {
         this.productCategoryService = productCategoryService;
-        this.productCategoryMapper = productCategoryMapper;
     }
 
     @GetMapping
@@ -45,32 +40,21 @@ public class ProductCategoryController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ProductCategoryResponse>> getById(@PathVariable UUID id) {
-        ProductCategoryResponse res = productCategoryService.findById(id)
-                .map(productCategoryMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("ProductCategory", id.toString()));
-        return ResponseEntity.ok(new ApiResponse<>(res));
+        return ResponseEntity.ok(new ApiResponse<>(productCategoryService.findById(id)));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<ProductCategoryResponse>> create(@Valid @RequestBody ProductCategoryCreateRequest request) {
-        ProductCategory entity = productCategoryMapper.toEntity(request);
-        ProductCategory saved = productCategoryService.save(entity);
-        return ResponseEntity.ok(new ApiResponse<>(productCategoryMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(productCategoryService.create(request)));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<ProductCategoryResponse>> update(@PathVariable UUID id, @Valid @RequestBody ProductCategoryUpdateRequest request) {
-        ProductCategory existing = productCategoryService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("ProductCategory", id.toString()));
-        productCategoryMapper.updateEntityFromRequest(request, existing);
-        ProductCategory saved = productCategoryService.save(existing);
-        return ResponseEntity.ok(new ApiResponse<>(productCategoryMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(productCategoryService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        productCategoryService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("ProductCategory", id.toString()));
         productCategoryService.deleteById(id);
         return ResponseEntity.noContent().build();
     }

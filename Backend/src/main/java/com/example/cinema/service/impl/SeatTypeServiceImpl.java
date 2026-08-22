@@ -4,6 +4,9 @@ import com.example.cinema.common.response.PageMapper;
 import com.example.cinema.common.response.PageResponse;
 
 import com.example.cinema.entity.SeatType;
+import com.example.cinema.dto.seattype.SeatTypeCreateRequest;
+import com.example.cinema.dto.seattype.SeatTypeUpdateRequest;
+import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.seattype.SeatTypeResponse;
 import com.example.cinema.mapper.SeatTypeMapper;
 import com.example.cinema.repository.SeatTypeRepository;
@@ -16,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import org.springframework.data.domain.Pageable;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -41,15 +43,28 @@ public class SeatTypeServiceImpl implements SeatTypeService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "seattypes", key = "#id")
-    public Optional<SeatType> findById(UUID id) {
-        return repository.findById(id);
+    public SeatTypeResponse findById(UUID id) {
+        return repository.findById(id)
+                .map(seatTypeMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("SeatType", id.toString()));
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "seattypes", key = "#result.id")
-    public SeatType save(SeatType entity) {
-        return repository.save(entity);
+    @CacheEvict(value = "seattypes", allEntries = true)
+    public SeatTypeResponse create(SeatTypeCreateRequest request) {
+        SeatType entity = seatTypeMapper.toEntity(request);
+        return seatTypeMapper.toResponse(repository.save(entity));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "seattypes", allEntries = true)
+    public SeatTypeResponse update(UUID id, SeatTypeUpdateRequest request) {
+        SeatType entity = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("SeatType", id.toString()));
+        seatTypeMapper.updateEntityFromRequest(request, entity);
+        return seatTypeMapper.toResponse(repository.save(entity));
     }
 
     @Override

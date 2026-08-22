@@ -4,6 +4,9 @@ import com.example.cinema.common.response.PageMapper;
 import com.example.cinema.common.response.PageResponse;
 
 import com.example.cinema.entity.CinemaProduct;
+import com.example.cinema.dto.cinemaproduct.CinemaProductCreateRequest;
+import com.example.cinema.dto.cinemaproduct.CinemaProductUpdateRequest;
+import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.cinemaproduct.CinemaProductResponse;
 import com.example.cinema.mapper.CinemaProductMapper;
 import com.example.cinema.repository.CinemaProductRepository;
@@ -16,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import org.springframework.data.domain.Pageable;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -41,15 +43,28 @@ public class CinemaProductServiceImpl implements CinemaProductService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "cinemaproducts", key = "#id")
-    public Optional<CinemaProduct> findById(UUID id) {
-        return repository.findByIdAndIsActiveTrue(id);
+    public CinemaProductResponse findById(UUID id) {
+        return repository.findByIdAndIsActiveTrue(id)
+                .map(cinemaProductMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("CinemaProduct", id.toString()));
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "cinemaproducts", key = "#result.id")
-    public CinemaProduct save(CinemaProduct entity) {
-        return repository.save(entity);
+    @CacheEvict(value = "cinemaproducts", allEntries = true)
+    public CinemaProductResponse create(CinemaProductCreateRequest request) {
+        CinemaProduct entity = cinemaProductMapper.toEntity(request);
+        return cinemaProductMapper.toResponse(repository.save(entity));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "cinemaproducts", allEntries = true)
+    public CinemaProductResponse update(UUID id, CinemaProductUpdateRequest request) {
+        CinemaProduct entity = repository.findByIdAndIsActiveTrue(id)
+                .orElseThrow(() -> new ResourceNotFoundException("CinemaProduct", id.toString()));
+        cinemaProductMapper.updateEntityFromRequest(request, entity);
+        return cinemaProductMapper.toResponse(repository.save(entity));
     }
 
     @Override

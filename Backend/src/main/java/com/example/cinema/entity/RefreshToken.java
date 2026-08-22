@@ -31,7 +31,7 @@ public class RefreshToken {
     @Column(name = "revoked_at")
     private ZonedDateTime revokedAt;
 
-    @Column(name = "ip_address", columnDefinition = "INET")
+    @Column(name = "ip_address", length = 45)
     private String ipAddress;
 
     @Column(name = "user_agent", columnDefinition = "TEXT")

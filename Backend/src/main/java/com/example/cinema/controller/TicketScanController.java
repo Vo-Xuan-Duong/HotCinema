@@ -1,13 +1,10 @@
 package com.example.cinema.controller;
 
-import com.example.cinema.entity.TicketScan;
 import com.example.cinema.service.TicketScanService;
 import com.example.cinema.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-import com.example.cinema.mapper.TicketScanMapper;
-import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.ticketscan.TicketScanCreateRequest;
 import com.example.cinema.dto.ticketscan.TicketScanUpdateRequest;
 import com.example.cinema.dto.ticketscan.TicketScanResponse;
@@ -23,11 +20,9 @@ import java.util.UUID;
 public class TicketScanController {
 
     private final TicketScanService ticketScanService;
-    private final TicketScanMapper ticketScanMapper;
 
-    public TicketScanController(TicketScanService ticketScanService, TicketScanMapper ticketScanMapper) {
+    public TicketScanController(TicketScanService ticketScanService) {
         this.ticketScanService = ticketScanService;
-        this.ticketScanMapper = ticketScanMapper;
     }
 
     @GetMapping
@@ -45,32 +40,21 @@ public class TicketScanController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<TicketScanResponse>> getById(@PathVariable UUID id) {
-        TicketScanResponse res = ticketScanService.findById(id)
-                .map(ticketScanMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("TicketScan", id.toString()));
-        return ResponseEntity.ok(new ApiResponse<>(res));
+        return ResponseEntity.ok(new ApiResponse<>(ticketScanService.findById(id)));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<TicketScanResponse>> create(@Valid @RequestBody TicketScanCreateRequest request) {
-        TicketScan entity = ticketScanMapper.toEntity(request);
-        TicketScan saved = ticketScanService.save(entity);
-        return ResponseEntity.ok(new ApiResponse<>(ticketScanMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(ticketScanService.create(request)));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<TicketScanResponse>> update(@PathVariable UUID id, @Valid @RequestBody TicketScanUpdateRequest request) {
-        TicketScan existing = ticketScanService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("TicketScan", id.toString()));
-        ticketScanMapper.updateEntityFromRequest(request, existing);
-        TicketScan saved = ticketScanService.save(existing);
-        return ResponseEntity.ok(new ApiResponse<>(ticketScanMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(ticketScanService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        ticketScanService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("TicketScan", id.toString()));
         ticketScanService.deleteById(id);
         return ResponseEntity.noContent().build();
     }

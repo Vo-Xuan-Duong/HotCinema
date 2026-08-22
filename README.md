@@ -4,10 +4,10 @@
 [![Java](https://img.shields.io/badge/Java-25-orange.svg)](https://www.oracle.com/java/)
 [![React](https://img.shields.io/badge/React-19.1.0-blue.svg)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-7.0.0-646CFF.svg)](https://vite.dev/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-336791.svg)](https://www.postgresql.org/)
+[![MySQL](https://img.shields.io/badge/MySQL-Database-4479A1.svg)](https://www.mysql.com/)
 [![Redis](https://img.shields.io/badge/Redis-Cache-DC382D.svg)](https://redis.io/)
 
-HotCinema là hệ thống đặt vé và quản lý rạp chiếu phim được phát triển theo hướng gần production, gồm **Java Spring Boot backend**, **React frontend**, **PostgreSQL** và **Redis**.
+HotCinema là hệ thống đặt vé và quản lý rạp chiếu phim được phát triển theo hướng gần production, gồm **Java Spring Boot backend**, **React frontend**, **MySQL** và **Redis**.
 
 Mục tiêu nghiệp vụ chính:
 
@@ -73,7 +73,7 @@ Application / Use-case Service
    │      └── Notification
    └── Repositories
           ↓
-      PostgreSQL
+         MySQL
 ```
 
 Ví dụ booking flow mục tiêu:
@@ -117,7 +117,7 @@ Controller → Business Use Case → Domain Rules → Repository / Integration
 | Security | Spring Security |
 | JWT | Spring Security OAuth2 Resource Server / JOSE |
 | Persistence | Spring Data JPA / Hibernate |
-| Database | PostgreSQL |
+| Database | MySQL |
 | Migration | Flyway |
 | Cache | Redis / Spring Cache |
 | Mapping | MapStruct 1.5.5.Final |
@@ -168,7 +168,7 @@ HotCinema/
 │   │       └── impl/           # Service implementations
 │   │
 │   ├── src/main/resources/
-│   │   └── application.properties
+│   │   └── application.yml
 │   ├── src/test/
 │   ├── pom.xml
 │   └── mvnw
@@ -470,24 +470,27 @@ Scan lần hai phải trả trạng thái `already used` thay vì tiếp tục c
 File hiện tại:
 
 ```text
-Backend/src/main/resources/application.properties
+Backend/src/main/resources/application.yml
+Backend/.env
 ```
+
+Sao chép `Backend/.env.example` thành `Backend/.env` và thay các giá trị bí mật cho môi trường local. File `.env` đã được Git bỏ qua.
 
 ### Database
 
 Mặc định development hiện tại:
 
 ```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/cinema
-spring.datasource.username=postgres
+spring.datasource.url=jdbc:mysql://localhost:3306/cinema?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+spring.datasource.username=root
 spring.datasource.password=123456
 ```
 
 Có thể override bằng environment variables của Spring Boot:
 
 ```bash
-SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/cinema
-SPRING_DATASOURCE_USERNAME=postgres
+SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/cinema?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+SPRING_DATASOURCE_USERNAME=root
 SPRING_DATASOURCE_PASSWORD=your_password
 ```
 
@@ -570,7 +573,7 @@ Backend:
 
 ```text
 JDK 25
-PostgreSQL
+MySQL
 Redis
 ```
 
@@ -654,7 +657,7 @@ Repository có `docker-compose.yml` cho backend application và Redis.
 docker compose up --build
 ```
 
-Hiện compose chưa khai báo PostgreSQL service, vì vậy backend vẫn cần kết nối tới một PostgreSQL instance phù hợp thông qua cấu hình datasource.
+Hiện compose chưa khai báo MySQL service, vì vậy backend vẫn cần kết nối tới một MySQL instance phù hợp thông qua cấu hình datasource.
 
 ---
 
@@ -762,4 +765,4 @@ Chưa xác định license chính thức cho repository này.
 
 ---
 
-**HotCinema** — Cinema booking platform built with Spring Boot, React, PostgreSQL and Redis.
+**HotCinema** — Cinema booking platform built with Spring Boot, React, MySQL and Redis.

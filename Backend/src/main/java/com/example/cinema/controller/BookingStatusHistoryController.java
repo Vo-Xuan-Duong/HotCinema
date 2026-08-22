@@ -1,13 +1,10 @@
 package com.example.cinema.controller;
 
-import com.example.cinema.entity.BookingStatusHistory;
 import com.example.cinema.service.BookingStatusHistoryService;
 import com.example.cinema.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-import com.example.cinema.mapper.BookingStatusHistoryMapper;
-import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.bookingstatushistory.BookingStatusHistoryCreateRequest;
 import com.example.cinema.dto.bookingstatushistory.BookingStatusHistoryUpdateRequest;
 import com.example.cinema.dto.bookingstatushistory.BookingStatusHistoryResponse;
@@ -23,11 +20,9 @@ import java.util.UUID;
 public class BookingStatusHistoryController {
 
     private final BookingStatusHistoryService bookingStatusHistoryService;
-    private final BookingStatusHistoryMapper bookingStatusHistoryMapper;
 
-    public BookingStatusHistoryController(BookingStatusHistoryService bookingStatusHistoryService, BookingStatusHistoryMapper bookingStatusHistoryMapper) {
+    public BookingStatusHistoryController(BookingStatusHistoryService bookingStatusHistoryService) {
         this.bookingStatusHistoryService = bookingStatusHistoryService;
-        this.bookingStatusHistoryMapper = bookingStatusHistoryMapper;
     }
 
     @GetMapping
@@ -45,32 +40,21 @@ public class BookingStatusHistoryController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<BookingStatusHistoryResponse>> getById(@PathVariable UUID id) {
-        BookingStatusHistoryResponse res = bookingStatusHistoryService.findById(id)
-                .map(bookingStatusHistoryMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("BookingStatusHistory", id.toString()));
-        return ResponseEntity.ok(new ApiResponse<>(res));
+        return ResponseEntity.ok(new ApiResponse<>(bookingStatusHistoryService.findById(id)));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<BookingStatusHistoryResponse>> create(@Valid @RequestBody BookingStatusHistoryCreateRequest request) {
-        BookingStatusHistory entity = bookingStatusHistoryMapper.toEntity(request);
-        BookingStatusHistory saved = bookingStatusHistoryService.save(entity);
-        return ResponseEntity.ok(new ApiResponse<>(bookingStatusHistoryMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(bookingStatusHistoryService.create(request)));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<BookingStatusHistoryResponse>> update(@PathVariable UUID id, @Valid @RequestBody BookingStatusHistoryUpdateRequest request) {
-        BookingStatusHistory existing = bookingStatusHistoryService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("BookingStatusHistory", id.toString()));
-        bookingStatusHistoryMapper.updateEntityFromRequest(request, existing);
-        BookingStatusHistory saved = bookingStatusHistoryService.save(existing);
-        return ResponseEntity.ok(new ApiResponse<>(bookingStatusHistoryMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(bookingStatusHistoryService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        bookingStatusHistoryService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("BookingStatusHistory", id.toString()));
         bookingStatusHistoryService.deleteById(id);
         return ResponseEntity.noContent().build();
     }

@@ -5,10 +5,10 @@ CREATE TABLE audit_logs
     action      VARCHAR(100) NOT NULL,
     entity_type VARCHAR(100) NOT NULL,
     entity_id   BINARY(16)   NULL,
-    old_data JSONB NULL,
-    new_data JSONB NULL,
-    ip_address INET NULL,
-    user_agent  TEXT         NULL,
+    old_data    JSON NULL,
+    new_data    JSON NULL,
+    ip_address  VARCHAR(45) NULL,
+    user_agent  TEXT NULL,
     created_at  datetime(6)  NOT NULL,
     CONSTRAINT pk_audit_logs PRIMARY KEY (id)
 );
@@ -23,8 +23,8 @@ CREATE TABLE auditoriums
     code          VARCHAR(50)  NOT NULL,
     name          VARCHAR(150) NOT NULL,
     screen_type   VARCHAR(30)  NOT NULL,
-    total_rows    INT          NULL,
-    total_columns INT          NULL,
+    total_rows    INT NULL,
+    total_columns INT NULL,
     capacity      INT          NOT NULL,
     status        VARCHAR(30)  NOT NULL,
     deleted_at    datetime(6)  NULL,
@@ -74,7 +74,7 @@ CREATE TABLE booking_status_history
     from_status VARCHAR(30) NULL,
     to_status   VARCHAR(30) NOT NULL,
     changed_by  BINARY(16)  NULL,
-    reason      TEXT        NULL,
+    reason      TEXT NULL,
     created_at  datetime(6) NOT NULL,
     CONSTRAINT pk_booking_status_history PRIMARY KEY (id)
 );
@@ -89,8 +89,8 @@ CREATE TABLE bookings
     user_id         BINARY(16)     NULL,
     showtime_id     BINARY(16)     NOT NULL,
     customer_name   VARCHAR(150)   NOT NULL,
-    customer_email  VARCHAR(255)   NULL,
-    customer_phone  VARCHAR(30)    NULL,
+    customer_email  VARCHAR(255) NULL,
+    customer_phone  VARCHAR(30) NULL,
     status          VARCHAR(30)    NOT NULL,
     seat_amount     DECIMAL(12, 2) NOT NULL,
     food_amount     DECIMAL(12, 2) NOT NULL,
@@ -113,7 +113,7 @@ CREATE TABLE cinema_products
     cinema_id      BINARY(16)     NOT NULL,
     product_id     BINARY(16)     NOT NULL,
     price          DECIMAL(12, 2) NOT NULL,
-    stock_quantity INT            NULL,
+    stock_quantity INT NULL,
     is_available   BIT(1)         NOT NULL,
     CONSTRAINT pk_cinema_products PRIMARY KEY (id)
 );
@@ -121,22 +121,22 @@ CREATE TABLE cinema_products
 CREATE TABLE cinemas
 (
     id            BINARY(16)     NOT NULL,
-    is_active     BIT(1)         NOT NULL,
+    is_active     BIT(1)       NOT NULL,
     created_at    datetime(6)    NOT NULL,
     updated_at    datetime(6)    NOT NULL,
-    code          VARCHAR(50)    NOT NULL,
-    name          VARCHAR(200)   NOT NULL,
-    address       VARCHAR(500)   NOT NULL,
-    ward          VARCHAR(150)   NULL,
-    district      VARCHAR(150)   NULL,
-    city          VARCHAR(150)   NOT NULL,
+    code          VARCHAR(50)  NOT NULL,
+    name          VARCHAR(200) NOT NULL,
+    address       VARCHAR(500) NOT NULL,
+    ward          VARCHAR(150) NULL,
+    district      VARCHAR(150) NULL,
+    city          VARCHAR(150) NOT NULL,
     latitude      DECIMAL(10, 7) NULL,
     longitude     DECIMAL(10, 7) NULL,
-    phone         VARCHAR(30)    NULL,
-    email         VARCHAR(255)   NULL,
-    `description` TEXT           NULL,
-    logo_url      TEXT           NULL,
-    status        VARCHAR(30)    NOT NULL,
+    phone         VARCHAR(30) NULL,
+    email         VARCHAR(255) NULL,
+    `description` TEXT NULL,
+    logo_url      TEXT NULL,
+    status        VARCHAR(30)  NOT NULL,
     deleted_at    datetime(6)    NULL,
     CONSTRAINT pk_cinemas PRIMARY KEY (id)
 );
@@ -189,19 +189,19 @@ CREATE TABLE movies
     title              VARCHAR(255) NOT NULL,
     original_title     VARCHAR(255) NULL,
     slug               VARCHAR(255) NOT NULL,
-    `description`      TEXT         NULL,
+    `description`      TEXT NULL,
     duration_minutes   INT          NOT NULL,
-    release_date       date         NULL,
-    end_date           date         NULL,
-    age_rating         VARCHAR(20)  NULL,
+    release_date       date NULL,
+    end_date           date NULL,
+    age_rating         VARCHAR(20) NULL,
     original_language  VARCHAR(100) NULL,
     director           VARCHAR(255) NULL,
-    actors             TEXT         NULL,
+    actors             TEXT NULL,
     country            VARCHAR(120) NULL,
     production_company VARCHAR(255) NULL,
-    poster_url         TEXT         NULL,
-    banner_url         TEXT         NULL,
-    trailer_url        TEXT         NULL,
+    poster_url         TEXT NULL,
+    banner_url         TEXT NULL,
+    trailer_url        TEXT NULL,
     status             VARCHAR(30)  NOT NULL,
     deleted_at         datetime(6)  NULL,
     CONSTRAINT pk_movies PRIMARY KEY (id)
@@ -224,12 +224,12 @@ CREATE TABLE payment_transactions
 (
     id                      BINARY(16)     NOT NULL,
     payment_id              BINARY(16)     NOT NULL,
-    transaction_type        VARCHAR(30)    NOT NULL,
-    provider_transaction_id VARCHAR(255)   NULL,
+    transaction_type        VARCHAR(30) NOT NULL,
+    provider_transaction_id VARCHAR(255) NULL,
     amount                  DECIMAL(12, 2) NULL,
-    status                  VARCHAR(30)    NOT NULL,
-    request_payload JSONB NULL,
-    response_payload JSONB NULL,
+    status                  VARCHAR(30) NOT NULL,
+    request_payload         JSON NULL,
+    response_payload        JSON NULL,
     created_at              datetime(6)    NOT NULL,
     CONSTRAINT pk_payment_transactions PRIMARY KEY (id)
 );
@@ -237,12 +237,12 @@ CREATE TABLE payment_transactions
 CREATE TABLE payment_webhooks
 (
     id                BINARY(16)   NOT NULL,
-    provider          VARCHAR(30)  NOT NULL,
+    provider          VARCHAR(30) NOT NULL,
     external_event_id VARCHAR(255) NULL,
-    payload JSONB NOT NULL,
-    signature         TEXT         NULL,
-    verified          BIT(1)       NOT NULL,
-    processed         BIT(1)       NOT NULL,
+    payload           JSON        NOT NULL,
+    signature         TEXT NULL,
+    verified          BIT(1)      NOT NULL,
+    processed         BIT(1)      NOT NULL,
     processed_at      datetime(6)  NULL,
     created_at        datetime(6)  NOT NULL,
     CONSTRAINT pk_payment_webhooks PRIMARY KEY (id)
@@ -256,17 +256,17 @@ CREATE TABLE payments
     updated_at              datetime(6)    NOT NULL,
     booking_id              BINARY(16)     NOT NULL,
     provider                VARCHAR(30)    NOT NULL,
-    payment_method          VARCHAR(50)    NULL,
+    payment_method          VARCHAR(50) NULL,
     amount                  DECIMAL(12, 2) NOT NULL,
     currency                VARCHAR(3)     NOT NULL,
     status                  VARCHAR(30)    NOT NULL,
     idempotency_key         VARCHAR(150)   NOT NULL,
-    provider_order_id       VARCHAR(255)   NULL,
-    provider_transaction_id VARCHAR(255)   NULL,
-    request_id              VARCHAR(255)   NULL,
-    payment_url             TEXT           NULL,
-    failure_code            VARCHAR(100)   NULL,
-    failure_message         TEXT           NULL,
+    provider_order_id       VARCHAR(255) NULL,
+    provider_transaction_id VARCHAR(255) NULL,
+    request_id              VARCHAR(255) NULL,
+    payment_url             TEXT NULL,
+    failure_code            VARCHAR(100) NULL,
+    failure_message         TEXT NULL,
     paid_at                 datetime(6)    NULL,
     CONSTRAINT pk_payments PRIMARY KEY (id)
 );
@@ -289,8 +289,8 @@ CREATE TABLE products
     category_id   BINARY(16)   NOT NULL,
     code          VARCHAR(50)  NOT NULL,
     name          VARCHAR(200) NOT NULL,
-    `description` TEXT         NULL,
-    image_url     TEXT         NULL,
+    `description` TEXT NULL,
+    image_url     TEXT NULL,
     status        VARCHAR(20)  NOT NULL,
     deleted_at    datetime(6)  NULL,
     CONSTRAINT pk_products PRIMARY KEY (id)
@@ -301,7 +301,7 @@ CREATE TABLE promotion_codes
     id           BINARY(16)   NOT NULL,
     promotion_id BINARY(16)   NOT NULL,
     code         VARCHAR(100) NOT NULL,
-    usage_limit  INT          NULL,
+    usage_limit  INT NULL,
     used_count   INT          NOT NULL,
     active       BIT(1)       NOT NULL,
     created_at   datetime(6)  NOT NULL,
@@ -315,15 +315,15 @@ CREATE TABLE promotions
     created_at           datetime(6)    NOT NULL,
     updated_at           datetime(6)    NOT NULL,
     name                 VARCHAR(200)   NOT NULL,
-    `description`        TEXT           NULL,
+    `description`        TEXT NULL,
     discount_type        VARCHAR(30)    NOT NULL,
     discount_value       DECIMAL(12, 2) NOT NULL,
     max_discount_amount  DECIMAL(12, 2) NULL,
     minimum_order_amount DECIMAL(12, 2) NOT NULL,
     start_at             datetime(6)    NOT NULL,
     end_at               datetime(6)    NOT NULL,
-    usage_limit          INT            NULL,
-    usage_per_user       INT            NULL,
+    usage_limit          INT NULL,
+    usage_per_user       INT NULL,
     status               VARCHAR(20)    NOT NULL,
     CONSTRAINT pk_promotions PRIMARY KEY (id)
 );
@@ -335,23 +335,10 @@ CREATE TABLE refresh_tokens
     token_hash VARCHAR(255) NOT NULL,
     expires_at datetime(6)  NOT NULL,
     revoked_at datetime(6)  NULL,
-    ip_address INET NULL,
-    user_agent TEXT         NULL,
+    ip_address VARCHAR(45) NULL,
+    user_agent TEXT NULL,
     created_at datetime(6)  NOT NULL,
     CONSTRAINT pk_refresh_tokens PRIMARY KEY (id)
-);
-
-CREATE TABLE revchanges
-(
-    rev        BIGINT       NOT NULL,
-    entityname VARCHAR(255) NULL
-);
-
-CREATE TABLE revinfo
-(
-    rev      BIGINT NOT NULL,
-    revtstmp BIGINT NULL,
-    CONSTRAINT pk_revinfo PRIMARY KEY (rev)
 );
 
 CREATE TABLE roles
@@ -359,7 +346,7 @@ CREATE TABLE roles
     id            BINARY(16)   NOT NULL,
     code          VARCHAR(50)  NOT NULL,
     name          VARCHAR(100) NOT NULL,
-    `description` TEXT         NULL,
+    `description` TEXT NULL,
     created_at    datetime(6)  NOT NULL,
     CONSTRAINT pk_roles PRIMARY KEY (id)
 );
@@ -369,7 +356,7 @@ CREATE TABLE seat_types
     id             BINARY(16)     NOT NULL,
     code           VARCHAR(30)    NOT NULL,
     name           VARCHAR(100)   NOT NULL,
-    `description`  TEXT           NULL,
+    `description`  TEXT NULL,
     price_modifier DECIMAL(12, 2) NOT NULL,
     created_at     datetime(6)    NOT NULL,
     CONSTRAINT pk_seat_types PRIMARY KEY (id)
@@ -386,8 +373,8 @@ CREATE TABLE seats
     row_label     VARCHAR(10) NOT NULL,
     seat_number   INT         NOT NULL,
     display_name  VARCHAR(30) NOT NULL,
-    x_position    INT         NULL,
-    y_position    INT         NULL,
+    x_position    INT NULL,
+    y_position    INT NULL,
     status        VARCHAR(30) NOT NULL,
     CONSTRAINT pk_seats PRIMARY KEY (id)
 );
@@ -431,8 +418,8 @@ CREATE TABLE showtimes
     auditorium_id    BINARY(16)     NOT NULL,
     start_time       datetime(6)    NOT NULL,
     end_time         datetime(6)    NOT NULL,
-    language         VARCHAR(100)   NULL,
-    subtitle         VARCHAR(100)   NULL,
+    language         VARCHAR(100) NULL,
+    subtitle         VARCHAR(100) NULL,
     format           VARCHAR(30)    NOT NULL,
     base_price       DECIMAL(12, 2) NOT NULL,
     booking_open_at  datetime(6)    NULL,
@@ -450,7 +437,7 @@ CREATE TABLE ticket_scans
     scanned_by  BINARY(16)  NULL,
     result      VARCHAR(30) NOT NULL,
     scanned_at  datetime(6) NOT NULL,
-    device_info TEXT        NULL,
+    device_info TEXT NULL,
     CONSTRAINT pk_ticket_scans PRIMARY KEY (id)
 );
 
@@ -485,12 +472,12 @@ CREATE TABLE users
     created_at     datetime(6)  NOT NULL,
     updated_at     datetime(6)  NOT NULL,
     email          VARCHAR(255) NULL,
-    phone          VARCHAR(30)  NULL,
+    phone          VARCHAR(30) NULL,
     password_hash  VARCHAR(255) NULL,
     full_name      VARCHAR(150) NOT NULL,
-    date_of_birth  date         NULL,
-    gender         VARCHAR(20)  NULL,
-    avatar_url     TEXT         NULL,
+    date_of_birth  date NULL,
+    gender         VARCHAR(20) NULL,
+    avatar_url     TEXT NULL,
     status         VARCHAR(30)  NOT NULL,
     email_verified BIT(1)       NOT NULL,
     phone_verified BIT(1)       NOT NULL,
@@ -675,9 +662,6 @@ ALTER TABLE movie_genres
 
 ALTER TABLE movie_genres
     ADD CONSTRAINT fk_movgen_on_movie FOREIGN KEY (movie_id) REFERENCES movies (id);
-
-ALTER TABLE revchanges
-    ADD CONSTRAINT fk_revchanges_on_default_tracking_modified_entities_changelog FOREIGN KEY (rev) REFERENCES revinfo (rev);
 
 ALTER TABLE user_roles
     ADD CONSTRAINT fk_userol_on_role FOREIGN KEY (role_id) REFERENCES roles (id);

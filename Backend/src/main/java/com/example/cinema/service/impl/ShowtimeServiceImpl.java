@@ -4,6 +4,9 @@ import com.example.cinema.common.response.PageMapper;
 import com.example.cinema.common.response.PageResponse;
 
 import com.example.cinema.entity.Showtime;
+import com.example.cinema.dto.showtime.ShowtimeCreateRequest;
+import com.example.cinema.dto.showtime.ShowtimeUpdateRequest;
+import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.showtime.ShowtimeResponse;
 import com.example.cinema.mapper.ShowtimeMapper;
 import com.example.cinema.repository.ShowtimeRepository;
@@ -16,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import org.springframework.data.domain.Pageable;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -41,15 +43,28 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "showtimes", key = "#id")
-    public Optional<Showtime> findById(UUID id) {
-        return repository.findByIdAndIsActiveTrue(id);
+    public ShowtimeResponse findById(UUID id) {
+        return repository.findByIdAndIsActiveTrue(id)
+                .map(showtimeMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("Showtime", id.toString()));
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "showtimes", key = "#result.id")
-    public Showtime save(Showtime entity) {
-        return repository.save(entity);
+    @CacheEvict(value = "showtimes", allEntries = true)
+    public ShowtimeResponse create(ShowtimeCreateRequest request) {
+        Showtime entity = showtimeMapper.toEntity(request);
+        return showtimeMapper.toResponse(repository.save(entity));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "showtimes", allEntries = true)
+    public ShowtimeResponse update(UUID id, ShowtimeUpdateRequest request) {
+        Showtime entity = repository.findByIdAndIsActiveTrue(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Showtime", id.toString()));
+        showtimeMapper.updateEntityFromRequest(request, entity);
+        return showtimeMapper.toResponse(repository.save(entity));
     }
 
     @Override

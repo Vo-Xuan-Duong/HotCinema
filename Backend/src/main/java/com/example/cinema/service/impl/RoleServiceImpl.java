@@ -4,6 +4,9 @@ import com.example.cinema.common.response.PageMapper;
 import com.example.cinema.common.response.PageResponse;
 
 import com.example.cinema.entity.Role;
+import com.example.cinema.dto.role.RoleCreateRequest;
+import com.example.cinema.dto.role.RoleUpdateRequest;
+import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.role.RoleResponse;
 import com.example.cinema.mapper.RoleMapper;
 import com.example.cinema.repository.RoleRepository;
@@ -16,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import org.springframework.data.domain.Pageable;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -41,15 +43,28 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "roles", key = "#id")
-    public Optional<Role> findById(UUID id) {
-        return repository.findById(id);
+    public RoleResponse findById(UUID id) {
+        return repository.findById(id)
+                .map(roleMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("Role", id.toString()));
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "roles", key = "#result.id")
-    public Role save(Role entity) {
-        return repository.save(entity);
+    @CacheEvict(value = "roles", allEntries = true)
+    public RoleResponse create(RoleCreateRequest request) {
+        Role entity = roleMapper.toEntity(request);
+        return roleMapper.toResponse(repository.save(entity));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "roles", allEntries = true)
+    public RoleResponse update(UUID id, RoleUpdateRequest request) {
+        Role entity = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Role", id.toString()));
+        roleMapper.updateEntityFromRequest(request, entity);
+        return roleMapper.toResponse(repository.save(entity));
     }
 
     @Override

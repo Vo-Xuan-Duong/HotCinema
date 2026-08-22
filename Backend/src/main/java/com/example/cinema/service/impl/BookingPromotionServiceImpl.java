@@ -4,6 +4,9 @@ import com.example.cinema.common.response.PageMapper;
 import com.example.cinema.common.response.PageResponse;
 
 import com.example.cinema.entity.BookingPromotion;
+import com.example.cinema.dto.bookingpromotion.BookingPromotionCreateRequest;
+import com.example.cinema.dto.bookingpromotion.BookingPromotionUpdateRequest;
+import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.bookingpromotion.BookingPromotionResponse;
 import com.example.cinema.mapper.BookingPromotionMapper;
 import com.example.cinema.repository.BookingPromotionRepository;
@@ -16,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import org.springframework.data.domain.Pageable;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -41,15 +43,28 @@ public class BookingPromotionServiceImpl implements BookingPromotionService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "bookingpromotions", key = "#id")
-    public Optional<BookingPromotion> findById(UUID id) {
-        return repository.findById(id);
+    public BookingPromotionResponse findById(UUID id) {
+        return repository.findById(id)
+                .map(bookingPromotionMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("BookingPromotion", id.toString()));
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "bookingpromotions", key = "#result.id")
-    public BookingPromotion save(BookingPromotion entity) {
-        return repository.save(entity);
+    @CacheEvict(value = "bookingpromotions", allEntries = true)
+    public BookingPromotionResponse create(BookingPromotionCreateRequest request) {
+        BookingPromotion entity = bookingPromotionMapper.toEntity(request);
+        return bookingPromotionMapper.toResponse(repository.save(entity));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "bookingpromotions", allEntries = true)
+    public BookingPromotionResponse update(UUID id, BookingPromotionUpdateRequest request) {
+        BookingPromotion entity = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("BookingPromotion", id.toString()));
+        bookingPromotionMapper.updateEntityFromRequest(request, entity);
+        return bookingPromotionMapper.toResponse(repository.save(entity));
     }
 
     @Override

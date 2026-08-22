@@ -4,6 +4,9 @@ import com.example.cinema.common.response.PageMapper;
 import com.example.cinema.common.response.PageResponse;
 
 import com.example.cinema.entity.BookingItem;
+import com.example.cinema.dto.bookingitem.BookingItemCreateRequest;
+import com.example.cinema.dto.bookingitem.BookingItemUpdateRequest;
+import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.bookingitem.BookingItemResponse;
 import com.example.cinema.mapper.BookingItemMapper;
 import com.example.cinema.repository.BookingItemRepository;
@@ -16,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import org.springframework.data.domain.Pageable;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -41,15 +43,28 @@ public class BookingItemServiceImpl implements BookingItemService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "bookingitems", key = "#id")
-    public Optional<BookingItem> findById(UUID id) {
-        return repository.findById(id);
+    public BookingItemResponse findById(UUID id) {
+        return repository.findById(id)
+                .map(bookingItemMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("BookingItem", id.toString()));
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "bookingitems", key = "#result.id")
-    public BookingItem save(BookingItem entity) {
-        return repository.save(entity);
+    @CacheEvict(value = "bookingitems", allEntries = true)
+    public BookingItemResponse create(BookingItemCreateRequest request) {
+        BookingItem entity = bookingItemMapper.toEntity(request);
+        return bookingItemMapper.toResponse(repository.save(entity));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "bookingitems", allEntries = true)
+    public BookingItemResponse update(UUID id, BookingItemUpdateRequest request) {
+        BookingItem entity = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("BookingItem", id.toString()));
+        bookingItemMapper.updateEntityFromRequest(request, entity);
+        return bookingItemMapper.toResponse(repository.save(entity));
     }
 
     @Override

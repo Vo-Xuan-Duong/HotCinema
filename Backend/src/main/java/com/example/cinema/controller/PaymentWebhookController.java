@@ -1,13 +1,10 @@
 package com.example.cinema.controller;
 
-import com.example.cinema.entity.PaymentWebhook;
 import com.example.cinema.service.PaymentWebhookService;
 import com.example.cinema.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-import com.example.cinema.mapper.PaymentWebhookMapper;
-import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.paymentwebhook.PaymentWebhookCreateRequest;
 import com.example.cinema.dto.paymentwebhook.PaymentWebhookUpdateRequest;
 import com.example.cinema.dto.paymentwebhook.PaymentWebhookResponse;
@@ -23,11 +20,9 @@ import java.util.UUID;
 public class PaymentWebhookController {
 
     private final PaymentWebhookService paymentWebhookService;
-    private final PaymentWebhookMapper paymentWebhookMapper;
 
-    public PaymentWebhookController(PaymentWebhookService paymentWebhookService, PaymentWebhookMapper paymentWebhookMapper) {
+    public PaymentWebhookController(PaymentWebhookService paymentWebhookService) {
         this.paymentWebhookService = paymentWebhookService;
-        this.paymentWebhookMapper = paymentWebhookMapper;
     }
 
     @GetMapping
@@ -45,32 +40,21 @@ public class PaymentWebhookController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<PaymentWebhookResponse>> getById(@PathVariable UUID id) {
-        PaymentWebhookResponse res = paymentWebhookService.findById(id)
-                .map(paymentWebhookMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("PaymentWebhook", id.toString()));
-        return ResponseEntity.ok(new ApiResponse<>(res));
+        return ResponseEntity.ok(new ApiResponse<>(paymentWebhookService.findById(id)));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<PaymentWebhookResponse>> create(@Valid @RequestBody PaymentWebhookCreateRequest request) {
-        PaymentWebhook entity = paymentWebhookMapper.toEntity(request);
-        PaymentWebhook saved = paymentWebhookService.save(entity);
-        return ResponseEntity.ok(new ApiResponse<>(paymentWebhookMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(paymentWebhookService.create(request)));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<PaymentWebhookResponse>> update(@PathVariable UUID id, @Valid @RequestBody PaymentWebhookUpdateRequest request) {
-        PaymentWebhook existing = paymentWebhookService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("PaymentWebhook", id.toString()));
-        paymentWebhookMapper.updateEntityFromRequest(request, existing);
-        PaymentWebhook saved = paymentWebhookService.save(existing);
-        return ResponseEntity.ok(new ApiResponse<>(paymentWebhookMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(paymentWebhookService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        paymentWebhookService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("PaymentWebhook", id.toString()));
         paymentWebhookService.deleteById(id);
         return ResponseEntity.noContent().build();
     }

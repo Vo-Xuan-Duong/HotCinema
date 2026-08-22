@@ -4,6 +4,9 @@ import com.example.cinema.common.response.PageMapper;
 import com.example.cinema.common.response.PageResponse;
 
 import com.example.cinema.entity.Auditorium;
+import com.example.cinema.dto.auditorium.AuditoriumCreateRequest;
+import com.example.cinema.dto.auditorium.AuditoriumUpdateRequest;
+import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.auditorium.AuditoriumResponse;
 import com.example.cinema.mapper.AuditoriumMapper;
 import com.example.cinema.repository.AuditoriumRepository;
@@ -17,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import org.springframework.data.domain.Pageable;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -42,25 +44,38 @@ public class AuditoriumServiceImpl implements AuditoriumService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "auditoriums", key = "#id")
-    public Optional<Auditorium> findById(UUID id) {
-        return repository.findByIdAndIsActiveTrue(id);
+    public AuditoriumResponse findById(UUID id) {
+        return repository.findByIdAndIsActiveTrue(id)
+                .map(auditoriumMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("Auditorium", id.toString()));
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "auditoriums", key = "#result.id")
-    public Auditorium save(Auditorium entity) {
-        return repository.save(entity);
+    @CacheEvict(value = "auditoriums", allEntries = true)
+    public AuditoriumResponse create(AuditoriumCreateRequest request) {
+        Auditorium entity = auditoriumMapper.toEntity(request);
+        return auditoriumMapper.toResponse(repository.save(entity));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "auditoriums", allEntries = true)
+    public AuditoriumResponse update(UUID id, AuditoriumUpdateRequest request) {
+        Auditorium entity = repository.findByIdAndIsActiveTrue(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Auditorium", id.toString()));
+        auditoriumMapper.updateEntityFromRequest(request, entity);
+        return auditoriumMapper.toResponse(repository.save(entity));
     }
 
     @Override
     @Transactional
     @CacheEvict(value = "auditoriums", key = "#id")
     public void deleteById(UUID id) {
-        repository.findByIdAndIsActiveTrue(id).ifPresent(entity -> {
-            entity.setActive(false);
-            entity.setDeletedAt(ZonedDateTime.now());
-            repository.save(entity);
-        });
+        Auditorium entity = repository.findByIdAndIsActiveTrue(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Auditorium", id.toString()));
+        entity.setActive(false);
+        entity.setDeletedAt(ZonedDateTime.now());
+        repository.save(entity);
     }
 }

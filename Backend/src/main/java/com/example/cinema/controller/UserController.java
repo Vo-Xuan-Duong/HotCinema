@@ -1,13 +1,10 @@
 package com.example.cinema.controller;
 
-import com.example.cinema.entity.User;
 import com.example.cinema.service.UserService;
 import com.example.cinema.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-import com.example.cinema.mapper.UserMapper;
-import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.user.UserCreateRequest;
 import com.example.cinema.dto.user.UserUpdateRequest;
 import com.example.cinema.dto.user.UserResponse;
@@ -23,11 +20,9 @@ import java.util.UUID;
 public class UserController {
 
     private final UserService userService;
-    private final UserMapper userMapper;
 
-    public UserController(UserService userService, UserMapper userMapper) {
+    public UserController(UserService userService) {
         this.userService = userService;
-        this.userMapper = userMapper;
     }
 
     @GetMapping
@@ -45,32 +40,21 @@ public class UserController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> getById(@PathVariable UUID id) {
-        UserResponse res = userService.findById(id)
-                .map(userMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("User", id.toString()));
-        return ResponseEntity.ok(new ApiResponse<>(res));
+        return ResponseEntity.ok(new ApiResponse<>(userService.findById(id)));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<UserResponse>> create(@Valid @RequestBody UserCreateRequest request) {
-        User entity = userMapper.toEntity(request);
-        User saved = userService.save(entity);
-        return ResponseEntity.ok(new ApiResponse<>(userMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(userService.create(request)));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> update(@PathVariable UUID id, @Valid @RequestBody UserUpdateRequest request) {
-        User existing = userService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User", id.toString()));
-        userMapper.updateEntityFromRequest(request, existing);
-        User saved = userService.save(existing);
-        return ResponseEntity.ok(new ApiResponse<>(userMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(userService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        userService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User", id.toString()));
         userService.deleteById(id);
         return ResponseEntity.noContent().build();
     }

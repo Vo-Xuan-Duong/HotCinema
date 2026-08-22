@@ -31,13 +31,13 @@ public class AuditLog {
     @Column(name = "entity_id")
     private UUID entityId;
 
-    @Column(name = "old_data", columnDefinition = "jsonb")
+    @Column(name = "old_data", columnDefinition = "JSON")
     private String oldData;
 
-    @Column(name = "new_data", columnDefinition = "jsonb")
+    @Column(name = "new_data", columnDefinition = "JSON")
     private String newData;
 
-    @Column(name = "ip_address", columnDefinition = "INET")
+    @Column(name = "ip_address", length = 45)
     private String ipAddress;
 
     @Column(name = "user_agent", columnDefinition = "TEXT")

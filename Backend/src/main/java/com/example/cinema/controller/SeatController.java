@@ -1,13 +1,10 @@
 package com.example.cinema.controller;
 
-import com.example.cinema.entity.Seat;
 import com.example.cinema.service.SeatService;
 import com.example.cinema.common.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-import com.example.cinema.mapper.SeatMapper;
-import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.seat.SeatCreateRequest;
 import com.example.cinema.dto.seat.SeatUpdateRequest;
 import com.example.cinema.dto.seat.SeatResponse;
@@ -23,11 +20,9 @@ import java.util.UUID;
 public class SeatController {
 
     private final SeatService seatService;
-    private final SeatMapper seatMapper;
 
-    public SeatController(SeatService seatService, SeatMapper seatMapper) {
+    public SeatController(SeatService seatService) {
         this.seatService = seatService;
-        this.seatMapper = seatMapper;
     }
 
     @GetMapping
@@ -45,32 +40,21 @@ public class SeatController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<SeatResponse>> getById(@PathVariable UUID id) {
-        SeatResponse res = seatService.findById(id)
-                .map(seatMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("Seat", id.toString()));
-        return ResponseEntity.ok(new ApiResponse<>(res));
+        return ResponseEntity.ok(new ApiResponse<>(seatService.findById(id)));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<SeatResponse>> create(@Valid @RequestBody SeatCreateRequest request) {
-        Seat entity = seatMapper.toEntity(request);
-        Seat saved = seatService.save(entity);
-        return ResponseEntity.ok(new ApiResponse<>(seatMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(seatService.create(request)));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<SeatResponse>> update(@PathVariable UUID id, @Valid @RequestBody SeatUpdateRequest request) {
-        Seat existing = seatService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Seat", id.toString()));
-        seatMapper.updateEntityFromRequest(request, existing);
-        Seat saved = seatService.save(existing);
-        return ResponseEntity.ok(new ApiResponse<>(seatMapper.toResponse(saved)));
+        return ResponseEntity.ok(new ApiResponse<>(seatService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        seatService.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Seat", id.toString()));
         seatService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
