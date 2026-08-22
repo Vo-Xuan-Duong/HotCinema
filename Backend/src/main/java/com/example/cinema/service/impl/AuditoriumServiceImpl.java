@@ -25,14 +25,14 @@ public class AuditoriumServiceImpl implements AuditoriumService {
     @Override
     @Transactional(readOnly = true)
     public Page<Auditorium> findAll(Pageable pageable) {
-        return repository.findAllByIsDeletedFalse(pageable);
+        return repository.findAllByIsActiveTrue(pageable);
     }
 
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "auditoriums", key = "#id")
     public Optional<Auditorium> findById(UUID id) {
-        return repository.findByIdAndIsDeletedFalse(id);
+        return repository.findByIdAndIsActiveTrue(id);
     }
 
     @Override
@@ -46,8 +46,8 @@ public class AuditoriumServiceImpl implements AuditoriumService {
     @Transactional
     @CacheEvict(value = "auditoriums", key = "#id")
     public void deleteById(UUID id) {
-        repository.findByIdAndIsDeletedFalse(id).ifPresent(entity -> {
-            entity.setDeleted(true);
+        repository.findByIdAndIsActiveTrue(id).ifPresent(entity -> {
+            entity.setActive(false);
             entity.setDeletedAt(ZonedDateTime.now());
             repository.save(entity);
         });

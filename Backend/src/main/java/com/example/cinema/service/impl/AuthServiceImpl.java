@@ -65,7 +65,7 @@ public class AuthServiceImpl implements AuthService {
             throw new AppException(ErrorCode.UNAUTHORIZED, "Invalid email or password");
         }
 
-        User user = userRepository.findByEmailIgnoreCaseAndIsDeletedFalse(email)
+        User user = userRepository.findByEmailIgnoreCaseAndIsActiveTrue(email)
                 .orElseThrow(() -> new AppException(
                         ErrorCode.UNAUTHORIZED,
                         "Invalid email or password"
@@ -81,7 +81,7 @@ public class AuthServiceImpl implements AuthService {
         String accessToken = jwtTokenService.generateAccessToken(user);
         String refreshToken = jwtTokenService.generateRefreshToken(user);
 
-        return new AuthResponse(accessToken, refreshToken);
+        return new AuthResponse(user.getId(), accessToken, refreshToken);
     }
 
     @Override

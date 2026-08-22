@@ -25,14 +25,14 @@ public class MovieServiceImpl implements MovieService {
     @Override
     @Transactional(readOnly = true)
     public Page<Movie> findAll(Pageable pageable) {
-        return repository.findAllByIsDeletedFalse(pageable);
+        return repository.findAllByIsActiveTrue(pageable);
     }
 
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "movies", key = "#id")
     public Optional<Movie> findById(UUID id) {
-        return repository.findByIdAndIsDeletedFalse(id);
+        return repository.findByIdAndIsActiveTrue(id);
     }
 
     @Override
@@ -46,8 +46,8 @@ public class MovieServiceImpl implements MovieService {
     @Transactional
     @CacheEvict(value = "movies", key = "#id")
     public void deleteById(UUID id) {
-        repository.findByIdAndIsDeletedFalse(id).ifPresent(entity -> {
-            entity.setDeleted(true);
+        repository.findByIdAndIsActiveTrue(id).ifPresent(entity -> {
+            entity.setActive(false);
             entity.setDeletedAt(ZonedDateTime.now());
             repository.save(entity);
         });

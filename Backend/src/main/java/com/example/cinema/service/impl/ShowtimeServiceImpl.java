@@ -24,14 +24,14 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     @Override
     @Transactional(readOnly = true)
     public Page<Showtime> findAll(Pageable pageable) {
-        return repository.findAllByIsDeletedFalse(pageable);
+        return repository.findAllByIsActiveTrue(pageable);
     }
 
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "showtimes", key = "#id")
     public Optional<Showtime> findById(UUID id) {
-        return repository.findByIdAndIsDeletedFalse(id);
+        return repository.findByIdAndIsActiveTrue(id);
     }
 
     @Override
@@ -45,8 +45,8 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     @Transactional
     @CacheEvict(value = "showtimes", key = "#id")
     public void deleteById(UUID id) {
-        repository.findByIdAndIsDeletedFalse(id).ifPresent(entity -> {
-            entity.setDeleted(true);
+        repository.findByIdAndIsActiveTrue(id).ifPresent(entity -> {
+            entity.setActive(false);
             repository.save(entity);
         });
     }

@@ -24,14 +24,14 @@ public class SeatServiceImpl implements SeatService {
     @Override
     @Transactional(readOnly = true)
     public Page<Seat> findAll(Pageable pageable) {
-        return repository.findAllByIsDeletedFalse(pageable);
+        return repository.findAllByIsActiveTrue(pageable);
     }
 
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = "seats", key = "#id")
     public Optional<Seat> findById(UUID id) {
-        return repository.findByIdAndIsDeletedFalse(id);
+        return repository.findByIdAndIsActiveTrue(id);
     }
 
     @Override
@@ -45,8 +45,8 @@ public class SeatServiceImpl implements SeatService {
     @Transactional
     @CacheEvict(value = "seats", key = "#id")
     public void deleteById(UUID id) {
-        repository.findByIdAndIsDeletedFalse(id).ifPresent(entity -> {
-            entity.setDeleted(true);
+        repository.findByIdAndIsActiveTrue(id).ifPresent(entity -> {
+            entity.setActive(false);
             repository.save(entity);
         });
     }

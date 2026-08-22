@@ -13,12 +13,12 @@ import java.util.UUID;
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
 
-    Page<User> findAllByIsDeletedFalse(Pageable pageable);
+    Page<User> findAllByIsActiveTrue(Pageable pageable);
 
-    Optional<User> findByIdAndIsDeletedFalse(UUID id);
+    Optional<User> findByIdAndIsActiveTrue(UUID id);
 
     @EntityGraph(attributePaths = "roles")
-    Optional<User> findByEmailIgnoreCaseAndIsDeletedFalse(String email);
+    Optional<User> findByEmailIgnoreCaseAndIsActiveTrue(String email);
 
     boolean existsByEmail(String email);
 
