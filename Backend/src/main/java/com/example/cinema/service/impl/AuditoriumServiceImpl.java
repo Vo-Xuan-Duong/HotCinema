@@ -1,6 +1,11 @@
 package com.example.cinema.service.impl;
 
+import com.example.cinema.common.response.PageMapper;
+import com.example.cinema.common.response.PageResponse;
+
 import com.example.cinema.entity.Auditorium;
+import com.example.cinema.dto.auditorium.AuditoriumResponse;
+import com.example.cinema.mapper.AuditoriumMapper;
 import com.example.cinema.repository.AuditoriumRepository;
 import com.example.cinema.service.AuditoriumService;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +16,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,11 +25,18 @@ import java.util.UUID;
 public class AuditoriumServiceImpl implements AuditoriumService {
 
     private final AuditoriumRepository repository;
+    private final AuditoriumMapper auditoriumMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public Page<Auditorium> findAll(Pageable pageable) {
-        return repository.findAllByIsActiveTrue(pageable);
+    public List<AuditoriumResponse> findAll() {
+        return auditoriumMapper.toResponseList(repository.findAllByIsActiveTrue(Pageable.unpaged()).getContent());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<AuditoriumResponse> findPage(Pageable pageable) {
+        return PageMapper.toPageResponse(repository.findAllByIsActiveTrue(pageable).map(auditoriumMapper::toResponse));
     }
 
     @Override

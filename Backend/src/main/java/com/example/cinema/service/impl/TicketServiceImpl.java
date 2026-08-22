@@ -1,6 +1,11 @@
 package com.example.cinema.service.impl;
 
+import com.example.cinema.common.response.PageMapper;
+import com.example.cinema.common.response.PageResponse;
+
 import com.example.cinema.entity.Ticket;
+import com.example.cinema.dto.ticket.TicketResponse;
+import com.example.cinema.mapper.TicketMapper;
 import com.example.cinema.repository.TicketRepository;
 import com.example.cinema.service.TicketService;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +15,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -23,11 +27,18 @@ import java.util.UUID;
 public class TicketServiceImpl implements TicketService {
 
     private final TicketRepository repository;
+    private final TicketMapper ticketMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public Page<Ticket> findAll(Pageable pageable) {
-        return repository.findAllByIsActiveTrue(pageable);
+    public List<TicketResponse> findAll() {
+        return ticketMapper.toResponseList(repository.findAllByIsActiveTrue(Pageable.unpaged()).getContent());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<TicketResponse> findPage(Pageable pageable) {
+        return PageMapper.toPageResponse(repository.findAllByIsActiveTrue(pageable).map(ticketMapper::toResponse));
     }
 
     @Override

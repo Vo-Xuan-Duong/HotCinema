@@ -11,11 +11,9 @@ import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.showtimeseat.ShowtimeSeatCreateRequest;
 import com.example.cinema.dto.showtimeseat.ShowtimeSeatUpdateRequest;
 import com.example.cinema.dto.showtimeseat.ShowtimeSeatResponse;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.example.cinema.common.response.PageResponse;
-import com.example.cinema.common.response.PageMapper;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,14 +31,16 @@ public class ShowtimeSeatController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<ShowtimeSeatResponse>>> getAll(
+    public ResponseEntity<ApiResponse<List<ShowtimeSeatResponse>>> getAll() {
+        return ResponseEntity.ok(new ApiResponse<>(showtimeSeatService.findAll()));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<ApiResponse<PageResponse<ShowtimeSeatResponse>>> getPage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<ShowtimeSeat> pageResult = showtimeSeatService.findAll(pageable);
-        Page<ShowtimeSeatResponse> responsePage = pageResult.map(showtimeSeatMapper::toResponse);
-        PageResponse<ShowtimeSeatResponse> response = PageMapper.toPageResponse(responsePage);
-        return ResponseEntity.ok(new ApiResponse<>(response));
+        return ResponseEntity.ok(new ApiResponse<>(showtimeSeatService.findPage(pageable)));
     }
 
     @GetMapping("/{id}")

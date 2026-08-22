@@ -11,11 +11,9 @@ import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.employeecinema.EmployeeCinemaCreateRequest;
 import com.example.cinema.dto.employeecinema.EmployeeCinemaUpdateRequest;
 import com.example.cinema.dto.employeecinema.EmployeeCinemaResponse;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.example.cinema.common.response.PageResponse;
-import com.example.cinema.common.response.PageMapper;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,14 +31,16 @@ public class EmployeeCinemaController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<EmployeeCinemaResponse>>> getAll(
+    public ResponseEntity<ApiResponse<List<EmployeeCinemaResponse>>> getAll() {
+        return ResponseEntity.ok(new ApiResponse<>(employeeCinemaService.findAll()));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<ApiResponse<PageResponse<EmployeeCinemaResponse>>> getPage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<EmployeeCinema> pageResult = employeeCinemaService.findAll(pageable);
-        Page<EmployeeCinemaResponse> responsePage = pageResult.map(employeeCinemaMapper::toResponse);
-        PageResponse<EmployeeCinemaResponse> response = PageMapper.toPageResponse(responsePage);
-        return ResponseEntity.ok(new ApiResponse<>(response));
+        return ResponseEntity.ok(new ApiResponse<>(employeeCinemaService.findPage(pageable)));
     }
 
     @GetMapping("/{id}")

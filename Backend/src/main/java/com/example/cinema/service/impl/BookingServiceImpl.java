@@ -1,6 +1,11 @@
 package com.example.cinema.service.impl;
 
+import com.example.cinema.common.response.PageMapper;
+import com.example.cinema.common.response.PageResponse;
+
 import com.example.cinema.entity.Booking;
+import com.example.cinema.dto.booking.BookingResponse;
+import com.example.cinema.mapper.BookingMapper;
 import com.example.cinema.repository.BookingRepository;
 import com.example.cinema.service.BookingService;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +15,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,11 +24,18 @@ import java.util.UUID;
 public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository repository;
+    private final BookingMapper bookingMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public Page<Booking> findAll(Pageable pageable) {
-        return repository.findAllByIsActiveTrue(pageable);
+    public List<BookingResponse> findAll() {
+        return bookingMapper.toResponseList(repository.findAllByIsActiveTrue(Pageable.unpaged()).getContent());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<BookingResponse> findPage(Pageable pageable) {
+        return PageMapper.toPageResponse(repository.findAllByIsActiveTrue(pageable).map(bookingMapper::toResponse));
     }
 
     @Override

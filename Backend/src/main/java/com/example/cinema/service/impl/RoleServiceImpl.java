@@ -1,6 +1,11 @@
 package com.example.cinema.service.impl;
 
+import com.example.cinema.common.response.PageMapper;
+import com.example.cinema.common.response.PageResponse;
+
 import com.example.cinema.entity.Role;
+import com.example.cinema.dto.role.RoleResponse;
+import com.example.cinema.mapper.RoleMapper;
 import com.example.cinema.repository.RoleRepository;
 import com.example.cinema.service.RoleService;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +15,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,11 +24,18 @@ import java.util.UUID;
 public class RoleServiceImpl implements RoleService {
 
     private final RoleRepository repository;
+    private final RoleMapper roleMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public Page<Role> findAll(Pageable pageable) {
-        return repository.findAll(pageable);
+    public List<RoleResponse> findAll() {
+        return roleMapper.toResponseList(repository.findAll(Pageable.unpaged()).getContent());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<RoleResponse> findPage(Pageable pageable) {
+        return PageMapper.toPageResponse(repository.findAll(pageable).map(roleMapper::toResponse));
     }
 
     @Override

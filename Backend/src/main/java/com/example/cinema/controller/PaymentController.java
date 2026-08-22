@@ -11,11 +11,9 @@ import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.payment.PaymentCreateRequest;
 import com.example.cinema.dto.payment.PaymentUpdateRequest;
 import com.example.cinema.dto.payment.PaymentResponse;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.example.cinema.common.response.PageResponse;
-import com.example.cinema.common.response.PageMapper;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,14 +31,16 @@ public class PaymentController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<PaymentResponse>>> getAll(
+    public ResponseEntity<ApiResponse<List<PaymentResponse>>> getAll() {
+        return ResponseEntity.ok(new ApiResponse<>(paymentService.findAll()));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<ApiResponse<PageResponse<PaymentResponse>>> getPage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Payment> pageResult = paymentService.findAll(pageable);
-        Page<PaymentResponse> responsePage = pageResult.map(paymentMapper::toResponse);
-        PageResponse<PaymentResponse> response = PageMapper.toPageResponse(responsePage);
-        return ResponseEntity.ok(new ApiResponse<>(response));
+        return ResponseEntity.ok(new ApiResponse<>(paymentService.findPage(pageable)));
     }
 
     @GetMapping("/{id}")

@@ -11,11 +11,9 @@ import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.bookingitem.BookingItemCreateRequest;
 import com.example.cinema.dto.bookingitem.BookingItemUpdateRequest;
 import com.example.cinema.dto.bookingitem.BookingItemResponse;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.example.cinema.common.response.PageResponse;
-import com.example.cinema.common.response.PageMapper;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,14 +31,16 @@ public class BookingItemController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<BookingItemResponse>>> getAll(
+    public ResponseEntity<ApiResponse<List<BookingItemResponse>>> getAll() {
+        return ResponseEntity.ok(new ApiResponse<>(bookingItemService.findAll()));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<ApiResponse<PageResponse<BookingItemResponse>>> getPage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<BookingItem> pageResult = bookingItemService.findAll(pageable);
-        Page<BookingItemResponse> responsePage = pageResult.map(bookingItemMapper::toResponse);
-        PageResponse<BookingItemResponse> response = PageMapper.toPageResponse(responsePage);
-        return ResponseEntity.ok(new ApiResponse<>(response));
+        return ResponseEntity.ok(new ApiResponse<>(bookingItemService.findPage(pageable)));
     }
 
     @GetMapping("/{id}")

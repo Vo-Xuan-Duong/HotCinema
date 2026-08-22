@@ -1,6 +1,11 @@
 package com.example.cinema.service.impl;
 
+import com.example.cinema.common.response.PageMapper;
+import com.example.cinema.common.response.PageResponse;
+
 import com.example.cinema.entity.Seat;
+import com.example.cinema.dto.seat.SeatResponse;
+import com.example.cinema.mapper.SeatMapper;
 import com.example.cinema.repository.SeatRepository;
 import com.example.cinema.service.SeatService;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +15,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,11 +24,18 @@ import java.util.UUID;
 public class SeatServiceImpl implements SeatService {
 
     private final SeatRepository repository;
+    private final SeatMapper seatMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public Page<Seat> findAll(Pageable pageable) {
-        return repository.findAllByIsActiveTrue(pageable);
+    public List<SeatResponse> findAll() {
+        return seatMapper.toResponseList(repository.findAllByIsActiveTrue(Pageable.unpaged()).getContent());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<SeatResponse> findPage(Pageable pageable) {
+        return PageMapper.toPageResponse(repository.findAllByIsActiveTrue(pageable).map(seatMapper::toResponse));
     }
 
     @Override

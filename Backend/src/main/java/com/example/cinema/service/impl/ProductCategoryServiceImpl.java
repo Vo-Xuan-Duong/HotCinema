@@ -1,6 +1,11 @@
 package com.example.cinema.service.impl;
 
+import com.example.cinema.common.response.PageMapper;
+import com.example.cinema.common.response.PageResponse;
+
 import com.example.cinema.entity.ProductCategory;
+import com.example.cinema.dto.productcategory.ProductCategoryResponse;
+import com.example.cinema.mapper.ProductCategoryMapper;
 import com.example.cinema.repository.ProductCategoryRepository;
 import com.example.cinema.service.ProductCategoryService;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +15,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,11 +24,18 @@ import java.util.UUID;
 public class ProductCategoryServiceImpl implements ProductCategoryService {
 
     private final ProductCategoryRepository repository;
+    private final ProductCategoryMapper productCategoryMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ProductCategory> findAll(Pageable pageable) {
-        return repository.findAll(pageable);
+    public List<ProductCategoryResponse> findAll() {
+        return productCategoryMapper.toResponseList(repository.findAll(Pageable.unpaged()).getContent());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ProductCategoryResponse> findPage(Pageable pageable) {
+        return PageMapper.toPageResponse(repository.findAll(pageable).map(productCategoryMapper::toResponse));
     }
 
     @Override

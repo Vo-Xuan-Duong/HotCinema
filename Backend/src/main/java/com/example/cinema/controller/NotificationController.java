@@ -11,11 +11,9 @@ import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.notification.NotificationCreateRequest;
 import com.example.cinema.dto.notification.NotificationUpdateRequest;
 import com.example.cinema.dto.notification.NotificationResponse;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.example.cinema.common.response.PageResponse;
-import com.example.cinema.common.response.PageMapper;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,14 +31,16 @@ public class NotificationController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<NotificationResponse>>> getAll(
+    public ResponseEntity<ApiResponse<List<NotificationResponse>>> getAll() {
+        return ResponseEntity.ok(new ApiResponse<>(notificationService.findAll()));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<ApiResponse<PageResponse<NotificationResponse>>> getPage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Notification> pageResult = notificationService.findAll(pageable);
-        Page<NotificationResponse> responsePage = pageResult.map(notificationMapper::toResponse);
-        PageResponse<NotificationResponse> response = PageMapper.toPageResponse(responsePage);
-        return ResponseEntity.ok(new ApiResponse<>(response));
+        return ResponseEntity.ok(new ApiResponse<>(notificationService.findPage(pageable)));
     }
 
     @GetMapping("/{id}")

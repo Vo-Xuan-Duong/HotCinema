@@ -1,6 +1,11 @@
 package com.example.cinema.service.impl;
 
+import com.example.cinema.common.response.PageMapper;
+import com.example.cinema.common.response.PageResponse;
+
 import com.example.cinema.entity.BookingPromotion;
+import com.example.cinema.dto.bookingpromotion.BookingPromotionResponse;
+import com.example.cinema.mapper.BookingPromotionMapper;
 import com.example.cinema.repository.BookingPromotionRepository;
 import com.example.cinema.service.BookingPromotionService;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +15,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,11 +24,18 @@ import java.util.UUID;
 public class BookingPromotionServiceImpl implements BookingPromotionService {
 
     private final BookingPromotionRepository repository;
+    private final BookingPromotionMapper bookingPromotionMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public Page<BookingPromotion> findAll(Pageable pageable) {
-        return repository.findAll(pageable);
+    public List<BookingPromotionResponse> findAll() {
+        return bookingPromotionMapper.toResponseList(repository.findAll(Pageable.unpaged()).getContent());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<BookingPromotionResponse> findPage(Pageable pageable) {
+        return PageMapper.toPageResponse(repository.findAll(pageable).map(bookingPromotionMapper::toResponse));
     }
 
     @Override

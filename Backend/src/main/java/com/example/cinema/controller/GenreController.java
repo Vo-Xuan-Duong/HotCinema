@@ -11,11 +11,9 @@ import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.genre.GenreCreateRequest;
 import com.example.cinema.dto.genre.GenreUpdateRequest;
 import com.example.cinema.dto.genre.GenreResponse;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.example.cinema.common.response.PageResponse;
-import com.example.cinema.common.response.PageMapper;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,14 +31,16 @@ public class GenreController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<GenreResponse>>> getAll(
+    public ResponseEntity<ApiResponse<List<GenreResponse>>> getAll() {
+        return ResponseEntity.ok(new ApiResponse<>(genreService.findAll()));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<ApiResponse<PageResponse<GenreResponse>>> getPage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Genre> pageResult = genreService.findAll(pageable);
-        Page<GenreResponse> responsePage = pageResult.map(genreMapper::toResponse);
-        PageResponse<GenreResponse> response = PageMapper.toPageResponse(responsePage);
-        return ResponseEntity.ok(new ApiResponse<>(response));
+        return ResponseEntity.ok(new ApiResponse<>(genreService.findPage(pageable)));
     }
 
     @GetMapping("/{id}")

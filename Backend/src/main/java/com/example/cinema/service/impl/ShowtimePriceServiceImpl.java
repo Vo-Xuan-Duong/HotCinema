@@ -1,6 +1,11 @@
 package com.example.cinema.service.impl;
 
+import com.example.cinema.common.response.PageMapper;
+import com.example.cinema.common.response.PageResponse;
+
 import com.example.cinema.entity.ShowtimePrice;
+import com.example.cinema.dto.showtimeprice.ShowtimePriceResponse;
+import com.example.cinema.mapper.ShowtimePriceMapper;
 import com.example.cinema.repository.ShowtimePriceRepository;
 import com.example.cinema.service.ShowtimePriceService;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +15,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,11 +24,18 @@ import java.util.UUID;
 public class ShowtimePriceServiceImpl implements ShowtimePriceService {
 
     private final ShowtimePriceRepository repository;
+    private final ShowtimePriceMapper showtimePriceMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ShowtimePrice> findAll(Pageable pageable) {
-        return repository.findAll(pageable);
+    public List<ShowtimePriceResponse> findAll() {
+        return showtimePriceMapper.toResponseList(repository.findAll(Pageable.unpaged()).getContent());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ShowtimePriceResponse> findPage(Pageable pageable) {
+        return PageMapper.toPageResponse(repository.findAll(pageable).map(showtimePriceMapper::toResponse));
     }
 
     @Override

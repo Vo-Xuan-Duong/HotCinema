@@ -1,6 +1,11 @@
 package com.example.cinema.service.impl;
 
+import com.example.cinema.common.response.PageMapper;
+import com.example.cinema.common.response.PageResponse;
+
 import com.example.cinema.entity.EmployeeCinema;
+import com.example.cinema.dto.employeecinema.EmployeeCinemaResponse;
+import com.example.cinema.mapper.EmployeeCinemaMapper;
 import com.example.cinema.repository.EmployeeCinemaRepository;
 import com.example.cinema.service.EmployeeCinemaService;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +15,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,11 +24,18 @@ import java.util.UUID;
 public class EmployeeCinemaServiceImpl implements EmployeeCinemaService {
 
     private final EmployeeCinemaRepository repository;
+    private final EmployeeCinemaMapper employeeCinemaMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public Page<EmployeeCinema> findAll(Pageable pageable) {
-        return repository.findAll(pageable);
+    public List<EmployeeCinemaResponse> findAll() {
+        return employeeCinemaMapper.toResponseList(repository.findAll(Pageable.unpaged()).getContent());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<EmployeeCinemaResponse> findPage(Pageable pageable) {
+        return PageMapper.toPageResponse(repository.findAll(pageable).map(employeeCinemaMapper::toResponse));
     }
 
     @Override

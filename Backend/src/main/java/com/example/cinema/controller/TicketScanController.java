@@ -11,11 +11,9 @@ import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.ticketscan.TicketScanCreateRequest;
 import com.example.cinema.dto.ticketscan.TicketScanUpdateRequest;
 import com.example.cinema.dto.ticketscan.TicketScanResponse;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.example.cinema.common.response.PageResponse;
-import com.example.cinema.common.response.PageMapper;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,14 +31,16 @@ public class TicketScanController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<TicketScanResponse>>> getAll(
+    public ResponseEntity<ApiResponse<List<TicketScanResponse>>> getAll() {
+        return ResponseEntity.ok(new ApiResponse<>(ticketScanService.findAll()));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<ApiResponse<PageResponse<TicketScanResponse>>> getPage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<TicketScan> pageResult = ticketScanService.findAll(pageable);
-        Page<TicketScanResponse> responsePage = pageResult.map(ticketScanMapper::toResponse);
-        PageResponse<TicketScanResponse> response = PageMapper.toPageResponse(responsePage);
-        return ResponseEntity.ok(new ApiResponse<>(response));
+        return ResponseEntity.ok(new ApiResponse<>(ticketScanService.findPage(pageable)));
     }
 
     @GetMapping("/{id}")

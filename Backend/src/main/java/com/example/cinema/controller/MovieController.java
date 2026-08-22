@@ -11,11 +11,9 @@ import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.movie.MovieCreateRequest;
 import com.example.cinema.dto.movie.MovieUpdateRequest;
 import com.example.cinema.dto.movie.MovieResponse;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.example.cinema.common.response.PageResponse;
-import com.example.cinema.common.response.PageMapper;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,14 +31,16 @@ public class MovieController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<MovieResponse>>> getAll(
+    public ResponseEntity<ApiResponse<List<MovieResponse>>> getAll() {
+        return ResponseEntity.ok(new ApiResponse<>(movieService.findAll()));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<ApiResponse<PageResponse<MovieResponse>>> getPage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Movie> pageResult = movieService.findAll(pageable);
-        Page<MovieResponse> responsePage = pageResult.map(movieMapper::toResponse);
-        PageResponse<MovieResponse> response = PageMapper.toPageResponse(responsePage);
-        return ResponseEntity.ok(new ApiResponse<>(response));
+        return ResponseEntity.ok(new ApiResponse<>(movieService.findPage(pageable)));
     }
 
     @GetMapping("/{id}")

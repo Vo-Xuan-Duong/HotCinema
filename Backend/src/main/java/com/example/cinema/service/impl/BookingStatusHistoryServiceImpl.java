@@ -1,6 +1,11 @@
 package com.example.cinema.service.impl;
 
+import com.example.cinema.common.response.PageMapper;
+import com.example.cinema.common.response.PageResponse;
+
 import com.example.cinema.entity.BookingStatusHistory;
+import com.example.cinema.dto.bookingstatushistory.BookingStatusHistoryResponse;
+import com.example.cinema.mapper.BookingStatusHistoryMapper;
 import com.example.cinema.repository.BookingStatusHistoryRepository;
 import com.example.cinema.service.BookingStatusHistoryService;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +15,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,11 +24,18 @@ import java.util.UUID;
 public class BookingStatusHistoryServiceImpl implements BookingStatusHistoryService {
 
     private final BookingStatusHistoryRepository repository;
+    private final BookingStatusHistoryMapper bookingStatusHistoryMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public Page<BookingStatusHistory> findAll(Pageable pageable) {
-        return repository.findAll(pageable);
+    public List<BookingStatusHistoryResponse> findAll() {
+        return bookingStatusHistoryMapper.toResponseList(repository.findAll(Pageable.unpaged()).getContent());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<BookingStatusHistoryResponse> findPage(Pageable pageable) {
+        return PageMapper.toPageResponse(repository.findAll(pageable).map(bookingStatusHistoryMapper::toResponse));
     }
 
     @Override

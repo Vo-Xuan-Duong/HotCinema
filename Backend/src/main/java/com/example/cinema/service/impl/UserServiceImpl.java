@@ -1,6 +1,11 @@
 package com.example.cinema.service.impl;
 
+import com.example.cinema.common.response.PageMapper;
+import com.example.cinema.common.response.PageResponse;
+
 import com.example.cinema.entity.User;
+import com.example.cinema.dto.user.UserResponse;
+import com.example.cinema.mapper.UserMapper;
 import com.example.cinema.repository.UserRepository;
 import com.example.cinema.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +16,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,11 +25,18 @@ import java.util.UUID;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository repository;
+    private final UserMapper userMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public Page<User> findAll(Pageable pageable) {
-        return repository.findAllByIsActiveTrue(pageable);
+    public List<UserResponse> findAll() {
+        return userMapper.toResponseList(repository.findAllByIsActiveTrue(Pageable.unpaged()).getContent());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<UserResponse> findPage(Pageable pageable) {
+        return PageMapper.toPageResponse(repository.findAllByIsActiveTrue(pageable).map(userMapper::toResponse));
     }
 
     @Override

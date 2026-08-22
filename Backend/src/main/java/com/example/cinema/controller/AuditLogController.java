@@ -11,11 +11,9 @@ import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.auditlog.AuditLogCreateRequest;
 import com.example.cinema.dto.auditlog.AuditLogUpdateRequest;
 import com.example.cinema.dto.auditlog.AuditLogResponse;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.example.cinema.common.response.PageResponse;
-import com.example.cinema.common.response.PageMapper;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,14 +31,16 @@ public class AuditLogController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<AuditLogResponse>>> getAll(
+    public ResponseEntity<ApiResponse<List<AuditLogResponse>>> getAll() {
+        return ResponseEntity.ok(new ApiResponse<>(auditLogService.findAll()));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<ApiResponse<PageResponse<AuditLogResponse>>> getPage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<AuditLog> pageResult = auditLogService.findAll(pageable);
-        Page<AuditLogResponse> responsePage = pageResult.map(auditLogMapper::toResponse);
-        PageResponse<AuditLogResponse> response = PageMapper.toPageResponse(responsePage);
-        return ResponseEntity.ok(new ApiResponse<>(response));
+        return ResponseEntity.ok(new ApiResponse<>(auditLogService.findPage(pageable)));
     }
 
     @GetMapping("/{id}")

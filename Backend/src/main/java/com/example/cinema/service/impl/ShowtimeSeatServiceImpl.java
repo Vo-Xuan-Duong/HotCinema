@@ -1,6 +1,11 @@
 package com.example.cinema.service.impl;
 
+import com.example.cinema.common.response.PageMapper;
+import com.example.cinema.common.response.PageResponse;
+
 import com.example.cinema.entity.ShowtimeSeat;
+import com.example.cinema.dto.showtimeseat.ShowtimeSeatResponse;
+import com.example.cinema.mapper.ShowtimeSeatMapper;
 import com.example.cinema.repository.ShowtimeSeatRepository;
 import com.example.cinema.service.ShowtimeSeatService;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +15,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,11 +24,18 @@ import java.util.UUID;
 public class ShowtimeSeatServiceImpl implements ShowtimeSeatService {
 
     private final ShowtimeSeatRepository repository;
+    private final ShowtimeSeatMapper showtimeSeatMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ShowtimeSeat> findAll(Pageable pageable) {
-        return repository.findAllByIsActiveTrue(pageable);
+    public List<ShowtimeSeatResponse> findAll() {
+        return showtimeSeatMapper.toResponseList(repository.findAllByIsActiveTrue(Pageable.unpaged()).getContent());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ShowtimeSeatResponse> findPage(Pageable pageable) {
+        return PageMapper.toPageResponse(repository.findAllByIsActiveTrue(pageable).map(showtimeSeatMapper::toResponse));
     }
 
     @Override

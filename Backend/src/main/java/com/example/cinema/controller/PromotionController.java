@@ -11,11 +11,9 @@ import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.promotion.PromotionCreateRequest;
 import com.example.cinema.dto.promotion.PromotionUpdateRequest;
 import com.example.cinema.dto.promotion.PromotionResponse;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.example.cinema.common.response.PageResponse;
-import com.example.cinema.common.response.PageMapper;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,14 +31,16 @@ public class PromotionController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<PromotionResponse>>> getAll(
+    public ResponseEntity<ApiResponse<List<PromotionResponse>>> getAll() {
+        return ResponseEntity.ok(new ApiResponse<>(promotionService.findAll()));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<ApiResponse<PageResponse<PromotionResponse>>> getPage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Promotion> pageResult = promotionService.findAll(pageable);
-        Page<PromotionResponse> responsePage = pageResult.map(promotionMapper::toResponse);
-        PageResponse<PromotionResponse> response = PageMapper.toPageResponse(responsePage);
-        return ResponseEntity.ok(new ApiResponse<>(response));
+        return ResponseEntity.ok(new ApiResponse<>(promotionService.findPage(pageable)));
     }
 
     @GetMapping("/{id}")

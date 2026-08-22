@@ -11,11 +11,9 @@ import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.auditorium.AuditoriumCreateRequest;
 import com.example.cinema.dto.auditorium.AuditoriumUpdateRequest;
 import com.example.cinema.dto.auditorium.AuditoriumResponse;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.example.cinema.common.response.PageResponse;
-import com.example.cinema.common.response.PageMapper;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,14 +31,16 @@ public class AuditoriumController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<AuditoriumResponse>>> getAll(
+    public ResponseEntity<ApiResponse<List<AuditoriumResponse>>> getAll() {
+        return ResponseEntity.ok(new ApiResponse<>(auditoriumService.findAll()));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<ApiResponse<PageResponse<AuditoriumResponse>>> getPage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Auditorium> pageResult = auditoriumService.findAll(pageable);
-        Page<AuditoriumResponse> responsePage = pageResult.map(auditoriumMapper::toResponse);
-        PageResponse<AuditoriumResponse> response = PageMapper.toPageResponse(responsePage);
-        return ResponseEntity.ok(new ApiResponse<>(response));
+        return ResponseEntity.ok(new ApiResponse<>(auditoriumService.findPage(pageable)));
     }
 
     @GetMapping("/{id}")

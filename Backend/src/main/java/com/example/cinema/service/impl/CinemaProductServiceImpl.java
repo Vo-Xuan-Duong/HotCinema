@@ -1,6 +1,11 @@
 package com.example.cinema.service.impl;
 
+import com.example.cinema.common.response.PageMapper;
+import com.example.cinema.common.response.PageResponse;
+
 import com.example.cinema.entity.CinemaProduct;
+import com.example.cinema.dto.cinemaproduct.CinemaProductResponse;
+import com.example.cinema.mapper.CinemaProductMapper;
 import com.example.cinema.repository.CinemaProductRepository;
 import com.example.cinema.service.CinemaProductService;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +15,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,11 +24,18 @@ import java.util.UUID;
 public class CinemaProductServiceImpl implements CinemaProductService {
 
     private final CinemaProductRepository repository;
+    private final CinemaProductMapper cinemaProductMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public Page<CinemaProduct> findAll(Pageable pageable) {
-        return repository.findAllByIsActiveTrue(pageable);
+    public List<CinemaProductResponse> findAll() {
+        return cinemaProductMapper.toResponseList(repository.findAllByIsActiveTrue(Pageable.unpaged()).getContent());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<CinemaProductResponse> findPage(Pageable pageable) {
+        return PageMapper.toPageResponse(repository.findAllByIsActiveTrue(pageable).map(cinemaProductMapper::toResponse));
     }
 
     @Override

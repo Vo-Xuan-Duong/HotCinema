@@ -11,11 +11,9 @@ import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.paymentwebhook.PaymentWebhookCreateRequest;
 import com.example.cinema.dto.paymentwebhook.PaymentWebhookUpdateRequest;
 import com.example.cinema.dto.paymentwebhook.PaymentWebhookResponse;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.example.cinema.common.response.PageResponse;
-import com.example.cinema.common.response.PageMapper;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,14 +31,16 @@ public class PaymentWebhookController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<PaymentWebhookResponse>>> getAll(
+    public ResponseEntity<ApiResponse<List<PaymentWebhookResponse>>> getAll() {
+        return ResponseEntity.ok(new ApiResponse<>(paymentWebhookService.findAll()));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<ApiResponse<PageResponse<PaymentWebhookResponse>>> getPage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<PaymentWebhook> pageResult = paymentWebhookService.findAll(pageable);
-        Page<PaymentWebhookResponse> responsePage = pageResult.map(paymentWebhookMapper::toResponse);
-        PageResponse<PaymentWebhookResponse> response = PageMapper.toPageResponse(responsePage);
-        return ResponseEntity.ok(new ApiResponse<>(response));
+        return ResponseEntity.ok(new ApiResponse<>(paymentWebhookService.findPage(pageable)));
     }
 
     @GetMapping("/{id}")

@@ -1,6 +1,11 @@
 package com.example.cinema.service.impl;
 
+import com.example.cinema.common.response.PageMapper;
+import com.example.cinema.common.response.PageResponse;
+
 import com.example.cinema.entity.RefreshToken;
+import com.example.cinema.dto.refreshtoken.RefreshTokenResponse;
+import com.example.cinema.mapper.RefreshTokenMapper;
 import com.example.cinema.repository.RefreshTokenRepository;
 import com.example.cinema.service.RefreshTokenService;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +15,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,11 +24,18 @@ import java.util.UUID;
 public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     private final RefreshTokenRepository repository;
+    private final RefreshTokenMapper refreshTokenMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public Page<RefreshToken> findAll(Pageable pageable) {
-        return repository.findAll(pageable);
+    public List<RefreshTokenResponse> findAll() {
+        return refreshTokenMapper.toResponseList(repository.findAll(Pageable.unpaged()).getContent());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<RefreshTokenResponse> findPage(Pageable pageable) {
+        return PageMapper.toPageResponse(repository.findAll(pageable).map(refreshTokenMapper::toResponse));
     }
 
     @Override

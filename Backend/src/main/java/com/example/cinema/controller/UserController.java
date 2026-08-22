@@ -11,11 +11,9 @@ import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.user.UserCreateRequest;
 import com.example.cinema.dto.user.UserUpdateRequest;
 import com.example.cinema.dto.user.UserResponse;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.example.cinema.common.response.PageResponse;
-import com.example.cinema.common.response.PageMapper;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,14 +31,16 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> getAll(
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getAll() {
+        return ResponseEntity.ok(new ApiResponse<>(userService.findAll()));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> getPage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<User> pageResult = userService.findAll(pageable);
-        Page<UserResponse> responsePage = pageResult.map(userMapper::toResponse);
-        PageResponse<UserResponse> response = PageMapper.toPageResponse(responsePage);
-        return ResponseEntity.ok(new ApiResponse<>(response));
+        return ResponseEntity.ok(new ApiResponse<>(userService.findPage(pageable)));
     }
 
     @GetMapping("/{id}")

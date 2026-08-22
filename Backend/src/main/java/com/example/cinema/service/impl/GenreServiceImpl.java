@@ -1,6 +1,11 @@
 package com.example.cinema.service.impl;
 
+import com.example.cinema.common.response.PageMapper;
+import com.example.cinema.common.response.PageResponse;
+
 import com.example.cinema.entity.Genre;
+import com.example.cinema.dto.genre.GenreResponse;
+import com.example.cinema.mapper.GenreMapper;
 import com.example.cinema.repository.GenreRepository;
 import com.example.cinema.service.GenreService;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +15,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,11 +24,18 @@ import java.util.UUID;
 public class GenreServiceImpl implements GenreService {
 
     private final GenreRepository repository;
+    private final GenreMapper genreMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public Page<Genre> findAll(Pageable pageable) {
-        return repository.findAll(pageable);
+    public List<GenreResponse> findAll() {
+        return genreMapper.toResponseList(repository.findAll(Pageable.unpaged()).getContent());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<GenreResponse> findPage(Pageable pageable) {
+        return PageMapper.toPageResponse(repository.findAll(pageable).map(genreMapper::toResponse));
     }
 
     @Override
