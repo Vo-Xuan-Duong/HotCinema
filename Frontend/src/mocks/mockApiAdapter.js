@@ -220,7 +220,7 @@ const enrichBooking = (db, booking) => {
 };
 
 const handleAuth = (db, method, path, body) => {
-  if (path === '/auth/login' && method === 'post') {
+  if (path === '/auths/login' && method === 'post') {
     const email = lower(body.email);
     const expectedPasswords = {
       'admin@hotcinema.vn': 'admin123',
@@ -234,29 +234,30 @@ const handleAuth = (db, method, path, body) => {
     }
     return { accessToken: mockJwt(user), refreshToken: 'mock-refresh-token', userAuth: user };
   }
-  if (path === '/auth/google' && method === 'post') {
+  if (path === '/auths/google' && method === 'post') {
     const user = db.users.find((item) => item.email === 'customer@hotcinema.vn');
     return { accessToken: mockJwt(user), refreshToken: 'mock-refresh-token', userAuth: user };
   }
-  if (path.startsWith('/auth/google/callback')) {
+  if (path.startsWith('/auths/google/callback')) {
     const user = db.users.find((item) => item.email === 'customer@hotcinema.vn');
     return { accessToken: mockJwt(user), refreshToken: 'mock-refresh-token', userAuth: user };
   }
-  if (path === '/auth/current-user') return currentUser(db);
-  if (['/auth/verify', '/auth/validate_token'].includes(path)) return { valid: true, user: currentUser(db) };
-  if (path === '/auth/refresh') return { accessToken: mockJwt(currentUser(db)), refreshToken: 'mock-refresh-token' };
-  if (path === '/auth/logout') return { success: true };
-  if (path === '/auth/register' && method === 'post') return { success: true, message: 'Đăng ký mock thành công. Bạn có thể đăng nhập bằng tài khoản customer.' };
-  if (path.includes('forget-password') || path.includes('resend-otp')) return { success: true, message: 'Mock OTP: 123456' };
+  if (path === '/auths/me') return currentUser(db);
+  if (path === '/auths/verify') return { valid: true, user: currentUser(db) };
+  if (path === '/auths/refresh') return { accessToken: mockJwt(currentUser(db)), refreshToken: 'mock-refresh-token' };
+  if (path === '/auths/logout') return { success: true };
+  if (path === '/auths/register' && method === 'post') return { success: true, message: 'Đăng ký mock thành công. Bạn có thể đăng nhập bằng tài khoản customer.' };
+  if (path.includes('forgot-password') || path.includes('resend-otp')) return { success: true, message: 'Mock OTP: 123456' };
   if (path.includes('verify-otp')) return { success: true, verified: true };
-  if (path === '/auth/change-password') return { success: true };
-  if (path === '/auth/verify-email') return { success: true, verified: true };
+  if (path === '/auths/reset-password') return { success: true };
+  if (path === '/auths/verify-otp') return { success: true, verified: true };
   return undefined;
 };
 
 const handleMovies = (db, method, path, params, body) => {
   if (!path.startsWith('/movies')) return undefined;
-  if (method === 'get' && path === '/movies') return pageOf(db.movies, params);
+  if (method === 'get' && path === '/movies/page') return pageOf(db.movies, params);
+  if (method === 'get' && path === '/movies') return db.movies;
   if (method === 'get' && path === '/movies/now-showing') return pageOf(db.movies.filter((item) => item.status === 'NOW_SHOWING'), params);
   if (method === 'get' && path === '/movies/coming-soon') return pageOf(db.movies.filter((item) => item.status === 'COMING_SOON'), params);
   if (method === 'get' && path === '/movies/top-rated') return pageOf([...db.movies].sort((a, b) => Number(b.averageRating || 0) - Number(a.averageRating || 0)), params);
@@ -341,9 +342,9 @@ const handleCinemas = (db, method, path, params, body) => {
 };
 
 const handleRooms = (db, method, path, params, body) => {
-  if (!path.startsWith('/rooms')) return undefined;
-  if (method === 'get' && path === '/rooms') return pageOf(db.rooms, params);
-  const cinemaMatch = path.match(/^\/rooms\/cinema\/(\d+)$/);
+  if (!path.startsWith('/auditoriums')) return undefined;
+  if (method === 'get' && ['/auditoriums', '/auditoriums/page'].includes(path)) return pageOf(db.rooms, params);
+  const cinemaMatch = path.match(/^\/auditoriums\/cinema\/(\d+)$/);
   if (cinemaMatch) {
     const cinemaId = Number(cinemaMatch[1]);
     if (method === 'get') return db.rooms.filter((item) => item.cinemaId === cinemaId);
@@ -364,7 +365,7 @@ const handleRooms = (db, method, path, params, body) => {
       return room;
     }
   }
-  const match = path.match(/^\/rooms\/(\d+)$/);
+  const match = path.match(/^\/auditoriums\/(\d+)$/);
   if (match) {
     const id = Number(match[1]);
     const index = db.rooms.findIndex((item) => item.id === id);
@@ -433,23 +434,23 @@ const handleSeats = (db, method, path, params, body) => {
 };
 
 const handleShowtimes = (db, method, path, params, body) => {
-  if (!path.startsWith('/showtime')) return undefined;
-  if (method === 'get' && path === '/showtime') {
+  if (!path.startsWith('/showtimes')) return undefined;
+  if (method === 'get' && path === '/showtimes') {
     let items = [...db.showtimes];
     if (params.date) items = items.filter((item) => item.showDate === params.date);
     if (params.movieId) items = items.filter((item) => item.movieId === Number(params.movieId));
     if (params.cinemaId) items = items.filter((item) => item.cinemaId === Number(params.cinemaId));
     return pageOf(items, params);
   }
-  const movieDate = path.match(/^\/showtime\/movie\/(\d+)\/date\/([^/]+)$/);
+  const movieDate = path.match(/^\/showtimes\/movie\/(\d+)\/date\/([^/]+)$/);
   if (movieDate && method === 'get') return cinemaShowtimePage(db, movieDate[1], movieDate[2], params);
-  const cinemaDate = path.match(/^\/showtime\/cinema\/(\d+)\/date\/([^/]+)$/);
+  const cinemaDate = path.match(/^\/showtimes\/cinema\/(\d+)\/date\/([^/]+)$/);
   if (cinemaDate && method === 'get') {
     const cinemaId = Number(cinemaDate[1]);
     const date = cinemaDate[2];
     return db.showtimes.filter((item) => item.cinemaId === cinemaId && item.showDate === date);
   }
-  if (method === 'post' && path === '/showtime/filters') {
+  if (method === 'post' && path === '/showtimes/filters') {
     let items = [...db.showtimes];
     const filters = body || {};
     if (filters.movieId) items = items.filter((item) => item.movieId === Number(filters.movieId));
@@ -457,9 +458,9 @@ const handleShowtimes = (db, method, path, params, body) => {
     if (filters.date || filters.showDate) items = items.filter((item) => item.showDate === (filters.date || filters.showDate));
     return items;
   }
-  const seatsMatch = path.match(/^\/showtime\/(\d+)\/seats$/);
+  const seatsMatch = path.match(/^\/showtimes\/(\d+)\/seats$/);
   if (seatsMatch && method === 'get') return getShowtimeSeats(db, seatsMatch[1]);
-  const lockMatch = path.match(/^\/showtime\/(\d+)\/(lock-seat|unlock-seat)\/(\d+)$/);
+  const lockMatch = path.match(/^\/showtimes\/(\d+)\/(lock-seat|unlock-seat)\/(\d+)$/);
   if (lockMatch && method === 'post') {
     const [, showtimeId, action, seatId] = lockMatch;
     db.showtimeSeatState ||= {};
@@ -469,7 +470,7 @@ const handleShowtimes = (db, method, path, params, body) => {
     persistMockDatabase();
     return { success: true, showtimeId: Number(showtimeId), seatId: Number(seatId) };
   }
-  const statusMatch = path.match(/^\/showtime\/(\d+)\/status$/);
+  const statusMatch = path.match(/^\/showtimes\/(\d+)\/status$/);
   if (statusMatch && method === 'patch') {
     const showtime = db.showtimes.find((item) => item.id === Number(statusMatch[1]));
     if (showtime) {
@@ -478,7 +479,7 @@ const handleShowtimes = (db, method, path, params, body) => {
     }
     return showtime || null;
   }
-  const idMatch = path.match(/^\/showtime\/(\d+)$/);
+  const idMatch = path.match(/^\/showtimes\/(\d+)$/);
   if (idMatch) {
     const id = Number(idMatch[1]);
     const index = db.showtimes.findIndex((item) => item.id === id);
@@ -497,7 +498,7 @@ const handleShowtimes = (db, method, path, params, body) => {
       return removed;
     }
   }
-  if (method === 'post' && path === '/showtime') {
+  if (method === 'post' && path === '/showtimes') {
     const room = db.rooms.find((item) => item.id === Number(body.theaterId || body.roomId));
     const movie = db.movies.find((item) => item.id === Number(body.movieId));
     const cinema = db.cinemas.find((item) => item.id === Number(body.cinemaId || room?.cinemaId));

@@ -20,7 +20,7 @@ const roomService = {
             size: params.size || 20,
             ...(params.sort && { sort: params.sort })
         };
-        return apiClient.get(ENDPOINTS.ROOMS, { params: queryParams });
+        return apiClient.get(`${ENDPOINTS.ROOMS}/page`, { params: queryParams });
     },
 
     /**

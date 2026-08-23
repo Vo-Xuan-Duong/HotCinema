@@ -110,9 +110,7 @@ const refreshAccessToken = async () => {
 
   try {
     // Gọi API refresh token (điều chỉnh endpoint theo backend)
-    const response = await axios.get(`${API_BASE_URL}/auth/refresh`, {
-      params: { refreshToken }
-    });
+    const response = await axios.post(`${API_BASE_URL}/auths/refresh`, { refreshToken });
 
     const { accessToken, refreshToken: newRefreshToken } = response.data.data || response.data;
 
@@ -132,10 +130,10 @@ const refreshAccessToken = async () => {
 apiClient.interceptors.request.use(
   async (config) => {
     // Bỏ qua kiểm tra token cho các endpoint auth
-    if (config.url?.includes('/auth/login') ||
-      config.url?.includes('/auth/register') ||
-      config.url?.includes('/auth/google') ||
-      config.url?.includes('/auth/refresh')) {
+    if (config.url?.includes('/auths/login') ||
+      config.url?.includes('/auths/register') ||
+      config.url?.includes('/auths/google') ||
+      config.url?.includes('/auths/refresh')) {
       return config;
     }
 
@@ -197,10 +195,10 @@ apiClient.interceptors.response.use(
     // Xử lý 401 Unauthorized - Token hết hạn
     else if (status === 401 && !originalRequest._retry) {
       // Nếu đang ở trang login, register, google auth hoặc refresh token thì không retry
-      if (originalRequest.url?.includes('/auth/login') ||
-        originalRequest.url?.includes('/auth/register') ||
-        originalRequest.url?.includes('/auth/google') ||
-        originalRequest.url?.includes('/auth/refresh')) {
+      if (originalRequest.url?.includes('/auths/login') ||
+        originalRequest.url?.includes('/auths/register') ||
+        originalRequest.url?.includes('/auths/google') ||
+        originalRequest.url?.includes('/auths/refresh')) {
         message = error.response?.data?.message || ERROR_MESSAGES.UNAUTHORIZED || 'Xác thực thất bại.';
         // Không remove token cho auth endpoints vì user đang cố đăng nhập
       } else {

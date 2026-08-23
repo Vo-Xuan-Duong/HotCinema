@@ -180,7 +180,7 @@ const authAwareMockAdapter = async (config) => {
   const method = String(config.method || 'get').toLowerCase();
   const path = String(config.url || '').split('?')[0].replace(/\/$/, '');
 
-  if (method === 'post' && path === '/auth/login') {
+  if (method === 'post' && path === '/auths/login') {
     const body = parseBody(config);
     const email = String(body.email || '').trim().toLowerCase();
     const passwords = {
@@ -222,7 +222,7 @@ const authAwareMockAdapter = async (config) => {
   }
 
   // Customer CinemaDetail and Schedule consume a movie-grouped response for this endpoint.
-  const cinemaDateMatch = path.match(/^\/showtime\/cinema\/(\d+)\/date\/([^/]+)$/);
+  const cinemaDateMatch = path.match(/^\/showtimes\/cinema\/(\d+)\/date\/([^/]+)$/);
   if (method === 'get' && cinemaDateMatch) {
     const params = getParams(config);
     return mockResponse(

@@ -36,8 +36,25 @@ spring:
       username: ${REDIS_USERNAME:}
       password: ${REDIS_PASSWORD:}
 
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USERNAME:no-reply@hotcinema.local}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SMTP_AUTH:false}
+          starttls:
+            enable: ${SMTP_STARTTLS:false}
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
 app:
   security:
+    otp:
+      ttl-seconds: ${OTP_TTL_SECONDS:300}
     jwt:
       # Chỉ dùng làm fallback khi phát triển. Hãy đặt JWT_SECRET ở staging/production.
       secret: ${JWT_SECRET:hotcinema-dev-secret-key-change-before-production-2026}
