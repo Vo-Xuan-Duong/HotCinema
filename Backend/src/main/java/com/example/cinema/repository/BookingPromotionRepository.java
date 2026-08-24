@@ -8,4 +8,8 @@ import java.util.UUID;
 
 @Repository
 public interface BookingPromotionRepository extends JpaRepository<BookingPromotion, UUID> {
+
+    long countByPromotion_Id(UUID promotionId);
+
+    long countByPromotion_IdAndBooking_User_Id(UUID promotionId, UUID userId);
 }
