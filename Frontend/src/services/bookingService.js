@@ -6,7 +6,7 @@ const base = ENDPOINTS.BOOKINGS;
 
 const bookingService = {
   async listPage(params) {
-    return unwrapApiData(await apiClient.get(base, { params }));
+    return unwrapApiData(await apiClient.get(`${base}/page`, { params }));
   },
 
   async list(params) {
