@@ -42,6 +42,15 @@ public interface ShowtimeSeatRepository extends JpaRepository<ShowtimeSeat, UUID
             @Param("seatId") UUID seatId
     );
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select ss from ShowtimeSeat ss
+            where ss.booking.id = :bookingId
+              and ss.isActive = true
+            order by ss.id
+            """)
+    List<ShowtimeSeat> findAllByBookingIdForUpdate(@Param("bookingId") UUID bookingId);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             update ShowtimeSeat ss
