@@ -19,6 +19,7 @@ import com.example.cinema.repository.BookingRepository;
 import com.example.cinema.repository.PaymentRepository;
 import com.example.cinema.repository.ShowtimeSeatRepository;
 import com.example.cinema.service.PaymentService;
+import com.example.cinema.service.TicketIssuanceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -38,6 +39,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentMapper paymentMapper;
     private final BookingRepository bookingRepository;
     private final ShowtimeSeatRepository showtimeSeatRepository;
+    private final TicketIssuanceService ticketIssuanceService;
 
     @Override
     @Transactional(readOnly = true)
@@ -139,7 +141,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional
-    @CacheEvict(value = {"payments", "bookings", "showtimeseats"}, allEntries = true)
+    @CacheEvict(value = {"payments", "bookings", "showtimeseats", "tickets"}, allEntries = true)
     public PaymentResponse updateStatus(UUID id, PaymentStatus status) {
         Payment entity = repository.findByIdAndIsActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment", id.toString()));
@@ -210,6 +212,7 @@ public class PaymentServiceImpl implements PaymentService {
             if (payment.getPaidAt() == null) {
                 payment.setPaidAt(now);
             }
+            ticketIssuanceService.issueTickets(booking, payment.getPaidAt());
             return;
         }
         if (booking.getStatus() != BookingStatus.PENDING_PAYMENT) {
@@ -244,6 +247,7 @@ public class PaymentServiceImpl implements PaymentService {
         booking.setStatus(BookingStatus.CONFIRMED);
         booking.setPaidAt(now);
         bookingRepository.save(booking);
+        ticketIssuanceService.issueTickets(booking, now);
         payment.setStatus(PaymentStatus.SUCCESS);
         payment.setPaidAt(now);
     }
