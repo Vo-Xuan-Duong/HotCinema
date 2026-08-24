@@ -1,12 +1,12 @@
 import { apiClient } from '@/utils/apiClient';
-import { unwrapApiArray, unwrapApiData } from '@/utils/apiResponse';
+import { unwrapApiArray, unwrapApiData, unwrapApiPage } from '@/utils/apiResponse';
 import { ENDPOINTS } from '@/utils/constants';
 
 const base = ENDPOINTS.MOVIES;
 
 const movieService = {
   async listPage(params) {
-    return unwrapApiData(await apiClient.get(`${base}/page`, { params }));
+    return unwrapApiPage(await apiClient.get(`${base}/page`, { params }));
   },
 
   async list(params) {
@@ -18,7 +18,7 @@ const movieService = {
   },
 
   async getByGenrePage(genre, params) {
-    return unwrapApiData(await apiClient.get(`${base}/genre/${encodeURIComponent(genre)}`, { params }));
+    return unwrapApiPage(await apiClient.get(`${base}/genre/${encodeURIComponent(genre)}`, { params }));
   },
 
   async getByGenre(genre, params) {
@@ -26,7 +26,7 @@ const movieService = {
   },
 
   async getComingSoonPage(params) {
-    return unwrapApiData(await apiClient.get(`${base}/coming-soon`, { params }));
+    return unwrapApiPage(await apiClient.get(`${base}/coming-soon`, { params }));
   },
 
   async getComingSoon(params) {
@@ -34,23 +34,15 @@ const movieService = {
   },
 
   async getNowShowingPage(params) {
-    return unwrapApiData(await apiClient.get(`${base}/now-showing`, { params }));
+    return unwrapApiPage(await apiClient.get(`${base}/now-showing`, { params }));
   },
 
   async getNowShowing(params) {
     return unwrapApiArray(await apiClient.get(`${base}/now-showing`, { params }));
   },
 
-  async getTopRatedPage(params) {
-    return unwrapApiData(await apiClient.get(`${base}/top-rated`, { params }));
-  },
-
-  async getTopRated(params) {
-    return unwrapApiArray(await apiClient.get(`${base}/top-rated`, { params }));
-  },
-
   async searchPage(params) {
-    return unwrapApiData(await apiClient.get(`${base}/search`, { params }));
+    return unwrapApiPage(await apiClient.get(`${base}/search`, { params }));
   },
 
   async search(params) {
