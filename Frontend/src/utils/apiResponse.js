@@ -18,6 +18,42 @@ const isApiEnvelope = (value) => {
   return keys.length === 1 || keys.some((key) => ENVELOPE_METADATA_KEYS.has(key));
 };
 
+const toFiniteNumber = (value, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const normalizePageShape = (data) => {
+  if (!isObject(data)) return {};
+
+  // Backend PageResponse<T> uses { items, pagination } while several frontend
+  // screens consume the conventional Spring page aliases. Normalize once here
+  // so services/components do not need backend-specific branching.
+  if (Array.isArray(data.items) && isObject(data.pagination)) {
+    const pagination = data.pagination;
+    const page = toFiniteNumber(pagination.page, 0);
+    const size = toFiniteNumber(pagination.pageSize, data.items.length);
+    const totalElements = toFiniteNumber(pagination.totalItems, data.items.length);
+    const totalPages = toFiniteNumber(pagination.totalPages, totalElements > 0 && size > 0 ? Math.ceil(totalElements / size) : 0);
+
+    return {
+      ...data,
+      content: data.items,
+      number: page,
+      size,
+      totalElements,
+      total: totalElements,
+      totalPages,
+      first: pagination.hasPrevious === undefined ? page === 0 : !pagination.hasPrevious,
+      last: pagination.hasNext === undefined ? page + 1 >= totalPages : !pagination.hasNext,
+      hasNext: Boolean(pagination.hasNext),
+      hasPrevious: Boolean(pagination.hasPrevious),
+    };
+  }
+
+  return data;
+};
+
 /**
  * Normalize the application response envelope after apiClient has already
  * removed the Axios response wrapper. Nested ResponseData envelopes are
@@ -39,10 +75,8 @@ export const unwrapApiArray = (response) => {
   const data = unwrapApiData(response);
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.content)) return data.content;
+  if (Array.isArray(data?.items)) return data.items;
   return [];
 };
 
-export const unwrapApiPage = (response) => {
-  const data = unwrapApiData(response);
-  return isObject(data) ? data : {};
-};
+export const unwrapApiPage = (response) => normalizePageShape(unwrapApiData(response));
