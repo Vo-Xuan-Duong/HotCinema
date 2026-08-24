@@ -28,7 +28,7 @@ public class Review extends BaseEntity {
     @Column(nullable = false)
     private Integer rating;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(name = "review_text", nullable = false, columnDefinition = "TEXT")
     private String comment;
 
     @Enumerated(EnumType.STRING)
