@@ -21,8 +21,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -35,6 +38,7 @@ public class ShowtimeSeatServiceImpl implements ShowtimeSeatService {
     private final ShowtimeSeatRepository repository;
     private final ShowtimeSeatMapper showtimeSeatMapper;
     private final UserRepository userRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Value("${app.booking.seat-hold-seconds:300}")
     private long seatHoldSeconds;
@@ -105,7 +109,9 @@ public class ShowtimeSeatServiceImpl implements ShowtimeSeatService {
         entity.setHeldAt(now);
         entity.setHoldExpiresAt(now.plusSeconds(seatHoldSeconds));
 
-        return toResponse(repository.save(entity));
+        ShowtimeSeatResponse response = toResponse(repository.save(entity));
+        publishSeatStatusAfterCommit(showtimeId, response);
+        return response;
     }
 
     @Override
@@ -117,7 +123,9 @@ public class ShowtimeSeatServiceImpl implements ShowtimeSeatService {
 
         ZonedDateTime now = ZonedDateTime.now();
         if (releaseIfExpired(entity, now)) {
-            return toResponse(repository.save(entity));
+            ShowtimeSeatResponse response = toResponse(repository.save(entity));
+            publishSeatStatusAfterCommit(showtimeId, response);
+            return response;
         }
 
         if (entity.getStatus() == ShowtimeSeatStatus.AVAILABLE) {
@@ -133,7 +141,9 @@ public class ShowtimeSeatServiceImpl implements ShowtimeSeatService {
         }
 
         clearHold(entity);
-        return toResponse(repository.save(entity));
+        ShowtimeSeatResponse response = toResponse(repository.save(entity));
+        publishSeatStatusAfterCommit(showtimeId, response);
+        return response;
     }
 
     @Override
@@ -212,4 +222,24 @@ public class ShowtimeSeatServiceImpl implements ShowtimeSeatService {
         }
         return response;
     }
+
+    private void publishSeatStatusAfterCommit(UUID showtimeId, ShowtimeSeatResponse response) {
+        Runnable publish = () -> messagingTemplate.convertAndSend(
+                "/topic/showtimes/" + showtimeId,
+                new SeatStatusEvent(response.getId(), response.getStatus().name())
+        );
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    publish.run();
+                }
+            });
+        } else {
+            publish.run();
+        }
+    }
+
+    private record SeatStatusEvent(UUID seatId, String status) {}
 }
