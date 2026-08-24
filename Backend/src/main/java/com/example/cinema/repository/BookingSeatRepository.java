@@ -8,4 +8,6 @@ import java.util.UUID;
 
 @Repository
 public interface BookingSeatRepository extends JpaRepository<BookingSeat, UUID> {
+
+    void deleteAllByBooking_Id(UUID bookingId);
 }
