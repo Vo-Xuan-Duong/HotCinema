@@ -2,23 +2,28 @@ package com.example.cinema.service.impl;
 
 import com.example.cinema.common.response.PageMapper;
 import com.example.cinema.common.response.PageResponse;
-
-import com.example.cinema.entity.Payment;
 import com.example.cinema.dto.payment.PaymentCreateRequest;
-import com.example.cinema.dto.payment.PaymentUpdateRequest;
-import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.payment.PaymentResponse;
+import com.example.cinema.dto.payment.PaymentUpdateRequest;
+import com.example.cinema.entity.Booking;
+import com.example.cinema.entity.Payment;
+import com.example.cinema.entity.enums.PaymentStatus;
+import com.example.cinema.exception.AppException;
+import com.example.cinema.exception.ErrorCode;
+import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.mapper.PaymentMapper;
+import com.example.cinema.repository.BookingRepository;
 import com.example.cinema.repository.PaymentRepository;
 import com.example.cinema.service.PaymentService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.ZonedDateTime;
 import java.util.List;
-import org.springframework.data.domain.Pageable;
 import java.util.UUID;
 
 @Service
@@ -27,6 +32,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository repository;
     private final PaymentMapper paymentMapper;
+    private final BookingRepository bookingRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -42,6 +48,14 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional(readOnly = true)
+    public PageResponse<PaymentResponse> findByStatus(PaymentStatus status, Pageable pageable) {
+        return PageMapper.toPageResponse(
+                repository.findAllByStatusAndIsActiveTrue(status, pageable).map(paymentMapper::toResponse)
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     @Cacheable(value = "payments", key = "#id")
     public PaymentResponse findById(UUID id) {
         return repository.findByIdAndIsActiveTrue(id)
@@ -50,11 +64,51 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public PaymentResponse findByIdForUser(UUID id, UUID userId) {
+        return repository.findByIdAndBooking_User_IdAndIsActiveTrue(id, userId)
+                .map(paymentMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment", id.toString()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PaymentResponse> findByBookingId(UUID bookingId) {
+        return paymentMapper.toResponseList(repository.findAllByBooking_IdAndIsActiveTrue(bookingId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PaymentResponse> findByBookingIdForUser(UUID bookingId, UUID userId) {
+        return paymentMapper.toResponseList(
+                repository.findAllByBooking_IdAndBooking_User_IdAndIsActiveTrue(bookingId, userId)
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaymentResponse findByTransactionId(String transactionId) {
+        return repository.findByProviderTransactionIdAndIsActiveTrue(transactionId)
+                .map(paymentMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment transaction", transactionId));
+    }
+
+    @Override
     @Transactional
     @CacheEvict(value = "payments", allEntries = true)
     public PaymentResponse create(PaymentCreateRequest request) {
-        Payment entity = paymentMapper.toEntity(request);
-        return paymentMapper.toResponse(repository.save(entity));
+        Booking booking = bookingRepository.findByIdAndIsActiveTrue(request.getBookingId())
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", request.getBookingId().toString()));
+        return createInternal(request, booking);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "payments", allEntries = true)
+    public PaymentResponse createForUser(PaymentCreateRequest request, UUID userId) {
+        Booking booking = bookingRepository.findByIdAndUser_IdAndIsActiveTrue(request.getBookingId(), userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", request.getBookingId().toString()));
+        return createInternal(request, booking);
     }
 
     @Override
@@ -63,7 +117,35 @@ public class PaymentServiceImpl implements PaymentService {
     public PaymentResponse update(UUID id, PaymentUpdateRequest request) {
         Payment entity = repository.findByIdAndIsActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment", id.toString()));
+        Booking booking = bookingRepository.findByIdAndIsActiveTrue(request.getBookingId())
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", request.getBookingId().toString()));
+
+        validatePaymentAgainstBooking(request.getAmount(), request.getCurrency(), booking);
         paymentMapper.updateEntityFromRequest(request, entity);
+        entity.setBooking(booking);
+        return paymentMapper.toResponse(repository.save(entity));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "payments", allEntries = true)
+    public PaymentResponse updateStatus(UUID id, PaymentStatus status) {
+        Payment entity = repository.findByIdAndIsActiveTrue(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment", id.toString()));
+        entity.setStatus(status);
+        if (status == PaymentStatus.SUCCESS && entity.getPaidAt() == null) {
+            entity.setPaidAt(ZonedDateTime.now());
+        }
+        return paymentMapper.toResponse(repository.save(entity));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "payments", allEntries = true)
+    public PaymentResponse updateTransactionId(UUID id, String transactionId) {
+        Payment entity = repository.findByIdAndIsActiveTrue(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment", id.toString()));
+        entity.setProviderTransactionId(transactionId);
         return paymentMapper.toResponse(repository.save(entity));
     }
 
@@ -75,5 +157,29 @@ public class PaymentServiceImpl implements PaymentService {
             entity.setActive(false);
             repository.save(entity);
         });
+    }
+
+    private PaymentResponse createInternal(PaymentCreateRequest request, Booking booking) {
+        Payment existing = repository.findByIdempotencyKeyAndIsActiveTrue(request.getIdempotencyKey()).orElse(null);
+        if (existing != null) {
+            if (!existing.getBooking().getId().equals(booking.getId())) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Idempotency key is already associated with another booking");
+            }
+            return paymentMapper.toResponse(existing);
+        }
+
+        validatePaymentAgainstBooking(request.getAmount(), request.getCurrency(), booking);
+        Payment entity = paymentMapper.toEntity(request);
+        entity.setBooking(booking);
+        return paymentMapper.toResponse(repository.save(entity));
+    }
+
+    private void validatePaymentAgainstBooking(java.math.BigDecimal amount, String currency, Booking booking) {
+        if (booking.getTotalAmount() == null || amount.compareTo(booking.getTotalAmount()) != 0) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Payment amount must match booking total amount");
+        }
+        if (booking.getCurrency() == null || !booking.getCurrency().equalsIgnoreCase(currency)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Payment currency must match booking currency");
+        }
     }
 }
