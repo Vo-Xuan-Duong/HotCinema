@@ -1,5 +1,5 @@
 import { apiClient } from '@/utils/apiClient';
-import { unwrapApiArray, unwrapApiData } from '@/utils/apiResponse';
+import { unwrapApiArray, unwrapApiData, unwrapApiPage } from '@/utils/apiResponse';
 
 const base = '/reviews';
 
@@ -21,7 +21,7 @@ const reviewService = {
   },
 
   async getReviewsByMovie(movieId, params = { page: 0, size: 10 }) {
-    return unwrapApiData(await apiClient.get(`${base}/movie/${movieId}`, { params }));
+    return unwrapApiPage(await apiClient.get(`${base}/movie/${movieId}`, { params }));
   },
 
   async getReviewsByMovieArray(movieId, params = { page: 0, size: 10 }) {
@@ -45,7 +45,7 @@ const reviewService = {
   },
 
   async getAllReviews(params = { page: 0, size: 10 }) {
-    return unwrapApiData(await apiClient.get(base, { params }));
+    return unwrapApiPage(await apiClient.get(base, { params }));
   },
 
   async approveReview(reviewId) {
