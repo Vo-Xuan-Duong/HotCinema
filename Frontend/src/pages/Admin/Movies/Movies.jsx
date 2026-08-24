@@ -15,15 +15,15 @@ import useNotification from '@/hooks/useNotification';
 import { AdminPageHeader } from '@/layouts/admin/AdminPageHeader';
 import genreService from '@/services/genreService';
 import movieService from '@/services/movieService';
-import { unwrapApiData } from '@/utils/apiResponse';
 
 const DEFAULT_PAGE_SIZE = 10;
 
 const statusPresentation = {
+  DRAFT: { label: 'Bản nháp', tone: 'neutral' },
   NOW_SHOWING: { label: 'Đang chiếu', tone: 'success' },
   COMING_SOON: { label: 'Sắp chiếu', tone: 'warning' },
-  ARCHIVED: { label: 'Đã lưu trữ', tone: 'neutral' },
   ENDED: { label: 'Đã kết thúc', tone: 'neutral' },
+  HIDDEN: { label: 'Đã ẩn', tone: 'neutral' },
 };
 
 const getStatusPresentation = (status) => statusPresentation[status] || {
@@ -101,7 +101,7 @@ const AdminMovies = () => {
 
       if (debouncedSearch) params.keyword = debouncedSearch;
       if (filters.status !== 'all') params.status = filters.status;
-      if (filters.genreId !== 'all') params.genre = [Number(filters.genreId)];
+      if (filters.genreId !== 'all') params.genre = filters.genreId;
       if (filters.releaseYear !== 'all') params.releaseYear = Number(filters.releaseYear);
 
       const hasSearchCriteria = Boolean(
@@ -111,12 +111,13 @@ const AdminMovies = () => {
         || filters.releaseYear !== 'all'
       );
 
-      const response = hasSearchCriteria
+      const page = hasSearchCriteria
         ? await movieService.searchPage(params)
         : await movieService.listPage(params);
-      const page = unwrapApiData(response) || {};
-      const content = Array.isArray(page) ? page : Array.isArray(page.content) ? page.content : [];
-      const total = Array.isArray(page) ? page.length : Number(page.totalElements ?? page.total) || content.length;
+      const content = Array.isArray(page) ? page : Array.isArray(page?.content) ? page.content : page?.items || [];
+      const total = Array.isArray(page)
+        ? page.length
+        : Number(page?.totalElements ?? page?.pagination?.totalItems ?? page?.total) || content.length;
 
       setMovies(content);
       setPagination((previous) => ({ ...previous, total }));
@@ -244,7 +245,7 @@ const AdminMovies = () => {
       title: 'Đánh giá',
       key: 'rating',
       render: (_, record) => {
-        const rating = Number(record.averageRating ?? record.voteAverage ?? record.rating ?? 0);
+        const rating = Number(record.averageRating ?? record.voteAverage ?? 0);
         return rating > 0 ? (
           <div className="flex items-center gap-1.5">
             <StarRating readOnly value={Math.min(5, rating > 5 ? rating / 2 : rating)} className="gap-0.5" />
@@ -326,9 +327,11 @@ const AdminMovies = () => {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="DRAFT">Bản nháp</SelectItem>
                   <SelectItem value="NOW_SHOWING">Đang chiếu</SelectItem>
                   <SelectItem value="COMING_SOON">Sắp chiếu</SelectItem>
-                  <SelectItem value="ARCHIVED">Đã lưu trữ</SelectItem>
+                  <SelectItem value="ENDED">Đã kết thúc</SelectItem>
+                  <SelectItem value="HIDDEN">Đã ẩn</SelectItem>
                 </SelectContent>
               </Select>
 
