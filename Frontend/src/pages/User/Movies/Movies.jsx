@@ -17,7 +17,7 @@ const DEFAULT_PAGE_SIZE = 15;
 
 const getMovieStatus = (movie) => {
   if (movie.status === 'COMING_SOON') return 'upcoming';
-  if (movie.status === 'ARCHIVED') return 'archived';
+  if (movie.status === 'ENDED' || movie.status === 'HIDDEN') return 'archived';
   if (movie.status === 'NOW_SHOWING') return 'now-showing';
 
   if (!movie.releaseDateRaw) return 'now-showing';
@@ -69,7 +69,8 @@ const normalizeMovie = (movie, index) => ({
   ...movie,
   id: movie.id ?? movie._id ?? index + 1,
   poster: movie.posterUrl || movie.posterPath || movie.poster || '/brand-placeholder.svg',
-  rating: Number(movie.averageRating ?? movie.rating ?? 0),
+  rating: Number(movie.averageRating ?? movie.voteAverage ?? 0) || 0,
+  ageLabel: movie.ageRating || movie.rating || '',
   genre: formatGenre(movie.genres || movie.genre),
   releaseDate: formatReleaseDate(movie.releaseDate),
   releaseDateRaw: movie.releaseDate,
@@ -138,10 +139,10 @@ const Movies = () => {
         const response = await movieService.searchPage(params);
         if (cancelled) return;
 
-        const content = Array.isArray(response) ? response : response?.content || [];
+        const content = Array.isArray(response) ? response : response?.content || response?.items || [];
         const total = Array.isArray(response)
           ? response.length
-          : response?.totalElements ?? response?.total ?? content.length;
+          : response?.totalElements ?? response?.pagination?.totalItems ?? response?.total ?? content.length;
 
         setMovies(content.map(normalizeMovie));
         setTotalMovies(total);
@@ -243,7 +244,7 @@ const Movies = () => {
                   <SelectItem value="all">Tất cả trạng thái</SelectItem>
                   <SelectItem value="NOW_SHOWING">Đang chiếu</SelectItem>
                   <SelectItem value="COMING_SOON">Sắp chiếu</SelectItem>
-                  <SelectItem value="ARCHIVED">Đã chiếu</SelectItem>
+                  <SelectItem value="ENDED">Đã chiếu</SelectItem>
                 </SelectContent>
               </Select>
 
