@@ -1,10 +1,11 @@
 package com.example.cinema.mapper;
 
 import com.example.cinema.dto.ticketscan.TicketScanCreateRequest;
-import com.example.cinema.dto.ticketscan.TicketScanUpdateRequest;
 import com.example.cinema.dto.ticketscan.TicketScanResponse;
+import com.example.cinema.dto.ticketscan.TicketScanUpdateRequest;
 import com.example.cinema.entity.TicketScan;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.ReportingPolicy;
 
@@ -15,6 +16,10 @@ public interface TicketScanMapper {
 
     TicketScan toEntity(TicketScanCreateRequest request);
 
+    @Mapping(source = "ticket.id", target = "ticketId")
+    @Mapping(source = "ticket.ticketCode", target = "ticketCode")
+    @Mapping(source = "cinema.id", target = "cinemaId")
+    @Mapping(source = "scannedBy.id", target = "scannedById")
     TicketScanResponse toResponse(TicketScan entity);
 
     List<TicketScanResponse> toResponseList(List<TicketScan> entities);
