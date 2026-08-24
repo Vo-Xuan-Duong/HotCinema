@@ -268,10 +268,10 @@ const BookingSeatSelection = () => {
         roomName: showtime.roomName || showtime.room?.name || previous.roomName,
         startTime: showtime.startTime || previous.startTime,
         endTime: showtime.endTime || previous.endTime,
-        date: showtime.date || showtime.showtimeDate || previous.date,
-        price: showtime.price || previous.price,
-        formatType: showtime.formatType || previous.formatType,
-        roomId: showtime.roomId || showtime.room?.id || previous.roomId,
+        date: showtime.showDate || showtime.date || showtime.showtimeDate || previous.date,
+        price: showtime.basePrice ?? showtime.price ?? previous.price,
+        formatType: showtime.format || showtime.formatType || previous.formatType,
+        roomId: showtime.roomId || showtime.auditoriumId || showtime.room?.id || previous.roomId,
         cinemaId: showtime.cinemaId || showtime.cinema?.id || previous.cinemaId,
         movieId: showtime.movieId || showtime.movie?.id || previous.movieId,
       }));
@@ -433,8 +433,8 @@ const BookingSeatSelection = () => {
     setIsCreatingBooking(true);
     try {
       const seatIds = selectedSeats
-        .map((seat) => typeof seat.id === 'number' ? seat.id : Number.parseInt(seat.id, 10))
-        .filter((id) => Number.isFinite(id) && id > 0);
+        .map((seat) => seat.id ? String(seat.id) : '')
+        .filter(Boolean);
 
       if (!seatIds.length) {
         notification.error('Không có ghế hợp lệ để đặt');
@@ -442,7 +442,7 @@ const BookingSeatSelection = () => {
       }
 
       const bookingData = await bookingService.createBooking({
-        showtimeId: Number.parseInt(showtimeId, 10),
+        showtimeId,
         seatIds,
         promotionCode: promotionInfo?.code || promotionCode.trim() || null,
       });
