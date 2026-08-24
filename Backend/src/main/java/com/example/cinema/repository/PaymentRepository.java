@@ -35,4 +35,10 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
             PaymentProvider provider,
             String providerOrderId
     );
+
+    Optional<Payment> findFirstByBooking_IdAndProviderAndStatusAndIsActiveTrueOrderByCreatedAtDesc(
+            UUID bookingId,
+            PaymentProvider provider,
+            PaymentStatus status
+    );
 }
