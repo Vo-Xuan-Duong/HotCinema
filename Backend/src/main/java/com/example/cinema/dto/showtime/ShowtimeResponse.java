@@ -1,16 +1,16 @@
 package com.example.cinema.dto.showtime;
 
-import java.util.UUID;
-
 import com.example.cinema.entity.enums.ShowtimeFormat;
 import com.example.cinema.entity.enums.ShowtimeStatus;
-import java.math.BigDecimal;
-import java.time.ZonedDateTime;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -18,19 +18,26 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ShowtimeResponse {
 
-    private java.util.UUID id;
-    private java.time.ZonedDateTime createdAt;
-    private java.time.ZonedDateTime updatedAt;
-    private java.util.UUID movieId;
-    private java.util.UUID auditoriumId;
+    private UUID id;
+    private ZonedDateTime createdAt;
+    private ZonedDateTime updatedAt;
+    private UUID movieId;
+    private String movieTitle;
+    private UUID auditoriumId;
+    private UUID roomId;
+    private String roomName;
+    private UUID cinemaId;
+    private String cinemaName;
+    private LocalDate showDate;
     private ZonedDateTime startTime;
     private ZonedDateTime endTime;
     private String language;
     private String subtitle;
     private ShowtimeFormat format;
     private BigDecimal basePrice;
+    private BigDecimal price;
     private ZonedDateTime bookingOpenAt;
     private ZonedDateTime bookingCloseAt;
     private ShowtimeStatus status;
-    private java.util.UUID createdById;
+    private UUID createdById;
 }
