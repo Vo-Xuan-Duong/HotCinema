@@ -17,9 +17,9 @@ export const isMockApiEnabled = () => {
   if (configured === 'true') return true;
   if (configured === 'false') return false;
 
-  // Backend is still under development, so local Vite development defaults to mock mode.
-  // Production builds remain on the real API unless VITE_USE_MOCK_DATA=true is explicit.
-  return Boolean(import.meta.env.DEV);
+  // Real API is the development default. Mock mode is now an explicit opt-in
+  // for isolated UI work so FE/BE contract regressions remain visible locally.
+  return false;
 };
 
 export const MOCK_API_ENABLED = isMockApiEnabled();
