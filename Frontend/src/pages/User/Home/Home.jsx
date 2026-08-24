@@ -6,16 +6,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import movieService from '@/services/movieService';
 
 const processMovies = (data) => {
-  const items = Array.isArray(data) ? data : data?.content || [];
+  const items = Array.isArray(data) ? data : data?.content || data?.items || [];
 
   return items.map((movie, index) => ({
     ...movie,
     id: movie.id ?? movie._id ?? index + 1,
     poster: movie.posterUrl || movie.posterPath || movie.poster || '/brand-placeholder.svg',
-    backdrop: movie.backdropUrl || movie.backdropPath || movie.posterUrl || movie.poster || '/brand-placeholder.svg',
+    backdrop: movie.bannerUrl || movie.backdropUrl || movie.backdropPath || movie.posterUrl || movie.poster || '/brand-placeholder.svg',
     posterPath: movie.posterUrl || movie.posterPath,
-    backdropPath: movie.backdropUrl || movie.backdropPath,
-    rating: movie.averageRating ?? movie.rating ?? movie.voteAverage ?? 0,
+    backdropPath: movie.bannerUrl || movie.backdropUrl || movie.backdropPath,
+    rating: Number(movie.averageRating ?? movie.voteAverage ?? 0) || 0,
+    ageLabel: movie.ageRating || movie.rating || '',
     duration: movie.durationMinutes || movie.duration,
     durationFormatted: movie.durationFormatted
       || (movie.durationMinutes ? `${Math.floor(movie.durationMinutes / 60)}h ${movie.durationMinutes % 60}m` : null),
@@ -35,10 +36,9 @@ const Home = () => {
     const loadData = async () => {
       try {
         const results = await Promise.allSettled([
-          movieService.listPage({ page: 0, size: 20 }),
-          movieService.getComingSoon({ page: 0, size: 12 }),
-          movieService.getNowShowing({ page: 0, size: 12 }),
-          movieService.getTopRated({ page: 0, size: 10 }),
+          movieService.listPage({ page: 0, size: 20, sort: 'createdAt,desc' }),
+          movieService.getComingSoon({ page: 0, size: 12, sort: 'releaseDate,asc' }),
+          movieService.getNowShowing({ page: 0, size: 12, sort: 'releaseDate,desc' }),
         ]);
 
         if (cancelled) return;
@@ -46,19 +46,26 @@ const Home = () => {
         const allMoviesData = results[0].status === 'fulfilled' ? results[0].value : { content: [] };
         const upcomingData = results[1].status === 'fulfilled' ? results[1].value : [];
         const nowShowingData = results[2].status === 'fulfilled' ? results[2].value : [];
-        const topRatedData = results[3].status === 'fulfilled' ? results[3].value : [];
 
         results.forEach((result, index) => {
           if (result.status === 'rejected') {
-            const apiNames = ['listPage', 'getComingSoon', 'getNowShowing', 'getTopRated'];
+            const apiNames = ['listPage', 'getComingSoon', 'getNowShowing'];
             console.error(`API ${apiNames[index]} failed:`, result.reason);
           }
         });
 
-        setMovies(processMovies(allMoviesData));
-        setUpcomingMovies(processMovies(upcomingData));
-        setNowShowingMovies(processMovies(nowShowingData));
-        setTopRatedMovies(processMovies(topRatedData));
+        const normalizedAllMovies = processMovies(allMoviesData);
+        const normalizedUpcoming = processMovies(upcomingData);
+        const normalizedNowShowing = processMovies(nowShowingData);
+        const normalizedTopRated = normalizedAllMovies
+          .filter((movie) => Number(movie.rating) > 0)
+          .sort((left, right) => Number(right.rating) - Number(left.rating))
+          .slice(0, 10);
+
+        setMovies(normalizedAllMovies);
+        setUpcomingMovies(normalizedUpcoming);
+        setNowShowingMovies(normalizedNowShowing);
+        setTopRatedMovies(normalizedTopRated);
       } catch (error) {
         console.error('Failed to load movies from API', error);
       } finally {
@@ -72,7 +79,11 @@ const Home = () => {
     };
   }, []);
 
-  const heroMovies = upcomingMovies.length > 0 ? upcomingMovies : movies;
+  const heroMovies = upcomingMovies.length > 0
+    ? upcomingMovies
+    : nowShowingMovies.length > 0
+      ? nowShowingMovies
+      : movies;
 
   if (loading) {
     return (
@@ -120,7 +131,9 @@ const Home = () => {
       <main className="w-full">
         <MovieShowcase movies={upcomingMovies} title="Phim sắp chiếu" category="upcoming" />
         <MovieShowcase movies={nowShowingMovies} title="Phim đang chiếu" category="now-showing" />
-        <MovieShowcase movies={topRatedMovies} title="Phim được đánh giá cao" category="top-rated" />
+        {topRatedMovies.length > 0 && (
+          <MovieShowcase movies={topRatedMovies} title="Phim được đánh giá cao" category="top-rated" />
+        )}
         <FeaturesSection />
       </main>
     </div>
