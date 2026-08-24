@@ -17,7 +17,7 @@ const paymentService = {
   },
 
   async listPage(params = { page: 0, size: 10, sort: 'createdAt,desc' }) {
-    return unwrapApiData(await apiClient.get(base, { params }));
+    return unwrapApiData(await apiClient.get(`${base}/page`, { params }));
   },
 
   async getAllNoPagination() {
