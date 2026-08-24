@@ -1,16 +1,16 @@
 package com.example.cinema.controller;
 
-import com.example.cinema.service.AuditoriumService;
 import com.example.cinema.common.response.ApiResponse;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import jakarta.validation.Valid;
+import com.example.cinema.common.response.PageResponse;
 import com.example.cinema.dto.auditorium.AuditoriumCreateRequest;
-import com.example.cinema.dto.auditorium.AuditoriumUpdateRequest;
 import com.example.cinema.dto.auditorium.AuditoriumResponse;
+import com.example.cinema.dto.auditorium.AuditoriumUpdateRequest;
+import com.example.cinema.service.AuditoriumService;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import com.example.cinema.common.response.PageResponse;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
@@ -38,6 +38,11 @@ public class AuditoriumController {
         return ResponseEntity.ok(new ApiResponse<>(auditoriumService.findPage(pageable)));
     }
 
+    @GetMapping("/cinema/{cinemaId}")
+    public ResponseEntity<ApiResponse<List<AuditoriumResponse>>> getByCinema(@PathVariable UUID cinemaId) {
+        return ResponseEntity.ok(new ApiResponse<>(auditoriumService.findByCinema(cinemaId)));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<AuditoriumResponse>> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(new ApiResponse<>(auditoriumService.findById(id)));
@@ -48,8 +53,18 @@ public class AuditoriumController {
         return ResponseEntity.ok(new ApiResponse<>(auditoriumService.create(request)));
     }
 
+    @PostMapping("/cinema/{cinemaId}")
+    public ResponseEntity<ApiResponse<AuditoriumResponse>> createForCinema(
+            @PathVariable UUID cinemaId,
+            @Valid @RequestBody AuditoriumCreateRequest request) {
+        request.setCinemaId(cinemaId);
+        return ResponseEntity.ok(new ApiResponse<>(auditoriumService.create(request)));
+    }
+
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<AuditoriumResponse>> update(@PathVariable UUID id, @Valid @RequestBody AuditoriumUpdateRequest request) {
+    public ResponseEntity<ApiResponse<AuditoriumResponse>> update(
+            @PathVariable UUID id,
+            @Valid @RequestBody AuditoriumUpdateRequest request) {
         return ResponseEntity.ok(new ApiResponse<>(auditoriumService.update(id, request)));
     }
 
