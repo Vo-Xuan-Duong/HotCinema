@@ -27,6 +27,10 @@ public interface ShowtimeSeatRepository extends JpaRepository<ShowtimeSeat, UUID
     List<ShowtimeSeat> findAllByShowtime_IdAndIsActiveTrue(UUID showtimeId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select ss from ShowtimeSeat ss where ss.id = :seatId and ss.isActive = true")
+    Optional<ShowtimeSeat> findByIdForUpdate(@Param("seatId") UUID seatId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select ss from ShowtimeSeat ss
             where ss.id = :seatId
