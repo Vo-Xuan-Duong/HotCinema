@@ -5,19 +5,22 @@ import com.example.cinema.dto.movie.MovieUpdateRequest;
 import com.example.cinema.dto.movie.MovieResponse;
 import com.example.cinema.entity.Movie;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.ReportingPolicy;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
+@Mapper(componentModel = "spring", uses = GenreMapper.class, unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface MovieMapper {
 
+    @Mapping(target = "genres", ignore = true)
     Movie toEntity(MovieCreateRequest request);
 
     MovieResponse toResponse(Movie entity);
 
     List<MovieResponse> toResponseList(List<Movie> entities);
 
+    @Mapping(target = "genres", ignore = true)
     void updateEntityFromRequest(MovieUpdateRequest request, @MappingTarget Movie entity);
 }

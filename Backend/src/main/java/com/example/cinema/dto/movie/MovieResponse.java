@@ -5,6 +5,8 @@ import java.util.UUID;
 import com.example.cinema.entity.enums.AgeRating;
 import com.example.cinema.entity.enums.MovieStatus;
 import java.time.LocalDate;
+import java.util.Set;
+import com.example.cinema.dto.genre.GenreResponse;
 import java.time.ZonedDateTime;
 
 import lombok.AllArgsConstructor;
@@ -39,4 +41,5 @@ public class MovieResponse {
     private String trailerUrl;
     private MovieStatus status;
     private ZonedDateTime deletedAt;
+    private Set<GenreResponse> genres;
 }

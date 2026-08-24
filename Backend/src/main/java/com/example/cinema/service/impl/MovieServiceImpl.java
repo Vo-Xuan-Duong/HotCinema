@@ -10,6 +10,9 @@ import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.movie.MovieResponse;
 import com.example.cinema.mapper.MovieMapper;
 import com.example.cinema.repository.MovieRepository;
+import com.example.cinema.repository.GenreRepository;
+import com.example.cinema.exception.AppException;
+import com.example.cinema.exception.ErrorCode;
 import com.example.cinema.service.MovieService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,6 +31,7 @@ public class MovieServiceImpl implements MovieService {
 
     private final MovieRepository repository;
     private final MovieMapper movieMapper;
+    private final GenreRepository genreRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -55,6 +59,7 @@ public class MovieServiceImpl implements MovieService {
     @CacheEvict(value = "movies", allEntries = true)
     public MovieResponse create(MovieCreateRequest request) {
         Movie entity = movieMapper.toEntity(request);
+        entity.setGenres(resolveGenres(request.getGenres()));
         return movieMapper.toResponse(repository.save(entity));
     }
 
@@ -65,7 +70,19 @@ public class MovieServiceImpl implements MovieService {
         Movie entity = repository.findByIdAndIsActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", id.toString()));
         movieMapper.updateEntityFromRequest(request, entity);
+        entity.setGenres(resolveGenres(request.getGenres()));
         return movieMapper.toResponse(repository.save(entity));
+    }
+
+    private java.util.Set<com.example.cinema.entity.Genre> resolveGenres(java.util.Set<UUID> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return new java.util.HashSet<>();
+        }
+        var genres = genreRepository.findAllByIdIn(ids);
+        if (genres.size() != ids.size()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "One or more genre IDs do not exist");
+        }
+        return genres;
     }
 
     @Override

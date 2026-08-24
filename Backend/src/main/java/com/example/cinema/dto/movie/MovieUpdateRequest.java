@@ -5,6 +5,8 @@ import jakarta.validation.constraints.*;
 import com.example.cinema.entity.enums.AgeRating;
 import com.example.cinema.entity.enums.MovieStatus;
 import java.time.LocalDate;
+import java.util.Set;
+import java.util.UUID;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -52,4 +54,6 @@ public class MovieUpdateRequest {
     private String trailerUrl;
     @NotNull
     private MovieStatus status;
+    @NotEmpty
+    private Set<UUID> genres;
 }
