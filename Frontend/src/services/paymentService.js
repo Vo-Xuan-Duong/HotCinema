@@ -6,12 +6,22 @@ const base = ENDPOINTS.PAYMENTS;
 
 export const PAYMENT_STATUS = {
   PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
   SUCCESS: 'SUCCESS',
   FAILED: 'FAILED',
   CANCELLED: 'CANCELLED',
+  REFUNDED: 'REFUNDED',
+  PARTIALLY_REFUNDED: 'PARTIALLY_REFUNDED',
 };
 
 const paymentService = {
+  async initiatePayment(bookingId, provider) {
+    return unwrapApiData(await apiClient.post(`${base}/initiate`, {
+      bookingId,
+      provider: String(provider || '').toUpperCase(),
+    }));
+  },
+
   async createPayment(data) {
     return unwrapApiData(await apiClient.post(base, data));
   },
@@ -72,17 +82,15 @@ const paymentService = {
     return unwrapApiData(await apiClient.delete(`${base}/${paymentId}`));
   },
 
-  async handleMoMoCallback(callbackData) {
-    return unwrapApiData(await apiClient.post(`${base}/momo-callback`, callbackData));
-  },
-
   getStatusDisplayName(status) {
     const statusNames = {
       [PAYMENT_STATUS.PENDING]: 'Đang chờ',
+      [PAYMENT_STATUS.PROCESSING]: 'Đang xử lý',
       [PAYMENT_STATUS.SUCCESS]: 'Thành công',
       [PAYMENT_STATUS.FAILED]: 'Thất bại',
       [PAYMENT_STATUS.CANCELLED]: 'Đã hủy',
-      REFUNDED: 'Đã hoàn tiền',
+      [PAYMENT_STATUS.REFUNDED]: 'Đã hoàn tiền',
+      [PAYMENT_STATUS.PARTIALLY_REFUNDED]: 'Hoàn tiền một phần',
     };
     return statusNames[status] || status;
   },
@@ -90,6 +98,7 @@ const paymentService = {
   getStatusColor(status) {
     const statusColors = {
       [PAYMENT_STATUS.PENDING]: 'orange',
+      [PAYMENT_STATUS.PROCESSING]: 'blue',
       [PAYMENT_STATUS.SUCCESS]: 'green',
       [PAYMENT_STATUS.FAILED]: 'red',
       [PAYMENT_STATUS.CANCELLED]: 'gray',
@@ -110,7 +119,7 @@ const paymentService = {
   },
 
   isFinalStatus(status) {
-    return [PAYMENT_STATUS.SUCCESS, PAYMENT_STATUS.CANCELLED].includes(status);
+    return [PAYMENT_STATUS.SUCCESS, PAYMENT_STATUS.CANCELLED, PAYMENT_STATUS.FAILED].includes(status);
   },
 
   canRetry(status) {
