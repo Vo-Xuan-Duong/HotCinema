@@ -11,4 +11,6 @@ import java.util.UUID;
 public interface EmployeeCinemaRepository extends JpaRepository<EmployeeCinema, UUID> {
 
     Optional<EmployeeCinema> findByIdAndIsActiveTrue(UUID id);
+
+    boolean existsByUser_IdAndCinema_IdAndIsActiveTrue(UUID userId, UUID cinemaId);
 }
