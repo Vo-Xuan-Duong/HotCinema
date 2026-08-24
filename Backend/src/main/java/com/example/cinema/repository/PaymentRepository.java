@@ -1,6 +1,7 @@
 package com.example.cinema.repository;
 
 import com.example.cinema.entity.Payment;
+import com.example.cinema.entity.enums.PaymentProvider;
 import com.example.cinema.entity.enums.PaymentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,4 +30,9 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     Optional<Payment> findByProviderTransactionIdAndIsActiveTrue(String providerTransactionId);
 
     Optional<Payment> findByIdempotencyKeyAndIsActiveTrue(String idempotencyKey);
+
+    Optional<Payment> findByProviderAndProviderOrderIdAndIsActiveTrue(
+            PaymentProvider provider,
+            String providerOrderId
+    );
 }
