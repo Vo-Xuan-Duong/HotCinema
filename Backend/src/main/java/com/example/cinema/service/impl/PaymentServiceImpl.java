@@ -7,13 +7,17 @@ import com.example.cinema.dto.payment.PaymentResponse;
 import com.example.cinema.dto.payment.PaymentUpdateRequest;
 import com.example.cinema.entity.Booking;
 import com.example.cinema.entity.Payment;
+import com.example.cinema.entity.ShowtimeSeat;
+import com.example.cinema.entity.enums.BookingStatus;
 import com.example.cinema.entity.enums.PaymentStatus;
+import com.example.cinema.entity.enums.ShowtimeSeatStatus;
 import com.example.cinema.exception.AppException;
 import com.example.cinema.exception.ErrorCode;
 import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.mapper.PaymentMapper;
 import com.example.cinema.repository.BookingRepository;
 import com.example.cinema.repository.PaymentRepository;
+import com.example.cinema.repository.ShowtimeSeatRepository;
 import com.example.cinema.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -33,6 +37,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository repository;
     private final PaymentMapper paymentMapper;
     private final BookingRepository bookingRepository;
+    private final ShowtimeSeatRepository showtimeSeatRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -99,7 +104,7 @@ public class PaymentServiceImpl implements PaymentService {
     public PaymentResponse create(PaymentCreateRequest request) {
         Booking booking = bookingRepository.findByIdAndIsActiveTrue(request.getBookingId())
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", request.getBookingId().toString()));
-        return createInternal(request, booking);
+        return createInternal(request, booking, false);
     }
 
     @Override
@@ -108,7 +113,13 @@ public class PaymentServiceImpl implements PaymentService {
     public PaymentResponse createForUser(PaymentCreateRequest request, UUID userId) {
         Booking booking = bookingRepository.findByIdAndUser_IdAndIsActiveTrue(request.getBookingId(), userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", request.getBookingId().toString()));
-        return createInternal(request, booking);
+        if (booking.getStatus() != BookingStatus.PENDING_PAYMENT) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Booking is not awaiting payment");
+        }
+        if (booking.getExpiresAt() != null && !booking.getExpiresAt().isAfter(ZonedDateTime.now())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Booking has expired");
+        }
+        return createInternal(request, booking, true);
     }
 
     @Override
@@ -128,13 +139,19 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "payments", allEntries = true)
+    @CacheEvict(value = {"payments", "bookings", "showtimeseats"}, allEntries = true)
     public PaymentResponse updateStatus(UUID id, PaymentStatus status) {
         Payment entity = repository.findByIdAndIsActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment", id.toString()));
-        entity.setStatus(status);
-        if (status == PaymentStatus.SUCCESS && entity.getPaidAt() == null) {
-            entity.setPaidAt(ZonedDateTime.now());
+
+        if (entity.getStatus() == PaymentStatus.SUCCESS && status == PaymentStatus.SUCCESS) {
+            return paymentMapper.toResponse(entity);
+        }
+
+        if (status == PaymentStatus.SUCCESS) {
+            finalizeSuccessfulPayment(entity);
+        } else {
+            entity.setStatus(status);
         }
         return paymentMapper.toResponse(repository.save(entity));
     }
@@ -159,7 +176,7 @@ public class PaymentServiceImpl implements PaymentService {
         });
     }
 
-    private PaymentResponse createInternal(PaymentCreateRequest request, Booking booking) {
+    private PaymentResponse createInternal(PaymentCreateRequest request, Booking booking, boolean forcePending) {
         Payment existing = repository.findByIdempotencyKeyAndIsActiveTrue(request.getIdempotencyKey()).orElse(null);
         if (existing != null) {
             if (!existing.getBooking().getId().equals(booking.getId())) {
@@ -171,7 +188,64 @@ public class PaymentServiceImpl implements PaymentService {
         validatePaymentAgainstBooking(request.getAmount(), request.getCurrency(), booking);
         Payment entity = paymentMapper.toEntity(request);
         entity.setBooking(booking);
+        if (forcePending) {
+            entity.setStatus(PaymentStatus.PENDING);
+            entity.setPaidAt(null);
+            entity.setProviderTransactionId(null);
+            entity.setFailureCode(null);
+            entity.setFailureMessage(null);
+        }
         return paymentMapper.toResponse(repository.save(entity));
+    }
+
+    private void finalizeSuccessfulPayment(Payment payment) {
+        Booking booking = payment.getBooking();
+        if (booking == null) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Payment is not associated with a booking");
+        }
+
+        ZonedDateTime now = ZonedDateTime.now();
+        if (booking.getStatus() == BookingStatus.CONFIRMED || booking.getStatus() == BookingStatus.PAID) {
+            payment.setStatus(PaymentStatus.SUCCESS);
+            if (payment.getPaidAt() == null) {
+                payment.setPaidAt(now);
+            }
+            return;
+        }
+        if (booking.getStatus() != BookingStatus.PENDING_PAYMENT) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Booking cannot be paid in its current state");
+        }
+        if (booking.getExpiresAt() != null && !booking.getExpiresAt().isAfter(now)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Booking has expired");
+        }
+
+        List<ShowtimeSeat> seats = showtimeSeatRepository.findAllByBookingIdForUpdate(booking.getId());
+        if (seats.isEmpty()) {
+            throw new AppException(ErrorCode.DATA_INTEGRITY_VIOLATION, "Booking has no reserved seats");
+        }
+
+        for (ShowtimeSeat seat : seats) {
+            if (seat.getStatus() != ShowtimeSeatStatus.HELD
+                    || seat.getHeldByUser() == null
+                    || booking.getUser() == null
+                    || !booking.getUser().getId().equals(seat.getHeldByUser().getId())
+                    || seat.getHoldExpiresAt() == null
+                    || !seat.getHoldExpiresAt().isAfter(now)) {
+                throw new AppException(ErrorCode.DATA_INTEGRITY_VIOLATION, "A reserved seat is no longer valid");
+            }
+            seat.setStatus(ShowtimeSeatStatus.BOOKED);
+            seat.setHeldByUser(null);
+            seat.setHoldToken(null);
+            seat.setHeldAt(null);
+            seat.setHoldExpiresAt(null);
+        }
+
+        showtimeSeatRepository.saveAll(seats);
+        booking.setStatus(BookingStatus.CONFIRMED);
+        booking.setPaidAt(now);
+        bookingRepository.save(booking);
+        payment.setStatus(PaymentStatus.SUCCESS);
+        payment.setPaidAt(now);
     }
 
     private void validatePaymentAgainstBooking(java.math.BigDecimal amount, String currency, Booking booking) {
