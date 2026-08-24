@@ -2,15 +2,31 @@ package com.example.cinema.service.impl;
 
 import com.example.cinema.common.response.PageMapper;
 import com.example.cinema.common.response.PageResponse;
+import com.example.cinema.dto.booking.BookingCheckoutRequest;
 import com.example.cinema.dto.booking.BookingCreateRequest;
 import com.example.cinema.dto.booking.BookingResponse;
 import com.example.cinema.dto.booking.BookingUpdateRequest;
 import com.example.cinema.entity.Booking;
+import com.example.cinema.entity.BookingPromotion;
+import com.example.cinema.entity.BookingSeat;
+import com.example.cinema.entity.Promotion;
+import com.example.cinema.entity.PromotionCode;
+import com.example.cinema.entity.ShowtimeSeat;
+import com.example.cinema.entity.User;
 import com.example.cinema.entity.enums.BookingStatus;
+import com.example.cinema.entity.enums.PromotionDiscountType;
+import com.example.cinema.entity.enums.PromotionStatus;
+import com.example.cinema.entity.enums.ShowtimeSeatStatus;
+import com.example.cinema.exception.AppException;
+import com.example.cinema.exception.ErrorCode;
 import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.mapper.BookingMapper;
+import com.example.cinema.repository.BookingPromotionRepository;
 import com.example.cinema.repository.BookingRepository;
+import com.example.cinema.repository.BookingSeatRepository;
+import com.example.cinema.repository.PromotionCodeRepository;
 import com.example.cinema.repository.ShowtimeRepository;
+import com.example.cinema.repository.ShowtimeSeatRepository;
 import com.example.cinema.repository.UserRepository;
 import com.example.cinema.service.BookingService;
 import lombok.RequiredArgsConstructor;
@@ -20,17 +36,31 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
 
+    private static final BigDecimal ONE_HUNDRED = new BigDecimal("100");
+
     private final BookingRepository repository;
     private final BookingMapper bookingMapper;
     private final UserRepository userRepository;
     private final ShowtimeRepository showtimeRepository;
+    private final ShowtimeSeatRepository showtimeSeatRepository;
+    private final BookingSeatRepository bookingSeatRepository;
+    private final PromotionCodeRepository promotionCodeRepository;
+    private final BookingPromotionRepository bookingPromotionRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -95,6 +125,111 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"bookings", "showtimeseats"}, allEntries = true)
+    public BookingResponse checkout(UUID userId, BookingCheckoutRequest request) {
+        User user = userRepository.findByIdAndIsActiveTrue(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
+
+        List<UUID> requestedSeatIds = request.getSeatIds();
+        Set<UUID> uniqueSeatIds = new HashSet<>(requestedSeatIds);
+        if (uniqueSeatIds.size() != requestedSeatIds.size()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Duplicate seats are not allowed");
+        }
+
+        List<UUID> orderedSeatIds = uniqueSeatIds.stream()
+                .sorted(Comparator.comparing(UUID::toString))
+                .toList();
+        List<ShowtimeSeat> heldSeats = new ArrayList<>(orderedSeatIds.size());
+        UUID showtimeId = null;
+        ZonedDateTime expiresAt = null;
+        BigDecimal seatAmount = BigDecimal.ZERO;
+        ZonedDateTime now = ZonedDateTime.now();
+
+        for (UUID seatId : orderedSeatIds) {
+            ShowtimeSeat showtimeSeat = showtimeSeatRepository.findByIdForUpdate(seatId)
+                    .orElseThrow(() -> new ResourceNotFoundException("ShowtimeSeat", seatId.toString()));
+
+            UUID currentShowtimeId = showtimeSeat.getShowtime().getId();
+            if (showtimeId == null) {
+                showtimeId = currentShowtimeId;
+            } else if (!showtimeId.equals(currentShowtimeId)) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "All selected seats must belong to the same showtime");
+            }
+
+            if (showtimeSeat.getStatus() != ShowtimeSeatStatus.HELD
+                    || showtimeSeat.getHeldByUser() == null
+                    || !userId.equals(showtimeSeat.getHeldByUser().getId())) {
+                throw new AppException(ErrorCode.DATA_INTEGRITY_VIOLATION, "Selected seat is not held by the current user");
+            }
+            if (showtimeSeat.getHoldExpiresAt() == null || !showtimeSeat.getHoldExpiresAt().isAfter(now)) {
+                throw new AppException(ErrorCode.DATA_INTEGRITY_VIOLATION, "Seat hold has expired");
+            }
+            if (showtimeSeat.getBooking() != null) {
+                throw new AppException(ErrorCode.DATA_INTEGRITY_VIOLATION, "Selected seat already belongs to a booking");
+            }
+
+            seatAmount = seatAmount.add(showtimeSeat.getPrice());
+            if (expiresAt == null || showtimeSeat.getHoldExpiresAt().isBefore(expiresAt)) {
+                expiresAt = showtimeSeat.getHoldExpiresAt();
+            }
+            heldSeats.add(showtimeSeat);
+        }
+
+        PromotionRedemption redemption = resolvePromotion(request.getPromotionCode(), seatAmount, userId, now);
+        BigDecimal discountAmount = redemption.discountAmount();
+        BigDecimal totalAmount = seatAmount.subtract(discountAmount).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+
+        Booking booking = Booking.builder()
+                .bookingCode(generateBookingCode())
+                .user(user)
+                .showtime(heldSeats.getFirst().getShowtime())
+                .customerName(user.getFullName())
+                .customerEmail(user.getEmail())
+                .customerPhone(user.getPhone())
+                .status(BookingStatus.PENDING_PAYMENT)
+                .seatAmount(seatAmount.setScale(2, RoundingMode.HALF_UP))
+                .foodAmount(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP))
+                .discountAmount(discountAmount)
+                .subtotal(seatAmount.setScale(2, RoundingMode.HALF_UP))
+                .totalAmount(totalAmount)
+                .currency("VND")
+                .expiresAt(expiresAt)
+                .build();
+        booking = repository.save(booking);
+
+        List<BookingSeat> bookingSeats = new ArrayList<>(heldSeats.size());
+        for (ShowtimeSeat showtimeSeat : heldSeats) {
+            showtimeSeat.setBooking(booking);
+            bookingSeats.add(BookingSeat.builder()
+                    .booking(booking)
+                    .showtimeSeat(showtimeSeat)
+                    .seatName(showtimeSeat.getSeat().getDisplayName())
+                    .seatTypeName(showtimeSeat.getSeat().getSeatType().getName())
+                    .unitPrice(showtimeSeat.getPrice())
+                    .createdAt(now)
+                    .build());
+        }
+        showtimeSeatRepository.saveAll(heldSeats);
+        bookingSeatRepository.saveAll(bookingSeats);
+
+        if (redemption.promotionCode() != null) {
+            PromotionCode promotionCode = redemption.promotionCode();
+            promotionCode.setUsedCount((promotionCode.getUsedCount() == null ? 0 : promotionCode.getUsedCount()) + 1);
+            promotionCodeRepository.save(promotionCode);
+            bookingPromotionRepository.save(BookingPromotion.builder()
+                    .booking(booking)
+                    .promotion(redemption.promotion())
+                    .promotionCode(promotionCode)
+                    .discountAmount(discountAmount)
+                    .createdAt(now)
+                    .build());
+        }
+
+        return bookingMapper.toResponse(booking);
+    }
+
+    @Override
+    @Transactional
     @CacheEvict(value = "bookings", allEntries = true)
     public BookingResponse create(BookingCreateRequest request) {
         Booking entity = bookingMapper.toEntity(request);
@@ -142,6 +277,57 @@ public class BookingServiceImpl implements BookingService {
         });
     }
 
+    private PromotionRedemption resolvePromotion(String rawCode, BigDecimal subtotal, UUID userId, ZonedDateTime now) {
+        if (rawCode == null || rawCode.isBlank()) {
+            return PromotionRedemption.none();
+        }
+
+        String code = rawCode.trim().toUpperCase(Locale.ROOT);
+        PromotionCode promotionCode = promotionCodeRepository.findByCodeForUpdate(code)
+                .orElseThrow(() -> new AppException(ErrorCode.BAD_REQUEST, "Promotion code is invalid"));
+        if (!Boolean.TRUE.equals(promotionCode.getActive())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Promotion code is inactive");
+        }
+        int usedCount = promotionCode.getUsedCount() == null ? 0 : promotionCode.getUsedCount();
+        if (promotionCode.getUsageLimit() != null && usedCount >= promotionCode.getUsageLimit()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Promotion code usage limit has been reached");
+        }
+
+        Promotion promotion = promotionCode.getPromotion();
+        if (promotion == null
+                || !promotion.isActive()
+                || promotion.getStatus() != PromotionStatus.ACTIVE
+                || now.isBefore(promotion.getStartAt())
+                || now.isAfter(promotion.getEndAt())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Promotion is not active");
+        }
+        if (subtotal.compareTo(promotion.getMinimumOrderAmount()) < 0) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Booking does not meet the promotion minimum amount");
+        }
+        if (promotion.getUsageLimit() != null
+                && bookingPromotionRepository.countByPromotion_Id(promotion.getId()) >= promotion.getUsageLimit()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Promotion usage limit has been reached");
+        }
+        if (promotion.getUsagePerUser() != null
+                && bookingPromotionRepository.countByPromotion_IdAndBooking_User_Id(promotion.getId(), userId)
+                >= promotion.getUsagePerUser()) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Promotion usage limit for this user has been reached");
+        }
+
+        BigDecimal discount = promotion.getDiscountType() == PromotionDiscountType.PERCENTAGE
+                ? subtotal.multiply(promotion.getDiscountValue()).divide(ONE_HUNDRED, 2, RoundingMode.HALF_UP)
+                : promotion.getDiscountValue();
+        if (promotion.getMaxDiscountAmount() != null) {
+            discount = discount.min(promotion.getMaxDiscountAmount());
+        }
+        discount = discount.min(subtotal).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+        return new PromotionRedemption(promotionCode, promotion, discount);
+    }
+
+    private String generateBookingCode() {
+        return "HC-" + UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase(Locale.ROOT);
+    }
+
     private void applyRelations(Booking entity, UUID userId, UUID showtimeId) {
         if (userId == null) {
             entity.setUser(null);
@@ -152,5 +338,11 @@ public class BookingServiceImpl implements BookingService {
 
         entity.setShowtime(showtimeRepository.findByIdAndIsActiveTrue(showtimeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Showtime", showtimeId.toString())));
+    }
+
+    private record PromotionRedemption(PromotionCode promotionCode, Promotion promotion, BigDecimal discountAmount) {
+        private static PromotionRedemption none() {
+            return new PromotionRedemption(null, null, BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+        }
     }
 }
