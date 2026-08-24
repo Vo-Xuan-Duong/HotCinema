@@ -17,4 +17,8 @@ public interface PromotionCodeRepository extends JpaRepository<PromotionCode, UU
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select pc from PromotionCode pc join fetch pc.promotion where upper(pc.code) = upper(:code)")
     Optional<PromotionCode> findByCodeForUpdate(@Param("code") String code);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select pc from PromotionCode pc where pc.id = :id")
+    Optional<PromotionCode> findByIdForUpdate(@Param("id") UUID id);
 }
