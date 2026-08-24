@@ -1,8 +1,6 @@
 package com.example.cinema.dto.ticketscan;
 
-import com.example.cinema.entity.Ticket;
 import com.example.cinema.entity.enums.TicketScanResult;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,9 +16,10 @@ import java.util.UUID;
 public class TicketScanResponse {
 
     private UUID id;
-    private Ticket ticket;
-    private java.util.UUID cinemaId;
-    private java.util.UUID scannedById;
+    private UUID ticketId;
+    private String ticketCode;
+    private UUID cinemaId;
+    private UUID scannedById;
     private TicketScanResult result;
     private ZonedDateTime scannedAt;
     private String deviceInfo;
