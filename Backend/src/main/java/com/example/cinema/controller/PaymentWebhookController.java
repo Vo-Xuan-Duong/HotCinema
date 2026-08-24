@@ -1,16 +1,19 @@
 package com.example.cinema.controller;
 
-import com.example.cinema.service.PaymentWebhookService;
 import com.example.cinema.common.response.ApiResponse;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import jakarta.validation.Valid;
+import com.example.cinema.common.response.PageResponse;
+import com.example.cinema.dto.paymentwebhook.MomoIpnResponse;
 import com.example.cinema.dto.paymentwebhook.PaymentWebhookCreateRequest;
-import com.example.cinema.dto.paymentwebhook.PaymentWebhookUpdateRequest;
 import com.example.cinema.dto.paymentwebhook.PaymentWebhookResponse;
+import com.example.cinema.dto.paymentwebhook.PaymentWebhookUpdateRequest;
+import com.example.cinema.service.PaymentWebhookService;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import com.example.cinema.common.response.PageResponse;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
@@ -25,12 +28,23 @@ public class PaymentWebhookController {
         this.paymentWebhookService = paymentWebhookService;
     }
 
+    @PostMapping(
+            value = "/momo",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<MomoIpnResponse> processMomo(@RequestBody String payload) {
+        return ResponseEntity.ok(paymentWebhookService.processMomoIpn(payload));
+    }
+
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<PaymentWebhookResponse>>> getAll() {
         return ResponseEntity.ok(new ApiResponse<>(paymentWebhookService.findAll()));
     }
 
     @GetMapping("/page")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<PageResponse<PaymentWebhookResponse>>> getPage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -39,21 +53,28 @@ public class PaymentWebhookController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<PaymentWebhookResponse>> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(new ApiResponse<>(paymentWebhookService.findById(id)));
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<PaymentWebhookResponse>> create(@Valid @RequestBody PaymentWebhookCreateRequest request) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<PaymentWebhookResponse>> create(
+            @Valid @RequestBody PaymentWebhookCreateRequest request) {
         return ResponseEntity.ok(new ApiResponse<>(paymentWebhookService.create(request)));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<PaymentWebhookResponse>> update(@PathVariable UUID id, @Valid @RequestBody PaymentWebhookUpdateRequest request) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<PaymentWebhookResponse>> update(
+            @PathVariable UUID id,
+            @Valid @RequestBody PaymentWebhookUpdateRequest request) {
         return ResponseEntity.ok(new ApiResponse<>(paymentWebhookService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         paymentWebhookService.deleteById(id);
         return ResponseEntity.noContent().build();
