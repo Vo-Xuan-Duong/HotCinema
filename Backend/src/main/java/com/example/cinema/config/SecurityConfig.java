@@ -1,13 +1,14 @@
 package com.example.cinema.config;
 
-
 import com.example.cinema.security.RestAccessDeniedHandler;
 import com.example.cinema.security.RestAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -17,12 +18,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.http.HttpMethod;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
-
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -47,7 +47,6 @@ public class SecurityConfig {
         return authenticationConverter;
     }
 
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    RestAccessDeniedHandler restAccessDeniedHandler,
@@ -56,14 +55,12 @@ public class SecurityConfig {
 
         http
                 .csrf(AbstractHttpConfigurer::disable)
-
                 .authorizeHttpRequests(auth -> auth
                     .requestMatchers(
                             "/v3/api-docs/**",
                             "/swagger-ui/**",
                             "/swagger-ui.html"
                     ).permitAll()
-
                     .requestMatchers(HttpMethod.GET,
                             "/api/v1/movies/**",
                             "/api/v1/cinemas/**",
@@ -80,7 +77,6 @@ public class SecurityConfig {
                             "/api/v1/productcategories/**",
                             "/api/v1/cinemaproducts/**"
                     ).permitAll()
-
                     .requestMatchers(
                             "/api/v1/roles/**",
                             "/api/v1/users/**",
@@ -99,14 +95,9 @@ public class SecurityConfig {
                             "/api/v1/auths/verify-password-otp",
                             "/api/v1/auths/reset-password"
                     ).permitAll()
-
-                    .requestMatchers("/api/admin/**")
-                    .hasRole("ADMIN")
-
-                    .anyRequest()
-                    .authenticated()
+                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                    .anyRequest().authenticated()
                 )
-
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(restAuthenticationEntryPoint)
                         .accessDeniedHandler(restAccessDeniedHandler)
