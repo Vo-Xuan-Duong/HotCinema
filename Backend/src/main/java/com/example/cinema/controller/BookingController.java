@@ -2,6 +2,7 @@ package com.example.cinema.controller;
 
 import com.example.cinema.common.response.ApiResponse;
 import com.example.cinema.common.response.PageResponse;
+import com.example.cinema.dto.booking.BookingCheckoutRequest;
 import com.example.cinema.dto.booking.BookingCreateRequest;
 import com.example.cinema.dto.booking.BookingResponse;
 import com.example.cinema.dto.booking.BookingUpdateRequest;
@@ -104,15 +105,17 @@ public class BookingController {
         return ResponseEntity.ok(new ApiResponse<>(booking));
     }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<BookingResponse>> create(
-            @Valid @RequestBody BookingCreateRequest request,
+    @PostMapping("/checkout")
+    public ResponseEntity<ApiResponse<BookingResponse>> checkout(
             @AuthenticationPrincipal Jwt jwt,
-            Authentication authentication) {
-        BookingResponse booking = isAdmin(authentication)
-                ? bookingService.create(request)
-                : bookingService.createForUser(request, currentUserId(jwt));
-        return ResponseEntity.ok(new ApiResponse<>(booking));
+            @Valid @RequestBody BookingCheckoutRequest request) {
+        return ResponseEntity.ok(new ApiResponse<>(bookingService.checkout(currentUserId(jwt), request)));
+    }
+
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<BookingResponse>> create(@Valid @RequestBody BookingCreateRequest request) {
+        return ResponseEntity.ok(new ApiResponse<>(bookingService.create(request)));
     }
 
     @PutMapping("/{id}")
