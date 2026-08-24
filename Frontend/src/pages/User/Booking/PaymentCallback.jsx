@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import paymentService from '@/services/paymentService';
 
+const delay = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+
 const PaymentCallback = () => {
   const navigate = useNavigate();
   const [status, setStatus] = useState('processing');
@@ -14,33 +16,52 @@ const PaymentCallback = () => {
   useEffect(() => {
     let active = true;
 
+    const readPayment = async (pending) => {
+      if (pending.paymentId) {
+        return paymentService.getPaymentById(pending.paymentId);
+      }
+      const payments = await paymentService.getPaymentsByBookingId(pending.bookingId);
+      return payments.find((item) => (
+        item.providerOrderId === pending.providerOrderId
+        || item.providerTransactionId === pending.providerTransactionId
+      )) || payments[0];
+    };
+
     const verifyPayment = async () => {
       try {
         const rawPending = localStorage.getItem('pendingPayment');
         const pending = rawPending ? JSON.parse(rawPending) : null;
         if (!pending?.bookingId) throw new Error('Không tìm thấy giao dịch đang chờ xác nhận.');
 
-        const payments = await paymentService.getPaymentsByBookingId(pending.bookingId);
-        const payment = payments.find((item) => (
-          item.id === pending.paymentId || item.transactionId === pending.transactionId
-        )) || payments[0];
+        let payment = null;
+        for (let attempt = 0; attempt < 8 && active; attempt += 1) {
+          payment = await readPayment(pending);
+          if (!payment) {
+            if (attempt < 7) await delay(1500);
+            continue;
+          }
 
+          const paymentStatus = String(payment.status || '').toUpperCase();
+          if (['SUCCESS', 'FAILED', 'CANCELLED'].includes(paymentStatus)) break;
+          if (attempt < 7) await delay(1500);
+        }
+
+        if (!active) return;
         if (!payment) throw new Error('Hệ thống chưa ghi nhận giao dịch.');
 
-        const paymentStatus = String(payment.paymentStatus || '').toUpperCase();
+        const paymentStatus = String(payment.status || '').toUpperCase();
         if (paymentStatus === 'SUCCESS') {
           const completedBooking = {
             ...pending,
-            bookingCode: payment.bookingCode || pending.bookingCode,
             paymentId: payment.id,
-            transactionId: payment.transactionId,
+            providerOrderId: payment.providerOrderId,
+            providerTransactionId: payment.providerTransactionId,
             paymentStatus,
           };
           localStorage.setItem('lastBooking', JSON.stringify(completedBooking));
           localStorage.removeItem('pendingPayment');
-          if (!active) return;
           setStatus('success');
-          setMessage('Thanh toán đã được xác nhận.');
+          setMessage('Thanh toán đã được backend xác nhận từ cổng thanh toán.');
           navigate(`/booking/success?bookingCode=${encodeURIComponent(completedBooking.bookingCode || '')}`, {
             replace: true,
             state: { bookingData: completedBooking },
@@ -49,15 +70,14 @@ const PaymentCallback = () => {
         }
 
         if (paymentStatus === 'FAILED' || paymentStatus === 'CANCELLED') {
-          if (!active) return;
+          localStorage.removeItem('pendingPayment');
           setStatus('failed');
           setMessage('Giao dịch không thành công hoặc đã bị hủy.');
           return;
         }
 
-        if (!active) return;
         setStatus('pending');
-        setMessage('Giao dịch đang được cổng thanh toán xử lý. Vui lòng kiểm tra lại sau.');
+        setMessage('Cổng thanh toán chưa gửi xác nhận cuối cùng. Bạn có thể kiểm tra lại trạng thái sau.');
       } catch (error) {
         if (!active) return;
         setStatus('failed');
@@ -66,7 +86,9 @@ const PaymentCallback = () => {
     };
 
     verifyPayment();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [navigate]);
 
   const StatusIcon = status === 'success'
