@@ -14,5 +14,13 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
     Page<Booking> findAllByIsActiveTrue(Pageable pageable);
 
+    Page<Booking> findAllByUser_IdAndIsActiveTrue(UUID userId, Pageable pageable);
+
     Optional<Booking> findByIdAndIsActiveTrue(UUID id);
+
+    Optional<Booking> findByIdAndUser_IdAndIsActiveTrue(UUID id, UUID userId);
+
+    Optional<Booking> findByBookingCodeIgnoreCaseAndIsActiveTrue(String bookingCode);
+
+    Optional<Booking> findByBookingCodeIgnoreCaseAndUser_IdAndIsActiveTrue(String bookingCode, UUID userId);
 }
