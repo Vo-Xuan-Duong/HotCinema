@@ -1,6 +1,7 @@
 package com.example.cinema.service;
 
 import com.example.cinema.common.response.PageResponse;
+import com.example.cinema.dto.booking.BookingCheckoutRequest;
 import com.example.cinema.dto.booking.BookingCreateRequest;
 import com.example.cinema.dto.booking.BookingResponse;
 import com.example.cinema.dto.booking.BookingUpdateRequest;
@@ -19,6 +20,7 @@ public interface BookingService {
     BookingResponse findByIdForUser(UUID id, UUID userId);
     BookingResponse findByCode(String bookingCode);
     BookingResponse findByCodeForUser(String bookingCode, UUID userId);
+    BookingResponse checkout(UUID userId, BookingCheckoutRequest request);
     BookingResponse create(BookingCreateRequest request);
     BookingResponse createForUser(BookingCreateRequest request, UUID userId);
     BookingResponse update(UUID id, BookingUpdateRequest request);
