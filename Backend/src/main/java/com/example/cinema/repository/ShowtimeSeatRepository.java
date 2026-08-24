@@ -66,6 +66,17 @@ public interface ShowtimeSeatRepository extends JpaRepository<ShowtimeSeat, UUID
             @Param("now") ZonedDateTime now
     );
 
+    @Query("""
+            select distinct ss.showtime.id from ShowtimeSeat ss
+            where ss.status = :heldStatus
+              and ss.holdExpiresAt <= :now
+              and ss.isActive = true
+            """)
+    List<UUID> findShowtimeIdsWithExpiredHolds(
+            @Param("heldStatus") ShowtimeSeatStatus heldStatus,
+            @Param("now") ZonedDateTime now
+    );
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             update ShowtimeSeat ss
