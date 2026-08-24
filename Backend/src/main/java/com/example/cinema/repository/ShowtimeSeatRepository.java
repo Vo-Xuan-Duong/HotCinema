@@ -51,6 +51,21 @@ public interface ShowtimeSeatRepository extends JpaRepository<ShowtimeSeat, UUID
             """)
     List<ShowtimeSeat> findAllByBookingIdForUpdate(@Param("bookingId") UUID bookingId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select ss from ShowtimeSeat ss
+            where ss.showtime.id = :showtimeId
+              and ss.status = :heldStatus
+              and ss.holdExpiresAt <= :now
+              and ss.isActive = true
+            order by ss.id
+            """)
+    List<ShowtimeSeat> findExpiredHoldsForUpdate(
+            @Param("showtimeId") UUID showtimeId,
+            @Param("heldStatus") ShowtimeSeatStatus heldStatus,
+            @Param("now") ZonedDateTime now
+    );
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             update ShowtimeSeat ss
