@@ -2,26 +2,22 @@ package com.example.cinema.service.impl;
 
 import com.example.cinema.common.response.PageMapper;
 import com.example.cinema.common.response.PageResponse;
-
-import com.example.cinema.entity.Ticket;
 import com.example.cinema.dto.ticket.TicketCreateRequest;
-import com.example.cinema.dto.ticket.TicketUpdateRequest;
-import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.ticket.TicketResponse;
+import com.example.cinema.dto.ticket.TicketUpdateRequest;
+import com.example.cinema.entity.Ticket;
+import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.mapper.TicketMapper;
 import com.example.cinema.repository.TicketRepository;
 import com.example.cinema.service.TicketService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
 import java.util.UUID;
 
 @Service
@@ -50,6 +46,28 @@ public class TicketServiceImpl implements TicketService {
         return repository.findByIdAndIsActiveTrue(id)
                 .map(ticketMapper::toResponse)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket", id.toString()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TicketResponse findByIdForUser(UUID id, UUID userId) {
+        return repository.findByIdAndBooking_User_IdAndIsActiveTrue(id, userId)
+                .map(ticketMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket", id.toString()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TicketResponse> findByBookingId(UUID bookingId) {
+        return ticketMapper.toResponseList(repository.findAllByBooking_IdAndIsActiveTrue(bookingId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TicketResponse> findByBookingIdForUser(UUID bookingId, UUID userId) {
+        return ticketMapper.toResponseList(
+                repository.findAllByBooking_IdAndBooking_User_IdAndIsActiveTrue(bookingId, userId)
+        );
     }
 
     @Override
