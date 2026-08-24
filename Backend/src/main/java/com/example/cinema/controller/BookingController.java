@@ -5,15 +5,17 @@ import com.example.cinema.common.response.PageResponse;
 import com.example.cinema.dto.booking.BookingCreateRequest;
 import com.example.cinema.dto.booking.BookingResponse;
 import com.example.cinema.dto.booking.BookingUpdateRequest;
+import com.example.cinema.entity.enums.BookingStatus;
 import com.example.cinema.service.BookingService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -52,6 +54,32 @@ public class BookingController {
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(new ApiResponse<>(bookingService.findPageByUser(currentUserId(jwt), pageable)));
+    }
+
+    @GetMapping("/my-bookings/history")
+    public ResponseEntity<ApiResponse<List<BookingResponse>>> getMyBookingHistory(
+            @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(new ApiResponse<>(bookingService.findAllByUser(currentUserId(jwt))));
+    }
+
+    @GetMapping("/user/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<PageResponse<BookingResponse>>> getUserBookings(
+            @PathVariable UUID userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(new ApiResponse<>(bookingService.findPageByUser(userId, pageable)));
+    }
+
+    @GetMapping("/history/user/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<PageResponse<BookingResponse>>> getUserBookingHistory(
+            @PathVariable UUID userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(new ApiResponse<>(bookingService.findPageByUser(userId, pageable)));
     }
 
     @GetMapping("/code/{bookingCode}")
@@ -95,6 +123,14 @@ public class BookingController {
         return ResponseEntity.ok(new ApiResponse<>(bookingService.update(id, request)));
     }
 
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<BookingResponse>> updateStatus(
+            @PathVariable UUID id,
+            @Valid @RequestBody BookingStatusUpdateRequest request) {
+        return ResponseEntity.ok(new ApiResponse<>(bookingService.updateStatus(id, request.status())));
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
@@ -110,4 +146,6 @@ public class BookingController {
         return authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
     }
+
+    public record BookingStatusUpdateRequest(@NotNull BookingStatus status) {}
 }
