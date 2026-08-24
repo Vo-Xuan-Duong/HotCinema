@@ -89,6 +89,7 @@ public class SecurityConfig {
                             "/api/v1/auths/verify-password-otp",
                             "/api/v1/auths/reset-password"
                     ).permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/v1/paymentwebhooks/momo").permitAll()
                     .requestMatchers(HttpMethod.GET, PUBLIC_CATALOG_PATHS).permitAll()
                     .requestMatchers(HttpMethod.POST,
                             "/api/v1/showtimes/*/lock-seat/**",
