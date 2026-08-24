@@ -5,30 +5,25 @@ spring:
   config:
     import: optional:file:.env[.properties]
 
-  # Database configuration (MySQL)
   datasource:
     url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:cinema}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
     username: ${MYSQL_USERNAME:root}
     password: ${MYSQL_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
-  # JPA / Hibernate
   jpa:
     database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:
-      # Tùy chọn: update (tự động cập nhật), validate (kiểm tra schema), none (tắt).
       ddl-auto: validate
-    show-sql: true
+    show-sql: ${JPA_SHOW_SQL:false}
     properties:
       hibernate:
-        format_sql: true
+        format_sql: ${HIBERNATE_FORMAT_SQL:false}
     open-in-view: false
 
-  # Tắt tạm thời nếu đang dùng ddl-auto=update để kiểm thử.
   flyway:
-    enabled: ${FLYWAY_ENABLED:false}
+    enabled: ${FLYWAY_ENABLED:true}
 
-  # Redis cache
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -52,11 +47,20 @@ spring:
           writetimeout: 5000
 
 app:
+  booking:
+    seat-hold-seconds: ${BOOKING_SEAT_HOLD_SECONDS:300}
+    expiration-sweep-ms: ${BOOKING_EXPIRATION_SWEEP_MS:30000}
+  ticket:
+    scan-early-minutes: ${TICKET_SCAN_EARLY_MINUTES:60}
+    scan-grace-minutes: ${TICKET_SCAN_GRACE_MINUTES:30}
+  payment:
+    momo:
+      access-key: ${MOMO_ACCESS_KEY:}
+      secret-key: ${MOMO_SECRET_KEY:}
   security:
     otp:
       ttl-seconds: ${OTP_TTL_SECONDS:300}
     jwt:
-      # Chỉ dùng làm fallback khi phát triển. Hãy đặt JWT_SECRET ở staging/production.
       secret: ${JWT_SECRET:hotcinema-dev-secret-key-change-before-production-2026}
       issuer: ${JWT_ISSUER:hotcinema}
       access-token-seconds: ${JWT_ACCESS_TOKEN_SECONDS:900}
