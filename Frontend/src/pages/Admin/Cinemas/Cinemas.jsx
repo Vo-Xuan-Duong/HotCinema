@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Building2, Edit, Eye, Home, Loader2, MapPin, Plus, Search, Trash2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -12,92 +12,100 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import useNotification from '@/hooks/useNotification';
 import { AdminPageHeader } from '@/layouts/admin/AdminPageHeader';
 import cinemaService from '@/services/cinemaService';
-import regionService from '@/services/regionService';
-import { unwrapApiArray, unwrapApiData } from '@/utils/apiResponse';
 
 const DEFAULT_PAGE_SIZE = 10;
 
+const normalize = (value = '') => String(value)
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .trim();
+
 const getCinemaStatus = (cinema) => {
-  const status = String(cinema?.status || '').toLowerCase();
-  if (status === 'maintenance') return { tone: 'warning', label: 'Bảo trì' };
-  if (status === 'inactive' || cinema?.isActive === false) return { tone: 'destructive', label: 'Không hoạt động' };
-  return { tone: 'success', label: 'Hoạt động' };
+  const status = String(cinema?.status || '').toUpperCase();
+  if (status === 'MAINTENANCE') return { tone: 'warning', label: 'Bảo trì' };
+  if (status === 'INACTIVE' || cinema?.isActive === false) return { tone: 'destructive', label: 'Không hoạt động' };
+  if (status === 'ACTIVE') return { tone: 'success', label: 'Hoạt động' };
+  return { tone: 'neutral', label: status || 'Không rõ' };
 };
 
 const AdminCinemas = () => {
   const navigate = useNavigate();
   const notification = useNotification();
   const tableRef = useRef(null);
-  const [cinemas, setCinemas] = useState([]);
-  const [regions, setRegions] = useState([]);
+  const [allCinemas, setAllCinemas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [regionFilter, setRegionFilter] = useState('all');
-  const [pagination, setPagination] = useState({ current: 1, pageSize: DEFAULT_PAGE_SIZE, total: 0 });
+  const [cityFilter, setCityFilter] = useState('all');
+  const [pagination, setPagination] = useState({ current: 1, pageSize: DEFAULT_PAGE_SIZE });
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(searchText.trim()), 300);
     return () => window.clearTimeout(timer);
   }, [searchText]);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    regionService.getRegionsAllNoPage()
-      .then((response) => {
-        if (!cancelled) setRegions(unwrapApiArray(response));
-      })
-      .catch((error) => {
-        console.error('Error loading regions:', error);
-        if (!cancelled) setRegions([]);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const loadCinemas = useCallback(async () => {
     setLoading(true);
     try {
-      const params = {
-        page: pagination.current - 1,
-        size: pagination.pageSize,
-      };
-      if (statusFilter !== 'all') params.status = statusFilter;
-      if (regionFilter !== 'all') params.cityId = regionFilter;
-
-      const response = debouncedSearch
-        ? await cinemaService.searchCinemas(debouncedSearch, params)
-        : await cinemaService.getAllCinemas(params);
-      const page = unwrapApiData(response) || {};
-      const content = Array.isArray(page) ? page : Array.isArray(page.content) ? page.content : [];
-      const total = Array.isArray(page) ? page.length : Number(page.totalElements ?? page.total) || content.length;
-
-      setCinemas(content);
-      setPagination((previous) => ({ ...previous, total }));
+      const response = await cinemaService.getAllCinemas();
+      setAllCinemas(Array.isArray(response) ? response : []);
     } catch (error) {
       console.error('Error loading cinemas:', error);
-      setCinemas([]);
-      setPagination((previous) => ({ ...previous, total: 0 }));
-      notification.error('Không thể tải danh sách rạp');
+      setAllCinemas([]);
+      notification.error(error?.message || 'Không thể tải danh sách rạp');
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, notification, pagination.current, pagination.pageSize, regionFilter, statusFilter]);
+  }, [notification]);
 
   useEffect(() => {
     loadCinemas();
   }, [loadCinemas]);
+
+  const cities = useMemo(
+    () => [...new Set(allCinemas.map((cinema) => cinema.city).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'vi')),
+    [allCinemas]
+  );
+
+  const filteredCinemas = useMemo(() => {
+    const keyword = normalize(debouncedSearch);
+    return allCinemas.filter((cinema) => {
+      const matchesStatus = statusFilter === 'all' || String(cinema.status || '').toUpperCase() === statusFilter;
+      const matchesCity = cityFilter === 'all' || cinema.city === cityFilter;
+      const matchesKeyword = !keyword || [
+        cinema.code,
+        cinema.name,
+        cinema.address,
+        cinema.ward,
+        cinema.district,
+        cinema.city,
+        cinema.phone,
+        cinema.email,
+      ].some((value) => normalize(value).includes(keyword));
+      return matchesStatus && matchesCity && matchesKeyword;
+    });
+  }, [allCinemas, cityFilter, debouncedSearch, statusFilter]);
+
+  const total = filteredCinemas.length;
+  const totalPages = Math.max(1, Math.ceil(total / pagination.pageSize));
+  const safePage = Math.min(pagination.current, totalPages);
+  const pageStart = (safePage - 1) * pagination.pageSize;
+  const cinemas = filteredCinemas.slice(pageStart, pageStart + pagination.pageSize);
+
+  useEffect(() => {
+    if (pagination.current !== safePage) {
+      setPagination((previous) => ({ ...previous, current: safePage }));
+    }
+  }, [pagination.current, safePage]);
 
   const resetPage = () => setPagination((previous) => ({ ...previous, current: 1 }));
 
   const clearFilters = () => {
     setSearchText('');
     setStatusFilter('all');
-    setRegionFilter('all');
+    setCityFilter('all');
     resetPage();
   };
 
@@ -110,12 +118,11 @@ const AdminCinemas = () => {
       await loadCinemas();
     } catch (error) {
       console.error('Error deleting cinema:', error);
-      notification.error(error.response?.data?.message || 'Không thể xóa rạp');
+      notification.error(error?.response?.data?.message || error?.message || 'Không thể xóa rạp');
     }
   };
 
-  const hasActiveFilters = Boolean(searchText.trim() || statusFilter !== 'all' || regionFilter !== 'all');
-  const selectedRegion = regions.find((region) => String(region.id) === regionFilter);
+  const hasActiveFilters = Boolean(searchText.trim() || statusFilter !== 'all' || cityFilter !== 'all');
 
   const columns = [
     {
@@ -125,7 +132,7 @@ const AdminCinemas = () => {
       render: (_, record) => (
         <div className="flex min-w-0 items-center gap-2.5">
           <img
-            src={record.image || record.imageUrl || record.bannerUrl || '/brand-placeholder.svg'}
+            src={record.logoUrl || '/brand-placeholder.svg'}
             alt={record.name || 'Rạp chiếu'}
             className="h-12 w-20 shrink-0 rounded-md border border-border bg-muted object-cover"
             onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }}
@@ -139,23 +146,35 @@ const AdminCinemas = () => {
             >
               <span className="truncate">{record.name || 'Chưa có tên'}</span>
             </Button>
-            <p className="mt-0.5 flex items-start gap-1 text-xs leading-4 text-muted-foreground">
-              <MapPin className="mt-0.5 h-3 w-3 shrink-0" />
-              <span className="line-clamp-1">{record.address || 'Chưa cập nhật địa chỉ'}</span>
-            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{record.code || 'Chưa có mã'}</p>
           </div>
         </div>
       ),
     },
     {
-      title: 'Khu vực',
-      key: 'region',
-      render: (_, record) => record.region?.name || record.regionName || record.cityName || '—',
+      title: 'Địa chỉ',
+      key: 'address',
+      render: (_, record) => (
+        <div className="max-w-[360px]">
+          <p className="flex items-start gap-1 text-sm">
+            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <span className="line-clamp-2">{record.address || 'Chưa cập nhật địa chỉ'}</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {[record.ward, record.district, record.city].filter(Boolean).join(', ') || '—'}
+          </p>
+        </div>
+      ),
     },
     {
-      title: 'Phòng chiếu',
-      key: 'rooms',
-      render: (_, record) => Number(record.numberOfRooms ?? record.rooms?.length ?? 0).toLocaleString('vi-VN'),
+      title: 'Liên hệ',
+      key: 'contact',
+      render: (_, record) => (
+        <div className="text-sm">
+          <p>{record.phone || '—'}</p>
+          <p className="text-xs text-muted-foreground">{record.email || '—'}</p>
+        </div>
+      ),
     },
     {
       title: 'Trạng thái',
@@ -195,15 +214,14 @@ const AdminCinemas = () => {
     <div className="space-y-4">
       <AdminPageHeader
         title="Quản lý rạp chiếu"
-        description="Quản lý thông tin rạp, khu vực, phòng chiếu và trạng thái vận hành."
+        description="Quản lý thông tin rạp, địa chỉ, liên hệ, phòng chiếu và trạng thái vận hành."
         breadcrumbs={[
           { title: 'Dashboard', icon: <Home className="h-4 w-4" />, href: '/admin/dashboard' },
           { title: 'Quản lý rạp', icon: <Building2 className="h-4 w-4" /> },
         ]}
         actions={(
           <Button type="button" onClick={() => navigate('/admin/cinemas/create')}>
-            <Plus className="h-4 w-4" />
-            Thêm rạp
+            <Plus className="h-4 w-4" />Thêm rạp
           </Button>
         )}
       />
@@ -216,11 +234,8 @@ const AdminCinemas = () => {
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={searchText}
-                  onChange={(event) => {
-                    setSearchText(event.target.value);
-                    resetPage();
-                  }}
-                  placeholder="Tìm theo tên hoặc địa chỉ..."
+                  onChange={(event) => { setSearchText(event.target.value); resetPage(); }}
+                  placeholder="Tìm tên, mã, địa chỉ hoặc liên hệ..."
                   className="pl-9"
                 />
               </div>
@@ -229,31 +244,24 @@ const AdminCinemas = () => {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                  <SelectItem value="active">Hoạt động</SelectItem>
-                  <SelectItem value="inactive">Không hoạt động</SelectItem>
-                  <SelectItem value="maintenance">Bảo trì</SelectItem>
+                  <SelectItem value="ACTIVE">Hoạt động</SelectItem>
+                  <SelectItem value="INACTIVE">Không hoạt động</SelectItem>
+                  <SelectItem value="MAINTENANCE">Bảo trì</SelectItem>
                 </SelectContent>
               </Select>
 
-              <Select value={regionFilter} onValueChange={(value) => { setRegionFilter(value); resetPage(); }}>
-                <SelectTrigger><SelectValue placeholder="Tất cả khu vực" /></SelectTrigger>
+              <Select value={cityFilter} onValueChange={(value) => { setCityFilter(value); resetPage(); }}>
+                <SelectTrigger><SelectValue placeholder="Tất cả tỉnh/thành" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tất cả khu vực</SelectItem>
-                  {regions.map((region) => (
-                    <SelectItem key={region.id ?? region.name} value={String(region.id)}>{region.name}</SelectItem>
-                  ))}
+                  <SelectItem value="all">Tất cả tỉnh/thành</SelectItem>
+                  {cities.map((city) => <SelectItem key={city} value={city}>{city}</SelectItem>)}
                 </SelectContent>
               </Select>
 
               <div className="flex items-center justify-end gap-2">
-                <span className="hidden whitespace-nowrap text-xs text-muted-foreground 2xl:inline">
-                  {pagination.total.toLocaleString('vi-VN')} rạp
-                </span>
+                <span className="hidden whitespace-nowrap text-xs text-muted-foreground 2xl:inline">{total.toLocaleString('vi-VN')} rạp</span>
                 {hasActiveFilters && (
-                  <Button type="button" variant="outline" onClick={clearFilters}>
-                    <X className="h-4 w-4" />
-                    Đặt lại
-                  </Button>
+                  <Button type="button" variant="outline" onClick={clearFilters}><X className="h-4 w-4" />Đặt lại</Button>
                 )}
               </div>
             </div>
@@ -262,30 +270,24 @@ const AdminCinemas = () => {
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 <span className="text-xs text-muted-foreground">Đang lọc:</span>
                 {statusFilter !== 'all' && (
-                  <StatusBadge tone={statusFilter === 'active' ? 'success' : statusFilter === 'maintenance' ? 'warning' : 'destructive'}>
-                    {statusFilter === 'active' ? 'Hoạt động' : statusFilter === 'maintenance' ? 'Bảo trì' : 'Không hoạt động'}
-                    <button type="button" className="ml-1 opacity-70 hover:opacity-100" onClick={() => { setStatusFilter('all'); resetPage(); }} aria-label="Xóa lọc trạng thái">
-                      <X className="h-3 w-3" />
-                    </button>
+                  <StatusBadge tone={statusFilter === 'ACTIVE' ? 'success' : statusFilter === 'MAINTENANCE' ? 'warning' : 'destructive'}>
+                    {getCinemaStatus({ status: statusFilter }).label}
+                    <button type="button" className="ml-1 opacity-70 hover:opacity-100" onClick={() => { setStatusFilter('all'); resetPage(); }} aria-label="Xóa lọc trạng thái"><X className="h-3 w-3" /></button>
                   </StatusBadge>
                 )}
-                {selectedRegion && (
+                {cityFilter !== 'all' && (
                   <StatusBadge tone="info">
-                    {selectedRegion.name}
-                    <button type="button" className="ml-1 opacity-70 hover:opacity-100" onClick={() => { setRegionFilter('all'); resetPage(); }} aria-label="Xóa lọc khu vực">
-                      <X className="h-3 w-3" />
-                    </button>
+                    {cityFilter}
+                    <button type="button" className="ml-1 opacity-70 hover:opacity-100" onClick={() => { setCityFilter('all'); resetPage(); }} aria-label="Xóa lọc tỉnh thành"><X className="h-3 w-3" /></button>
                   </StatusBadge>
                 )}
                 {searchText.trim() && (
                   <StatusBadge tone="neutral">
                     “{searchText.trim()}”
-                    <button type="button" className="ml-1 opacity-70 hover:opacity-100" onClick={() => { setSearchText(''); resetPage(); }} aria-label="Xóa từ khóa tìm kiếm">
-                      <X className="h-3 w-3" />
-                    </button>
+                    <button type="button" className="ml-1 opacity-70 hover:opacity-100" onClick={() => { setSearchText(''); resetPage(); }} aria-label="Xóa từ khóa tìm kiếm"><X className="h-3 w-3" /></button>
                   </StatusBadge>
                 )}
-                <span className="text-xs text-muted-foreground">{pagination.total.toLocaleString('vi-VN')} kết quả</span>
+                <span className="text-xs text-muted-foreground">{total.toLocaleString('vi-VN')} kết quả</span>
               </div>
             )}
           </div>
@@ -301,21 +303,21 @@ const AdminCinemas = () => {
             <Empty description="Không có rạp phù hợp với bộ lọc hiện tại" className="min-h-40" />
           )}
 
-          {!loading && cinemas.length > 0 && (
+          {!loading && total > 0 && (
             <div className="border-t border-border p-3">
               <Pagination
-                page={pagination.current}
+                page={safePage}
                 itemsPerPage={pagination.pageSize}
-                totalItems={pagination.total}
+                totalItems={total}
                 showSizeChanger
                 showQuickJumper
                 pageSizeOptions={[5, 10, 20, 50]}
-                showTotal={(total, range) => `${range[0]}-${range[1]} của ${total} rạp`}
+                showTotal={(count, range) => `${range[0]}-${range[1]} của ${count} rạp`}
                 onPageChange={(page) => {
                   setPagination((previous) => ({ ...previous, current: page }));
                   tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }}
-                onPageSizeChange={(size) => setPagination((previous) => ({ ...previous, current: 1, pageSize: size }))}
+                onPageSizeChange={(size) => setPagination({ current: 1, pageSize: size })}
               />
             </div>
           )}
