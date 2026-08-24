@@ -24,6 +24,23 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    private static final String[] PUBLIC_CATALOG_PATHS = {
+            "/api/v1/movies/**",
+            "/api/v1/cinemas/**",
+            "/api/v1/genres/**",
+            "/api/v1/showtimes/**",
+            "/api/v1/auditoriums/**",
+            "/api/v1/seats/**",
+            "/api/v1/seattypes/**",
+            "/api/v1/showtimeseats/**",
+            "/api/v1/showtimeprices/**",
+            "/api/v1/moviemedias/**",
+            "/api/v1/promotions/**",
+            "/api/v1/products/**",
+            "/api/v1/productcategories/**",
+            "/api/v1/cinemaproducts/**"
+    };
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return PasswordEncoderFactories.createDelegatingPasswordEncoder();
@@ -61,30 +78,6 @@ public class SecurityConfig {
                             "/swagger-ui/**",
                             "/swagger-ui.html"
                     ).permitAll()
-                    .requestMatchers(HttpMethod.GET,
-                            "/api/v1/movies/**",
-                            "/api/v1/cinemas/**",
-                            "/api/v1/genres/**",
-                            "/api/v1/showtimes/**",
-                            "/api/v1/auditoriums/**",
-                            "/api/v1/seats/**",
-                            "/api/v1/seattypes/**",
-                            "/api/v1/showtimeseats/**",
-                            "/api/v1/showtimeprices/**",
-                            "/api/v1/moviemedias/**",
-                            "/api/v1/promotions/**",
-                            "/api/v1/products/**",
-                            "/api/v1/productcategories/**",
-                            "/api/v1/cinemaproducts/**"
-                    ).permitAll()
-                    .requestMatchers(
-                            "/api/v1/roles/**",
-                            "/api/v1/users/**",
-                            "/api/v1/auditlogs/**",
-                            "/api/v1/employeecinemas/**",
-                            "/api/v1/refreshtokens/**",
-                            "/api/v1/paymentwebhooks/**"
-                    ).hasRole("ADMIN")
                     .requestMatchers(
                             "/api/v1/auths/login",
                             "/api/v1/auths/register",
@@ -95,6 +88,23 @@ public class SecurityConfig {
                             "/api/v1/auths/verify-password-otp",
                             "/api/v1/auths/reset-password"
                     ).permitAll()
+                    .requestMatchers(HttpMethod.GET, PUBLIC_CATALOG_PATHS).permitAll()
+                    .requestMatchers(HttpMethod.POST,
+                            "/api/v1/showtimes/*/lock-seat/**",
+                            "/api/v1/showtimes/*/unlock-seat/**"
+                    ).authenticated()
+                    .requestMatchers(HttpMethod.POST, PUBLIC_CATALOG_PATHS).hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.PUT, PUBLIC_CATALOG_PATHS).hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.PATCH, PUBLIC_CATALOG_PATHS).hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.DELETE, PUBLIC_CATALOG_PATHS).hasRole("ADMIN")
+                    .requestMatchers(
+                            "/api/v1/roles/**",
+                            "/api/v1/users/**",
+                            "/api/v1/auditlogs/**",
+                            "/api/v1/employeecinemas/**",
+                            "/api/v1/refreshtokens/**",
+                            "/api/v1/paymentwebhooks/**"
+                    ).hasRole("ADMIN")
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
                     .anyRequest().authenticated()
                 )
