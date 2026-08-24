@@ -1,5 +1,5 @@
 import { apiClient } from '@/utils/apiClient';
-import { unwrapApiArray, unwrapApiData } from '@/utils/apiResponse';
+import { unwrapApiArray, unwrapApiData, unwrapApiPage } from '@/utils/apiResponse';
 import { ENDPOINTS } from '@/utils/constants';
 
 class ShowtimeService {
@@ -7,31 +7,31 @@ class ShowtimeService {
         const params = typeof paramsOrPage === 'number'
             ? { page: paramsOrPage, size: size ?? 10 }
             : (paramsOrPage || {});
-        return unwrapApiData(await apiClient.get(ENDPOINTS.SHOWTIME, { params }));
+        return unwrapApiPage(await apiClient.get(`${ENDPOINTS.SHOWTIME}/page`, { params }));
     }
 
     async getShowtimesByDate(date, params = {}) {
-        return unwrapApiData(await apiClient.get(ENDPOINTS.SHOWTIME, { params: { ...params, date } }));
+        return unwrapApiArray(await apiClient.get(`${ENDPOINTS.SHOWTIME}/search`, { params: { ...params, date } }));
     }
 
     async getShowtimesByCinema(cinemaId, params = {}) {
-        return unwrapApiData(await apiClient.get(ENDPOINTS.SHOWTIME, { params: { ...params, cinemaId } }));
+        return unwrapApiArray(await apiClient.get(`${ENDPOINTS.SHOWTIME}/search`, { params: { ...params, cinemaId } }));
     }
 
     async getShowtimesByMovie(movieId, params = {}) {
-        return unwrapApiData(await apiClient.get(ENDPOINTS.SHOWTIME, { params: { ...params, movieId } }));
+        return unwrapApiArray(await apiClient.get(`${ENDPOINTS.SHOWTIME}/search`, { params: { ...params, movieId } }));
     }
 
     async getShowtimesByDateAndCinema(date, cinemaId, params = {}) {
-        return unwrapApiData(await apiClient.get(`${ENDPOINTS.SHOWTIME}/cinema/${cinemaId}/date/${date}`, { params }));
+        return unwrapApiArray(await apiClient.get(`${ENDPOINTS.SHOWTIME}/search`, { params: { ...params, date, cinemaId } }));
     }
 
     async getCinemaShowtimesByMovieAndDate(movieId, date, params = {}) {
-        return unwrapApiData(await apiClient.get(`${ENDPOINTS.SHOWTIME}/movie/${movieId}/date/${date}`, { params }));
+        return unwrapApiArray(await apiClient.get(`${ENDPOINTS.SHOWTIME}/search`, { params: { ...params, movieId, date } }));
     }
 
     async getShowtimesWithFilters(filters) {
-        return unwrapApiData(await apiClient.post(`${ENDPOINTS.SHOWTIME}/filters`, filters));
+        return unwrapApiArray(await apiClient.get(`${ENDPOINTS.SHOWTIME}/search`, { params: filters || {} }));
     }
 
     async getShowtimeById(id) {
@@ -50,21 +50,24 @@ class ShowtimeService {
         return unwrapApiData(await apiClient.delete(`${ENDPOINTS.SHOWTIME}/${id}`));
     }
 
-    async updateShowtimeStatus(id, status) {
-        return unwrapApiData(await apiClient.patch(`${ENDPOINTS.SHOWTIME}/${id}/status`, { status }));
-    }
-
     async getSeatsByShowtimeId(showtimeId) {
         return unwrapApiArray(await apiClient.get(`${ENDPOINTS.SHOWTIME}/${showtimeId}/seats`));
     }
 
-    async lockSeats(showtimeId, seatIds, userId) {
-        const userIdParam = userId || '0';
-        return unwrapApiData(await apiClient.post(`${ENDPOINTS.SHOWTIME}/${showtimeId}/lock-seat/${seatIds}?userId=${userIdParam}`));
+    async lockSeats(showtimeId, seatIds) {
+        const ids = Array.isArray(seatIds) ? seatIds : [seatIds];
+        const results = await Promise.all(
+            ids.filter(Boolean).map((seatId) => apiClient.post(`${ENDPOINTS.SHOWTIME}/${showtimeId}/lock-seat/${seatId}`))
+        );
+        return results.map(unwrapApiData);
     }
 
     async unlockSeats(showtimeId, seatIds) {
-        return unwrapApiData(await apiClient.post(`${ENDPOINTS.SHOWTIME}/${showtimeId}/unlock-seat/${seatIds}`));
+        const ids = Array.isArray(seatIds) ? seatIds : [seatIds];
+        const results = await Promise.all(
+            ids.filter(Boolean).map((seatId) => apiClient.post(`${ENDPOINTS.SHOWTIME}/${showtimeId}/unlock-seat/${seatId}`))
+        );
+        return results.map(unwrapApiData);
     }
 
     getUpcomingDates(days = 7) {
