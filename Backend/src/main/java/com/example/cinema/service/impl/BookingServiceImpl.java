@@ -6,6 +6,7 @@ import com.example.cinema.dto.booking.BookingCreateRequest;
 import com.example.cinema.dto.booking.BookingResponse;
 import com.example.cinema.dto.booking.BookingUpdateRequest;
 import com.example.cinema.entity.Booking;
+import com.example.cinema.entity.enums.BookingStatus;
 import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.mapper.BookingMapper;
 import com.example.cinema.repository.BookingRepository;
@@ -35,6 +36,14 @@ public class BookingServiceImpl implements BookingService {
     @Transactional(readOnly = true)
     public List<BookingResponse> findAll() {
         return bookingMapper.toResponseList(repository.findAllByIsActiveTrue(Pageable.unpaged()).getContent());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookingResponse> findAllByUser(UUID userId) {
+        return bookingMapper.toResponseList(
+                repository.findAllByUser_IdAndIsActiveTrue(userId, Pageable.unpaged()).getContent()
+        );
     }
 
     @Override
@@ -110,6 +119,16 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", id.toString()));
         bookingMapper.updateEntityFromRequest(request, entity);
         applyRelations(entity, request.getUserId(), request.getShowtimeId());
+        return bookingMapper.toResponse(repository.save(entity));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "bookings", allEntries = true)
+    public BookingResponse updateStatus(UUID id, BookingStatus status) {
+        Booking entity = repository.findByIdAndIsActiveTrue(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", id.toString()));
+        entity.setStatus(status);
         return bookingMapper.toResponse(repository.save(entity));
     }
 
