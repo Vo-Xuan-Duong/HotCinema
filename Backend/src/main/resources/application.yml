@@ -23,6 +23,7 @@ spring:
 
   flyway:
     enabled: ${FLYWAY_ENABLED:true}
+    baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE:true}
 
   data:
     redis:
@@ -55,8 +56,14 @@ app:
     scan-grace-minutes: ${TICKET_SCAN_GRACE_MINUTES:30}
   payment:
     momo:
+      api-base-url: ${MOMO_API_BASE_URL:https://test-payment.momo.vn}
+      partner-code: ${MOMO_PARTNER_CODE:}
+      partner-name: ${MOMO_PARTNER_NAME:HotCinema}
+      store-id: ${MOMO_STORE_ID:HotCinema}
       access-key: ${MOMO_ACCESS_KEY:}
       secret-key: ${MOMO_SECRET_KEY:}
+      redirect-url: ${MOMO_REDIRECT_URL:}
+      ipn-url: ${MOMO_IPN_URL:}
   security:
     otp:
       ttl-seconds: ${OTP_TTL_SECONDS:300}
