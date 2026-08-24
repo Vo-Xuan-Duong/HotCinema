@@ -3,6 +3,7 @@ package com.example.cinema.controller;
 import com.example.cinema.common.response.ApiResponse;
 import com.example.cinema.common.response.PageResponse;
 import com.example.cinema.dto.payment.PaymentCreateRequest;
+import com.example.cinema.dto.payment.PaymentInitiateRequest;
 import com.example.cinema.dto.payment.PaymentResponse;
 import com.example.cinema.dto.payment.PaymentUpdateRequest;
 import com.example.cinema.entity.enums.PaymentStatus;
@@ -92,15 +93,17 @@ public class PaymentController {
         return ResponseEntity.ok(new ApiResponse<>(payment));
     }
 
+    @PostMapping("/initiate")
+    public ResponseEntity<ApiResponse<PaymentResponse>> initiate(
+            @Valid @RequestBody PaymentInitiateRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(new ApiResponse<>(paymentService.initiate(request, currentUserId(jwt))));
+    }
+
     @PostMapping
-    public ResponseEntity<ApiResponse<PaymentResponse>> create(
-            @Valid @RequestBody PaymentCreateRequest request,
-            @AuthenticationPrincipal Jwt jwt,
-            Authentication authentication) {
-        PaymentResponse payment = isAdmin(authentication)
-                ? paymentService.create(request)
-                : paymentService.createForUser(request, currentUserId(jwt));
-        return ResponseEntity.ok(new ApiResponse<>(payment));
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<PaymentResponse>> create(@Valid @RequestBody PaymentCreateRequest request) {
+        return ResponseEntity.ok(new ApiResponse<>(paymentService.create(request)));
     }
 
     @PutMapping("/{id}")
