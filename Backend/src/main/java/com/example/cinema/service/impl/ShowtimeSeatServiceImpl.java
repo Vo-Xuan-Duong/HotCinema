@@ -310,7 +310,7 @@ public class ShowtimeSeatServiceImpl implements ShowtimeSeatService {
     private void publishSeatStatusAfterCommit(UUID showtimeId, ShowtimeSeatResponse response) {
         Runnable publish = () -> messagingTemplate.convertAndSend(
                 "/topic/showtimes/" + showtimeId,
-                new SeatStatusEvent(response.getId(), response.getStatus().name())
+                new SeatStatusEvent(response.getId(), response.getStatus().name(), response.getHeldByUserId())
         );
 
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
@@ -325,5 +325,5 @@ public class ShowtimeSeatServiceImpl implements ShowtimeSeatService {
         }
     }
 
-    private record SeatStatusEvent(UUID seatId, String status) {}
+    private record SeatStatusEvent(UUID seatId, String status, UUID userId) {}
 }
