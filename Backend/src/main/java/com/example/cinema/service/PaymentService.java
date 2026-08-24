@@ -2,6 +2,7 @@ package com.example.cinema.service;
 
 import com.example.cinema.common.response.PageResponse;
 import com.example.cinema.dto.payment.PaymentCreateRequest;
+import com.example.cinema.dto.payment.PaymentInitiateRequest;
 import com.example.cinema.dto.payment.PaymentResponse;
 import com.example.cinema.dto.payment.PaymentUpdateRequest;
 import com.example.cinema.entity.enums.PaymentStatus;
@@ -19,6 +20,7 @@ public interface PaymentService {
     List<PaymentResponse> findByBookingId(UUID bookingId);
     List<PaymentResponse> findByBookingIdForUser(UUID bookingId, UUID userId);
     PaymentResponse findByTransactionId(String transactionId);
+    PaymentResponse initiate(PaymentInitiateRequest request, UUID userId);
     PaymentResponse create(PaymentCreateRequest request);
     PaymentResponse createForUser(PaymentCreateRequest request, UUID userId);
     PaymentResponse update(UUID id, PaymentUpdateRequest request);
