@@ -22,7 +22,11 @@ const bookingService = {
   },
 
   async createBooking(data) {
-    return unwrapApiData(await apiClient.post(base, data));
+    const payload = {
+      seatIds: data?.seatIds || [],
+      promotionCode: data?.promotionCode || null,
+    };
+    return unwrapApiData(await apiClient.post(`${base}/checkout`, payload));
   },
 
   async updateBooking(bookingId, data) {
