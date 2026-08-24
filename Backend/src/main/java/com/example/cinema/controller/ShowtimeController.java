@@ -6,23 +6,31 @@ import com.example.cinema.dto.showtime.ShowtimeCreateRequest;
 import com.example.cinema.dto.showtime.ShowtimeResponse;
 import com.example.cinema.dto.showtime.ShowtimeUpdateRequest;
 import com.example.cinema.dto.showtimeseat.ShowtimeSeatResponse;
+import com.example.cinema.entity.enums.ShowtimeStatus;
 import com.example.cinema.service.ShowtimeSeatService;
 import com.example.cinema.service.ShowtimeService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/showtimes")
 public class ShowtimeController {
+
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+            "id", "startTime", "endTime", "createdAt", "updatedAt", "status", "basePrice"
+    );
 
     private final ShowtimeService showtimeService;
     private final ShowtimeSeatService showtimeSeatService;
@@ -40,9 +48,23 @@ public class ShowtimeController {
     @GetMapping("/page")
     public ResponseEntity<ApiResponse<PageResponse<ShowtimeResponse>>> getPage(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(new ApiResponse<>(showtimeService.findPage(pageable)));
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "startTime,desc") String sort) {
+        return ResponseEntity.ok(new ApiResponse<>(showtimeService.findPage(toPageable(page, size, sort))));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<List<ShowtimeResponse>>> search(
+            @RequestParam(required = false) UUID movieId,
+            @RequestParam(required = false) UUID cinemaId,
+            @RequestParam(required = false) UUID auditoriumId,
+            @RequestParam(required = false) LocalDate date,
+            @RequestParam(required = false) LocalDate fromDate,
+            @RequestParam(required = false) LocalDate toDate,
+            @RequestParam(required = false) ShowtimeStatus status) {
+        return ResponseEntity.ok(new ApiResponse<>(showtimeService.search(
+                movieId, cinemaId, auditoriumId, date, fromDate, toDate, status
+        )));
     }
 
     @GetMapping("/{id}/seats")
@@ -95,5 +117,18 @@ public class ShowtimeController {
 
     private UUID currentUserId(Jwt jwt) {
         return UUID.fromString(Objects.requireNonNull(jwt.getSubject()));
+    }
+
+    private Pageable toPageable(int page, int size, String sort) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 200);
+        String[] sortParts = sort == null ? new String[0] : sort.split(",", 2);
+        String property = sortParts.length > 0 && ALLOWED_SORT_FIELDS.contains(sortParts[0])
+                ? sortParts[0]
+                : "startTime";
+        Sort.Direction direction = sortParts.length > 1 && "asc".equalsIgnoreCase(sortParts[1])
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+        return PageRequest.of(safePage, safeSize, Sort.by(direction, property));
     }
 }
