@@ -1,25 +1,26 @@
 import { apiClient } from '@/utils/apiClient';
+import { unwrapApiArray, unwrapApiData } from '@/utils/apiResponse';
+
+const base = '/tickets';
 
 const ticketService = {
-    async downloadBookingPDF(bookingId) {
-        return apiClient.get(`/tickets/download-booking/${bookingId}`, {
-            responseType: 'blob',
-            headers: {
-                Accept: 'application/pdf'
-            }
-        });
+    async getTicketsByBooking(bookingId) {
+        return unwrapApiArray(await apiClient.get(`${base}/booking/${bookingId}`));
     },
 
-    triggerDownload(blob, filename = 'ticket.pdf') {
-        const url = window.URL.createObjectURL(blob);
+    async getTicketById(ticketId) {
+        return unwrapApiData(await apiClient.get(`${base}/${ticketId}`));
+    },
+
+    triggerDownloadDataUrl(dataUrl, filename = 'ticket-qr.png') {
+        if (!dataUrl) return;
         const link = document.createElement('a');
-        link.href = url;
+        link.href = dataUrl;
         link.download = filename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-    }
+    },
 };
 
 export default ticketService;
