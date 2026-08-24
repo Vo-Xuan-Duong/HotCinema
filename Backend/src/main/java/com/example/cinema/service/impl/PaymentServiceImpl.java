@@ -3,12 +3,14 @@ package com.example.cinema.service.impl;
 import com.example.cinema.common.response.PageMapper;
 import com.example.cinema.common.response.PageResponse;
 import com.example.cinema.dto.payment.PaymentCreateRequest;
+import com.example.cinema.dto.payment.PaymentInitiateRequest;
 import com.example.cinema.dto.payment.PaymentResponse;
 import com.example.cinema.dto.payment.PaymentUpdateRequest;
 import com.example.cinema.entity.Booking;
 import com.example.cinema.entity.Payment;
 import com.example.cinema.entity.ShowtimeSeat;
 import com.example.cinema.entity.enums.BookingStatus;
+import com.example.cinema.entity.enums.PaymentProvider;
 import com.example.cinema.entity.enums.PaymentStatus;
 import com.example.cinema.entity.enums.ShowtimeSeatStatus;
 import com.example.cinema.exception.AppException;
@@ -20,6 +22,7 @@ import com.example.cinema.repository.PaymentRepository;
 import com.example.cinema.repository.ShowtimeSeatRepository;
 import com.example.cinema.service.PaymentService;
 import com.example.cinema.service.TicketIssuanceService;
+import com.example.cinema.service.payment.MomoPaymentGatewayClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -40,6 +43,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final BookingRepository bookingRepository;
     private final ShowtimeSeatRepository showtimeSeatRepository;
     private final TicketIssuanceService ticketIssuanceService;
+    private final MomoPaymentGatewayClient momoPaymentGatewayClient;
 
     @Override
     @Transactional(readOnly = true)
@@ -103,6 +107,64 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional
     @CacheEvict(value = "payments", allEntries = true)
+    public PaymentResponse initiate(PaymentInitiateRequest request, UUID userId) {
+        Booking booking = bookingRepository.findByIdAndUserIdForUpdate(request.getBookingId(), userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", request.getBookingId().toString()));
+        validateBookingCanBePaid(booking);
+
+        if (request.getProvider() != PaymentProvider.MOMO) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Payment provider is not enabled for live checkout");
+        }
+        if (!"VND".equalsIgnoreCase(booking.getCurrency())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "MoMo checkout only supports VND bookings");
+        }
+
+        String idempotencyKey = PaymentProvider.MOMO.name() + ":" + booking.getId();
+        Payment entity = repository.findByIdempotencyKeyAndIsActiveTrue(idempotencyKey).orElse(null);
+        if (entity != null
+                && entity.getStatus() == PaymentStatus.PENDING
+                && entity.getPaymentUrl() != null
+                && !entity.getPaymentUrl().isBlank()) {
+            return paymentMapper.toResponse(entity);
+        }
+
+        String orderId = momoPaymentGatewayClient.newProviderId("HC");
+        String requestId = momoPaymentGatewayClient.newProviderId("HCR");
+        MomoPaymentGatewayClient.MomoCreateResult gateway =
+                momoPaymentGatewayClient.createPayment(booking, orderId, requestId);
+
+        if (entity == null) {
+            entity = Payment.builder()
+                    .booking(booking)
+                    .provider(PaymentProvider.MOMO)
+                    .paymentMethod(PaymentProvider.MOMO.name())
+                    .amount(booking.getTotalAmount())
+                    .currency(booking.getCurrency())
+                    .status(PaymentStatus.PENDING)
+                    .idempotencyKey(idempotencyKey)
+                    .build();
+        }
+
+        entity.setBooking(booking);
+        entity.setProvider(PaymentProvider.MOMO);
+        entity.setPaymentMethod(PaymentProvider.MOMO.name());
+        entity.setAmount(booking.getTotalAmount());
+        entity.setCurrency(booking.getCurrency());
+        entity.setStatus(PaymentStatus.PENDING);
+        entity.setProviderOrderId(gateway.orderId());
+        entity.setRequestId(gateway.requestId());
+        entity.setPaymentUrl(gateway.paymentUrl());
+        entity.setProviderTransactionId(null);
+        entity.setFailureCode(null);
+        entity.setFailureMessage(null);
+        entity.setPaidAt(null);
+
+        return paymentMapper.toResponse(repository.save(entity));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "payments", allEntries = true)
     public PaymentResponse create(PaymentCreateRequest request) {
         Booking booking = bookingRepository.findByIdAndIsActiveTrue(request.getBookingId())
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", request.getBookingId().toString()));
@@ -115,12 +177,7 @@ public class PaymentServiceImpl implements PaymentService {
     public PaymentResponse createForUser(PaymentCreateRequest request, UUID userId) {
         Booking booking = bookingRepository.findByIdAndUser_IdAndIsActiveTrue(request.getBookingId(), userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", request.getBookingId().toString()));
-        if (booking.getStatus() != BookingStatus.PENDING_PAYMENT) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Booking is not awaiting payment");
-        }
-        if (booking.getExpiresAt() != null && !booking.getExpiresAt().isAfter(ZonedDateTime.now())) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "Booking has expired");
-        }
+        validateBookingCanBePaid(booking);
         return createInternal(request, booking, true);
     }
 
@@ -252,11 +309,20 @@ public class PaymentServiceImpl implements PaymentService {
         payment.setPaidAt(now);
     }
 
+    private void validateBookingCanBePaid(Booking booking) {
+        if (booking.getStatus() != BookingStatus.PENDING_PAYMENT) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Booking is not awaiting payment");
+        }
+        if (booking.getExpiresAt() != null && !booking.getExpiresAt().isAfter(ZonedDateTime.now())) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Booking has expired");
+        }
+    }
+
     private void validatePaymentAgainstBooking(java.math.BigDecimal amount, String currency, Booking booking) {
-        if (booking.getTotalAmount() == null || amount.compareTo(booking.getTotalAmount()) != 0) {
+        if (amount == null || booking.getTotalAmount() == null || amount.compareTo(booking.getTotalAmount()) != 0) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Payment amount must match booking total amount");
         }
-        if (booking.getCurrency() == null || !booking.getCurrency().equalsIgnoreCase(currency)) {
+        if (currency == null || booking.getCurrency() == null || !booking.getCurrency().equalsIgnoreCase(currency)) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Payment currency must match booking currency");
         }
     }
