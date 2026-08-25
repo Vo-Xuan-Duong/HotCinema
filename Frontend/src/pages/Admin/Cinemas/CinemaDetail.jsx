@@ -17,54 +17,43 @@ import cinemaService from '@/services/cinemaService';
 import useNotification from '@/hooks/useNotification';
 
 const DEFAULT_ROOM = {
+  code: '',
   name: '',
-  theaterType: 'TWO_D',
-  numberOfRows: 10,
-  numberOfColumns: 12,
   screenType: 'STANDARD',
-  soundSystem: 'STEREO',
+  totalRows: 10,
+  totalColumns: 12,
+  status: 'ACTIVE',
 };
-
-const theaterTypes = [
-  ['TWO_D', '2D'],
-  ['THREE_D', '3D'],
-  ['IMAX', 'IMAX'],
-  ['IMAX_3D', 'IMAX 3D'],
-  ['FOUR_DX', '4DX'],
-  ['SCREEN_X', 'ScreenX'],
-];
 
 const screenTypes = [
   ['STANDARD', 'Standard'],
-  ['WIDESCREEN', 'Widescreen'],
-  ['CURVED', 'Curved'],
-  ['STADIUM', 'Stadium'],
   ['IMAX', 'IMAX'],
+  ['TYPE_4DX', '4DX'],
+  ['SCREENX', 'ScreenX'],
 ];
 
-const soundSystems = [
-  ['STEREO', 'Stereo'],
-  ['SURROUND_5_1', 'Surround 5.1'],
-  ['DOLBY_7_1', 'Dolby 7.1'],
-  ['DTS_X', 'DTS:X'],
-  ['DOLBY_ATMOS', 'Dolby Atmos'],
+const roomStatuses = [
+  ['ACTIVE', 'Hoạt động'],
+  ['MAINTENANCE', 'Bảo trì'],
+  ['INACTIVE', 'Không hoạt động'],
 ];
-
-const unwrapData = (response) => response?.data?.data ?? response?.data ?? response;
-const unwrapList = (response) => {
-  const payload = unwrapData(response);
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.content)) return payload.content;
-  return [];
-};
 
 const labelFor = (options, value) => options.find(([key]) => key === value)?.[1] || value || 'Chưa có';
 
 const cinemaStatus = (status) => {
-  if (status === 'active') return { label: 'Hoạt động', tone: 'success' };
-  if (status === 'maintenance') return { label: 'Bảo trì', tone: 'warning' };
-  if (status === 'inactive') return { label: 'Không hoạt động', tone: 'neutral' };
-  return { label: status || 'Không rõ', tone: 'neutral' };
+  const value = String(status || '').toUpperCase();
+  if (value === 'ACTIVE') return { label: 'Hoạt động', tone: 'success' };
+  if (value === 'MAINTENANCE') return { label: 'Bảo trì', tone: 'warning' };
+  if (value === 'INACTIVE') return { label: 'Không hoạt động', tone: 'destructive' };
+  return { label: value || 'Không rõ', tone: 'neutral' };
+};
+
+const roomStatus = (status) => {
+  const value = String(status || '').toUpperCase();
+  if (value === 'ACTIVE') return { label: 'Hoạt động', tone: 'success' };
+  if (value === 'MAINTENANCE') return { label: 'Bảo trì', tone: 'warning' };
+  if (value === 'INACTIVE') return { label: 'Không hoạt động', tone: 'destructive' };
+  return { label: value || 'Không rõ', tone: 'neutral' };
 };
 
 const CinemaDetail = () => {
@@ -84,27 +73,22 @@ const CinemaDetail = () => {
   const loadCinemaDetail = useCallback(async () => {
     try {
       setLoading(true);
-      const cinemaResponse = await cinemaService.getCinemaById(id);
-      const cinemaData = unwrapData(cinemaResponse);
+      const [cinemaData, roomData] = await Promise.all([
+        cinemaService.getCinemaById(id),
+        cinemaService.getRoomsByCinemaId(id).catch((error) => {
+          if (error?.response?.status !== 404) throw error;
+          return [];
+        }),
+      ]);
+
       if (!cinemaData) throw new Error('Không tìm thấy rạp');
-
-      let roomData = [];
-      try {
-        roomData = unwrapList(await cinemaService.getRoomsByCinemaId(id));
-      } catch (roomError) {
-        if (roomError?.response?.status !== 404) {
-          console.error('Error loading rooms:', roomError);
-          notification.warning('Không thể tải danh sách phòng chiếu');
-        }
-      }
-
       setCinema(cinemaData);
-      setRooms(roomData);
+      setRooms(Array.isArray(roomData) ? roomData : []);
     } catch (error) {
       console.error('Error loading cinema detail:', error);
       setCinema(null);
       setRooms([]);
-      notification.error(error?.response?.data?.message || 'Không thể tải thông tin rạp');
+      notification.error(error?.response?.data?.message || error?.message || 'Không thể tải thông tin rạp');
     } finally {
       setLoading(false);
     }
@@ -114,7 +98,7 @@ const CinemaDetail = () => {
     loadCinemaDetail();
   }, [loadCinemaDetail]);
 
-  const roomCapacity = (room) => Number(room.numberOfRows ?? room.rowsCount ?? 0) * Number(room.numberOfColumns ?? room.seatsPerRow ?? 0);
+  const roomCapacity = (room) => Number(room.capacity ?? (Number(room.totalRows || 0) * Number(room.totalColumns || 0)) ?? 0);
   const totalCapacity = useMemo(() => rooms.reduce((sum, room) => sum + roomCapacity(room), 0), [rooms]);
 
   const openCreateRoom = () => {
@@ -126,12 +110,12 @@ const CinemaDetail = () => {
   const openEditRoom = (room) => {
     setSelectedRoom(room);
     setRoomForm({
+      code: room.code || '',
       name: room.name || '',
-      theaterType: room.theaterType || 'TWO_D',
-      numberOfRows: Number(room.numberOfRows ?? room.rowsCount ?? 10),
-      numberOfColumns: Number(room.numberOfColumns ?? room.seatsPerRow ?? 12),
       screenType: room.screenType || 'STANDARD',
-      soundSystem: room.soundSystem || 'STEREO',
+      totalRows: Number(room.totalRows ?? room.numberOfRows ?? 10),
+      totalColumns: Number(room.totalColumns ?? room.numberOfColumns ?? 12),
+      status: room.status || 'ACTIVE',
     });
     setRoomOpen(true);
   };
@@ -144,23 +128,32 @@ const CinemaDetail = () => {
 
   const saveRoom = async (event) => {
     event.preventDefault();
+    const code = roomForm.code.trim();
     const name = roomForm.name.trim();
-    if (name.length < 3 || name.length > 50) {
-      notification.error('Tên phòng phải từ 3 đến 50 ký tự');
+    const totalRows = Number(roomForm.totalRows);
+    const totalColumns = Number(roomForm.totalColumns);
+
+    if (!code) {
+      notification.error('Vui lòng nhập mã phòng');
       return;
     }
-    if (Number(roomForm.numberOfRows) < 1 || Number(roomForm.numberOfColumns) < 1) {
-      notification.error('Số hàng và số cột phải lớn hơn 0');
+    if (name.length < 2 || name.length > 150) {
+      notification.error('Tên phòng phải từ 2 đến 150 ký tự');
+      return;
+    }
+    if (!Number.isInteger(totalRows) || totalRows < 1 || !Number.isInteger(totalColumns) || totalColumns < 1) {
+      notification.error('Số hàng và số cột phải là số nguyên lớn hơn 0');
       return;
     }
 
     const payload = {
+      code: code.toUpperCase(),
       name,
-      theaterType: roomForm.theaterType,
-      numberOfRows: Number(roomForm.numberOfRows),
-      numberOfColumns: Number(roomForm.numberOfColumns),
       screenType: roomForm.screenType,
-      soundSystem: roomForm.soundSystem,
+      totalRows,
+      totalColumns,
+      capacity: totalRows * totalColumns,
+      status: roomForm.status,
     };
 
     try {
@@ -191,7 +184,7 @@ const CinemaDetail = () => {
       await loadCinemaDetail();
     } catch (error) {
       console.error('Error deleting room:', error);
-      notification.error(error?.response?.data?.message || 'Không thể xóa phòng chiếu');
+      notification.error(error?.response?.data?.message || error?.message || 'Không thể xóa phòng chiếu');
     } finally {
       setBusyRoomId(null);
     }
@@ -206,7 +199,7 @@ const CinemaDetail = () => {
       navigate('/admin/cinemas');
     } catch (error) {
       console.error('Error deleting cinema:', error);
-      notification.error(error?.response?.data?.message || 'Không thể xóa rạp');
+      notification.error(error?.response?.data?.message || error?.message || 'Không thể xóa rạp');
     } finally {
       setDeletingCinema(false);
     }
@@ -223,18 +216,33 @@ const CinemaDetail = () => {
   const status = cinemaStatus(cinema.status);
 
   const columns = [
-    { title: 'Tên phòng', dataIndex: 'name', key: 'name', render: (value) => <span className="font-medium">{value || 'Chưa có'}</span> },
-    { title: 'Loại rạp', dataIndex: 'theaterType', key: 'theaterType', render: (value) => <StatusBadge tone="info">{labelFor(theaterTypes, value)}</StatusBadge> },
-    { title: 'Màn hình', dataIndex: 'screenType', key: 'screenType', render: (value) => labelFor(screenTypes, value) },
-    { title: 'Âm thanh', dataIndex: 'soundSystem', key: 'soundSystem', render: (value) => labelFor(soundSystems, value) },
+    {
+      title: 'Phòng',
+      key: 'room',
+      render: (_, room) => (
+        <div>
+          <p className="font-medium">{room.name || 'Chưa có tên'}</p>
+          <p className="text-xs text-muted-foreground">{room.code || 'Chưa có mã'}</p>
+        </div>
+      ),
+    },
+    { title: 'Màn hình', dataIndex: 'screenType', key: 'screenType', render: (value) => <StatusBadge tone="info">{labelFor(screenTypes, value)}</StatusBadge> },
     {
       title: 'Sức chứa',
       key: 'capacity',
       render: (_, room) => {
-        const rows = Number(room.numberOfRows ?? room.rowsCount ?? 0);
-        const columnsCount = Number(room.numberOfColumns ?? room.seatsPerRow ?? 0);
-        const capacity = rows * columnsCount;
+        const rows = Number(room.totalRows ?? room.numberOfRows ?? 0);
+        const columnsCount = Number(room.totalColumns ?? room.numberOfColumns ?? 0);
+        const capacity = Number(room.capacity ?? rows * columnsCount);
         return capacity > 0 ? <span>{capacity} ghế <span className="text-xs text-muted-foreground">({rows}×{columnsCount})</span></span> : <span className="text-muted-foreground">Chưa cập nhật</span>;
+      },
+    },
+    {
+      title: 'Trạng thái',
+      key: 'status',
+      render: (_, room) => {
+        const meta = roomStatus(room.status);
+        return <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>;
       },
     },
     {
@@ -270,17 +278,21 @@ const CinemaDetail = () => {
 
       <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
         <Card className="overflow-hidden">
-          <img src={cinema.image || cinema.imageUrl || '/brand-placeholder.svg'} alt={cinema.name} className="aspect-video h-full min-h-56 w-full object-cover lg:aspect-auto" onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }} />
+          <img src={cinema.logoUrl || '/brand-placeholder.svg'} alt={cinema.name} className="aspect-video h-full min-h-56 w-full object-cover lg:aspect-auto" onError={(event) => { event.currentTarget.src = '/brand-placeholder.svg'; }} />
         </Card>
         <Card>
           <CardHeader><CardTitle className="text-lg">Thông tin rạp</CardTitle></CardHeader>
           <CardContent>
             <DetailList columns={2}>
+              <DetailItem label="Mã rạp">{cinema.code || '—'}</DetailItem>
               <DetailItem label="Trạng thái"><StatusBadge tone={status.tone}>{status.label}</StatusBadge></DetailItem>
               <DetailItem label="Số phòng">{rooms.length}</DetailItem>
               <DetailItem label="Tổng sức chứa">{totalCapacity > 0 ? `${totalCapacity} ghế` : 'Chưa cập nhật'}</DetailItem>
-              <DetailItem label="Khu vực">{cinema.cityName || cinema.regionName || cinema.city?.name || cinema.region?.name || 'Chưa có'}</DetailItem>
+              <DetailItem label="Điện thoại">{cinema.phone || '—'}</DetailItem>
+              <DetailItem label="Email">{cinema.email || '—'}</DetailItem>
+              <DetailItem label="Khu vực" wide>{[cinema.ward, cinema.district, cinema.city].filter(Boolean).join(', ') || 'Chưa có'}</DetailItem>
               <DetailItem label="Địa chỉ" wide><span className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />{cinema.address || 'Chưa có'}</span></DetailItem>
+              <DetailItem label="Tọa độ" wide>{cinema.latitude != null && cinema.longitude != null ? `${cinema.latitude}, ${cinema.longitude}` : 'Chưa có'}</DetailItem>
               <DetailItem label="Mô tả" wide>{cinema.description || 'Chưa có mô tả'}</DetailItem>
             </DetailList>
           </CardContent>
@@ -301,22 +313,31 @@ const CinemaDetail = () => {
         open={roomOpen}
         onClose={closeRoomDialog}
         heading={selectedRoom ? 'Chỉnh sửa phòng chiếu' : 'Thêm phòng chiếu'}
-        description="Cấu hình này được gửi trực tiếp theo RoomRequest của backend."
+        description="Cấu hình phòng theo AuditoriumRequest của backend."
         maxWidth={760}
       >
         <form onSubmit={saveRoom} className="space-y-5">
-          <label className="block space-y-2 text-sm font-medium"><span>Tên phòng <span className="text-destructive">*</span></span><Input value={roomForm.name} onChange={(event) => setRoomForm((current) => ({ ...current, name: event.target.value }))} placeholder="Phòng 1" required /></label>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <label className="space-y-2 text-sm font-medium"><span>Loại rạp</span><Select value={roomForm.theaterType} onValueChange={(value) => setRoomForm((current) => ({ ...current, theaterType: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{theaterTypes.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
-            <label className="space-y-2 text-sm font-medium"><span>Màn hình</span><Select value={roomForm.screenType} onValueChange={(value) => setRoomForm((current) => ({ ...current, screenType: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{screenTypes.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
-            <label className="space-y-2 text-sm font-medium"><span>Âm thanh</span><Select value={roomForm.soundSystem} onValueChange={(value) => setRoomForm((current) => ({ ...current, soundSystem: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{soundSystems.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
-          </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="space-y-2 text-sm font-medium"><span>Số hàng ghế</span><NumberStepper min={1} max={50} value={roomForm.numberOfRows} onValueChange={(value) => setRoomForm((current) => ({ ...current, numberOfRows: value }))} /></label>
-            <label className="space-y-2 text-sm font-medium"><span>Số cột ghế</span><NumberStepper min={1} max={50} value={roomForm.numberOfColumns} onValueChange={(value) => setRoomForm((current) => ({ ...current, numberOfColumns: value }))} /></label>
+            <label className="space-y-2 text-sm font-medium"><span>Mã phòng <span className="text-destructive">*</span></span><Input value={roomForm.code} onChange={(event) => setRoomForm((current) => ({ ...current, code: event.target.value.toUpperCase() }))} placeholder="ROOM-01" maxLength={50} /></label>
+            <label className="space-y-2 text-sm font-medium"><span>Tên phòng <span className="text-destructive">*</span></span><Input value={roomForm.name} onChange={(event) => setRoomForm((current) => ({ ...current, name: event.target.value }))} placeholder="Phòng 1" /></label>
           </div>
-          <p className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">Sức chứa lý thuyết: <span className="font-medium text-foreground">{Number(roomForm.numberOfRows || 0) * Number(roomForm.numberOfColumns || 0)} ghế</span>. Sơ đồ thực tế được quản lý ở màn hình ghế.</p>
-          <div className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" onClick={closeRoomDialog}>Hủy</Button><Button type="submit" disabled={savingRoom}>{savingRoom && <Loader2 className="h-4 w-4 animate-spin" />}{selectedRoom ? 'Lưu thay đổi' : 'Thêm phòng'}</Button></div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-2 text-sm font-medium"><span>Loại màn hình</span><Select value={roomForm.screenType} onValueChange={(value) => setRoomForm((current) => ({ ...current, screenType: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{screenTypes.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
+            <label className="space-y-2 text-sm font-medium"><span>Trạng thái</span><Select value={roomForm.status} onValueChange={(value) => setRoomForm((current) => ({ ...current, status: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{roomStatuses.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-2 text-sm font-medium"><span>Số hàng ghế</span><NumberStepper min={1} max={50} value={roomForm.totalRows} onValueChange={(value) => setRoomForm((current) => ({ ...current, totalRows: value ?? 1 }))} /></label>
+            <label className="space-y-2 text-sm font-medium"><span>Số cột ghế</span><NumberStepper min={1} max={50} value={roomForm.totalColumns} onValueChange={(value) => setRoomForm((current) => ({ ...current, totalColumns: value ?? 1 }))} /></label>
+          </div>
+
+          <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">Sức chứa dự kiến: <span className="font-semibold text-foreground">{Number(roomForm.totalRows || 0) * Number(roomForm.totalColumns || 0)} ghế</span></div>
+
+          <div className="flex justify-end gap-2 border-t pt-4">
+            <Button type="button" variant="outline" onClick={closeRoomDialog}>Hủy</Button>
+            <Button type="submit" disabled={savingRoom}>{savingRoom && <Loader2 className="h-4 w-4 animate-spin" />}{selectedRoom ? 'Lưu thay đổi' : 'Thêm phòng'}</Button>
+          </div>
         </form>
       </ResponsiveDialog>
     </div>

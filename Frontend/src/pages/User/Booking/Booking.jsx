@@ -13,7 +13,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 const asArray = (value) => {
   const data = value?.data ?? value;
   if (Array.isArray(data)) return data;
-  return Array.isArray(data?.content) ? data.content : [];
+  if (Array.isArray(data?.content)) return data.content;
+  return Array.isArray(data?.items) ? data.items : [];
+};
+
+const formatDate = (showtime) => {
+  if (showtime?.showDate) return showtime.showDate;
+  if (!showtime?.startTime) return '';
+  const date = new Date(showtime.startTime);
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('vi-VN');
+};
+
+const formatTime = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (!Number.isNaN(date.getTime())) {
+    return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  }
+  return String(value).slice(0, 5);
 };
 
 const Booking = () => {
@@ -62,8 +79,8 @@ const Booking = () => {
       setShowtimeId('');
       try {
         const result = await showtimeService.getShowtimesWithFilters({
-          movieId: Number(movieId),
-          cinemaId: Number(cinemaId),
+          movieId,
+          cinemaId,
           fromDate: new Date().toISOString().slice(0, 10),
         });
         setShowtimes(asArray(result));
@@ -88,11 +105,15 @@ const Booking = () => {
     navigate(`/booking/seats/${selectedShowtime.id}`, {
       state: {
         movieTitle: selectedShowtime.movieTitle,
-        cinemaName: selectedShowtime.cinemaName,
+        cinemaName: selectedShowtime.cinemaName || cinemas.find((item) => String(item.id) === cinemaId)?.name,
         roomName: selectedShowtime.roomName,
-        date: selectedShowtime.date || selectedShowtime.showtimeDate,
-        startTime: selectedShowtime.startTime,
-        price: selectedShowtime.price,
+        date: formatDate(selectedShowtime),
+        startTime: formatTime(selectedShowtime.startTime),
+        endTime: formatTime(selectedShowtime.endTime),
+        price: selectedShowtime.basePrice ?? selectedShowtime.price,
+        movieId: selectedShowtime.movieId || movieId,
+        cinemaId: selectedShowtime.cinemaId || cinemaId,
+        roomId: selectedShowtime.roomId || selectedShowtime.auditoriumId,
       },
     });
   };
@@ -165,7 +186,7 @@ const Booking = () => {
                   <SelectContent>
                     {showtimes.map((showtime) => (
                       <SelectItem key={showtime.id} value={String(showtime.id)}>
-                        {showtime.date || showtime.showtimeDate} · {showtime.startTime} · {showtime.roomName}
+                        {formatDate(showtime)} · {formatTime(showtime.startTime)} · {showtime.roomName || 'Phòng chiếu'}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -177,7 +198,7 @@ const Booking = () => {
 
               {selectedShowtime && (
                 <div className="grid gap-3 rounded-lg border bg-muted/40 p-4 text-sm sm:grid-cols-2">
-                  <span className="flex items-center gap-2"><CalendarDays className="size-4" /> {selectedShowtime.date || selectedShowtime.showtimeDate} · {selectedShowtime.startTime}</span>
+                  <span className="flex items-center gap-2"><CalendarDays className="size-4" /> {formatDate(selectedShowtime)} · {formatTime(selectedShowtime.startTime)}</span>
                   <span className="flex items-center gap-2"><MapPin className="size-4" /> {selectedShowtime.cinemaName || cinemas.find((item) => String(item.id) === cinemaId)?.name}</span>
                 </div>
               )}

@@ -2,27 +2,33 @@ package com.example.cinema.service.impl;
 
 import com.example.cinema.common.response.PageMapper;
 import com.example.cinema.common.response.PageResponse;
-
-import com.example.cinema.entity.Movie;
 import com.example.cinema.dto.movie.MovieCreateRequest;
-import com.example.cinema.dto.movie.MovieUpdateRequest;
-import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.dto.movie.MovieResponse;
-import com.example.cinema.mapper.MovieMapper;
-import com.example.cinema.repository.MovieRepository;
-import com.example.cinema.repository.GenreRepository;
+import com.example.cinema.dto.movie.MovieUpdateRequest;
+import com.example.cinema.entity.Genre;
+import com.example.cinema.entity.Movie;
+import com.example.cinema.entity.enums.MovieStatus;
 import com.example.cinema.exception.AppException;
 import com.example.cinema.exception.ErrorCode;
+import com.example.cinema.exception.ResourceNotFoundException;
+import com.example.cinema.mapper.MovieMapper;
+import com.example.cinema.repository.GenreRepository;
+import com.example.cinema.repository.MovieRepository;
 import com.example.cinema.service.MovieService;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import java.time.ZonedDateTime;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
 import java.util.List;
-import org.springframework.data.domain.Pageable;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -43,6 +49,68 @@ public class MovieServiceImpl implements MovieService {
     @Transactional(readOnly = true)
     public PageResponse<MovieResponse> findPage(Pageable pageable) {
         return PageMapper.toPageResponse(repository.findAllByIsActiveTrue(pageable).map(movieMapper::toResponse));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<MovieResponse> search(
+            String keyword,
+            String genre,
+            MovieStatus status,
+            Integer releaseYear,
+            Pageable pageable
+    ) {
+        Specification<Movie> specification = (root, query, criteriaBuilder) ->
+                criteriaBuilder.isTrue(root.get("isActive"));
+
+        if (keyword != null && !keyword.isBlank()) {
+            String pattern = "%" + keyword.trim().toLowerCase(Locale.ROOT) + "%";
+            specification = specification.and((root, query, criteriaBuilder) -> criteriaBuilder.or(
+                    criteriaBuilder.like(criteriaBuilder.lower(root.<String>get("title")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.<String>get("originalTitle")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.<String>get("director")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.<String>get("actors")), pattern)
+            ));
+        }
+
+        if (status != null) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("status"), status));
+        }
+
+        if (releaseYear != null) {
+            LocalDate firstDay = LocalDate.of(releaseYear, 1, 1);
+            LocalDate lastDay = LocalDate.of(releaseYear, 12, 31);
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.between(root.<LocalDate>get("releaseDate"), firstDay, lastDay));
+        }
+
+        if (genre != null && !genre.isBlank()) {
+            String genreFilter = genre.trim();
+            UUID genreId = parseUuid(genreFilter);
+            specification = specification.and((root, query, criteriaBuilder) -> {
+                Join<Movie, Genre> genreJoin = root.join("genres", JoinType.INNER);
+                query.distinct(true);
+                if (genreId != null) {
+                    return criteriaBuilder.equal(genreJoin.get("id"), genreId);
+                }
+                String normalized = genreFilter.toLowerCase(Locale.ROOT);
+                return criteriaBuilder.or(
+                        criteriaBuilder.equal(criteriaBuilder.lower(genreJoin.<String>get("name")), normalized),
+                        criteriaBuilder.equal(criteriaBuilder.lower(genreJoin.<String>get("slug")), normalized)
+                );
+            });
+        }
+
+        return PageMapper.toPageResponse(repository.findAll(specification, pageable).map(movieMapper::toResponse));
+    }
+
+    private UUID parseUuid(String value) {
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
     }
 
     @Override
@@ -74,7 +142,7 @@ public class MovieServiceImpl implements MovieService {
         return movieMapper.toResponse(repository.save(entity));
     }
 
-    private java.util.Set<com.example.cinema.entity.Genre> resolveGenres(java.util.Set<UUID> ids) {
+    private java.util.Set<Genre> resolveGenres(java.util.Set<UUID> ids) {
         if (ids == null || ids.isEmpty()) {
             return new java.util.HashSet<>();
         }

@@ -1,17 +1,15 @@
 package com.example.cinema.dto.user;
 
-import jakarta.validation.constraints.*;
-
-import java.time.ZonedDateTime;
-
 import com.example.cinema.entity.enums.Gender;
 import com.example.cinema.entity.enums.UserStatus;
-import java.time.LocalDate;
-
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDate;
 
 @Data
 @Builder
@@ -19,25 +17,20 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UserUpdateRequest {
 
-    @NotBlank
-
+    @Email
     private String email;
-    @NotBlank
+
+    @Size(max = 30)
     private String phone;
-    @NotBlank
+
+    @Size(max = 150)
     private String fullName;
-    @NotNull
+
     private LocalDate dateOfBirth;
-    @NotNull
     private Gender gender;
-    @NotBlank
     private String avatarUrl;
-    @NotNull
     private UserStatus status;
-    @NotNull
     private Boolean emailVerified;
-    @NotNull
     private Boolean phoneVerified;
-    @NotNull
-    private ZonedDateTime lastLoginAt;
+    private String roleCode;
 }
