@@ -98,7 +98,7 @@ const CinemaDetail = () => {
     loadCinemaDetail();
   }, [loadCinemaDetail]);
 
-  const roomCapacity = (room) => Number(room.capacity ?? (Number(room.totalRows || 0) * Number(room.totalColumns || 0)) ?? 0);
+  const roomCapacity = (room) => Number(room.capacity ?? Number(room.totalRows || 0) * Number(room.totalColumns || 0)) || 0;
   const totalCapacity = useMemo(() => rooms.reduce((sum, room) => sum + roomCapacity(room), 0), [rooms]);
 
   const openCreateRoom = () => {

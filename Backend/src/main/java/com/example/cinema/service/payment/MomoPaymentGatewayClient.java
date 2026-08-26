@@ -3,7 +3,7 @@ package com.example.cinema.service.payment;
 import com.example.cinema.entity.Booking;
 import com.example.cinema.exception.AppException;
 import com.example.cinema.exception.ErrorCode;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
