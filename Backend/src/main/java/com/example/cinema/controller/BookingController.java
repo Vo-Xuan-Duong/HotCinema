@@ -7,6 +7,7 @@ import com.example.cinema.dto.booking.BookingCreateRequest;
 import com.example.cinema.dto.booking.BookingResponse;
 import com.example.cinema.dto.booking.BookingUpdateRequest;
 import com.example.cinema.entity.enums.BookingStatus;
+import com.example.cinema.service.BookingCancellationService;
 import com.example.cinema.service.BookingService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -28,9 +29,13 @@ import java.util.UUID;
 public class BookingController {
 
     private final BookingService bookingService;
+    private final BookingCancellationService bookingCancellationService;
 
-    public BookingController(BookingService bookingService) {
+    public BookingController(
+            BookingService bookingService,
+            BookingCancellationService bookingCancellationService) {
         this.bookingService = bookingService;
+        this.bookingCancellationService = bookingCancellationService;
     }
 
     @GetMapping
@@ -110,6 +115,15 @@ public class BookingController {
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody BookingCheckoutRequest request) {
         return ResponseEntity.ok(new ApiResponse<>(bookingService.checkout(currentUserId(jwt), request)));
+    }
+
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<ApiResponse<BookingResponse>> cancelMyBooking(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(new ApiResponse<>(
+                bookingCancellationService.cancelForUser(id, currentUserId(jwt))
+        ));
     }
 
     @PostMapping
