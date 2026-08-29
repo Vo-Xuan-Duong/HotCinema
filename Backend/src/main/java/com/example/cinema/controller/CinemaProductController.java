@@ -1,16 +1,17 @@
 package com.example.cinema.controller;
 
-import com.example.cinema.service.CinemaProductService;
 import com.example.cinema.common.response.ApiResponse;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import jakarta.validation.Valid;
+import com.example.cinema.common.response.PageResponse;
 import com.example.cinema.dto.cinemaproduct.CinemaProductCreateRequest;
-import com.example.cinema.dto.cinemaproduct.CinemaProductUpdateRequest;
 import com.example.cinema.dto.cinemaproduct.CinemaProductResponse;
+import com.example.cinema.dto.cinemaproduct.CinemaProductUpdateRequest;
+import com.example.cinema.service.CinemaProductService;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import com.example.cinema.common.response.PageResponse;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
@@ -30,7 +31,14 @@ public class CinemaProductController {
         return ResponseEntity.ok(new ApiResponse<>(cinemaProductService.findAll()));
     }
 
+    @GetMapping("/cinema/{cinemaId}/available")
+    public ResponseEntity<ApiResponse<List<CinemaProductResponse>>> getAvailableByCinema(
+            @PathVariable UUID cinemaId) {
+        return ResponseEntity.ok(new ApiResponse<>(cinemaProductService.findAvailableByCinema(cinemaId)));
+    }
+
     @GetMapping("/page")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<PageResponse<CinemaProductResponse>>> getPage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -44,16 +52,22 @@ public class CinemaProductController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<CinemaProductResponse>> create(@Valid @RequestBody CinemaProductCreateRequest request) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<CinemaProductResponse>> create(
+            @Valid @RequestBody CinemaProductCreateRequest request) {
         return ResponseEntity.ok(new ApiResponse<>(cinemaProductService.create(request)));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<CinemaProductResponse>> update(@PathVariable UUID id, @Valid @RequestBody CinemaProductUpdateRequest request) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<CinemaProductResponse>> update(
+            @PathVariable UUID id,
+            @Valid @RequestBody CinemaProductUpdateRequest request) {
         return ResponseEntity.ok(new ApiResponse<>(cinemaProductService.update(id, request)));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         cinemaProductService.deleteById(id);
         return ResponseEntity.noContent().build();

@@ -25,6 +25,9 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
 
     List<Ticket> findAllByBooking_IdAndBooking_User_IdAndIsActiveTrue(UUID bookingId, UUID userId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    List<Ticket> findAllForUpdateByBooking_IdAndIsActiveTrue(UUID bookingId);
+
     Optional<Ticket> findByQrTokenAndIsActiveTrue(UUID qrToken);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

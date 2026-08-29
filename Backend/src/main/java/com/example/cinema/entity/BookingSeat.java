@@ -23,8 +23,8 @@ public class BookingSeat {
     @JoinColumn(name = "booking_id", nullable = false)
     private Booking booking;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "showtime_seat_id", nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "showtime_seat_id", nullable = false)
     private ShowtimeSeat showtimeSeat;
 
     @Column(name = "seat_name", nullable = false, length = 30)

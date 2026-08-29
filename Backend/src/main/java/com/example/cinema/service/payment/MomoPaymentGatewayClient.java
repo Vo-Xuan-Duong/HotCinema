@@ -1,6 +1,7 @@
 package com.example.cinema.service.payment;
 
 import com.example.cinema.entity.Booking;
+import com.example.cinema.entity.Payment;
 import com.example.cinema.exception.AppException;
 import com.example.cinema.exception.ErrorCode;
 import tools.jackson.databind.JsonNode;
@@ -52,12 +53,7 @@ public class MomoPaymentGatewayClient {
 
     public MomoCreateResult createPayment(Booking booking, String orderId, String requestId) {
         requireConfigured();
-        long amount;
-        try {
-            amount = booking.getTotalAmount().longValueExact();
-        } catch (ArithmeticException exception) {
-            throw new AppException(ErrorCode.BAD_REQUEST, "MoMo requires a whole-number VND amount");
-        }
+        long amount = wholeVndAmount(booking.getTotalAmount(), "Payment");
         if (amount <= 0) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Payment amount must be positive");
         }
@@ -125,8 +121,89 @@ public class MomoPaymentGatewayClient {
         return new MomoCreateResult(orderId, requestId, payUrl);
     }
 
+    public MomoRefundResult refundPayment(Payment payment, String orderId, String requestId) {
+        requireConfigured();
+        if (payment == null || payment.getBooking() == null) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Payment is not associated with a booking");
+        }
+
+        long amount = wholeVndAmount(payment.getAmount(), "Refund");
+        if (amount < 1000) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "MoMo refund amount must be at least 1,000 VND");
+        }
+
+        long originalTransactionId;
+        try {
+            originalTransactionId = Long.parseLong(payment.getProviderTransactionId());
+        } catch (NumberFormatException | NullPointerException exception) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "MoMo transaction id is missing or invalid");
+        }
+
+        String description = "Refund HotCinema booking " + payment.getBooking().getBookingCode();
+        String rawData = "accessKey=" + accessKey
+                + "&amount=" + amount
+                + "&description=" + description
+                + "&orderId=" + orderId
+                + "&partnerCode=" + partnerCode
+                + "&requestId=" + requestId
+                + "&transId=" + originalTransactionId;
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("partnerCode", partnerCode);
+        body.put("orderId", orderId);
+        body.put("requestId", requestId);
+        body.put("amount", amount);
+        body.put("transId", originalTransactionId);
+        body.put("lang", "vi");
+        body.put("description", description);
+        body.put("signature", hmacSha256(rawData));
+
+        JsonNode response;
+        try {
+            response = restClient.post()
+                    .uri("/v2/gateway/api/refund")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .body(JsonNode.class);
+        } catch (RestClientException exception) {
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Unable to reach MoMo refund gateway");
+        }
+
+        if (response == null) {
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Empty response from MoMo refund gateway");
+        }
+
+        int resultCode = response.path("resultCode").asInt(-1);
+        String message = response.path("message").asText("MoMo refund failed");
+        String responseOrderId = response.path("orderId").asText(orderId);
+        String responseRequestId = response.path("requestId").asText(requestId);
+        if (!orderId.equals(responseOrderId) || !requestId.equals(responseRequestId)) {
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "MoMo response does not match refund request");
+        }
+        if (resultCode != 0) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "MoMo rejected refund: " + message);
+        }
+
+        return new MomoRefundResult(
+                responseOrderId,
+                responseRequestId,
+                response.path("transId").asText(""),
+                message,
+                response.toString()
+        );
+    }
+
     public String newProviderId(String prefix) {
         return prefix + UUID.randomUUID().toString().replace("-", "");
+    }
+
+    private long wholeVndAmount(java.math.BigDecimal amountValue, String operation) {
+        try {
+            return amountValue.longValueExact();
+        } catch (ArithmeticException | NullPointerException exception) {
+            throw new AppException(ErrorCode.BAD_REQUEST, operation + " requires a whole-number VND amount");
+        }
     }
 
     private void requireConfigured() {
@@ -150,4 +227,12 @@ public class MomoPaymentGatewayClient {
     }
 
     public record MomoCreateResult(String orderId, String requestId, String paymentUrl) {}
+
+    public record MomoRefundResult(
+            String orderId,
+            String requestId,
+            String refundTransactionId,
+            String message,
+            String responsePayload
+    ) {}
 }

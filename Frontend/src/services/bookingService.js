@@ -24,6 +24,7 @@ const bookingService = {
   async createBooking(data) {
     const payload = {
       seatIds: data?.seatIds || [],
+      items: Array.isArray(data?.items) ? data.items : [],
       promotionCode: data?.promotionCode || null,
     };
     return unwrapApiData(await apiClient.post(`${base}/checkout`, payload));
