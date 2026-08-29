@@ -5,6 +5,8 @@ import {
   Heart,
   Loader2,
   Lock,
+  Minus,
+  Plus,
   Settings,
   Star,
   Tag,
@@ -42,6 +44,7 @@ import {
 } from '@/lib/seatPresentation';
 import { cn } from '@/lib/utils';
 import bookingService from '@/services/bookingService';
+import concessionService from '@/services/concessionService';
 import promotionService from '@/services/promotionService';
 import showtimeService from '@/services/showtimeService';
 import { getAccessToken } from '@/utils/authStorage';
@@ -102,6 +105,9 @@ const BookingSeatSelection = () => {
   const [showtimeInfo, setShowtimeInfo] = useState(location.state || {});
   const [seatLayout, setSeatLayout] = useState(EMPTY_LAYOUT);
   const [selectedSeats, setSelectedSeats] = useState([]);
+  const [concessions, setConcessions] = useState([]);
+  const [concessionQuantities, setConcessionQuantities] = useState({});
+  const [loadingConcessions, setLoadingConcessions] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isCreatingBooking, setIsCreatingBooking] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -289,6 +295,27 @@ const BookingSeatSelection = () => {
     loadShowtimeDetails();
   }, [loadShowtimeDetails]);
 
+  useEffect(() => {
+    if (!showtimeInfo.cinemaId) {
+      setConcessions([]);
+      return;
+    }
+
+    let active = true;
+    setLoadingConcessions(true);
+    concessionService.listAvailableByCinema(showtimeInfo.cinemaId)
+      .then((items) => {
+        if (active) setConcessions(Array.isArray(items) ? items : []);
+      })
+      .catch((error) => {
+        console.error('Error loading concessions:', error);
+        if (active) setConcessions([]);
+      })
+      .finally(() => active && setLoadingConcessions(false));
+
+    return () => { active = false; };
+  }, [showtimeInfo.cinemaId]);
+
   const isMyHeldSeat = useCallback((seat) => {
     const currentUserId = getCurrentUserId();
     return seat.status === 'held'
@@ -338,11 +365,41 @@ const BookingSeatSelection = () => {
     }
   };
 
-  const subtotal = useMemo(
+  const changeConcessionQuantity = (item, delta) => {
+    setConcessionQuantities((previous) => {
+      const current = Number(previous[item.id] || 0);
+      const stockLimit = item.stockQuantity == null ? 20 : Math.max(0, Number(item.stockQuantity));
+      const next = Math.max(0, Math.min(20, stockLimit, current + delta));
+      return { ...previous, [item.id]: next };
+    });
+  };
+
+  const selectedConcessions = useMemo(
+    () => concessions
+      .map((item) => ({ ...item, quantity: Number(concessionQuantities[item.id] || 0) }))
+      .filter((item) => item.quantity > 0),
+    [concessions, concessionQuantities]
+  );
+
+  const seatSubtotal = useMemo(
     () => selectedSeats.reduce((total, seat) => total + (Number(seat.price) || 0), 0),
     [selectedSeats]
   );
+  const foodSubtotal = useMemo(
+    () => selectedConcessions.reduce(
+      (total, item) => total + (Number(item.price) || 0) * item.quantity,
+      0
+    ),
+    [selectedConcessions]
+  );
+  const subtotal = seatSubtotal + foodSubtotal;
   const total = Math.max(0, subtotal - (promotionDiscount || 0));
+
+  useEffect(() => {
+    if (!promotionInfo) return;
+    setPromotionInfo(null);
+    setPromotionDiscount(0);
+  }, [subtotal]);
 
   const handleValidatePromotion = async () => {
     const code = promotionCode.trim();
@@ -441,9 +498,15 @@ const BookingSeatSelection = () => {
         return;
       }
 
+      const items = selectedConcessions.map((item) => ({
+        cinemaProductId: item.id,
+        quantity: item.quantity,
+      }));
+
       const bookingData = await bookingService.createBooking({
         showtimeId,
         seatIds,
+        items,
         promotionCode: promotionInfo?.code || promotionCode.trim() || null,
       });
 
@@ -462,7 +525,11 @@ const BookingSeatSelection = () => {
           showDate: showtimeInfo.date || showtimeInfo.startTime,
           formatType: showtimeInfo.formatType,
           selectedSeats,
-          totalAmount: total,
+          selectedConcessions,
+          seatAmount: Number(bookingData.seatAmount ?? seatSubtotal),
+          foodAmount: Number(bookingData.foodAmount ?? foodSubtotal),
+          discountAmount: Number(bookingData.discountAmount ?? promotionDiscount),
+          totalAmount: Number(bookingData.totalAmount ?? total),
         },
       });
     } catch (error) {
@@ -609,7 +676,7 @@ const BookingSeatSelection = () => {
             </Card>
           </div>
 
-          <aside className="w-full shrink-0 lg:w-80">
+          <aside className="w-full shrink-0 lg:w-96">
             <Card className="sticky top-24 shadow-sm">
               <CardHeader className="border-b border-border">
                 <CardTitle className="text-lg">Tóm tắt đặt vé</CardTitle>
@@ -646,6 +713,54 @@ const BookingSeatSelection = () => {
                     </div>
                   ) : (
                     <p className="mt-2 text-sm text-muted-foreground">Chưa chọn ghế.</p>
+                  )}
+                </div>
+
+                <Separator />
+
+                <div>
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-sm font-medium">Bắp nước & combo</p>
+                    {loadingConcessions && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                  </div>
+                  {!loadingConcessions && concessions.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Rạp này chưa có combo đang bán.</p>
+                  ) : (
+                    <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+                      {concessions.map((item) => {
+                        const quantity = Number(concessionQuantities[item.id] || 0);
+                        const soldOut = item.stockQuantity != null && Number(item.stockQuantity) <= 0;
+                        return (
+                          <div key={item.id} className="rounded-lg border p-3">
+                            <div className="flex gap-3">
+                              {item.productImageUrl && (
+                                <img
+                                  src={item.productImageUrl}
+                                  alt={item.productName}
+                                  className="h-12 w-12 shrink-0 rounded-md object-cover"
+                                  onError={(event) => { event.currentTarget.style.display = 'none'; }}
+                                />
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium">{item.productName}</p>
+                                <p className="text-xs text-muted-foreground">{item.categoryName || 'Đồ ăn & thức uống'}</p>
+                                <p className="mt-1 text-sm font-semibold">{Number(item.price || 0).toLocaleString('vi-VN')}đ</p>
+                              </div>
+                              <div className="flex items-center gap-1 self-center">
+                                <Button type="button" variant="outline" size="icon" className="h-8 w-8" disabled={quantity <= 0} onClick={() => changeConcessionQuantity(item, -1)} aria-label={`Giảm ${item.productName}`}>
+                                  <Minus className="h-3 w-3" />
+                                </Button>
+                                <span className="w-6 text-center text-sm font-medium">{quantity}</span>
+                                <Button type="button" variant="outline" size="icon" className="h-8 w-8" disabled={soldOut || quantity >= 20 || (item.stockQuantity != null && quantity >= Number(item.stockQuantity))} onClick={() => changeConcessionQuantity(item, 1)} aria-label={`Thêm ${item.productName}`}>
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                            {soldOut && <p className="mt-2 text-xs text-destructive">Hết hàng</p>}
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
 
@@ -690,6 +805,16 @@ const BookingSeatSelection = () => {
                 <Separator />
 
                 <div className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Tiền ghế</span>
+                    <span className="font-medium">{seatSubtotal.toLocaleString('vi-VN')}đ</span>
+                  </div>
+                  {foodSubtotal > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Bắp nước</span>
+                      <span className="font-medium">{foodSubtotal.toLocaleString('vi-VN')}đ</span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Tạm tính</span>
                     <span className="font-medium">{subtotal.toLocaleString('vi-VN')}đ</span>
