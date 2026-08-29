@@ -118,7 +118,7 @@ const BookingHistory = () => {
     if (!window.confirm(`Hoàn tiền ${amount} cho đơn ${booking.bookingCode || booking.id}? Vé sẽ bị vô hiệu hóa và ghế được mở bán lại.`)) return;
     setRefundingId(booking.id);
     try {
-      const refunded = await bookingService.processRefund(booking.id);
+      const refunded = await bookingService.refundMyBooking(booking.id);
       setBookings((items) => items.map((item) => (
         item.id === booking.id ? { ...item, ...refunded, status: 'REFUNDED' } : item
       )));
