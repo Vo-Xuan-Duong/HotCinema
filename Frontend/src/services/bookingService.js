@@ -42,6 +42,10 @@ const bookingService = {
     return unwrapApiData(await apiClient.post(`${base}/${bookingId}/cancel`));
   },
 
+  async refundMyBooking(bookingId) {
+    return unwrapApiData(await apiClient.post(`${base}/${bookingId}/refund`));
+  },
+
   async deleteBooking(bookingId) {
     return unwrapApiData(await apiClient.delete(`${base}/${bookingId}`));
   },
@@ -72,10 +76,6 @@ const bookingService = {
 
   async confirmPayment(bookingId, paymentData) {
     return unwrapApiData(await apiClient.post(`${base}/${bookingId}/payment/confirm`, paymentData));
-  },
-
-  async processRefund(bookingId, refundData) {
-    return unwrapApiData(await apiClient.post(`${base}/${bookingId}/refund`, refundData));
   },
 
   async validateBookingCode(bookingCode) {
