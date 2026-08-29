@@ -1,36 +1,92 @@
 services:
-  app:
-    build: ./Backend
-    container_name: hotcinema-app
-    image: hotcinema:1.0.0
+  mysql:
+    image: mysql:8.4
+    container_name: hotcinema-mysql
     restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-cinema}
+      MYSQL_USER: ${MYSQL_USERNAME:-hotcinema}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-hotcinema}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-hotcinema-root}
+      TZ: Asia/Ho_Chi_Minh
     ports:
-      - "8080:8080"
-    env_file:
-      - ./Backend/.env
+      - "${MYSQL_EXPOSE_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/api-docs" ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
-    depends_on:
-      redis:
-        condition: service_healthy
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
   redis:
     image: redis:7-alpine
     container_name: hotcinema-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "${REDIS_EXPOSE_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 15s
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
       timeout: 5s
       retries: 5
 
+  backend:
+    build:
+      context: ./Backend
+    container_name: hotcinema-backend
+    image: hotcinema-backend:1.0.0
+    restart: unless-stopped
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-cinema}
+      MYSQL_USERNAME: ${MYSQL_USERNAME:-hotcinema}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-hotcinema}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-hotcinema-compose-dev-secret-change-for-production-2026}
+      SMTP_HOST: ${SMTP_HOST:-host.docker.internal}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      MOMO_API_BASE_URL: ${MOMO_API_BASE_URL:-https://test-payment.momo.vn}
+      MOMO_PARTNER_CODE: ${MOMO_PARTNER_CODE:-}
+      MOMO_PARTNER_NAME: ${MOMO_PARTNER_NAME:-HotCinema}
+      MOMO_STORE_ID: ${MOMO_STORE_ID:-HotCinema}
+      MOMO_ACCESS_KEY: ${MOMO_ACCESS_KEY:-}
+      MOMO_SECRET_KEY: ${MOMO_SECRET_KEY:-}
+      MOMO_REDIRECT_URL: ${MOMO_REDIRECT_URL:-http://localhost/booking-payment}
+      MOMO_IPN_URL: ${MOMO_IPN_URL:-http://localhost/api/v1/paymentwebhooks/momo}
+    ports:
+      - "${BACKEND_EXPOSE_PORT:-8080}:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/v3/api-docs"]
+      interval: 20s
+      timeout: 5s
+      retries: 8
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./Frontend
+      args:
+        VITE_API_BASE_URL: /api/v1
+    container_name: hotcinema-frontend
+    image: hotcinema-frontend:1.0.0
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_EXPOSE_PORT:-80}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
 volumes:
+  mysql_data:
   redis_data:
