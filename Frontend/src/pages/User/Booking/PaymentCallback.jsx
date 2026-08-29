@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import bookingService from '@/services/bookingService';
 import paymentService from '@/services/paymentService';
 
 const delay = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
@@ -15,23 +16,70 @@ const PaymentCallback = () => {
 
   useEffect(() => {
     let active = true;
+    const callbackParams = new URLSearchParams(window.location.search);
+    const callbackOrderId = callbackParams.get('orderId') || '';
+    const callbackTransactionId = callbackParams.get('transId') || '';
 
     const readPayment = async (pending) => {
-      if (pending.paymentId) {
+      if (pending?.paymentId) {
         return paymentService.getPaymentById(pending.paymentId);
       }
-      const payments = await paymentService.getPaymentsByBookingId(pending.bookingId);
-      return payments.find((item) => (
-        item.providerOrderId === pending.providerOrderId
-        || item.providerTransactionId === pending.providerTransactionId
-      )) || payments[0];
+      if (pending?.bookingId) {
+        const payments = await paymentService.getPaymentsByBookingId(pending.bookingId);
+        return payments.find((item) => (
+          item.providerOrderId === pending.providerOrderId
+          || item.providerTransactionId === pending.providerTransactionId
+          || item.providerOrderId === callbackOrderId
+          || item.providerTransactionId === callbackTransactionId
+        )) || payments[0];
+      }
+      if (callbackOrderId) {
+        return paymentService.getPaymentByProviderOrderId('MOMO', callbackOrderId);
+      }
+      return null;
+    };
+
+    const buildCompletedBooking = async (pending, payment) => {
+      let booking = null;
+      if (payment?.bookingId) {
+        try {
+          booking = await bookingService.getBookingById(payment.bookingId);
+        } catch {
+          booking = null;
+        }
+      }
+
+      return {
+        ...(pending || {}),
+        bookingId: payment?.bookingId || pending?.bookingId,
+        bookingCode: booking?.bookingCode || pending?.bookingCode,
+        paymentId: payment?.id,
+        providerOrderId: payment?.providerOrderId,
+        providerTransactionId: payment?.providerTransactionId,
+        paymentStatus: payment?.status,
+        movieTitle: booking?.movieTitle || pending?.movieTitle,
+        moviePoster: booking?.moviePosterUrl || pending?.moviePoster,
+        cinemaName: booking?.cinemaName || pending?.cinemaName,
+        cinemaAddress: booking?.cinemaAddress || pending?.cinemaAddress,
+        roomName: booking?.roomName || pending?.roomName,
+        showDate: booking?.showtimeStartTime || pending?.showDate,
+        showTime: booking?.showtimeStartTime || pending?.showTime,
+        formatType: booking?.showtimeFormat || pending?.formatType,
+        seatAmount: booking?.seatAmount ?? pending?.seatAmount,
+        foodAmount: booking?.foodAmount ?? pending?.foodAmount,
+        totalAmount: booking?.totalAmount ?? payment?.amount ?? pending?.totalAmount,
+        discountAmount: booking?.discountAmount ?? pending?.discountAmount,
+        paymentMethod: payment?.paymentMethod || pending?.paymentMethod || 'MOMO',
+      };
     };
 
     const verifyPayment = async () => {
       try {
         const rawPending = localStorage.getItem('pendingPayment');
         const pending = rawPending ? JSON.parse(rawPending) : null;
-        if (!pending?.bookingId) throw new Error('Không tìm thấy giao dịch đang chờ xác nhận.');
+        if (!pending?.bookingId && !callbackOrderId) {
+          throw new Error('Không tìm thấy giao dịch đang chờ xác nhận.');
+        }
 
         let payment = null;
         for (let attempt = 0; attempt < 8 && active; attempt += 1) {
@@ -42,7 +90,7 @@ const PaymentCallback = () => {
           }
 
           const paymentStatus = String(payment.status || '').toUpperCase();
-          if (['SUCCESS', 'FAILED', 'CANCELLED'].includes(paymentStatus)) break;
+          if (['SUCCESS', 'FAILED', 'CANCELLED', 'REFUNDED'].includes(paymentStatus)) break;
           if (attempt < 7) await delay(1500);
         }
 
@@ -51,13 +99,7 @@ const PaymentCallback = () => {
 
         const paymentStatus = String(payment.status || '').toUpperCase();
         if (paymentStatus === 'SUCCESS') {
-          const completedBooking = {
-            ...pending,
-            paymentId: payment.id,
-            providerOrderId: payment.providerOrderId,
-            providerTransactionId: payment.providerTransactionId,
-            paymentStatus,
-          };
+          const completedBooking = await buildCompletedBooking(pending, payment);
           localStorage.setItem('lastBooking', JSON.stringify(completedBooking));
           localStorage.removeItem('pendingPayment');
           setStatus('success');
@@ -73,6 +115,13 @@ const PaymentCallback = () => {
           localStorage.removeItem('pendingPayment');
           setStatus('failed');
           setMessage('Giao dịch không thành công hoặc đã bị hủy.');
+          return;
+        }
+
+        if (paymentStatus === 'REFUNDED') {
+          localStorage.removeItem('pendingPayment');
+          setStatus('failed');
+          setMessage('Giao dịch đã được hoàn tiền.');
           return;
         }
 
