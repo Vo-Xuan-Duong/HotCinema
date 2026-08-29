@@ -19,8 +19,11 @@ import com.example.cinema.repository.PromotionCodeRepository;
 import com.example.cinema.repository.ShowtimeSeatRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -36,6 +39,7 @@ public class BookingCancellationService {
     private final PromotionCodeRepository promotionCodeRepository;
     private final ShowtimeSeatRepository showtimeSeatRepository;
     private final BookingMapper bookingMapper;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
     @CacheEvict(value = {"bookings", "showtimeseats"}, allEntries = true)
@@ -56,10 +60,14 @@ public class BookingCancellationService {
         }
 
         List<BookingSeat> bookingSeats = bookingSeatRepository.findAllByBooking_Id(bookingId);
-        for (BookingSeat bookingSeat : bookingSeats) {
-            ShowtimeSeat showtimeSeat = bookingSeat.getShowtimeSeat();
-            if (showtimeSeat == null || showtimeSeat.getBooking() == null
-                    || !bookingId.equals(showtimeSeat.getBooking().getId())) {
+        List<ShowtimeSeat> showtimeSeats = showtimeSeatRepository.findAllByBookingIdForUpdate(bookingId);
+
+        if (bookingSeats.size() != showtimeSeats.size()) {
+            throw new AppException(ErrorCode.DATA_INTEGRITY_VIOLATION, "Booking seat data is inconsistent");
+        }
+
+        for (ShowtimeSeat showtimeSeat : showtimeSeats) {
+            if (showtimeSeat.getBooking() == null || !bookingId.equals(showtimeSeat.getBooking().getId())) {
                 throw new AppException(ErrorCode.DATA_INTEGRITY_VIOLATION, "Booking seat ownership is inconsistent");
             }
             if (showtimeSeat.getStatus() != ShowtimeSeatStatus.HELD) {
@@ -70,31 +78,65 @@ public class BookingCancellationService {
             }
         }
 
-        bookingSeatRepository.deleteAll(bookingSeats);
-        for (BookingSeat bookingSeat : bookingSeats) {
-            ShowtimeSeat showtimeSeat = bookingSeat.getShowtimeSeat();
+        bookingSeatRepository.deleteAllByBooking_Id(bookingId);
+        for (ShowtimeSeat showtimeSeat : showtimeSeats) {
             showtimeSeat.setBooking(null);
-            showtimeSeat.setStatus(ShowtimeSeatStatus.AVAILABLE);
-            showtimeSeat.setHeldByUser(null);
-            showtimeSeat.setHoldToken(null);
-            showtimeSeat.setHeldAt(null);
-            showtimeSeat.setHoldExpiresAt(null);
+            clearHold(showtimeSeat);
         }
-        showtimeSeatRepository.saveAll(bookingSeats.stream().map(BookingSeat::getShowtimeSeat).toList());
+        showtimeSeatRepository.saveAll(showtimeSeats);
+        for (ShowtimeSeat showtimeSeat : showtimeSeats) {
+            publishSeatAvailableAfterCommit(showtimeSeat.getShowtime().getId(), showtimeSeat.getId());
+        }
 
-        List<BookingPromotion> bookingPromotions = bookingPromotionRepository.findAllByBooking_Id(bookingId);
-        for (BookingPromotion bookingPromotion : bookingPromotions) {
-            PromotionCode promotionCode = bookingPromotion.getPromotionCode();
-            if (promotionCode != null) {
-                int usedCount = promotionCode.getUsedCount() == null ? 0 : promotionCode.getUsedCount();
-                promotionCode.setUsedCount(Math.max(0, usedCount - 1));
-                promotionCodeRepository.save(promotionCode);
-            }
-        }
-        bookingPromotionRepository.deleteAll(bookingPromotions);
+        releasePromotionReservation(bookingId);
 
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancelledAt(ZonedDateTime.now());
         return bookingMapper.toResponse(bookingRepository.save(booking));
     }
+
+    private void releasePromotionReservation(UUID bookingId) {
+        List<BookingPromotion> reservations = bookingPromotionRepository.findAllByBooking_Id(bookingId);
+        for (BookingPromotion reservation : reservations) {
+            PromotionCode code = reservation.getPromotionCode();
+            if (code == null) {
+                continue;
+            }
+            PromotionCode lockedCode = promotionCodeRepository.findByIdForUpdate(code.getId()).orElse(code);
+            int usedCount = lockedCode.getUsedCount() == null ? 0 : lockedCode.getUsedCount();
+            if (usedCount > 0) {
+                lockedCode.setUsedCount(usedCount - 1);
+                promotionCodeRepository.save(lockedCode);
+            }
+        }
+        bookingPromotionRepository.deleteAllByBooking_Id(bookingId);
+    }
+
+    private void clearHold(ShowtimeSeat showtimeSeat) {
+        showtimeSeat.setStatus(ShowtimeSeatStatus.AVAILABLE);
+        showtimeSeat.setHeldByUser(null);
+        showtimeSeat.setHoldToken(null);
+        showtimeSeat.setHeldAt(null);
+        showtimeSeat.setHoldExpiresAt(null);
+    }
+
+    private void publishSeatAvailableAfterCommit(UUID showtimeId, UUID seatId) {
+        Runnable publish = () -> messagingTemplate.convertAndSend(
+                "/topic/showtimes/" + showtimeId,
+                new SeatStatusEvent(seatId, ShowtimeSeatStatus.AVAILABLE.name(), null)
+        );
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    publish.run();
+                }
+            });
+        } else {
+            publish.run();
+        }
+    }
+
+    private record SeatStatusEvent(UUID seatId, String status, UUID userId) {}
 }
