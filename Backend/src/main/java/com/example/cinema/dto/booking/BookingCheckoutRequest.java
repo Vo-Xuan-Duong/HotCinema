@@ -1,5 +1,6 @@
 package com.example.cinema.dto.booking;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -7,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,6 +21,11 @@ public class BookingCheckoutRequest {
     @NotEmpty
     @Size(max = 10)
     private List<UUID> seatIds;
+
+    @Valid
+    @Size(max = 20)
+    @Builder.Default
+    private List<BookingCheckoutItemRequest> items = new ArrayList<>();
 
     @Size(max = 100)
     private String promotionCode;
