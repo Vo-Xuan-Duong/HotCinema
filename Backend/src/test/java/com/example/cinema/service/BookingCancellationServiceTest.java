@@ -4,9 +4,11 @@ import com.example.cinema.entity.Booking;
 import com.example.cinema.entity.enums.BookingStatus;
 import com.example.cinema.exception.AppException;
 import com.example.cinema.mapper.BookingMapper;
+import com.example.cinema.repository.BookingItemRepository;
 import com.example.cinema.repository.BookingPromotionRepository;
 import com.example.cinema.repository.BookingRepository;
 import com.example.cinema.repository.BookingSeatRepository;
+import com.example.cinema.repository.CinemaProductRepository;
 import com.example.cinema.repository.PromotionCodeRepository;
 import com.example.cinema.repository.ShowtimeSeatRepository;
 import org.junit.jupiter.api.Test;
@@ -31,11 +33,15 @@ class BookingCancellationServiceTest {
     @Mock
     private BookingSeatRepository bookingSeatRepository;
     @Mock
+    private BookingItemRepository bookingItemRepository;
+    @Mock
     private BookingPromotionRepository bookingPromotionRepository;
     @Mock
     private PromotionCodeRepository promotionCodeRepository;
     @Mock
     private ShowtimeSeatRepository showtimeSeatRepository;
+    @Mock
+    private CinemaProductRepository cinemaProductRepository;
     @Mock
     private BookingMapper bookingMapper;
     @Mock
@@ -58,9 +64,11 @@ class BookingCancellationServiceTest {
 
         verifyNoInteractions(
                 bookingSeatRepository,
+                bookingItemRepository,
                 bookingPromotionRepository,
                 promotionCodeRepository,
                 showtimeSeatRepository,
+                cinemaProductRepository,
                 bookingMapper,
                 messagingTemplate
         );
@@ -80,9 +88,11 @@ class BookingCancellationServiceTest {
 
         verifyNoInteractions(
                 bookingSeatRepository,
+                bookingItemRepository,
                 bookingPromotionRepository,
                 promotionCodeRepository,
                 showtimeSeatRepository,
+                cinemaProductRepository,
                 bookingMapper,
                 messagingTemplate
         );
