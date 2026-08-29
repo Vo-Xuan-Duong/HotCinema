@@ -2,18 +2,22 @@ package com.example.cinema.service.impl;
 
 import com.example.cinema.common.response.PageMapper;
 import com.example.cinema.common.response.PageResponse;
+import com.example.cinema.dto.booking.BookingCheckoutItemRequest;
 import com.example.cinema.dto.booking.BookingCheckoutRequest;
 import com.example.cinema.dto.booking.BookingCreateRequest;
 import com.example.cinema.dto.booking.BookingResponse;
 import com.example.cinema.dto.booking.BookingUpdateRequest;
 import com.example.cinema.entity.Booking;
+import com.example.cinema.entity.BookingItem;
 import com.example.cinema.entity.BookingPromotion;
 import com.example.cinema.entity.BookingSeat;
+import com.example.cinema.entity.CinemaProduct;
 import com.example.cinema.entity.Promotion;
 import com.example.cinema.entity.PromotionCode;
 import com.example.cinema.entity.ShowtimeSeat;
 import com.example.cinema.entity.User;
 import com.example.cinema.entity.enums.BookingStatus;
+import com.example.cinema.entity.enums.ProductStatus;
 import com.example.cinema.entity.enums.PromotionDiscountType;
 import com.example.cinema.entity.enums.PromotionStatus;
 import com.example.cinema.entity.enums.ShowtimeSeatStatus;
@@ -21,9 +25,11 @@ import com.example.cinema.exception.AppException;
 import com.example.cinema.exception.ErrorCode;
 import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.mapper.BookingMapper;
+import com.example.cinema.repository.BookingItemRepository;
 import com.example.cinema.repository.BookingPromotionRepository;
 import com.example.cinema.repository.BookingRepository;
 import com.example.cinema.repository.BookingSeatRepository;
+import com.example.cinema.repository.CinemaProductRepository;
 import com.example.cinema.repository.PromotionCodeRepository;
 import com.example.cinema.repository.ShowtimeRepository;
 import com.example.cinema.repository.ShowtimeSeatRepository;
@@ -41,9 +47,11 @@ import java.math.RoundingMode;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -59,6 +67,8 @@ public class BookingServiceImpl implements BookingService {
     private final ShowtimeRepository showtimeRepository;
     private final ShowtimeSeatRepository showtimeSeatRepository;
     private final BookingSeatRepository bookingSeatRepository;
+    private final BookingItemRepository bookingItemRepository;
+    private final CinemaProductRepository cinemaProductRepository;
     private final PromotionCodeRepository promotionCodeRepository;
     private final BookingPromotionRepository bookingPromotionRepository;
 
@@ -125,7 +135,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
-    @CacheEvict(value = {"bookings", "showtimeseats"}, allEntries = true)
+    @CacheEvict(value = {"bookings", "showtimeseats", "cinemaproducts"}, allEntries = true)
     public BookingResponse checkout(UUID userId, BookingCheckoutRequest request) {
         User user = userRepository.findByIdAndIsActiveTrue(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId.toString()));
@@ -175,9 +185,14 @@ public class BookingServiceImpl implements BookingService {
             heldSeats.add(showtimeSeat);
         }
 
-        PromotionRedemption redemption = resolvePromotion(request.getPromotionCode(), seatAmount, userId, now);
+        UUID cinemaId = heldSeats.getFirst().getShowtime().getAuditorium().getCinema().getId();
+        ConcessionReservation concessionReservation = reserveConcessions(request.getItems(), cinemaId);
+        BigDecimal foodAmount = concessionReservation.totalAmount();
+        BigDecimal subtotal = seatAmount.add(foodAmount).setScale(2, RoundingMode.HALF_UP);
+
+        PromotionRedemption redemption = resolvePromotion(request.getPromotionCode(), subtotal, userId, now);
         BigDecimal discountAmount = redemption.discountAmount();
-        BigDecimal totalAmount = seatAmount.subtract(discountAmount).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalAmount = subtotal.subtract(discountAmount).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
 
         Booking booking = Booking.builder()
                 .bookingCode(generateBookingCode())
@@ -188,9 +203,9 @@ public class BookingServiceImpl implements BookingService {
                 .customerPhone(user.getPhone())
                 .status(BookingStatus.PENDING_PAYMENT)
                 .seatAmount(seatAmount.setScale(2, RoundingMode.HALF_UP))
-                .foodAmount(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP))
+                .foodAmount(foodAmount)
                 .discountAmount(discountAmount)
-                .subtotal(seatAmount.setScale(2, RoundingMode.HALF_UP))
+                .subtotal(subtotal)
                 .totalAmount(totalAmount)
                 .currency("VND")
                 .expiresAt(expiresAt)
@@ -211,6 +226,21 @@ public class BookingServiceImpl implements BookingService {
         }
         showtimeSeatRepository.saveAll(heldSeats);
         bookingSeatRepository.saveAll(bookingSeats);
+
+        if (!concessionReservation.items().isEmpty()) {
+            List<BookingItem> bookingItems = concessionReservation.items().stream()
+                    .map(item -> BookingItem.builder()
+                            .booking(booking)
+                            .product(item.cinemaProduct().getProduct())
+                            .productName(item.cinemaProduct().getProduct().getName())
+                            .quantity(item.quantity())
+                            .unitPrice(item.cinemaProduct().getPrice())
+                            .totalPrice(item.totalPrice())
+                            .createdAt(now)
+                            .build())
+                    .toList();
+            bookingItemRepository.saveAll(bookingItems);
+        }
 
         if (redemption.promotionCode() != null) {
             PromotionCode promotionCode = redemption.promotionCode();
@@ -277,6 +307,61 @@ public class BookingServiceImpl implements BookingService {
         });
     }
 
+    private ConcessionReservation reserveConcessions(
+            List<BookingCheckoutItemRequest> requestedItems,
+            UUID cinemaId) {
+        if (requestedItems == null || requestedItems.isEmpty()) {
+            return ConcessionReservation.none();
+        }
+
+        Map<UUID, Integer> quantities = new HashMap<>();
+        for (BookingCheckoutItemRequest item : requestedItems) {
+            if (item == null || item.getCinemaProductId() == null || item.getQuantity() == null) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Concession item is invalid");
+            }
+            quantities.merge(item.getCinemaProductId(), item.getQuantity(), Integer::sum);
+        }
+        if (quantities.values().stream().anyMatch(quantity -> quantity <= 0 || quantity > 20)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Concession quantity must be between 1 and 20");
+        }
+
+        List<ReservedConcession> reserved = new ArrayList<>(quantities.size());
+        BigDecimal total = BigDecimal.ZERO;
+        for (UUID cinemaProductId : quantities.keySet().stream().sorted(Comparator.comparing(UUID::toString)).toList()) {
+            int quantity = quantities.get(cinemaProductId);
+            CinemaProduct cinemaProduct = cinemaProductRepository.findByIdForUpdate(cinemaProductId)
+                    .orElseThrow(() -> new ResourceNotFoundException("CinemaProduct", cinemaProductId.toString()));
+
+            if (cinemaProduct.getCinema() == null || !cinemaId.equals(cinemaProduct.getCinema().getId())) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Concession item does not belong to the booking cinema");
+            }
+            if (!Boolean.TRUE.equals(cinemaProduct.getIsAvailable())
+                    || !cinemaProduct.isActive()
+                    || cinemaProduct.getProduct() == null
+                    || !cinemaProduct.getProduct().isActive()
+                    || cinemaProduct.getProduct().getStatus() != ProductStatus.ACTIVE) {
+                throw new AppException(ErrorCode.BAD_REQUEST, "Concession item is not available");
+            }
+            if (cinemaProduct.getPrice() == null || cinemaProduct.getPrice().compareTo(BigDecimal.ZERO) < 0) {
+                throw new AppException(ErrorCode.DATA_INTEGRITY_VIOLATION, "Concession item has an invalid price");
+            }
+            if (cinemaProduct.getStockQuantity() != null) {
+                if (cinemaProduct.getStockQuantity() < quantity) {
+                    throw new AppException(ErrorCode.BAD_REQUEST, "Concession item is out of stock");
+                }
+                cinemaProduct.setStockQuantity(cinemaProduct.getStockQuantity() - quantity);
+                cinemaProductRepository.save(cinemaProduct);
+            }
+
+            BigDecimal lineTotal = cinemaProduct.getPrice()
+                    .multiply(BigDecimal.valueOf(quantity))
+                    .setScale(2, RoundingMode.HALF_UP);
+            total = total.add(lineTotal);
+            reserved.add(new ReservedConcession(cinemaProduct, quantity, lineTotal));
+        }
+        return new ConcessionReservation(reserved, total.setScale(2, RoundingMode.HALF_UP));
+    }
+
     private PromotionRedemption resolvePromotion(String rawCode, BigDecimal subtotal, UUID userId, ZonedDateTime now) {
         if (rawCode == null || rawCode.isBlank()) {
             return PromotionRedemption.none();
@@ -338,6 +423,14 @@ public class BookingServiceImpl implements BookingService {
 
         entity.setShowtime(showtimeRepository.findByIdAndIsActiveTrue(showtimeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Showtime", showtimeId.toString())));
+    }
+
+    private record ReservedConcession(CinemaProduct cinemaProduct, int quantity, BigDecimal totalPrice) {}
+
+    private record ConcessionReservation(List<ReservedConcession> items, BigDecimal totalAmount) {
+        private static ConcessionReservation none() {
+            return new ConcessionReservation(List.of(), BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP));
+        }
     }
 
     private record PromotionRedemption(PromotionCode promotionCode, Promotion promotion, BigDecimal discountAmount) {
