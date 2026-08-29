@@ -20,19 +20,26 @@ const statusMeta = (status) => {
   if (value === 'FAILED') return { label: 'Thất bại', tone: 'destructive' };
   if (value === 'EXPIRED') return { label: 'Hết hạn', tone: 'neutral' };
   if (value === 'REFUNDED') return { label: 'Đã hoàn tiền', tone: 'info' };
-  return { label: 'Chờ xác nhận', tone: 'warning' };
-};
-
-const asArray = (value) => {
-  const data = value?.data ?? value;
-  if (Array.isArray(data)) return data;
-  return Array.isArray(data?.content) ? data.content : [];
+  return { label: 'Chờ thanh toán', tone: 'warning' };
 };
 
 const formatMoney = (value) => new Intl.NumberFormat('vi-VN', {
   style: 'currency',
   currency: 'VND',
 }).format(Number(value || 0));
+
+const formatShowtime = (value) => {
+  if (!value) return 'Chưa có lịch chiếu';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+};
 
 const BookingHistory = () => {
   const { user } = useAuth();
@@ -45,19 +52,22 @@ const BookingHistory = () => {
   const [status, setStatus] = useState('all');
 
   const loadBookings = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError('');
     try {
-      const result = await bookingService.getBookingHistoryByUserId(user.id);
-      setBookings(asArray(result));
+      const result = await bookingService.getMyBookingHistory();
+      setBookings(Array.isArray(result) ? result : []);
     } catch (requestError) {
       setBookings([]);
       setError(requestError?.message || 'Không thể tải lịch sử đặt vé.');
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user]);
 
   useEffect(() => {
     loadBookings();
@@ -66,28 +76,29 @@ const BookingHistory = () => {
   const filteredBookings = useMemo(() => {
     const keyword = query.trim().toLowerCase();
     return bookings.filter((booking) => {
-      const bookingStatus = String(booking.bookingStatus || booking.paymentStatus || booking.status || 'PENDING').toUpperCase();
-      const matchesStatus = status === 'all' || bookingStatus === status;
+      const bookingStatus = String(booking.status || 'PENDING').toUpperCase();
+      const matchesStatus = status === 'all'
+        || bookingStatus === status
+        || (status === 'PENDING' && bookingStatus === 'PENDING_PAYMENT');
       const searchable = [
         booking.bookingCode,
         booking.movieTitle,
-        booking.movie?.title,
         booking.cinemaName,
-        booking.cinema?.name,
+        booking.roomName,
       ].filter(Boolean).join(' ').toLowerCase();
       return matchesStatus && (!keyword || searchable.includes(keyword));
     });
   }, [bookings, query, status]);
 
   const cancelBooking = async (booking) => {
-    if (!window.confirm(`Hủy đơn ${booking.bookingCode || booking.id}?`)) return;
+    if (!window.confirm(`Hủy đơn ${booking.bookingCode || booking.id}? Ghế đang giữ sẽ được trả lại.`)) return;
     setCancellingId(booking.id);
     try {
-      await bookingService.updateBookingStatus(booking.id, 'CANCELLED');
+      const cancelled = await bookingService.cancelMyBooking(booking.id);
       setBookings((items) => items.map((item) => (
-        item.id === booking.id ? { ...item, status: 'CANCELLED', bookingStatus: 'CANCELLED' } : item
+        item.id === booking.id ? { ...item, ...cancelled, status: 'CANCELLED' } : item
       )));
-      notification.success('Đã hủy đơn đặt vé.');
+      notification.success('Đã hủy đơn và trả lại ghế.');
     } catch (requestError) {
       notification.error(requestError?.response?.data?.message || requestError?.message || 'Không thể hủy đơn đặt vé.');
     } finally {
@@ -117,10 +128,12 @@ const BookingHistory = () => {
           <SelectTrigger aria-label="Lọc trạng thái"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tất cả trạng thái</SelectItem>
-            <SelectItem value="PENDING">Chờ xác nhận</SelectItem>
+            <SelectItem value="PENDING">Chờ thanh toán</SelectItem>
+            <SelectItem value="PAID">Đã thanh toán</SelectItem>
             <SelectItem value="CONFIRMED">Đã xác nhận</SelectItem>
             <SelectItem value="COMPLETED">Đã hoàn thành</SelectItem>
             <SelectItem value="CANCELLED">Đã hủy</SelectItem>
+            <SelectItem value="REFUNDED">Đã hoàn tiền</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="outline" onClick={loadBookings} disabled={loading}>
@@ -153,13 +166,11 @@ const BookingHistory = () => {
       ) : (
         <div className="grid gap-5 md:grid-cols-2">
           {filteredBookings.map((booking) => {
-            const rawStatus = booking.bookingStatus || booking.paymentStatus || booking.status || 'PENDING';
-            const normalizedStatus = String(rawStatus).toUpperCase();
-            const meta = statusMeta(rawStatus);
-            const canCancel = ['PENDING', 'CONFIRMED'].includes(normalizedStatus);
+            const normalizedStatus = String(booking.status || 'PENDING').toUpperCase();
+            const meta = statusMeta(normalizedStatus);
+            const canCancel = ['PENDING', 'PENDING_PAYMENT'].includes(normalizedStatus);
             const code = booking.bookingCode || String(booking.id);
-            const showDate = booking.showDate || booking.showtimeDate || booking.date || booking.showtime?.date;
-            const startTime = booking.startTime || booking.showtime?.startTime;
+            const seatCount = booking.seats?.length || booking.tickets?.length;
             return (
               <Card key={booking.id || code} className="overflow-hidden">
                 <CardHeader className="space-y-3">
@@ -172,15 +183,18 @@ const BookingHistory = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
-                  <h2 className="text-base font-semibold">{booking.movieTitle || booking.movie?.title || 'Chưa có tên phim'}</h2>
-                  <p>{booking.cinemaName || booking.cinema?.name || 'Chưa có tên rạp'}{booking.roomName ? ` · ${booking.roomName}` : ''}</p>
+                  <h2 className="text-base font-semibold">{booking.movieTitle || 'Chưa có tên phim'}</h2>
+                  <p>{booking.cinemaName || 'Chưa có tên rạp'}{booking.roomName ? ` · ${booking.roomName}` : ''}</p>
                   <p className="flex items-center gap-2 text-muted-foreground">
                     <CalendarDays className="size-4" />
-                    {showDate || 'Chưa có ngày'} · {startTime || '—'}
+                    {formatShowtime(booking.showtimeStartTime)}
                   </p>
                   <div className="flex items-center justify-between border-t pt-3">
-                    <span className="text-muted-foreground"><Ticket className="mr-1 inline size-4" />{booking.seats?.length || booking.tickets?.length || 0} ghế</span>
-                    <strong>{formatMoney(booking.finalAmount ?? booking.totalAmount ?? booking.totalPrice)}</strong>
+                    <span className="text-muted-foreground">
+                      <Ticket className="mr-1 inline size-4" />
+                      {seatCount ? `${seatCount} ghế` : 'Xem chi tiết ghế'}
+                    </span>
+                    <strong>{formatMoney(booking.totalAmount)}</strong>
                   </div>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-2 border-t bg-muted/30 py-4 sm:flex-row">
