@@ -13,9 +13,10 @@ import useNotification from '@/hooks/useNotification';
 
 const statusMeta = (status) => {
   const value = String(status || 'PENDING').toUpperCase();
-  if (['PAID', 'CONFIRMED', 'COMPLETED', 'SUCCESS', 'ISSUED', 'CHECKED_IN'].includes(value)) {
-    return { label: value === 'COMPLETED' || value === 'CHECKED_IN' ? 'Đã sử dụng' : 'Đã xác nhận', tone: 'success' };
+  if (['PAID', 'CONFIRMED', 'SUCCESS', 'VALID'].includes(value)) {
+    return { label: value === 'VALID' ? 'Có hiệu lực' : 'Đã xác nhận', tone: 'success' };
   }
+  if (['COMPLETED', 'USED', 'CHECKED_IN'].includes(value)) return { label: 'Đã sử dụng', tone: 'success' };
   if (value === 'FAILED') return { label: 'Thanh toán lỗi', tone: 'destructive' };
   if (['CANCELLED', 'CANCELED'].includes(value)) return { label: 'Đã hủy', tone: 'neutral' };
   if (value === 'REFUNDED') return { label: 'Đã hoàn tiền', tone: 'info' };
