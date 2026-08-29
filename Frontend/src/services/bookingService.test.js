@@ -13,7 +13,7 @@ vi.mock('@/utils/apiClient', () => ({
 import { apiClient } from '@/utils/apiClient';
 import bookingService from './bookingService';
 
-describe('bookingService.createBooking', () => {
+describe('bookingService member contracts', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -23,9 +23,7 @@ describe('bookingService.createBooking', () => {
 
     const result = await bookingService.createBooking({
       seatIds: ['seat-1', 'seat-2'],
-      items: [
-        { cinemaProductId: 'combo-1', quantity: 2 },
-      ],
+      items: [{ cinemaProductId: 'combo-1', quantity: 2 }],
       promotionCode: 'HOT20',
     });
 
@@ -47,5 +45,26 @@ describe('bookingService.createBooking', () => {
       items: [],
       promotionCode: null,
     });
+  });
+
+  it('đọc lịch sử của chính member thay vì endpoint admin', async () => {
+    apiClient.get.mockResolvedValue({ data: [{ id: 'booking-3' }] });
+
+    const result = await bookingService.getMyBookingHistory();
+
+    expect(apiClient.get).toHaveBeenCalledWith('/bookings/my-bookings/history', { params: undefined });
+    expect(result).toEqual([{ id: 'booking-3' }]);
+  });
+
+  it('dùng endpoint member riêng cho cancel và refund', async () => {
+    apiClient.post
+      .mockResolvedValueOnce({ data: { id: 'booking-4', status: 'CANCELLED' } })
+      .mockResolvedValueOnce({ data: { id: 'booking-5', status: 'REFUNDED' } });
+
+    await bookingService.cancelMyBooking('booking-4');
+    await bookingService.refundMyBooking('booking-5');
+
+    expect(apiClient.post).toHaveBeenNthCalledWith(1, '/bookings/booking-4/cancel');
+    expect(apiClient.post).toHaveBeenNthCalledWith(2, '/bookings/booking-5/refund');
   });
 });
