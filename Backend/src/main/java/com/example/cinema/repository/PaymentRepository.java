@@ -38,6 +38,12 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
             String providerOrderId
     );
 
+    Optional<Payment> findByProviderAndProviderOrderIdAndBooking_User_IdAndIsActiveTrue(
+            PaymentProvider provider,
+            String providerOrderId,
+            UUID userId
+    );
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<Payment> findFirstByBooking_IdAndProviderAndStatusAndIsActiveTrueOrderByCreatedAtDesc(
             UUID bookingId,
