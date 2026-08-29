@@ -46,6 +46,13 @@ const paymentService = {
     return unwrapApiArray(await apiClient.get(`${base}/booking/${bookingId}`));
   },
 
+  async getPaymentByProviderOrderId(provider, providerOrderId) {
+    const normalizedProvider = String(provider || '').toUpperCase();
+    return unwrapApiData(await apiClient.get(
+      `${base}/provider/${encodeURIComponent(normalizedProvider)}/order/${encodeURIComponent(providerOrderId)}`
+    ));
+  },
+
   async getPaymentByTransactionId(transactionId) {
     return unwrapApiData(await apiClient.get(`${base}/transaction/${transactionId}`));
   },
