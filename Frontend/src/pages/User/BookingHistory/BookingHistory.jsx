@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, Loader2, RefreshCw, Search, Ticket, XCircle } from 'lucide-react';
+import { CalendarDays, Loader2, RefreshCw, RotateCcw, Search, Ticket, XCircle } from 'lucide-react';
 import useAuth from '@/hooks/useAuth';
 import bookingService from '@/services/bookingService';
 import useNotification from '@/hooks/useNotification';
@@ -41,12 +41,19 @@ const formatShowtime = (value) => {
   }).format(date);
 };
 
+const isFutureShowtime = (value) => {
+  if (!value) return false;
+  const date = new Date(value);
+  return !Number.isNaN(date.getTime()) && date.getTime() > Date.now();
+};
+
 const BookingHistory = () => {
   const { user } = useAuth();
   const notification = useNotification();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState(null);
+  const [refundingId, setRefundingId] = useState(null);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('all');
@@ -103,6 +110,23 @@ const BookingHistory = () => {
       notification.error(requestError?.response?.data?.message || requestError?.message || 'Không thể hủy đơn đặt vé.');
     } finally {
       setCancellingId(null);
+    }
+  };
+
+  const refundBooking = async (booking) => {
+    const amount = formatMoney(booking.totalAmount);
+    if (!window.confirm(`Hoàn tiền ${amount} cho đơn ${booking.bookingCode || booking.id}? Vé sẽ bị vô hiệu hóa và ghế được mở bán lại.`)) return;
+    setRefundingId(booking.id);
+    try {
+      const refunded = await bookingService.processRefund(booking.id);
+      setBookings((items) => items.map((item) => (
+        item.id === booking.id ? { ...item, ...refunded, status: 'REFUNDED' } : item
+      )));
+      notification.success('Hoàn tiền thành công. Vé đã được vô hiệu hóa và ghế đã mở lại.');
+    } catch (requestError) {
+      notification.error(requestError?.response?.data?.message || requestError?.message || 'Không thể hoàn tiền cho đơn đặt vé.');
+    } finally {
+      setRefundingId(null);
     }
   };
 
@@ -169,8 +193,11 @@ const BookingHistory = () => {
             const normalizedStatus = String(booking.status || 'PENDING').toUpperCase();
             const meta = statusMeta(normalizedStatus);
             const canCancel = ['PENDING', 'PENDING_PAYMENT'].includes(normalizedStatus);
+            const canRefund = ['PAID', 'CONFIRMED'].includes(normalizedStatus)
+              && isFutureShowtime(booking.showtimeStartTime);
             const code = booking.bookingCode || String(booking.id);
             const seatCount = booking.seats?.length || booking.tickets?.length;
+            const actionPending = cancellingId === booking.id || refundingId === booking.id;
             return (
               <Card key={booking.id || code} className="overflow-hidden">
                 <CardHeader className="space-y-3">
@@ -197,15 +224,28 @@ const BookingHistory = () => {
                     <strong>{formatMoney(booking.totalAmount)}</strong>
                   </div>
                 </CardContent>
-                <CardFooter className="flex flex-col gap-2 border-t bg-muted/30 py-4 sm:flex-row">
+                <CardFooter className="flex flex-col gap-2 border-t bg-muted/30 py-4 sm:flex-row sm:flex-wrap">
                   <Button asChild variant="outline" className="w-full sm:w-auto">
                     <Link to={`/booking-detail/${encodeURIComponent(code)}`}>Xem chi tiết</Link>
                   </Button>
+                  {canRefund && (
+                    <Button
+                      variant="outline"
+                      className="w-full sm:ml-auto sm:w-auto"
+                      disabled={actionPending}
+                      onClick={() => refundBooking(booking)}
+                    >
+                      {refundingId === booking.id
+                        ? <Loader2 className="mr-2 size-4 animate-spin" />
+                        : <RotateCcw className="mr-2 size-4" />}
+                      Hoàn tiền
+                    </Button>
+                  )}
                   {canCancel && (
                     <Button
                       variant="destructive"
                       className="w-full sm:ml-auto sm:w-auto"
-                      disabled={cancellingId === booking.id}
+                      disabled={actionPending}
                       onClick={() => cancelBooking(booking)}
                     >
                       {cancellingId === booking.id
