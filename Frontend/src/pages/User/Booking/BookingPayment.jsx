@@ -37,15 +37,33 @@ const BookingPayment = () => {
     () => Array.isArray(bookingData?.selectedSeats) ? bookingData.selectedSeats : [],
     [bookingData?.selectedSeats]
   );
-  const seatSubtotal = useMemo(
+  const selectedConcessions = useMemo(
+    () => Array.isArray(bookingData?.selectedConcessions) ? bookingData.selectedConcessions : [],
+    [bookingData?.selectedConcessions]
+  );
+
+  const fallbackSeatAmount = useMemo(
     () => selectedSeats.reduce((sum, seat) => sum + Number(seat.price || 0), 0),
     [selectedSeats]
   );
-  const bookingTotal = useMemo(() => {
-    const totalFromBooking = Number(bookingData?.totalAmount);
-    return Number.isFinite(totalFromBooking) && totalFromBooking >= 0 ? totalFromBooking : seatSubtotal;
-  }, [bookingData?.totalAmount, seatSubtotal]);
-  const discountAmount = Math.max(seatSubtotal - bookingTotal, 0);
+  const fallbackFoodAmount = useMemo(
+    () => selectedConcessions.reduce(
+      (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
+      0
+    ),
+    [selectedConcessions]
+  );
+
+  const seatAmount = Number.isFinite(Number(bookingData?.seatAmount))
+    ? Number(bookingData.seatAmount)
+    : fallbackSeatAmount;
+  const foodAmount = Number.isFinite(Number(bookingData?.foodAmount))
+    ? Number(bookingData.foodAmount)
+    : fallbackFoodAmount;
+  const discountAmount = Math.max(0, Number(bookingData?.discountAmount || 0));
+  const bookingTotal = Number.isFinite(Number(bookingData?.totalAmount))
+    ? Number(bookingData.totalAmount)
+    : Math.max(0, seatAmount + foodAmount - discountAmount);
 
   const buildBookingSnapshot = (paymentData = {}) => ({
     bookingCode: bookingData?.bookingCode,
@@ -61,9 +79,12 @@ const BookingPayment = () => {
     roomName: bookingData?.roomName || 'N/A',
     seatNumbers: selectedSeats.map((seat) => seat.seatLabel || seat.name).filter(Boolean).join(', '),
     selectedSeats,
+    selectedConcessions,
     showDate: bookingData?.showDate,
     showTime: bookingData?.showTime,
     formatType: bookingData?.formatType,
+    seatAmount,
+    foodAmount,
     totalAmount: bookingTotal,
     discountAmount,
     paymentMethod: paymentService.getPaymentMethodName(paymentMethod),
@@ -121,7 +142,7 @@ const BookingPayment = () => {
   };
 
   const handleLeavePayment = () => {
-    notification.info('Booking chưa thanh toán sẽ tự hết hạn và trả ghế khi thời gian giữ chỗ kết thúc.');
+    notification.info('Booking chưa thanh toán sẽ tự hết hạn và trả ghế/combo khi thời gian giữ chỗ kết thúc.');
     navigate('/history');
   };
 
@@ -184,8 +205,21 @@ const BookingPayment = () => {
                 <div className="flex justify-between gap-4"><span className="text-muted-foreground">Ghế</span><span className="text-right font-medium">{selectedSeats.map((seat) => seat.seatLabel || seat.name).filter(Boolean).join(', ') || 'N/A'}</span></div>
               </div>
 
+              {selectedConcessions.length > 0 && (
+                <div className="space-y-2 border-t pt-3 text-sm">
+                  <p className="font-medium">Bắp nước & combo</p>
+                  {selectedConcessions.map((item) => (
+                    <div key={item.id} className="flex justify-between gap-4">
+                      <span className="text-muted-foreground">{item.productName} × {item.quantity}</span>
+                      <span>{(Number(item.price || 0) * Number(item.quantity || 0)).toLocaleString('vi-VN')} ₫</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="space-y-1.5 border-t pt-3 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Giá ghế ({selectedSeats.length})</span><span>{seatSubtotal.toLocaleString('vi-VN')} ₫</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Tiền ghế ({selectedSeats.length})</span><span>{seatAmount.toLocaleString('vi-VN')} ₫</span></div>
+                {foodAmount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Bắp nước</span><span>{foodAmount.toLocaleString('vi-VN')} ₫</span></div>}
                 {discountAmount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Giảm giá</span><span className="text-destructive">-{discountAmount.toLocaleString('vi-VN')} ₫</span></div>}
               </div>
 
