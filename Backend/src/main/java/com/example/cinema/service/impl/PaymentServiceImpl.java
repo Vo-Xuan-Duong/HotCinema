@@ -105,6 +105,21 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public PaymentResponse findByProviderOrderIdForUser(
+            PaymentProvider provider,
+            String providerOrderId,
+            UUID userId) {
+        return repository.findByProviderAndProviderOrderIdAndBooking_User_IdAndIsActiveTrue(
+                        provider,
+                        providerOrderId,
+                        userId
+                )
+                .map(paymentMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment order", providerOrderId));
+    }
+
+    @Override
     @Transactional
     @CacheEvict(value = "payments", allEntries = true)
     public PaymentResponse initiate(PaymentInitiateRequest request, UUID userId) {
