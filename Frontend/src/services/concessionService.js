@@ -1,11 +1,20 @@
 import { apiClient } from '@/utils/apiClient';
 import { unwrapApiArray, unwrapApiData } from '@/utils/apiResponse';
 
-const base = '/concessions';
+const base = '/cinemaproducts';
 
 const concessionService = {
-  async list(params) {
-    return unwrapApiArray(await apiClient.get(base, { params }));
+  async list() {
+    return unwrapApiArray(await apiClient.get(base));
+  },
+
+  async listAvailableByCinema(cinemaId) {
+    if (!cinemaId) return [];
+    return unwrapApiArray(await apiClient.get(`${base}/cinema/${cinemaId}/available`));
+  },
+
+  async getById(id) {
+    return unwrapApiData(await apiClient.get(`${base}/${id}`));
   },
 
   async create(payload) {
@@ -17,7 +26,7 @@ const concessionService = {
   },
 
   async delete(id) {
-    return unwrapApiData(await apiClient.delete(`${base}/${id}`));
+    await apiClient.delete(`${base}/${id}`);
   },
 };
 
