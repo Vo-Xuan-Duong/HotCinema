@@ -37,6 +37,10 @@ const bookingService = {
     return unwrapApiData(await apiClient.patch(`${base}/${bookingId}/status`, { status }));
   },
 
+  async cancelMyBooking(bookingId) {
+    return unwrapApiData(await apiClient.post(`${base}/${bookingId}/cancel`));
+  },
+
   async deleteBooking(bookingId) {
     return unwrapApiData(await apiClient.delete(`${base}/${bookingId}`));
   },
