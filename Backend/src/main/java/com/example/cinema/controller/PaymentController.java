@@ -6,6 +6,7 @@ import com.example.cinema.dto.payment.PaymentCreateRequest;
 import com.example.cinema.dto.payment.PaymentInitiateRequest;
 import com.example.cinema.dto.payment.PaymentResponse;
 import com.example.cinema.dto.payment.PaymentUpdateRequest;
+import com.example.cinema.entity.enums.PaymentProvider;
 import com.example.cinema.entity.enums.PaymentStatus;
 import com.example.cinema.service.PaymentService;
 import jakarta.validation.Valid;
@@ -74,6 +75,16 @@ public class PaymentController {
                 ? paymentService.findByBookingId(bookingId)
                 : paymentService.findByBookingIdForUser(bookingId, currentUserId(jwt));
         return ResponseEntity.ok(new ApiResponse<>(payments));
+    }
+
+    @GetMapping("/provider/{provider}/order/{providerOrderId}")
+    public ResponseEntity<ApiResponse<PaymentResponse>> getByProviderOrderId(
+            @PathVariable PaymentProvider provider,
+            @PathVariable String providerOrderId,
+            @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(new ApiResponse<>(
+                paymentService.findByProviderOrderIdForUser(provider, providerOrderId, currentUserId(jwt))
+        ));
     }
 
     @GetMapping("/transaction/{transactionId}")
