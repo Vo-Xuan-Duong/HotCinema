@@ -258,10 +258,14 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private void finalizeSuccessfulPayment(Payment payment) {
-        Booking booking = payment.getBooking();
-        if (booking == null) {
+        Booking attachedBooking = payment.getBooking();
+        if (attachedBooking == null) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Payment is not associated with a booking");
         }
+
+        Booking booking = bookingRepository.findByIdForUpdate(attachedBooking.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", attachedBooking.getId().toString()));
+        payment.setBooking(booking);
 
         ZonedDateTime now = ZonedDateTime.now();
         if (booking.getStatus() == BookingStatus.CONFIRMED || booking.getStatus() == BookingStatus.PAID) {
