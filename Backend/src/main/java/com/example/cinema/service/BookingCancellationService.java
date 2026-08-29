@@ -2,8 +2,10 @@ package com.example.cinema.service;
 
 import com.example.cinema.dto.booking.BookingResponse;
 import com.example.cinema.entity.Booking;
+import com.example.cinema.entity.BookingItem;
 import com.example.cinema.entity.BookingPromotion;
 import com.example.cinema.entity.BookingSeat;
+import com.example.cinema.entity.CinemaProduct;
 import com.example.cinema.entity.PromotionCode;
 import com.example.cinema.entity.ShowtimeSeat;
 import com.example.cinema.entity.enums.BookingStatus;
@@ -12,9 +14,11 @@ import com.example.cinema.exception.AppException;
 import com.example.cinema.exception.ErrorCode;
 import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.mapper.BookingMapper;
+import com.example.cinema.repository.BookingItemRepository;
 import com.example.cinema.repository.BookingPromotionRepository;
 import com.example.cinema.repository.BookingRepository;
 import com.example.cinema.repository.BookingSeatRepository;
+import com.example.cinema.repository.CinemaProductRepository;
 import com.example.cinema.repository.PromotionCodeRepository;
 import com.example.cinema.repository.ShowtimeSeatRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,14 +39,16 @@ public class BookingCancellationService {
 
     private final BookingRepository bookingRepository;
     private final BookingSeatRepository bookingSeatRepository;
+    private final BookingItemRepository bookingItemRepository;
     private final BookingPromotionRepository bookingPromotionRepository;
     private final PromotionCodeRepository promotionCodeRepository;
     private final ShowtimeSeatRepository showtimeSeatRepository;
+    private final CinemaProductRepository cinemaProductRepository;
     private final BookingMapper bookingMapper;
     private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
-    @CacheEvict(value = {"bookings", "showtimeseats"}, allEntries = true)
+    @CacheEvict(value = {"bookings", "showtimeseats", "cinemaproducts"}, allEntries = true)
     public BookingResponse cancelForUser(UUID bookingId, UUID userId) {
         Booking booking = bookingRepository.findByIdAndUserIdForUpdate(bookingId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId.toString()));
@@ -78,6 +84,9 @@ public class BookingCancellationService {
             }
         }
 
+        restoreConcessionInventory(booking);
+        bookingItemRepository.deleteAllByBooking_Id(bookingId);
+
         bookingSeatRepository.deleteAllByBooking_Id(bookingId);
         for (ShowtimeSeat showtimeSeat : showtimeSeats) {
             showtimeSeat.setBooking(null);
@@ -93,6 +102,29 @@ public class BookingCancellationService {
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancelledAt(ZonedDateTime.now());
         return bookingMapper.toResponse(bookingRepository.save(booking));
+    }
+
+    private void restoreConcessionInventory(Booking booking) {
+        if (booking.getShowtime() == null
+                || booking.getShowtime().getAuditorium() == null
+                || booking.getShowtime().getAuditorium().getCinema() == null) {
+            return;
+        }
+
+        UUID cinemaId = booking.getShowtime().getAuditorium().getCinema().getId();
+        List<BookingItem> items = bookingItemRepository.findAllByBooking_Id(booking.getId());
+        for (BookingItem item : items) {
+            if (item.getProduct() == null || item.getQuantity() == null || item.getQuantity() <= 0) {
+                continue;
+            }
+            CinemaProduct cinemaProduct = cinemaProductRepository
+                    .findByCinemaAndProductForUpdate(cinemaId, item.getProduct().getId())
+                    .orElse(null);
+            if (cinemaProduct != null && cinemaProduct.getStockQuantity() != null) {
+                cinemaProduct.setStockQuantity(cinemaProduct.getStockQuantity() + item.getQuantity());
+                cinemaProductRepository.save(cinemaProduct);
+            }
+        }
     }
 
     private void releasePromotionReservation(UUID bookingId) {
