@@ -228,9 +228,10 @@ public class BookingServiceImpl implements BookingService {
         bookingSeatRepository.saveAll(bookingSeats);
 
         if (!concessionReservation.items().isEmpty()) {
+            Booking finalBooking = booking;
             List<BookingItem> bookingItems = concessionReservation.items().stream()
                     .map(item -> BookingItem.builder()
-                            .booking(booking)
+                            .booking(finalBooking)
                             .product(item.cinemaProduct().getProduct())
                             .productName(item.cinemaProduct().getProduct().getName())
                             .quantity(item.quantity())
