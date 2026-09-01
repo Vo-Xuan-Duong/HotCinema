@@ -85,8 +85,13 @@ const useSeatWebSocket = (showtimeId, onSeatUpdate) => {
             return () => setIsConnected(false);
         }
 
+        const defaultSocketUrl = import.meta.env.PROD
+            ? `${window.location.origin}/ws-booking`
+            : 'http://localhost:8080/ws-booking';
+        const socketUrl = import.meta.env.VITE_BOOKING_WS_URL || defaultSocketUrl;
+
         const client = new Client({
-            webSocketFactory: () => new SockJS(import.meta.env.VITE_BOOKING_WS_URL || 'http://localhost:8080/ws-booking'),
+            webSocketFactory: () => new SockJS(socketUrl),
             connectHeaders: {
                 userId: getUserId(),
             },

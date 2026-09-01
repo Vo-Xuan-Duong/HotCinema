@@ -5,6 +5,7 @@ import com.example.cinema.dto.payment.PaymentCreateRequest;
 import com.example.cinema.dto.payment.PaymentInitiateRequest;
 import com.example.cinema.dto.payment.PaymentResponse;
 import com.example.cinema.dto.payment.PaymentUpdateRequest;
+import com.example.cinema.entity.enums.PaymentProvider;
 import com.example.cinema.entity.enums.PaymentStatus;
 import org.springframework.data.domain.Pageable;
 
@@ -20,6 +21,7 @@ public interface PaymentService {
     List<PaymentResponse> findByBookingId(UUID bookingId);
     List<PaymentResponse> findByBookingIdForUser(UUID bookingId, UUID userId);
     PaymentResponse findByTransactionId(String transactionId);
+    PaymentResponse findByProviderOrderIdForUser(PaymentProvider provider, String providerOrderId, UUID userId);
     PaymentResponse initiate(PaymentInitiateRequest request, UUID userId);
     PaymentResponse create(PaymentCreateRequest request);
     PaymentResponse createForUser(PaymentCreateRequest request, UUID userId);

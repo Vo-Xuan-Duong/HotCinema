@@ -3,108 +3,134 @@
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.0-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Java](https://img.shields.io/badge/Java-25-orange.svg)](https://www.oracle.com/java/)
 [![React](https://img.shields.io/badge/React-19.1.0-blue.svg)](https://react.dev/)
-[![Vite](https://img.shields.io/badge/Vite-7.0.0-646CFF.svg)](https://vite.dev/)
-[![MySQL](https://img.shields.io/badge/MySQL-Database-4479A1.svg)](https://www.mysql.com/)
-[![Redis](https://img.shields.io/badge/Redis-Cache-DC382D.svg)](https://redis.io/)
+[![Vite](https://img.shields.io/badge/Vite-7-646CFF.svg)](https://vite.dev/)
+[![MySQL](https://img.shields.io/badge/MySQL-8.4-4479A1.svg)](https://www.mysql.com/)
+[![Redis](https://img.shields.io/badge/Redis-7-DC382D.svg)](https://redis.io/)
 
-HotCinema là hệ thống đặt vé và quản lý rạp chiếu phim được phát triển theo hướng gần production, gồm **Java Spring Boot backend**, **React frontend**, **MySQL** và **Redis**.
+HotCinema là hệ thống đặt vé và quản lý rạp chiếu phim full-stack gồm **Spring Boot backend**, **React frontend**, **MySQL**, **Redis**, WebSocket và tích hợp thanh toán **MoMo**.
 
-Mục tiêu nghiệp vụ chính:
+Dự án đã vượt qua giai đoạn CRUD cơ bản và hiện có các business flow chính như giữ ghế, checkout server-authoritative, combo/F&B, promotion, thanh toán, phát hành ticket, QR check-in, lịch sử booking, hủy booking chưa thanh toán và refund booking đã thanh toán.
 
-```text
-Chọn phim
-   ↓
-Chọn rạp
-   ↓
-Chọn ngày
-   ↓
-Chọn suất chiếu
-   ↓
-Chọn ghế
-   ↓
-Chọn combo bắp / nước
-   ↓
-Thanh toán
-   ↓
-Nhận vé / QR Code
-```
-
-> **Trạng thái dự án:** đang phát triển. Domain model và CRUD nền tảng đã tương đối đầy đủ, nhưng các business flow quan trọng như seat hold, checkout orchestration, payment callback, ticket/QR và authorization theo ownership vẫn đang được hoàn thiện.
+> **Trạng thái:** đang tiếp tục hardening để đạt mức production-ready. Core booking flow đã hoạt động ở mức kiến trúc/source code; các phần cần đầu tư tiếp chủ yếu là payment edge cases, refund policy, API contract audit, automated/integration/E2E testing, observability và production deployment.
 
 ---
 
-## 📌 Trạng thái hiện tại
+## 📌 Trạng thái hệ thống hiện tại
 
 | Khu vực | Trạng thái | Ghi chú |
 |---|---|---|
-| Domain / Entity model | ✅ Nền tảng tốt | Movie, Cinema, Auditorium, Seat, Showtime, Booking, Payment, Ticket, Promotion... |
-| Repository / Mapper / CRUD Service | ✅ Có | Phần lớn domain đã có CRUD cơ bản |
-| Authentication service | 🟡 Đang hoàn thiện | Login service, password validation, access token và refresh token đã có |
-| JWT access token generation | ✅ Có | HS256, access token mặc định 15 phút |
-| Refresh token generation | ✅ Có | Mặc định 7 ngày; rotation/revocation flow chưa hoàn thiện |
-| UserDetails / Roles | ✅ Có | Load user theo email và map role sang `ROLE_*` |
-| Auth HTTP endpoints | 🟡 Chưa nối hoàn chỉnh | `AuthController` hiện chưa expose login/register |
-| Bearer JWT validation | 🟡 Chưa hoàn thiện | Cần nối `JwtDecoder` / Resource Server vào `SecurityFilterChain` |
-| Role authorization | 🟡 Cơ bản | Có Spring Security nhưng rule nghiệp vụ chưa hoàn chỉnh |
-| Resource ownership | ❌ Chưa có | Ví dụ customer chỉ được xem booking của chính mình |
-| Booking orchestration | ❌ Chưa có | Booking hiện chủ yếu là CRUD |
-| Seat hold / concurrency | ❌ Chưa có | Chưa có cơ chế chống double-booking hoàn chỉnh |
-| Pricing engine | ❌ Chưa có | Cần tính giá ghế, suất chiếu, combo, promotion ở backend |
-| Payment orchestration | ❌ Chưa có | Payment/Webhook hiện chưa có flow provider chuẩn |
-| Ticket / QR lifecycle | ❌ Chưa hoàn thiện | Cần generate sau payment success và validate khi scan |
-| Flyway migration | 🟡 Dependency có | Hiện `spring.flyway.enabled=false`, Hibernate vẫn dùng `ddl-auto=update` |
-| Automated tests | 🔴 Rất ít | Cần bổ sung auth, booking, payment, concurrency, ticket tests |
-| CI/CD | 🟡 Có workflow | Cần tiếp tục chuẩn hóa build/test pipeline |
+| Domain / Entity model | ✅ | Movie, Cinema, Auditorium, Seat, Showtime, Booking, Payment, Ticket, Promotion, Product... |
+| Authentication / JWT | ✅ | Login, token, refresh flow, role-based security và protected APIs đã có |
+| Catalog | ✅ | Movie, cinema, auditorium, showtime và dữ liệu liên quan |
+| Seat hold | ✅ | Ghế có trạng thái `AVAILABLE → HELD → BOOKED`, có timeout/release |
+| Seat concurrency | ✅ Core | Có pessimistic locking và kiểm tra ownership/expiry |
+| WebSocket seat update | ✅ | Broadcast thay đổi trạng thái ghế realtime |
+| Booking checkout | ✅ | Backend tự xác thực ghế, tính tiền và tạo booking |
+| F&B / Concession | ✅ Core | Chọn combo, kiểm tồn kho, trừ/hoàn tồn khi checkout/cancel/expire/refund |
+| Promotion | ✅ Core | Validate thời gian, usage, minimum order và reservation |
+| Booking history | ✅ | MEMBER lấy booking của chính mình |
+| Booking cancellation | ✅ | Hủy booking chưa thanh toán, release seat/F&B/promotion |
+| MoMo payment | ✅ Core | Initiate, redirect, IPN/callback và finalize booking |
+| Ticket issuance | ✅ | Ticket phát hành sau payment success |
+| QR ticket | ✅ | FE tạo QR từ token backend; scanner validate ticket |
+| Refund | ✅ Core | Refund booking đã thanh toán và release tài nguyên |
+| Admin CRUD | ✅ Core | Các module quản trị chính đã có nền tảng |
+| Flyway | ✅ | `ddl-auto=validate`, Flyway bật mặc định |
+| Redis | ✅ | Cache / runtime infrastructure |
+| Docker | ✅ | MySQL, Redis, backend, frontend và healthcheck |
+| Production profile | ✅ Base | Có `application-prod.yml` với cấu hình fail-fast cho secrets/services |
+| Automated tests | 🟡 | Đã có một số regression/contract tests; coverage chưa đủ |
+| Integration / E2E tests | 🔴 | Cần bổ sung cho booking/payment/concurrency end-to-end |
+| Observability | 🔴 | Chưa hoàn thiện metrics, tracing, error monitoring, reconciliation |
+| Production hardening | 🟡 | Còn security/payment edge cases và deployment runbook |
 
 ---
 
-## 🧱 Kiến trúc mục tiêu
+## 🎯 Business flow chính
 
-Backend không nên dừng ở mô hình CRUD thuần:
+```text
+Guest / Member
+      ↓
+Chọn phim
+      ↓
+Chọn rạp / suất chiếu
+      ↓
+Giữ ghế
+      ↓
+Chọn combo bắp / nước
+      ↓
+Áp dụng promotion
+      ↓
+Backend checkout
+      ↓
+Booking PENDING_PAYMENT
+      ↓
+MoMo
+      ↓
+Payment callback / IPN
+      ↓
+Booking CONFIRMED
+      ↓
+Seat BOOKED
+      ↓
+Issue Ticket
+      ↓
+QR Check-in
+```
+
+Backend là nguồn sự thật cho giá, promotion, inventory, ownership và trạng thái booking/payment. Frontend không được tự quyết định tổng tiền hoặc trạng thái giao dịch.
+
+---
+
+## 🧱 Kiến trúc
+
+### Backend
 
 ```text
 Controller
    ↓
-Application / Use-case Service
-   ├── Domain Services
-   ├── Integration Services
-   │      ├── Payment Provider
-   │      ├── Redis
-   │      └── Notification
-   └── Repositories
+Application / Business Services
+   ├── Authentication
+   ├── Booking Checkout
+   ├── Seat Hold / Expiration
+   ├── Cancellation
+   ├── Refund
+   ├── Payment
+   ├── Ticket
+   ├── Promotion
+   └── Concession Inventory
           ↓
-         MySQL
+Repositories / Integrations
+   ├── MySQL
+   ├── Redis
+   ├── WebSocket
+   ├── SMTP
+   └── MoMo
 ```
 
-Ví dụ booking flow mục tiêu:
+Các business flow quan trọng sử dụng transaction và row-level locking thay vì chỉ dựa vào CRUD `repository.save()`.
+
+### Frontend
 
 ```text
-BookingController
-      ↓
-BookingApplicationService / CheckoutService
-      ├── SeatAvailabilityService
-      ├── SeatHoldService
-      ├── PricingService
-      ├── PromotionService
-      ├── PaymentService
-      └── TicketService
-```
+React Router
+    ↓
+Pages / Features
+    ↓
+Service Layer
+    ↓
+Axios API Client
+    ↓
+Spring Boot REST API
 
-Mục tiêu là chuyển dần từ:
-
-```text
-Controller → Generic CRUD Service → repository.save()
-```
-
-sang:
-
-```text
-Controller → Business Use Case → Domain Rules → Repository / Integration
+Seat UI
+    ↕
+STOMP / WebSocket
 ```
 
 ---
 
-## 🛠 Công nghệ sử dụng
+## 🛠 Công nghệ
 
 ### Backend
 
@@ -113,32 +139,33 @@ Controller → Business Use Case → Domain Rules → Repository / Integration
 | Framework | Spring Boot 4.1.0 |
 | Language | Java 25 |
 | Build | Maven / Maven Wrapper |
-| REST API | Spring Web |
+| REST | Spring Web |
 | Security | Spring Security |
-| JWT | Spring Security OAuth2 Resource Server / JOSE |
+| JWT | OAuth2 Resource Server / JOSE |
 | Persistence | Spring Data JPA / Hibernate |
-| Database | MySQL |
 | Migration | Flyway |
+| Database | MySQL |
 | Cache | Redis / Spring Cache |
+| Realtime | Spring WebSocket |
 | Mapping | MapStruct 1.5.5.Final |
-| Validation | Jakarta Validation / Spring Validation |
+| Validation | Jakarta Validation |
+| Mail | Spring Mail |
 | API Docs | springdoc OpenAPI |
-| Boilerplate | Lombok |
+| Testing | Spring Boot Test / JUnit / Mockito |
 
 ### Frontend
 
 | Thành phần | Công nghệ |
 |---|---|
-| Framework | React 19.1.0 |
-| Build tool | Vite 7 |
-| Routing | React Router DOM 6 |
+| Framework | React 19.1 |
+| Build | Vite 7 |
+| Router | React Router DOM 6 |
 | HTTP | Axios |
+| Realtime | STOMP + SockJS |
 | UI primitives | Radix UI |
-| Styling utilities | Tailwind CSS, CVA, clsx, tailwind-merge |
 | Forms | React Hook Form |
 | Animation | Framer Motion |
 | Charts | Recharts |
-| Icons | Lucide React, React Icons |
 | QR | qrcode |
 | Testing | Vitest + jsdom |
 | Lint | ESLint |
@@ -149,36 +176,36 @@ Controller → Business Use Case → Domain Rules → Repository / Integration
 
 ```text
 HotCinema/
-├── .github/
-│   └── workflows/              # CI workflows
-│
 ├── Backend/
 │   ├── src/main/java/com/example/cinema/
-│   │   ├── common/             # Common response / shared models
-│   │   ├── config/             # Security, JWT, application configuration
-│   │   ├── controller/         # REST controllers
-│   │   ├── dto/                # Request / response DTOs
-│   │   ├── entity/             # JPA entities
-│   │   │   └── enums/
-│   │   ├── exception/          # Application exceptions / global handler
-│   │   ├── mapper/             # MapStruct mappers
-│   │   ├── repository/         # Spring Data repositories
-│   │   ├── security/           # UserDetails, JWT, security handlers
+│   │   ├── common/
+│   │   ├── config/
+│   │   ├── controller/
+│   │   ├── dto/
+│   │   ├── entity/
+│   │   ├── exception/
+│   │   ├── mapper/
+│   │   ├── repository/
+│   │   ├── security/
 │   │   └── service/
-│   │       └── impl/           # Service implementations
-│   │
 │   ├── src/main/resources/
-│   │   └── application.yml
+│   │   ├── application.yml
+│   │   └── application-prod.yml
 │   ├── src/test/
+│   ├── Dockerfile
 │   ├── pom.xml
 │   └── mvnw
 │
 ├── Frontend/
 │   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── services/
+│   │   └── ...
 │   ├── public/
 │   ├── scripts/
-│   ├── package.json
-│   └── vite.config.*
+│   ├── Dockerfile
+│   └── package.json
 │
 ├── docker-compose.yml
 └── README.md
@@ -186,432 +213,399 @@ HotCinema/
 
 ---
 
-## 👤 Vai trò người dùng mục tiêu
+## 👤 Nhóm người dùng
 
-HotCinema được định hướng hỗ trợ các role sau:
-
-| Role | Trách nhiệm |
+| Nhóm | Chức năng chính |
 |---|---|
-| Guest | Xem phim, rạp, suất chiếu, tình trạng ghế |
-| Customer | Đặt vé, thanh toán, xem booking/ticket cá nhân |
-| Staff | Hỗ trợ bán vé tại quầy, scan ticket |
-| Theater Manager | Quản lý rạp, phòng, ghế, suất chiếu thuộc phạm vi rạp |
-| Admin | Quản lý user, role và dữ liệu toàn hệ thống |
+| Guest | Xem catalog phim, rạp, suất chiếu |
+| Member | Giữ ghế, checkout, thanh toán, lịch sử booking, ticket, cancel/refund |
+| Staff | Nghiệp vụ vận hành và ticket check-in tùy quyền được cấp |
+| Admin | Quản trị dữ liệu và nghiệp vụ toàn hệ thống |
 
-> Authorization theo role và ownership vẫn cần được hoàn thiện ở backend trước khi xem là production-ready.
+Backend phải tiếp tục giữ nguyên nguyên tắc **authorization + ownership ở server**, không dựa vào việc FE ẩn/hiện button.
 
 ---
 
-## 🔐 Authentication hiện tại
+## 🔐 Authentication & Security
 
-Backend hiện đã có phần service-level authentication:
+Hệ thống sử dụng JWT access token và refresh token.
+
+Luồng tổng quát:
 
 ```text
-LoginRequest(email, password)
-        ↓
+Login
+  ↓
 AuthenticationManager
-        ↓
-DaoAuthenticationProvider
-        ↓
-CustomUserDetailsService
-        ↓
-PasswordEncoder
-        ↓
-User + Roles
-        ↓
-JwtTokenService
-        ↓
-AuthResponse(accessToken, refreshToken)
-```
-
-Access token hiện chứa các claim chính:
-
-```text
-iss
-sub = userId
-jti
-email
-roles
-token_type = access
-exp
-```
-
-Refresh token sử dụng cùng JWT encoder nhưng có:
-
-```text
-token_type = refresh
-```
-
-Thời gian mặc định:
-
-| Token | TTL |
-|---|---:|
-| Access Token | 900 giây / 15 phút |
-| Refresh Token | 604800 giây / 7 ngày |
-
-### Việc authentication còn phải làm
-
-```text
-HTTP Login Endpoint
-      ↓
-Issue Access Token
-      ↓
-Client sends Authorization: Bearer <token>
-      ↓
-JwtDecoder
-      ↓
-Validate signature / issuer / expiry
-      ↓
-Convert roles → GrantedAuthority
-      ↓
-SecurityContext
-      ↓
+  ↓
+UserDetailsService
+  ↓
+JWT access + refresh token
+  ↓
+Authorization: Bearer <access-token>
+  ↓
+Spring Security
+  ↓
 Protected API
 ```
 
-Các phần còn thiếu quan trọng:
+TTL mặc định:
 
-- expose `login`, `register`, `refresh`, `logout`, `me` từ `AuthController`;
-- nối JWT decoder vào `SecurityFilterChain`;
-- chuẩn hóa public/private routes;
-- refresh token rotation/revocation;
-- logout invalidation;
-- resource ownership authorization;
-- auth integration tests.
+| Token | TTL |
+|---|---:|
+| Access token | 900 giây / 15 phút |
+| Refresh token | 604800 giây / 7 ngày |
+
+Các khu vực cần hardening thêm trước production:
+
+- refresh token rotation/reuse detection;
+- rate-limit login/OTP/password reset;
+- brute-force protection;
+- audit privileged operations;
+- production CORS/security headers;
+- secret rotation và secret management.
 
 ---
 
-## 🎟 Booking flow mục tiêu
+## 💺 Seat Hold & Concurrency
 
-Booking không được để client tự gửi trạng thái hoặc tổng tiền rồi lưu trực tiếp.
-
-Flow mục tiêu:
+Seat của một showtime sử dụng state chính:
 
 ```text
-Customer
-   ↓
-Choose Showtime
-   ↓
-Select Seats
-   ↓
-Validate Availability
-   ↓
-Hold Seats
-   ↓
-Calculate Price
-   ↓
-Add Products / Combos
-   ↓
-Apply Promotion
-   ↓
+AVAILABLE
+   ↓ hold
+HELD
+   ├── expire/cancel → AVAILABLE
+   └── payment success → BOOKED
+```
+
+Core rules hiện có:
+
+- seat được lock ở backend;
+- hold gắn với user và thời gian hết hạn;
+- checkout chỉ nhận seat đang `HELD` bởi đúng user;
+- booking/payment finalize kiểm tra lại ownership và expiry;
+- booking hết hạn trả ghế về `AVAILABLE`;
+- cancellation/refund release seat phù hợp;
+- WebSocket broadcast thay đổi trạng thái ghế.
+
+Cần tiếp tục bổ sung **concurrency integration tests** với nhiều transaction thực trên database.
+
+---
+
+## 🎟 Booking Checkout
+
+Checkout request không gửi `totalAmount` để backend tin trực tiếp.
+
+Backend thực hiện:
+
+```text
+Validate seat IDs
+      ↓
+Lock ShowtimeSeat
+      ↓
+Validate HELD ownership + expiry
+      ↓
+Reserve concession inventory
+      ↓
+Calculate seat amount
+      ↓
+Calculate food amount
+      ↓
+Validate/reserve promotion
+      ↓
+Calculate discount
+      ↓
 Create Booking
-   ↓
-Create Payment
-   ↓
-Payment Provider
-   ↓
-Webhook / IPN
-   ↓
-Confirm Payment
-   ↓
-Finalize Seats
-   ↓
-Generate Ticket / QR
+      ↓
+Create BookingSeat / BookingItem
 ```
 
-### Booking state đề xuất
+Booking có các thành phần tiền chính:
 
 ```text
-PENDING
-   ├──→ PAYMENT_FAILED
-   ├──→ EXPIRED
-   ├──→ CANCELLED
-   └──→ PAID
-          ↓
-      CONFIRMED
-          ↓
-      COMPLETED
-```
-
-Refund flow có thể mở rộng với:
-
-```text
-REFUND_PENDING → REFUNDED
+seatAmount
+foodAmount
+subtotal
+promotion discount
+totalAmount
 ```
 
 ---
 
-## 💺 Seat hold và chống double-booking
+## 🍿 F&B / Concession
 
-Đây là một trong các phần backend quan trọng nhất cần triển khai.
+Checkout hỗ trợ combo/product theo cinema.
 
-State mục tiêu:
+Backend chịu trách nhiệm:
 
-```text
-AVAILABLE → HELD → BOOKED
-```
+- xác thực product thuộc đúng cinema;
+- kiểm tra product đang active/available;
+- kiểm tra giá;
+- lock inventory;
+- kiểm tra stock;
+- trừ stock khi checkout;
+- hoàn stock khi booking unpaid bị cancel/expire;
+- hoàn stock khi booking paid được refund.
 
-Seat hold nên có tối thiểu:
+Phần cần phát triển tiếp:
 
-```text
-id
-showtime_id
-seat_id
-user_id
-booking_id
-expires_at
-created_at
-```
-
-Các nguyên tắc bắt buộc:
-
-- seat hold phải atomic;
-- một ghế trong cùng showtime không thể được hold/book đồng thời bởi hai booking;
-- hold phải có thời gian hết hạn;
-- payment success chuyển seat thành `BOOKED`;
-- hold hết hạn phải release;
-- database constraint phải là lớp bảo vệ cuối cùng;
-- cần concurrency integration test.
-
-Test mục tiêu:
-
-```text
-20 requests cùng giữ 1 ghế
-        ↓
-chỉ đúng 1 request thành công
-```
+- inventory history/audit;
+- low-stock alert;
+- admin stock adjustment workflow;
+- Booking Detail hiển thị đầy đủ BookingItem từ backend.
 
 ---
 
-## 💳 Payment flow mục tiêu
+## 🎁 Promotion
 
-Payment và webhook không nên được expose dưới dạng generic CRUD.
+Promotion được backend kiểm tra và áp dụng trên subtotal.
 
-Flow chuẩn:
+Các rule core gồm:
 
-```text
-POST /payment/initiate
-        ↓
-Create payment request
-        ↓
-Payment Provider
-        ↓
-Provider callback / webhook
-        ↓
-Verify signature
-        ↓
-Validate booking + amount
-        ↓
-Idempotency check
-        ↓
-Persist transaction / webhook event
-        ↓
-Update Payment
-        ↓
-Update Booking
-        ↓
-Finalize Seats
-        ↓
-Generate Ticket
-```
+- thời gian hiệu lực;
+- active status;
+- minimum order;
+- global usage;
+- usage theo user;
+- reservation khi checkout;
+- release reservation khi booking expire/cancel.
 
-Webhook phải hỗ trợ retry an toàn. Cùng một provider transaction/event ID không được tạo nhiều ticket hoặc xác nhận booking nhiều lần.
-
-MoMo là payment provider ưu tiên đầu tiên của dự án.
+Không nên duplicate pricing/promotion business rule ở frontend.
 
 ---
 
-## 🧮 Pricing và Promotion
+## 💳 Payment
 
-Tổng tiền phải được tính lại hoàn toàn ở backend.
+### Provider đang hỗ trợ live
+
+**MoMo** là payment provider live của flow hiện tại.
 
 ```text
-Seat base price
-+ Seat type surcharge
-+ Showtime pricing
-+ Products / combos
-- Promotion discount
-+ Applicable fees
-= Final total
+POST payment initiate
+       ↓
+Lock Booking
+       ↓
+Validate PENDING_PAYMENT
+       ↓
+Create/reuse payment request
+       ↓
+MoMo payment URL
+       ↓
+Customer pays
+       ↓
+MoMo callback / IPN
+       ↓
+Verify provider result
+       ↓
+Lock Booking
+       ↓
+Lock Seats
+       ↓
+Booking CONFIRMED
+Payment SUCCESS
+Seats BOOKED
+Issue Tickets
 ```
 
-Backend không được tin `totalAmount` do frontend gửi lên.
+Frontend chỉ nên hiển thị provider đã thực sự được backend hỗ trợ. VNPay/ZaloPay chưa nên được coi là live nếu gateway server-side chưa hoàn thiện.
+
+### Payment work còn lại
+
+Các edge case quan trọng cần tiếp tục xử lý:
+
+- callback success đến sau khi booking đã expire/cancel;
+- provider success nhưng finalize nội bộ thất bại;
+- callback/IPN duplicate hoặc out-of-order;
+- auto-compensation/refund khi user đã bị charge nhưng booking không thể confirm;
+- payment reconciliation;
+- retry policy và manual-review state.
 
 ---
 
-## 🎫 Ticket / QR
+## 💸 Cancellation & Refund
 
-Ticket chỉ được phát hành sau khi payment được xác nhận thành công.
+### Cancellation
 
-QR không nên chỉ chứa raw ticket ID. Nên sử dụng signed/tokenized payload để có thể xác minh tính hợp lệ.
+Member có thể hủy booking chưa thanh toán ở trạng thái phù hợp.
 
-Scan flow mục tiêu:
+Cancellation thực hiện trong transaction:
 
-```text
-Scan QR
-   ↓
-Validate signature
-   ↓
-Validate ticket
-   ↓
-Validate showtime
-   ↓
-Validate ticket status
-   ↓
-Mark as used
-```
+- lock booking;
+- xác thực ownership;
+- release ghế;
+- hoàn concession stock;
+- xóa temporary booking items/seats phù hợp;
+- release promotion reservation;
+- cập nhật booking `CANCELLED`;
+- broadcast seat availability sau commit.
 
-Scan lần hai phải trả trạng thái `already used` thay vì tiếp tục cho phép vào rạp.
+### Refund
+
+Booking đã thanh toán sử dụng refund flow thay vì direct cancellation.
+
+Refund core hiện có:
+
+- booking phải thuộc user;
+- booking ở trạng thái đã thanh toán;
+- suất chiếu chưa bắt đầu;
+- ticket chưa check-in/USED;
+- gọi MoMo refund;
+- lưu PaymentTransaction refund;
+- ticket → `REFUNDED`;
+- seat → `AVAILABLE`;
+- hoàn concession inventory;
+- payment/booking → `REFUNDED`.
+
+Phần cần hoàn thiện thêm là **refund policy có cấu hình**, ví dụ cutoff N phút/giờ, refund fee hoặc percentage theo business rule.
 
 ---
 
-## ⚙️ Cấu hình backend
+## 🎫 Ticket & QR
 
-File hiện tại:
+Ticket được phát hành sau payment success.
+
+Ticket chứa QR token riêng, frontend dùng token này để render QR.
+
+Các trạng thái chính:
 
 ```text
-Backend/src/main/resources/application.yml
-Backend/.env
+VALID
+USED
+CANCELLED
+REFUNDED
 ```
 
-Sao chép `Backend/.env.example` thành `Backend/.env` và thay các giá trị bí mật cho môi trường local. File `.env` đã được Git bỏ qua.
+Scanner phải kiểm tra trạng thái và thời gian hợp lệ trước khi mark `USED`.
 
-### Database
+Các cải tiến tiếp theo:
 
-Mặc định development hiện tại:
+- My Tickets UX;
+- Booking Detail hiển thị ticket/seat/F&B trực tiếp từ backend;
+- file PDF ticket chuẩn nếu business cần PDF thật;
+- check-in audit/history chi tiết hơn.
 
-```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/cinema?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
-spring.datasource.username=root
-spring.datasource.password=123456
-```
+---
 
-Có thể override bằng environment variables của Spring Boot:
+## 📚 Booking History / Booking Detail
+
+Member sử dụng endpoint ownership-safe để lấy booking của chính mình thay vì admin API.
+
+Booking History hiện đã hỗ trợ flow member và các trạng thái payment/cancel/refund cơ bản.
+
+Booking Detail cần tiếp tục hoàn thiện để response backend chứa đầy đủ immutable booking snapshot, đặc biệt:
+
+- danh sách ghế;
+- danh sách BookingItem/F&B;
+- promotion;
+- payment summary;
+- ticket summary;
+- refund/cancel information.
+
+Mục tiêu là không phụ thuộc dữ liệu tạm được truyền qua route state/local storage để dựng lại booking.
+
+---
+
+## 🧪 Testing
+
+### Frontend
 
 ```bash
-SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/cinema?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
-SPRING_DATASOURCE_USERNAME=root
-SPRING_DATASOURCE_PASSWORD=your_password
+cd Frontend
+npm install
+npm test
 ```
 
-> Không sử dụng credential development mặc định trong staging/production.
-
-### Redis
-
-```properties
-spring.data.redis.host=localhost
-spring.data.redis.port=6379
-```
-
-Có thể override:
+Các script chính:
 
 ```bash
-SPRING_DATA_REDIS_HOST=localhost
-SPRING_DATA_REDIS_PORT=6379
+npm run dev
+npm run build
+npm run lint
+npm test
+npm run check
 ```
 
-### JWT
+Đã có contract/regression tests cho một số service như booking và payment.
 
-Các property hiện hỗ trợ:
+### Backend
 
-```properties
-app.security.jwt.secret=${JWT_SECRET:hotcinema-dev-secret-key-change-before-production-2026}
-app.security.jwt.issuer=${JWT_ISSUER:hotcinema}
-app.security.jwt.access-token-seconds=${JWT_ACCESS_TOKEN_SECONDS:900}
-app.security.jwt.refresh-token-seconds=${JWT_REFRESH_TOKEN_SECONDS:604800}
-```
-
-Production bắt buộc cấu hình secret riêng:
+Linux/macOS:
 
 ```bash
-JWT_SECRET=<strong-random-secret-at-least-32-bytes>
-JWT_ISSUER=hotcinema
-JWT_ACCESS_TOKEN_SECONDS=900
-JWT_REFRESH_TOKEN_SECONDS=604800
+cd Backend
+./mvnw test
 ```
 
-Không commit production secret vào Git.
+Windows:
+
+```powershell
+cd Backend
+.\mvnw.cmd test
+```
+
+Đã có regression tests cho một số rule cancellation/refund. Test suite vẫn cần mở rộng đáng kể.
+
+### Test backlog ưu tiên
+
+1. seat concurrency integration tests;
+2. booking checkout success/failure transaction tests;
+3. concession stock rollback/restore tests;
+4. promotion reservation concurrency tests;
+5. payment callback duplicate/out-of-order tests;
+6. late MoMo callback compensation tests;
+7. refund success/failure tests;
+8. controller authorization/ownership tests;
+9. frontend booking/payment component tests;
+10. end-to-end booking → payment → ticket → scan.
 
 ---
 
-## 🗄 Database migration
-
-Hiện tại project vẫn đang dùng:
-
-```properties
-spring.jpa.hibernate.ddl-auto=update
-spring.flyway.enabled=false
-```
-
-Đây chỉ nên là trạng thái development tạm thời.
-
-Target:
-
-```properties
-spring.jpa.hibernate.ddl-auto=validate
-spring.flyway.enabled=true
-```
-
-Migration structure mục tiêu:
-
-```text
-Backend/src/main/resources/db/migration/
-├── V1__initial_schema.sql
-├── V2__seed_roles.sql
-├── V3__seed_seat_types.sql
-├── V4__booking_constraints.sql
-└── ...
-```
-
----
-
-## 🚀 Chạy local
+## ⚙️ Chạy local
 
 ### Yêu cầu
 
-Backend:
+- Java 25
+- MySQL
+- Redis
+- Node.js + npm
+- Maven không cần cài riêng nếu dùng Maven Wrapper
 
-```text
-JDK 25
-MySQL
-Redis
+### 1. Backend
+
+Tạo database hoặc để URL local tự tạo database `cinema` nếu MySQL user có quyền phù hợp.
+
+Các biến môi trường thường dùng:
+
+```env
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_DATABASE=cinema
+MYSQL_USERNAME=root
+MYSQL_PASSWORD=
+
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+JWT_SECRET=change-this-local-secret
+
+SMTP_HOST=localhost
+SMTP_PORT=1025
+SMTP_AUTH=false
+SMTP_STARTTLS=false
+
+MOMO_PARTNER_CODE=
+MOMO_ACCESS_KEY=
+MOMO_SECRET_KEY=
+MOMO_REDIRECT_URL=http://localhost:5173/booking/callback
+MOMO_IPN_URL=<public-callback-url>/api/v1/paymentwebhooks/momo
 ```
 
-Frontend:
-
-```text
-Node.js 18+
-npm
-```
-
-### 1. Clone repository
+Chạy backend:
 
 ```bash
-git clone https://github.com/Vo-Xuan-Duong/HotCinema.git
-cd HotCinema
+cd Backend
+./mvnw spring-boot:run
 ```
-
-### 2. Tạo database
-
-```sql
-CREATE DATABASE cinema;
-```
-
-### 3. Chạy Redis
-
-Nếu đã cài Redis local:
-
-```bash
-redis-server
-```
-
-Hoặc chỉ chạy Redis bằng Docker:
-
-```bash
-docker run --name hotcinema-redis -p 6379:6379 -d redis:7-alpine
-```
-
-### 4. Chạy backend
 
 Windows:
 
@@ -620,20 +614,9 @@ cd Backend
 .\mvnw.cmd spring-boot:run
 ```
 
-Linux / macOS:
+Backend mặc định chạy tại port `8080`.
 
-```bash
-cd Backend
-./mvnw spring-boot:run
-```
-
-Backend mặc định:
-
-```text
-http://localhost:8080
-```
-
-### 5. Chạy frontend
+### 2. Frontend
 
 ```bash
 cd Frontend
@@ -641,128 +624,225 @@ npm install
 npm run dev
 ```
 
-Vite mặc định:
+Cấu hình API base URL bằng biến Vite khi cần:
 
-```text
-http://localhost:5173
+```env
+VITE_API_BASE_URL=http://localhost:8080/api/v1
 ```
 
 ---
 
-## 🐳 Docker
+## 🐳 Chạy bằng Docker Compose
 
-Repository có `docker-compose.yml` cho backend application và Redis.
+Root project đã có stack gồm:
+
+- MySQL 8.4;
+- Redis 7;
+- Spring Boot backend;
+- React/Nginx frontend.
+
+Chạy:
 
 ```bash
 docker compose up --build
 ```
 
-Hiện compose chưa khai báo MySQL service, vì vậy backend vẫn cần kết nối tới một MySQL instance phù hợp thông qua cấu hình datasource.
+Mặc định:
 
----
+| Service | Port host |
+|---|---:|
+| Frontend | 80 |
+| Backend | 8080 |
+| MySQL | 3306 |
+| Redis | 6379 |
 
-## 🧪 Kiểm tra frontend
-
-Frontend đã có các script:
-
-```bash
-npm run lint
-npm test
-npm run build
-npm run check
-```
-
-`npm run check` thực hiện chuỗi kiểm tra UI audit, lint, test và build.
-
----
-
-## 📚 API Documentation
-
-Backend sử dụng springdoc OpenAPI.
-
-Khi backend chạy thành công, Swagger UI theo cấu hình mặc định thường được truy cập tại:
+Healthcheck backend sử dụng public catalog endpoint:
 
 ```text
-http://localhost:8080/swagger-ui/index.html
+GET /api/v1/movies
 ```
 
-OpenAPI JSON:
+> Giá trị secret mặc định trong compose chỉ phù hợp cho local/dev. Không sử dụng chúng trong production.
+
+---
+
+## 🚀 Production Profile
+
+Backend có:
 
 ```text
-http://localhost:8080/v3/api-docs
+Backend/src/main/resources/application-prod.yml
 ```
 
-> API surface hiện vẫn đang được chuẩn hóa. Không nên coi các generic CRUD endpoint hiện tại là contract cuối cùng của hệ thống.
+Kích hoạt bằng:
+
+```env
+SPRING_PROFILES_ACTIVE=prod
+```
+
+Production profile yêu cầu explicit configuration cho các dependency/secrets quan trọng, ví dụ:
+
+```env
+MYSQL_HOST=
+MYSQL_PORT=3306
+MYSQL_DATABASE=
+MYSQL_USERNAME=
+MYSQL_PASSWORD=
+MYSQL_SSL_MODE=REQUIRED
+
+REDIS_HOST=
+REDIS_PORT=6379
+REDIS_USERNAME=
+REDIS_PASSWORD=
+
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USERNAME=
+SMTP_PASSWORD=
+SMTP_AUTH=true
+SMTP_STARTTLS=true
+
+JWT_SECRET=
+JWT_ISSUER=hotcinema
+
+MOMO_PARTNER_CODE=
+MOMO_ACCESS_KEY=
+MOMO_SECRET_KEY=
+MOMO_REDIRECT_URL=
+MOMO_IPN_URL=
+```
+
+Production profile hiện:
+
+- bật Flyway;
+- sử dụng `ddl-auto=validate` từ base config;
+- tắt SQL logging;
+- tắt OpenAPI/Swagger UI;
+- không expose error message, binding error hoặc stacktrace;
+- hỗ trợ forwarded headers;
+- không có fallback JWT secret production.
 
 ---
 
-## 🗺 Backend roadmap
+## 🗃 Database & Flyway
 
-Ưu tiên backend hiện tại:
+Base configuration:
 
-| Priority | Work item | Mục tiêu |
-|---|---|---|
-| P0 | Authentication HTTP API | Login/register/refresh/logout/me hoạt động end-to-end |
-| P0 | JWT request authentication | Bearer token được verify ở mọi protected API |
-| P0 | Flyway | Migration-first database |
-| P0 | Booking orchestration | Checkout use case thay cho generic CRUD |
-| P0 | Seat hold | Atomic hold + timeout + chống double booking |
-| P0 | Pricing | Backend tính toàn bộ giá booking |
-| P0 | MoMo payment | Initiate + callback + signature + idempotency |
-| P1 | Authorization | Role + resource ownership |
-| P1 | Ticket / QR | Issue, validate, scan, prevent reuse |
-| P1 | Tests | Integration + concurrency + security tests |
-| P1 | CI | Compile + test backend, lint/test/build frontend |
-| P2 | Observability | Logging, audit, metrics, health checks |
-| P2 | Deployment | Environment config, container hardening, production setup |
+```yaml
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+```
 
----
+Nguyên tắc:
 
-## 🎯 Development principles
-
-1. Không thêm generic CRUD chỉ vì entity tồn tại.
-2. Ưu tiên business use case end-to-end.
-3. Backend là nguồn sự thật cho giá, trạng thái booking và payment.
-4. Không tin dữ liệu nhạy cảm do client gửi lên.
-5. Mọi payment webhook phải verify signature và idempotent.
-6. Seat booking phải có concurrency control ở cả application và database layer.
-7. Authorization phải kiểm tra cả role và ownership.
-8. Database schema production phải quản lý bằng migration.
-9. Business-critical flow phải có integration test.
-10. Secret và credential production không được commit vào repository.
+- schema thay đổi bằng migration;
+- không dùng `ddl-auto=update` cho production;
+- migration phải review trước deploy;
+- backup database trước migration có rủi ro;
+- cần tiếp tục audit index/unique constraint cho booking/payment/concurrency.
 
 ---
 
-## 🔜 Bước backend tiếp theo
+## 🔭 Roadmap còn lại
 
-Bước tiếp theo nên hoàn thiện authentication end-to-end theo thứ tự:
+### P0 — Hoàn thiện business correctness
+
+- [ ] Late MoMo callback sau booking expire/cancel
+- [ ] Payment compensation / auto-refund nếu provider đã charge nhưng booking không thể confirm
+- [ ] Payment idempotency/reconciliation hardening
+- [ ] Configurable refund cutoff/policy
+- [ ] Booking Detail trả seat/F&B/payment/ticket snapshot đầy đủ
+- [ ] FE ↔ BE API contract audit toàn bộ service/controller
+
+### P1 — Admin & product completeness
+
+- [ ] Audit Admin Movie/Cinema/Auditorium/Showtime contracts
+- [ ] Audit Admin Booking/Payment/Refund workflow
+- [ ] Inventory adjustment/history cho concession
+- [ ] Promotion management UX và usage history
+- [ ] My Tickets UX hoàn chỉnh
+- [ ] Booking History pagination/filter/search
+- [ ] Chuẩn hóa loading/error/empty state trên frontend
+- [ ] Responsive seat map/payment/admin tables
+
+### P1 — Testing
+
+- [ ] Booking integration tests
+- [ ] Seat concurrency tests
+- [ ] Payment webhook tests
+- [ ] Refund success-path tests
+- [ ] Security/ownership controller tests
+- [ ] Frontend component tests
+- [ ] E2E booking/payment/ticket/check-in
+
+### P2 — Production readiness
+
+- [ ] Rate limiting
+- [ ] Audit logging
+- [ ] Structured logging + correlation ID
+- [ ] Metrics / monitoring / error tracking
+- [ ] Payment reconciliation dashboard/job
+- [ ] HTTPS/reverse proxy deployment config
+- [ ] Secret manager integration
+- [ ] MySQL backup/restore runbook
+- [ ] Redis persistence policy
+- [ ] Resource limits/readiness strategy
+- [ ] Production deployment documentation
+
+### P3 — Payment providers mở rộng
+
+- [ ] VNPay gateway
+- [ ] VNPay return/IPN verification
+- [ ] VNPay refund
+- [ ] ZaloPay nếu business yêu cầu
+
+Không nên đưa provider vào UI checkout trước khi backend gateway, callback verification và refund lifecycle đã triển khai đầy đủ.
+
+---
+
+## ✅ Definition of Done đề xuất
+
+HotCinema có thể được xem là production-ready khi tối thiểu đạt các điều kiện:
 
 ```text
-AuthController
-   ↓
-POST /api/v1/auth/login
-POST /api/v1/auth/register
-POST /api/v1/auth/refresh
-POST /api/v1/auth/logout
-GET  /api/v1/auth/me
-   ↓
-JwtDecoder
-   ↓
-Bearer Token Authentication
-   ↓
-SecurityContext
-   ↓
-Role / Ownership Authorization
+Core booking flows pass
+        +
+Concurrency tests pass
+        +
+Payment duplicate/late callback safe
+        +
+Refund policy deterministic
+        +
+Authorization/ownership verified
+        +
+Integration/E2E tests pass
+        +
+Secrets externalized
+        +
+Monitoring + reconciliation available
+        +
+Backup/restore + deployment runbook documented
 ```
 
-Sau khi authentication chạy hoàn chỉnh, chuyển sang **Seat Hold + Booking Application Service** trước khi tích hợp payment.
+---
+
+## ⚠️ Lưu ý phát triển
+
+- Không tin giá, discount hoặc status do frontend gửi lên.
+- Không cho user truy cập booking/payment/ticket của user khác.
+- Không đổi booking/payment status bằng generic admin action nếu bypass state machine.
+- Payment callback phải idempotent.
+- Không reopen ghế của booking đã charge nếu chưa giải quyết compensation/refund.
+- Ticket chỉ hợp lệ khi payment/booking lifecycle hợp lệ.
+- Mọi thay đổi inventory/promotion/seat quan trọng phải nằm trong transaction phù hợp.
+- Secrets production không được commit vào repository.
 
 ---
 
 ## 📄 License
 
-Chưa xác định license chính thức cho repository này.
-
----
-
-**HotCinema** — Cinema booking platform built with Spring Boot, React, MySQL and Redis.
+Chưa khai báo license chính thức trong repository.

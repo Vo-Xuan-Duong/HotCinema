@@ -2,6 +2,8 @@ package com.example.cinema.service;
 
 import com.example.cinema.dto.booking.BookingResponse;
 import com.example.cinema.entity.Booking;
+import com.example.cinema.entity.BookingItem;
+import com.example.cinema.entity.CinemaProduct;
 import com.example.cinema.entity.Payment;
 import com.example.cinema.entity.PaymentTransaction;
 import com.example.cinema.entity.ShowtimeSeat;
@@ -17,7 +19,9 @@ import com.example.cinema.exception.AppException;
 import com.example.cinema.exception.ErrorCode;
 import com.example.cinema.exception.ResourceNotFoundException;
 import com.example.cinema.mapper.BookingMapper;
+import com.example.cinema.repository.BookingItemRepository;
 import com.example.cinema.repository.BookingRepository;
+import com.example.cinema.repository.CinemaProductRepository;
 import com.example.cinema.repository.PaymentRepository;
 import com.example.cinema.repository.PaymentTransactionRepository;
 import com.example.cinema.repository.ShowtimeSeatRepository;
@@ -40,6 +44,8 @@ import java.util.UUID;
 public class BookingRefundService {
 
     private final BookingRepository bookingRepository;
+    private final BookingItemRepository bookingItemRepository;
+    private final CinemaProductRepository cinemaProductRepository;
     private final PaymentRepository paymentRepository;
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final TicketRepository ticketRepository;
@@ -49,7 +55,7 @@ public class BookingRefundService {
     private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
-    @CacheEvict(value = {"bookings", "payments", "tickets", "showtimeseats"}, allEntries = true)
+    @CacheEvict(value = {"bookings", "payments", "tickets", "showtimeseats", "cinemaproducts"}, allEntries = true)
     public BookingResponse refundForUser(UUID bookingId, UUID userId) {
         Booking booking = bookingRepository.findByIdAndUserIdForUpdate(bookingId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", bookingId.toString()));
@@ -81,6 +87,9 @@ public class BookingRefundService {
                 ));
 
         List<Ticket> tickets = ticketRepository.findAllForUpdateByBooking_IdAndIsActiveTrue(bookingId);
+        if (tickets.isEmpty()) {
+            throw new AppException(ErrorCode.DATA_INTEGRITY_VIOLATION, "Paid booking has no issued tickets");
+        }
         for (Ticket ticket : tickets) {
             if (ticket.getStatus() == TicketStatus.USED || ticket.getCheckedInAt() != null) {
                 throw new AppException(ErrorCode.BAD_REQUEST, "Checked-in tickets cannot be refunded");
@@ -124,6 +133,8 @@ public class BookingRefundService {
                 .createdAt(now)
                 .build());
 
+        restoreConcessionInventory(booking);
+
         for (Ticket ticket : tickets) {
             ticket.setStatus(TicketStatus.REFUNDED);
         }
@@ -149,6 +160,28 @@ public class BookingRefundService {
         booking.setStatus(BookingStatus.REFUNDED);
         booking.setCancelledAt(now);
         return bookingMapper.toResponse(bookingRepository.save(booking));
+    }
+
+    private void restoreConcessionInventory(Booking booking) {
+        if (booking.getShowtime() == null
+                || booking.getShowtime().getAuditorium() == null
+                || booking.getShowtime().getAuditorium().getCinema() == null) {
+            return;
+        }
+        UUID cinemaId = booking.getShowtime().getAuditorium().getCinema().getId();
+        List<BookingItem> items = bookingItemRepository.findAllByBooking_Id(booking.getId());
+        for (BookingItem item : items) {
+            if (item.getProduct() == null || item.getQuantity() == null || item.getQuantity() <= 0) {
+                continue;
+            }
+            CinemaProduct cinemaProduct = cinemaProductRepository
+                    .findByCinemaAndProductForUpdate(cinemaId, item.getProduct().getId())
+                    .orElse(null);
+            if (cinemaProduct != null && cinemaProduct.getStockQuantity() != null) {
+                cinemaProduct.setStockQuantity(cinemaProduct.getStockQuantity() + item.getQuantity());
+                cinemaProductRepository.save(cinemaProduct);
+            }
+        }
     }
 
     private void publishSeatAvailableAfterCommit(UUID showtimeId, UUID seatId) {

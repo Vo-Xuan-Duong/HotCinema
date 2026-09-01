@@ -42,6 +42,10 @@ const bookingService = {
     return unwrapApiData(await apiClient.post(`${base}/${bookingId}/cancel`));
   },
 
+  async refundMyBooking(bookingId) {
+    return unwrapApiData(await apiClient.post(`${base}/${bookingId}/refund`));
+  },
+
   async deleteBooking(bookingId) {
     return unwrapApiData(await apiClient.delete(`${base}/${bookingId}`));
   },
@@ -60,42 +64,6 @@ const bookingService = {
 
   async getUserBookings(userId, params) {
     return unwrapApiData(await apiClient.get(`${base}/user/${userId}`, { params }));
-  },
-
-  async getBookingStats(params) {
-    return unwrapApiData(await apiClient.get(`${base}/statistics`, { params }));
-  },
-
-  async getBookingCountByStatus() {
-    return unwrapApiData(await apiClient.get(`${base}/count-by-status`));
-  },
-
-  async confirmPayment(bookingId, paymentData) {
-    return unwrapApiData(await apiClient.post(`${base}/${bookingId}/payment/confirm`, paymentData));
-  },
-
-  async processRefund(bookingId, refundData) {
-    return unwrapApiData(await apiClient.post(`${base}/${bookingId}/refund`, refundData));
-  },
-
-  async validateBookingCode(bookingCode) {
-    try {
-      return unwrapApiData(await apiClient.get(`${base}/validate/${bookingCode}`));
-    } catch {
-      return false;
-    }
-  },
-
-  async checkSeatAvailability(showtimeId, seatIds) {
-    return unwrapApiData(await apiClient.post(`${base}/check-availability`, { showtimeId, seatIds }));
-  },
-
-  async exportBookings(params) {
-    return apiClient.get(`${base}/export`, { params, responseType: 'blob' });
-  },
-
-  async downloadTicket(bookingCode) {
-    return apiClient.get(`${base}/code/${bookingCode}/qr`, { responseType: 'blob' });
   },
 
   getStatusDisplayName(status) {
