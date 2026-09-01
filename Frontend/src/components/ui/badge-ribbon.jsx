@@ -28,7 +28,7 @@ const BadgeRibbon = ({
   const resolvedTone = tone || color;
 
   return (
-    <div className={cn('relative', className)} {...props}>
+    <div className={cn('relative flex flex-col', className)} {...props}>
       {children}
       <div
         className={cn(

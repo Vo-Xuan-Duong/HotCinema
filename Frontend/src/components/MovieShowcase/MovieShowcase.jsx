@@ -161,17 +161,22 @@ const MovieShowcase = ({
               <div
                 className={
                   enableSlider
-                    ? 'flex gap-3'
-                    : 'grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7'
+                    ? 'flex gap-3 items-stretch'
+                    : 'grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 items-stretch'
                 }
               >
                 {filteredMovies.map((movie, index) => (
                   <div
                     key={movie.id || `${movie.title}-${index}`}
-                    className={enableSlider ? 'w-[62vw] max-w-[220px] shrink-0 sm:w-[210px] lg:w-[200px] xl:w-[190px]' : 'min-w-0'}
+                    className={
+                      enableSlider
+                        ? 'w-[62vw] max-w-[220px] shrink-0 sm:w-[210px] lg:w-[200px] xl:w-[190px] flex flex-col'
+                        : 'min-w-0 flex flex-col'
+                    }
                   >
                     <MovieCard
                       movie={movie}
+                      className="h-full"
                       onTrailerClick={movie.trailer ? setSelectedMovie : undefined}
                     />
                   </div>

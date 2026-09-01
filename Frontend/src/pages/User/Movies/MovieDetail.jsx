@@ -385,11 +385,41 @@ const MovieDetail = () => {
         )}
 
         {relatedNowShowing.length > 0 && (
-          <section className="space-y-4"><div><h2 className="text-2xl font-semibold">Phim đang chiếu</h2><p className="text-sm text-muted-foreground">Một số lựa chọn khác đang có tại HotCinema.</p></div><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{relatedNowShowing.map((item) => <MovieCard key={item.id} movie={toMovieCard(item)} onTrailerClick={(target) => openTrailer({ ...item, trailerUrl: target.trailerUrl || item.trailerUrl })} />)}</div></section>
+          <section className="space-y-4">
+            <div>
+              <h2 className="text-2xl font-semibold">Phim đang chiếu</h2>
+              <p className="text-sm text-muted-foreground">Một số lựa chọn khác đang có tại HotCinema.</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
+              {relatedNowShowing.map((item) => (
+                <MovieCard
+                  key={item.id}
+                  movie={toMovieCard(item)}
+                  className="h-full"
+                  onTrailerClick={(target) => openTrailer({ ...item, trailerUrl: target.trailerUrl || item.trailerUrl })}
+                />
+              ))}
+            </div>
+          </section>
         )}
 
         {relatedUpcoming.length > 0 && (
-          <section className="space-y-4"><div><h2 className="text-2xl font-semibold">Sắp chiếu</h2><p className="text-sm text-muted-foreground">Các phim chuẩn bị ra mắt.</p></div><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{relatedUpcoming.map((item) => <MovieCard key={item.id} movie={toMovieCard(item)} onTrailerClick={(target) => openTrailer({ ...item, trailerUrl: target.trailerUrl || item.trailerUrl })} />)}</div></section>
+          <section className="space-y-4">
+            <div>
+              <h2 className="text-2xl font-semibold">Sắp chiếu</h2>
+              <p className="text-sm text-muted-foreground">Các phim chuẩn bị ra mắt.</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
+              {relatedUpcoming.map((item) => (
+                <MovieCard
+                  key={item.id}
+                  movie={toMovieCard(item)}
+                  className="h-full"
+                  onTrailerClick={(target) => openTrailer({ ...item, trailerUrl: target.trailerUrl || item.trailerUrl })}
+                />
+              ))}
+            </div>
+          </section>
         )}
 
         <section className="border-t pt-8"><CommentsSection movieId={movie.id} /></section>

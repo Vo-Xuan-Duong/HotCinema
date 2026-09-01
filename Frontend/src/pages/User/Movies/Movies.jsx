@@ -281,12 +281,12 @@ const Movies = () => {
 
         {movies.length > 0 ? (
           <>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 items-stretch">
               {movies.map((movie) => {
                 const status = movieStatusPresentation[getMovieStatus(movie)];
                 return (
-                  <BadgeRibbon key={movie.id} text={status.text} tone={status.tone}>
-                    <MovieCard movie={movie} />
+                  <BadgeRibbon key={movie.id} text={status.text} tone={status.tone} className="h-full">
+                    <MovieCard movie={movie} className="h-full" />
                   </BadgeRibbon>
                 );
               })}

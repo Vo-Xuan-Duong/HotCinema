@@ -141,9 +141,10 @@ const MovieSlider = ({ movies, title, showMoreButton = false, onShowMore }) => {
               className="swiper-container"
             >
               {movies.map((movie) => (
-                <SwiperSlide key={movie.id} className="flex-shrink-0 [&_.movie-card]:w-full [&_.movie-card]:h-auto [&_.movie-card]:min-h-[400px]">
+                <SwiperSlide key={movie.id} className="!h-auto flex flex-col flex-shrink-0">
                   <MovieCard
                     movie={movie}
+                    className="h-full w-full"
                     onTrailerClick={handleTrailerClick}
                   />
                 </SwiperSlide>
