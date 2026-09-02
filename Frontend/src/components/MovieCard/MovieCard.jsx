@@ -11,7 +11,7 @@ const FALLBACK_POSTER = '/brand-placeholder.svg';
 const MovieRating = ({ rating = 0 }) => (
   <div className="flex items-center gap-1.5" aria-label={`Đánh giá ${rating} trên 10`}>
     <StarRating readOnly value={Number(rating) / 2} precision={0.5} />
-    <span className="text-xs font-semibold sm:text-sm" style={{ color: 'hsl(var(--warning))' }}>
+    <span className="text-xs font-semibold text-warning sm:text-sm">
       {rating}/10
     </span>
   </div>
@@ -129,12 +129,12 @@ const MovieCard = ({ movie, onTrailerClick, viewMode = 'grid', className }) => {
         )}
 
         {onTrailerClick && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/45 opacity-100 transition-opacity duration-200 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-media-overlay/45 opacity-100 transition-opacity duration-200 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
             <Button
               type="button"
               variant="outline"
               size="icon"
-              className="pointer-events-auto h-11 w-11 rounded-full border-white/60 bg-black/30 text-white backdrop-blur-sm hover:border-white hover:bg-primary hover:text-primary-foreground focus-visible:opacity-100"
+              className="pointer-events-auto h-11 w-11 rounded-full border-media-foreground/60 bg-media-overlay/30 text-media-foreground backdrop-blur-sm hover:border-media-foreground hover:bg-primary hover:text-primary-foreground focus-visible:opacity-100"
               onClick={openTrailer}
               aria-label={`Xem trailer ${title}`}
             >
