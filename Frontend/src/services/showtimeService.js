@@ -27,7 +27,7 @@ class ShowtimeService {
     }
 
     async getCinemaShowtimesByMovieAndDate(movieId, date, params = {}) {
-        return unwrapApiArray(await apiClient.get(`${ENDPOINTS.SHOWTIME}/movie/${movieId}/date/${date}`, { params }));
+        return unwrapApiArray(await apiClient.get(`${ENDPOINTS.SHOWTIME}/search`, { params: { ...params, movieId, date } }));
     }
 
     async getShowtimesWithFilters(filters) {
