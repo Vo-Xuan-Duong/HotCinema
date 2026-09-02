@@ -55,6 +55,14 @@ export default {
           DEFAULT: 'hsl(var(--info))',
           foreground: 'hsl(var(--info-foreground))',
         },
+        media: {
+          overlay: 'hsl(var(--media-overlay))',
+          foreground: 'hsl(var(--media-foreground))',
+        },
+        qr: {
+          background: 'hsl(var(--qr-background))',
+          foreground: 'hsl(var(--qr-foreground))',
+        },
         sidebar: {
           DEFAULT: 'hsl(var(--sidebar-background))',
           foreground: 'hsl(var(--sidebar-foreground))',
