@@ -1,94 +1,63 @@
 import * as React from 'react';
-import { createPortal } from 'react-dom';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-const Drawer = ({ open, onOpenChange, children, placement = 'left', className, ...props }) => {
-  const [isOpen, setIsOpen] = React.useState(open ?? false);
-  const [mounted, setMounted] = React.useState(false);
+const panelClasses = {
+  left: 'inset-y-0 left-0 h-dvh w-[min(24rem,90vw)] border-r data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left',
+  right: 'inset-y-0 right-0 h-dvh w-[min(24rem,90vw)] border-l data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right',
+  top: 'inset-x-0 top-0 max-h-[85dvh] w-full border-b data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top',
+  bottom: 'inset-x-0 bottom-0 max-h-[85dvh] w-full border-t data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
+};
 
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  React.useEffect(() => {
-    if (open !== undefined) setIsOpen(open);
-  }, [open]);
-
-  React.useEffect(() => {
-    if (!isOpen) return undefined;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isOpen]);
-
-  React.useEffect(() => {
-    if (!isOpen) return undefined;
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        setIsOpen(false);
-        onOpenChange?.(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onOpenChange]);
-
-  const handleOpenChange = (nextOpen) => {
-    setIsOpen(nextOpen);
-    onOpenChange?.(nextOpen);
-  };
-
-  if (!isOpen || !mounted) return null;
-
-  const panelClasses = {
-    left: 'inset-y-0 left-0 h-full w-[min(24rem,90vw)] border-r',
-    right: 'inset-y-0 right-0 h-full w-[min(24rem,90vw)] border-l',
-    top: 'inset-x-0 top-0 max-h-[85dvh] w-full border-b',
-    bottom: 'inset-x-0 bottom-0 max-h-[85dvh] w-full border-t',
-  };
-
-  const drawerElement = (
-    <div className="fixed inset-0 z-50" role="presentation" {...props}>
-      <button
-        type="button"
-        aria-label="Đóng"
-        className="absolute inset-0 cursor-default bg-background/80 backdrop-blur-sm"
-        onClick={() => handleOpenChange(false)}
-      />
-      <section
-        role="dialog"
-        aria-modal="true"
+const Drawer = ({
+  open,
+  defaultOpen,
+  onOpenChange,
+  children,
+  placement = 'left',
+  className,
+  ...props
+}) => (
+  <DialogPrimitive.Root open={open} defaultOpen={defaultOpen} onOpenChange={onOpenChange}>
+    <DialogPrimitive.Portal>
+      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+      <DialogPrimitive.Content
         className={cn(
-          'fixed z-50 flex flex-col bg-background text-foreground shadow-lg outline-none',
+          'fixed z-50 flex flex-col overflow-hidden bg-background text-foreground shadow-lg outline-none duration-200',
           panelClasses[placement] || panelClasses.left,
           className
         )}
-        onClick={(event) => event.stopPropagation()}
+        {...props}
       >
         {children}
-      </section>
-    </div>
-  );
-
-  return createPortal(drawerElement, document.body);
-};
+      </DialogPrimitive.Content>
+    </DialogPrimitive.Portal>
+  </DialogPrimitive.Root>
+);
+Drawer.displayName = 'Drawer';
 
 const DrawerHeader = ({ className, ...props }) => (
-  <div className={cn('flex flex-col space-y-1.5 p-4 sm:p-6', className)} {...props} />
+  <div className={cn('flex flex-col space-y-1.5 border-b border-border p-4 sm:p-6', className)} {...props} />
 );
 DrawerHeader.displayName = 'DrawerHeader';
 
 const DrawerTitle = React.forwardRef(({ className, ...props }, ref) => (
-  <h2 ref={ref} className={cn('text-lg font-semibold leading-none tracking-tight', className)} {...props} />
+  <DialogPrimitive.Title
+    ref={ref}
+    className={cn('text-lg font-semibold leading-none tracking-tight', className)}
+    {...props}
+  />
 ));
 DrawerTitle.displayName = 'DrawerTitle';
 
 const DrawerDescription = React.forwardRef(({ className, ...props }, ref) => (
-  <p ref={ref} className={cn('text-sm text-muted-foreground', className)} {...props} />
+  <DialogPrimitive.Description
+    ref={ref}
+    className={cn('text-sm text-muted-foreground', className)}
+    {...props}
+  />
 ));
 DrawerDescription.displayName = 'DrawerDescription';
 
@@ -99,19 +68,20 @@ const DrawerContent = ({ className, children, ...props }) => (
 );
 DrawerContent.displayName = 'DrawerContent';
 
-const DrawerClose = React.forwardRef(({ className, onClick, ...props }, ref) => (
-  <Button
-    ref={ref}
-    type="button"
-    variant="ghost"
-    size="icon"
-    className={cn('h-8 w-8', className)}
-    onClick={onClick}
-    {...props}
-  >
-    <X className="h-4 w-4" />
-    <span className="sr-only">Đóng</span>
-  </Button>
+const DrawerClose = React.forwardRef(({ className, children, ...props }, ref) => (
+  <DialogPrimitive.Close asChild>
+    <Button
+      ref={ref}
+      type="button"
+      variant="ghost"
+      size="icon"
+      className={cn('h-8 w-8 shrink-0', className)}
+      {...props}
+    >
+      {children || <X className="h-4 w-4" />}
+      <span className="sr-only">Đóng</span>
+    </Button>
+  </DialogPrimitive.Close>
 ));
 DrawerClose.displayName = 'DrawerClose';
 
