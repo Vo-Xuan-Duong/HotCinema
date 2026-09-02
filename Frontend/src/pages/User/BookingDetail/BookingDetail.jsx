@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Copy, Download, Loader2, Printer, Ticket } from 'lucide-react';
+import { ArrowLeft, Copy, Download, Loader2, Printer, RefreshCw, Ticket } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DetailItem, DetailList } from '@/components/ui/detail-list';
@@ -54,24 +55,29 @@ const BookingDetail = () => {
   const [tickets, setTickets] = useState([]);
   const [qrImages, setQrImages] = useState({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [retryKey, setRetryKey] = useState(0);
   const [ticketsLoading, setTicketsLoading] = useState(false);
   const [downloadingTicketId, setDownloadingTicketId] = useState(null);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
+    setLoadError('');
+    setBooking(null);
+
     bookingService.getBookingByCode(bookingCode)
       .then((response) => active && setBooking(response))
       .catch((error) => {
         console.error('Error loading booking detail:', error);
         if (active) {
-          notification.error('Không thể tải thông tin đặt vé');
-          navigate('/history');
+          setLoadError(error?.message || 'Không thể tải thông tin đặt vé');
         }
       })
       .finally(() => active && setLoading(false));
+
     return () => { active = false; };
-  }, [bookingCode, navigate, notification]);
+  }, [bookingCode, retryKey]);
 
   useEffect(() => {
     if (!booking?.id) return undefined;
@@ -144,7 +150,57 @@ const BookingDetail = () => {
   }, [booking?.seats, tickets]);
 
   if (loading) return <ContentLoader message="Đang tải thông tin vé..." />;
-  if (!booking) return <Empty description="Không tìm thấy thông tin đặt vé" />;
+
+  if (loadError) {
+    return (
+      <main className="min-h-dvh bg-background px-4 py-16 text-foreground">
+        <div className="mx-auto w-full max-w-2xl space-y-5">
+          <Button type="button" variant="ghost" className="-ml-3" onClick={() => navigate('/history')}>
+            <ArrowLeft className="h-4 w-4" />
+            Lịch sử đặt vé
+          </Button>
+          <Alert
+            variant="destructive"
+            showIcon
+            message="Không thể tải chi tiết đặt vé"
+            description={loadError}
+          />
+          <Card>
+            <CardContent className="flex min-h-48 flex-col items-center justify-center gap-3 p-6 text-center">
+              <Ticket className="h-10 w-10 text-muted-foreground/35" />
+              <div>
+                <p className="font-medium">Mã đặt vé: {bookingCode || 'N/A'}</p>
+                <p className="mt-1 text-sm text-muted-foreground">Thông tin chưa tải được. Bạn có thể thử lại mà không mất ngữ cảnh hiện tại.</p>
+              </div>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button type="button" onClick={() => setRetryKey((current) => current + 1)}>
+                  <RefreshCw className="h-4 w-4" />
+                  Thử lại
+                </Button>
+                <Button type="button" variant="outline" onClick={() => navigate('/history')}>Về lịch sử vé</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    );
+  }
+
+  if (!booking) {
+    return (
+      <main className="min-h-dvh bg-background px-4 py-16 text-foreground">
+        <div className="mx-auto w-full max-w-2xl">
+          <Empty description="Không tìm thấy thông tin đặt vé" />
+          <div className="mt-4 flex justify-center">
+            <Button variant="outline" onClick={() => navigate('/history')}>
+              <ArrowLeft className="h-4 w-4" />
+              Về lịch sử vé
+            </Button>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   const status = statusMeta(booking.status);
   const showtimeStart = booking.showtimeStartTime || booking.showtime?.startTime;
@@ -159,7 +215,7 @@ const BookingDetail = () => {
           <div>
             <Button variant="ghost" className="mb-2 -ml-3" onClick={() => navigate('/history')}><ArrowLeft className="h-4 w-4" />Lịch sử đặt vé</Button>
             <h1 className="text-2xl font-bold tracking-tight">Chi tiết đặt vé</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Thông tin vé và giao dịch của mã {booking.bookingCode || booking.id}.</p>
+            <p className="mt-1 break-words text-sm text-muted-foreground">Thông tin vé và giao dịch của mã {booking.bookingCode || booking.id}.</p>
           </div>
           <Button onClick={() => window.print()}><Printer className="h-4 w-4" />In / lưu PDF</Button>
         </div>
@@ -170,7 +226,7 @@ const BookingDetail = () => {
               <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Ticket className="h-4 w-4" />Vé HotCinema</CardTitle></CardHeader>
               <CardContent className="space-y-5 text-center">
                 {ticketsLoading ? (
-                  <div className="flex min-h-52 items-center justify-center text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Đang tải vé điện tử...</div>
+                  <div className="flex min-h-52 items-center justify-center text-sm text-muted-foreground" role="status" aria-live="polite"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Đang tải vé điện tử...</div>
                 ) : hasIssuedTickets ? (
                   <div className="space-y-5">
                     {tickets.map((ticket) => {
@@ -184,7 +240,7 @@ const BookingDetail = () => {
                           )}
                           <div className="mt-3 space-y-2">
                             <p className="font-semibold">Ghế {ticket.seatName || 'N/A'}</p>
-                            <p className="text-xs text-muted-foreground">{ticket.ticketCode}</p>
+                            <p className="break-all text-xs text-muted-foreground">{ticket.ticketCode}</p>
                             <StatusBadge tone={ticketStatus.tone}>{ticketStatus.label}</StatusBadge>
                             {qrImages[ticket.id] && (
                               <Button
@@ -214,7 +270,7 @@ const BookingDetail = () => {
                 <div>
                   <p className="text-xs text-muted-foreground">Mã đặt vé</p>
                   <div className="mt-1 flex items-center justify-center gap-2">
-                    <span className="text-xl font-semibold tracking-wide">{booking.bookingCode || booking.id}</span>
+                    <span className="break-all text-xl font-semibold tracking-wide">{booking.bookingCode || booking.id}</span>
                     {booking.bookingCode && <Button variant="ghost" size="icon" className="h-8 w-8 print:hidden" onClick={handleCopyCode} aria-label="Sao chép mã đặt vé"><Copy className="h-4 w-4" /></Button>}
                   </div>
                 </div>
