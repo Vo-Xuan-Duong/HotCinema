@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import peopleService from '@/services/peopleService';
 import { useNotification } from '@/hooks/useNotification';
 
@@ -244,103 +245,103 @@ const PeopleDetail = () => {
 
     if (loading) {
         return (
-            <div className="min-h-[calc(100vh-64px)] bg-[#d8d9dd] text-[#1f3555] pt-16 flex flex-col items-center justify-center gap-3">
-                <Loader2 className="w-9 h-9 animate-spin" />
-                <p>Đang tải thông tin {personLabel}...</p>
+            <div className="min-h-[calc(100vh-64px)] bg-background text-foreground pt-16 flex flex-col items-center justify-center gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Đang tải thông tin {personLabel}...</p>
             </div>
         );
     }
 
     if (!person) {
         return (
-            <div className="min-h-[calc(100vh-64px)] bg-[#d8d9dd] text-[#1f3555] pt-16 flex flex-col items-center justify-center gap-3">
-                <h2>Không tìm thấy thông tin {personLabel}</h2>
-                <button
+            <div className="min-h-[calc(100vh-64px)] bg-background text-foreground pt-16 flex flex-col items-center justify-center gap-3">
+                <h2 className="text-xl font-semibold">Không tìm thấy thông tin {personLabel}</h2>
+                <Button
                     type="button"
-                    className="border-0 rounded-lg bg-[#0f2747] text-[#f4f7fb] px-4 py-2 cursor-pointer"
                     onClick={() => navigate('/movies')}
                 >
                     Quay lại danh sách phim
-                </button>
+                </Button>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-[#d8d9dd] pt-14 sm:pt-16">
-            <section className="bg-gradient-to-b from-[#0e2a4a] to-[#0b2440] text-[#f4f7fb] border-b border-white/10">
-                <div className="w-[94%] max-w-[1220px] mx-auto grid grid-cols-1 md:grid-cols-[220px_1fr] md:gap-7 gap-4 items-start py-4 sm:py-5">
-                    <div className="w-[150px] h-[220px] sm:w-[210px] sm:h-[306px] rounded-[10px] overflow-hidden border border-white/40 shadow-[0_16px_34px_rgba(0,0,0,0.35)] bg-[#1d3b5f]">
+        <div className="min-h-screen bg-background text-foreground pt-14 sm:pt-16">
+            <section className="bg-card text-card-foreground border-b border-border">
+                <div className="w-[94%] max-w-[1220px] mx-auto grid grid-cols-1 md:grid-cols-[220px_1fr] md:gap-7 gap-4 items-start py-6 sm:py-8">
+                    <div className="w-[150px] h-[220px] sm:w-[210px] sm:h-[306px] rounded-lg overflow-hidden border border-border shadow-md bg-muted">
                         <img src={avatarUrl} alt={personName} className="w-full h-full object-cover" />
                     </div>
 
                     <div className="max-w-[760px] pt-0.5">
-                        <h1 className="m-0 mb-3 text-[#f0f6ff] text-[1.7rem] sm:text-[2.1rem] lg:text-[2.5rem] leading-[1.1] tracking-[0.01em]">
+                        <h1 className="m-0 mb-3 text-foreground text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">
                             {personName}
                         </h1>
-                        <p className="m-0 text-white/95 text-[0.92rem] sm:text-[1rem] lg:text-[1.08rem] leading-[1.5]">
+                        <p className="m-0 text-muted-foreground text-sm sm:text-base leading-relaxed">
                             {personBio}
                         </p>
                     </div>
                 </div>
             </section>
 
-            <section className="py-5 sm:py-7 min-h-[300px]">
+            <section className="py-6 sm:py-8 min-h-[300px]">
                 <div className="w-[94%] max-w-[1220px] mx-auto">
-                    <div className="flex flex-wrap justify-start sm:justify-center gap-4 sm:gap-[22px]">
+                    <h2 className="text-xl font-semibold mb-4 text-foreground">Phim tham gia</h2>
+                    <div className="flex flex-wrap justify-start gap-4 sm:gap-5">
                         {filmography.length > 0 ? (
                             filmography.map((movie, index) => (
-                                <article className="w-[calc(50%-8px)] min-w-[140px] sm:min-w-0 sm:w-[156px] text-[#21324b]" key={`${movie.id || movie.title}-${index}`}>
+                                <article className="w-[calc(50%-8px)] min-w-[140px] sm:min-w-0 sm:w-[160px]" key={`${movie.id || movie.title}-${index}`}>
                                     {movie.id ? (
                                         <Link
                                             to={`/movies/${movie.id}`}
-                                            className="block w-full rounded-lg overflow-hidden shadow-[0_10px_24px_rgba(15,39,71,0.22)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_14px_30px_rgba(15,39,71,0.3)]"
+                                            className="block w-full rounded-lg overflow-hidden border border-border bg-card shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-md"
                                         >
-                                            <img src={movie.poster} alt={movie.title} className="block w-full aspect-[2/3] object-cover bg-[#102947]" />
+                                            <img src={movie.poster} alt={movie.title} className="block w-full aspect-[2/3] object-cover bg-muted" />
                                         </Link>
                                     ) : (
-                                        <div className="block w-full rounded-lg overflow-hidden shadow-[0_10px_24px_rgba(15,39,71,0.22)]">
-                                            <img src={movie.poster} alt={movie.title} className="block w-full aspect-[2/3] object-cover bg-[#102947]" />
+                                        <div className="block w-full rounded-lg overflow-hidden border border-border bg-card shadow-sm">
+                                            <img src={movie.poster} alt={movie.title} className="block w-full aspect-[2/3] object-cover bg-muted" />
                                         </div>
                                     )}
 
                                     <div className="pt-2">
-                                        <h3 className="m-0 text-[1.15rem] leading-[1.15] text-[#273754] line-clamp-2" title={movie.title}>{movie.title}</h3>
-                                        <p className="m-0 mt-1 text-[1rem] leading-none text-[#8ea0be]">{movie.releaseDate}</p>
-                                        <p className="m-0 mt-1 text-[0.95rem] leading-none text-[#a1b1ca] capitalize">
+                                        <h3 className="m-0 text-sm font-medium text-foreground line-clamp-2 leading-tight" title={movie.title}>{movie.title}</h3>
+                                        <p className="m-0 mt-1 text-xs text-muted-foreground">{movie.releaseDate}</p>
+                                        <p className="m-0 mt-0.5 text-xs text-muted-foreground/80 capitalize">
                                             {movie.role || (personType === 'DIRECTOR' ? 'Đạo diễn' : 'Diễn viên')}
                                         </p>
                                     </div>
                                 </article>
                             ))
                         ) : (
-                            <div className="text-[#4a6080] text-base mt-6">Chưa có dữ liệu phim tham gia.</div>
+                            <div className="text-muted-foreground text-sm mt-2">Chưa có dữ liệu phim tham gia.</div>
                         )}
                     </div>
                 </div>
             </section>
 
-            <section className="pb-8 sm:pb-9">
+            <section className="pb-8 sm:pb-10 border-t border-border pt-6">
                 <div className="w-[94%] max-w-[1220px] mx-auto">
-                    <div className="bg-[#d0d4dc] rounded-xl min-h-[154px] p-4 sm:p-6 w-full max-w-[930px]">
-                        <h2 className="m-0 text-[1.35rem] sm:text-[1.5rem] leading-[1.2] text-[#1f3555]">Bài viết liên quan</h2>
+                    <div className="bg-card border border-border rounded-xl min-h-[154px] p-4 sm:p-6 w-full max-w-[930px]">
+                        <h2 className="m-0 text-lg sm:text-xl font-semibold leading-tight text-card-foreground">Bài viết liên quan</h2>
 
                         {relatedPosts.length > 0 ? (
                             <div className="mt-4 grid gap-3">
                                 {relatedPosts.map((post, index) => (
-                                    <article className="bg-card/45 border border-[#1f3555]/10 rounded-lg px-3 py-2.5" key={`${post.id || post.title}-${index}`}>
+                                    <article className="bg-muted/40 border border-border rounded-lg px-3.5 py-3" key={`${post.id || post.title}-${index}`}>
                                         {post.link ? (
-                                            <a href={post.link} target="_blank" rel="noreferrer" className="m-0 text-[0.95rem] sm:text-[1rem] leading-[1.35] text-[#1f3555] font-semibold no-underline hover:underline">{post.title}</a>
+                                            <a href={post.link} target="_blank" rel="noreferrer" className="m-0 text-sm sm:text-base font-medium text-foreground hover:text-primary transition-colors">{post.title}</a>
                                         ) : (
-                                            <p className="m-0 text-[0.95rem] sm:text-[1rem] leading-[1.35] text-[#1f3555] font-semibold">{post.title}</p>
+                                            <p className="m-0 text-sm sm:text-base font-medium text-foreground">{post.title}</p>
                                         )}
 
-                                        {post.excerpt ? <p className="m-0 mt-1.5 text-[0.92rem] sm:text-[0.95rem] leading-[1.35] text-[#3e5475]">{post.excerpt}</p> : null}
+                                        {post.excerpt ? <p className="m-0 mt-1.5 text-xs sm:text-sm text-muted-foreground leading-relaxed">{post.excerpt}</p> : null}
                                     </article>
                                 ))}
                             </div>
                         ) : (
-                            <p className="m-0 mt-2 text-[0.92rem] sm:text-[0.95rem] leading-[1.35] text-[#3e5475]">Nội dung bài viết liên quan đang được cập nhật.</p>
+                            <p className="m-0 mt-2 text-xs sm:text-sm text-muted-foreground">Nội dung bài viết liên quan đang được cập nhật.</p>
                         )}
                     </div>
                 </div>

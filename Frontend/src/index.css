@@ -332,37 +332,37 @@
 }
 
 .dark {
-  /* Shadcn/ui CSS Variables - Dark */
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
+  /* Shadcn/ui CSS Variables - Dark (Soft Charcoal Black) */
+  --background: 0 0% 9%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 13%;
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 13%;
+  --popover-foreground: 0 0% 98%;
   --primary: 0 84.2% 60.2%; /* Red accent stays the same for brand */
   --primary-foreground: 0 0% 98%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
+  --secondary: 0 0% 17%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 0 0% 16%;
+  --muted-foreground: 0 0% 68%;
+  --accent: 0 0% 18%;
+  --accent-foreground: 0 0% 98%;
   --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 20%;
+  --input: 0 0% 20%;
   --ring: 0 84.2% 60.2%;
 
   /* Modern dark theme color scheme */
-  --primary-bg: #0B0F19; /* Deep cinema black/blue */
-  --secondary-bg: #111827;
-  --accent-bg: #1F2937;
-  --text-primary: #F3F4F6;
-  --text-secondary: #9CA3AF;
-  --text-muted: #6B7280;
-  --border-color: #374151;
-  --hover-bg: #1F2937;
-  --card-bg: #111827;
+  --primary-bg: #171717; /* Soft dark charcoal */
+  --secondary-bg: #212121;
+  --accent-bg: #2b2b2b;
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --border-color: #333333;
+  --hover-bg: #262626;
+  --card-bg: #212121;
 
   color-scheme: dark;
 }

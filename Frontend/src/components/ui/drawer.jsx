@@ -1,10 +1,16 @@
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const Drawer = ({ open, onOpenChange, children, placement = 'left', className, ...props }) => {
   const [isOpen, setIsOpen] = React.useState(open ?? false);
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   React.useEffect(() => {
     if (open !== undefined) setIsOpen(open);
@@ -36,7 +42,7 @@ const Drawer = ({ open, onOpenChange, children, placement = 'left', className, .
     onOpenChange?.(nextOpen);
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const panelClasses = {
     left: 'inset-y-0 left-0 h-full w-[min(24rem,90vw)] border-r',
@@ -45,7 +51,7 @@ const Drawer = ({ open, onOpenChange, children, placement = 'left', className, .
     bottom: 'inset-x-0 bottom-0 max-h-[85dvh] w-full border-t',
   };
 
-  return (
+  const drawerElement = (
     <div className="fixed inset-0 z-50" role="presentation" {...props}>
       <button
         type="button"
@@ -67,6 +73,8 @@ const Drawer = ({ open, onOpenChange, children, placement = 'left', className, .
       </section>
     </div>
   );
+
+  return createPortal(drawerElement, document.body);
 };
 
 const DrawerHeader = ({ className, ...props }) => (
