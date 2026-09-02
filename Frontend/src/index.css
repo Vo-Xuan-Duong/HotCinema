@@ -1,138 +1,117 @@
 @import './styles/shadcn-system.css';
-/* Tailwind CSS directives */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  * {
+  :root {
+    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 0 84.2% 60.2%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 0 84.2% 60.2%;
+    --radius: 0.5rem;
+
+    color-scheme: light;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .dark {
+    --background: 0 0% 9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 13%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 13%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 84.2% 60.2%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 17%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 16%;
+    --muted-foreground: 0 0% 68%;
+    --accent: 0 0% 18%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 0 84.2% 60.2%;
+
+    color-scheme: dark;
+  }
+
+  *,
+  *::before,
+  *::after {
     @apply border-border;
+    box-sizing: border-box;
   }
 
   html {
     @apply bg-background;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', sans-serif;
+    width: 100%;
+    min-width: 320px;
+    max-width: 100%;
+    margin: 0;
+    overflow-x: hidden;
+  }
+
+  #root {
+    min-height: 100dvh;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: inherit;
+  }
+
+  img,
+  video,
+  iframe,
+  embed,
+  object {
+    max-width: 100%;
   }
 }
 
-/* Custom component classes using @apply */
 @layer components {
-  .app-loading-spinner {
-    @apply inline-block w-5 h-5 border-[3px] border-white/30 rounded-full border-t-white;
-    animation: app-spin 1s ease-in-out infinite;
-  }
-
-  /* Auth Modal Classes - Replace CSS with Tailwind */
-  .auth-modal-title {
-    @apply text-2xl font-bold text-center;
-  }
-
-  .auth-content {
-    @apply p-0;
-  }
-
-  .form-header {
-    @apply text-center mb-7;
-  }
-
-  .form-header h2 {
-    @apply text-black text-[28px] font-bold m-0 mb-2 bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent;
-  }
-
-  .form-header p {
-    @apply text-black/70 text-sm m-0;
-  }
-
-  /* Custom Input Styling - Tailwind version */
-  .custom-input {
-    @apply bg-white/10 border-white/20 rounded-lg text-black h-12;
-    @apply hover:border-primary/60 hover:bg-white/15;
-    @apply focus:border-primary focus:bg-white/15;
-  }
-
-  .custom-input:focus {
-    box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.2);
-  }
-
-  .custom-input input {
-    @apply bg-transparent border-none text-black;
-  }
-
-  .custom-input input::placeholder {
-    @apply text-white/50;
-  }
-
-  .custom-input svg {
-    @apply text-black/60;
-  }
-
-  /* Form Options */
-  .form-options {
-    @apply flex justify-between items-center mb-2;
-  }
-
-  .custom-checkbox {
-    @apply text-white/80;
-  }
-
-  .forgot-password {
-    @apply text-white/70 p-0 h-auto text-sm hover:text-primary;
-  }
-
-  /* Buttons */
-  .login-button,
-  .register-button {
-    @apply bg-gradient-to-r from-primary to-red-500 border-none rounded-lg h-12 font-semibold text-base;
-    @apply hover:from-red-500 hover:to-primary hover:-translate-y-0.5;
-    @apply active:translate-y-0 transition-all;
-    box-shadow: 0 4px 12px rgba(229, 9, 20, 0.3);
-  }
-
-  .login-button:hover,
-  .register-button:hover {
-    box-shadow: 0 6px 16px rgba(229, 9, 20, 0.4);
-  }
-
-  .cancel-button {
-    @apply bg-white/10 border-white/20 text-white/90 rounded-lg h-12 font-semibold text-base;
-    @apply hover:bg-white/15 hover:border-white/30 hover:text-white transition-all;
-  }
-
-  .social-button {
-    @apply h-12 rounded-lg border-white/20 hover:border-primary/50 hover:text-primary transition-all mb-5;
-  }
-
-  /* Form Footer */
-  .form-footer {
-    @apply text-center text-sm;
-  }
-
-  .form-footer span {
-    @apply text-white/70;
-  }
-
-  .switch-button {
-    @apply text-primary p-0 h-auto hover:text-primary-600 font-medium;
-  }
-
-  /* Divider */
-  .custom-divider {
-    @apply my-5 text-white/50 text-xs;
-  }
-
-  /* Container utilities */
   .app-container,
   .container {
     @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
   }
 
-  /* Grid utilities */
   .app-grid {
-    @apply grid gap-8;
+    @apply grid gap-6;
   }
 
   .app-grid-2 {
@@ -144,385 +123,107 @@
   }
 
   .app-grid-4 {
-    @apply grid-cols-1 md:grid-cols-2 lg:grid-cols-4;
+    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-4;
   }
 
-  /* Flex utilities */
   .app-flex {
     @apply flex;
   }
 
   .app-flex-center {
-    @apply flex justify-center items-center;
+    @apply flex items-center justify-center;
   }
 
   .app-flex-between {
-    @apply flex justify-between items-center;
+    @apply flex items-center justify-between;
   }
 
   .app-flex-column {
     @apply flex flex-col;
   }
 
-  /* Message utilities */
-  .app-error-message,
-  .error-message {
-    @apply bg-gradient-to-br from-red-100 to-red-200 text-red-600 px-6 py-4 rounded-xl my-4 text-center border border-red-300;
-    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
   }
 
-  .app-success-message,
-  .success-message {
-    @apply bg-gradient-to-br from-green-100 to-green-200 text-green-600 px-6 py-4 rounded-xl my-4 text-center border border-green-300;
-    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.15);
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
   }
 
-  .app-warning-message,
-  .warning-message {
-    @apply bg-gradient-to-br from-yellow-100 to-yellow-200 text-yellow-700 px-6 py-4 rounded-xl my-4 text-center border border-yellow-300;
-    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.15);
-  }
-}
-
-/* Responsive overrides */
-@keyframes dotPulse {
-
-  0%,
-  100% {
-    opacity: 0.4;
-    transform: scale(0.9);
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
   }
 
-  50% {
-    opacity: 1;
-    transform: scale(1.3);
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.35);
+    border-radius: 9999px;
   }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes progressSlide {
-  0% {
-    transform: translateX(-100%);
-    width: 30%;
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.55);
   }
 
-  50% {
-    transform: translateX(0%);
-    width: 60%;
+  .movie-showcase-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary) / 0.75) hsl(var(--muted));
   }
 
-  100% {
-    transform: translateX(100%);
-    width: 30%;
+  .movie-showcase-scroll::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .movie-showcase-scroll::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+    border-radius: 9999px;
+  }
+
+  .movie-showcase-scroll::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.75);
+    border-radius: 9999px;
+  }
+
+  .movie-showcase-scroll::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary));
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }
 
-@keyframes app-spin {
-  }
-
-
-/* Responsive overrides */
-@keyframes dotPulse {
-
-  0%,
-  100% {
-    opacity: 0.4;
-    transform: scale(0.9);
-  }
-
-  50% {
-    opacity: 1;
-    transform: scale(1.3);
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes progressSlide {
-  0% {
-    transform: translateX(-100%);
-    width: 30%;
-  }
-
-  50% {
-    transform: translateX(0%);
-    width: 60%;
-  }
-
-  100% {
-    transform: translateX(100%);
-    width: 30%;
-  }
-}
-
-@keyframes app-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-:root {
-  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  /* Shadcn/ui CSS Variables - Light */
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 0 84.2% 60.2%;
-  --primary-foreground: 0 0% 98%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 0 84.2% 60.2%;
-  --radius: 0.5rem;
-
-  /* Modern light theme color scheme */
-  --primary-bg: #ffffff;
-  --secondary-bg: #f8fafc;
-  --accent-bg: #f1f5f9;
-  --text-primary: #1f2937;
-  --text-secondary: #6b7280;
-  --text-muted: #9ca3af;
-  --accent-red: #e50914;
-  --accent-primary: var(--accent-red);
-  --accent-orange: var(--accent-red);
-  --accent-blue: #3b82f6;
-  --border-color: #e5e7eb;
-  --hover-bg: #f9fafb;
-  --card-bg: #ffffff;
-  
-  color-scheme: light;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-.dark {
-  /* Shadcn/ui CSS Variables - Dark (Soft Charcoal Black) */
-  --background: 0 0% 9%;
-  --foreground: 0 0% 98%;
-  --card: 0 0% 13%;
-  --card-foreground: 0 0% 98%;
-  --popover: 0 0% 13%;
-  --popover-foreground: 0 0% 98%;
-  --primary: 0 84.2% 60.2%; /* Red accent stays the same for brand */
-  --primary-foreground: 0 0% 98%;
-  --secondary: 0 0% 17%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 0 0% 16%;
-  --muted-foreground: 0 0% 68%;
-  --accent: 0 0% 18%;
-  --accent-foreground: 0 0% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 0 0% 20%;
-  --input: 0 0% 20%;
-  --ring: 0 84.2% 60.2%;
-
-  /* Modern dark theme color scheme */
-  --primary-bg: #171717; /* Soft dark charcoal */
-  --secondary-bg: #212121;
-  --accent-bg: #2b2b2b;
-  --text-primary: #f4f4f5;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
-  --border-color: #333333;
-  --hover-bg: #262626;
-  --card-bg: #212121;
-
-  color-scheme: dark;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-
-a:hover {
-  color: hsl(var(--primary));
-}
-
-/* Smooth scrolling for better UX */
-html {
-  scroll-behavior: smooth;
-  overflow-x: hidden;
-  /* Use auto instead of scroll - scrollbar will overlay, not take space */
-  overflow-y: auto;
-  width: 100%;
-  /* Don't use 100vw as it includes scrollbar width, use 100% instead */
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-body {
-  overflow-x: hidden;
-  /* Use auto instead of scroll - scrollbar will overlay, not take space */
-  overflow-y: auto;
-  width: 100%;
-  /* Don't use 100vw as it includes scrollbar width, use 100% instead */
-  max-width: 100%;
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-/* Modern scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--secondary-bg);
-  /* Remove any spacing */
-  margin: 0;
-  padding: 0;
-  border: none;
+  background: hsl(var(--muted));
 }
 
 ::-webkit-scrollbar-thumb {
   background: hsl(var(--muted-foreground) / 0.45);
-  border-radius: 4px;
-  /* Remove any spacing */
-  border: none;
-  margin: 0;
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.65);
 }
 
-/* Custom scrollbar for movie showcase */
-.movie-showcase-scroll::-webkit-scrollbar {
-  height: 10px;
-}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 
-.movie-showcase-scroll::-webkit-scrollbar-track {
-  background: #f0f0f0;
-  border-radius: 5px;
-  margin: 0 10px;
-}
-
-.movie-showcase-scroll::-webkit-scrollbar-thumb {
-  background: linear-gradient(90deg, #e50914, #ff6b35);
-  border-radius: 5px;
-  transition: background 0.3s ease;
-}
-
-.movie-showcase-scroll::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(90deg, #b8070f, #e55a2b);
-}
-
-/* Hide scrollbar for carousel */
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-
-/* Custom scrollbar for admin sidebar */
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 3px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
-  transition: background 0.3s ease;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.35);
-}
-
-/* Prevent Modal from causing scrollbar flicker */
-/* Use auto instead of scroll - scrollbar will overlay, not take space */
-html {
-  overflow-y: auto;
-  padding-right: 0;
-  margin-right: 0;
-  width: 100%;
-  max-width: 100%;
-}
-
-body {
-  overflow-y: auto;
-  padding-right: 0;
-  margin-right: 0;
-  width: 100%;
-  max-width: 100%;
-}
-
-/* Ensure root element doesn't push scrollbar */
-#root {
-  padding-right: 0;
-  margin-right: 0;
-}
-
-/* Global fix to prevent horizontal overflow and white space */
-* {
-  box-sizing: border-box;
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-/* Prevent images and media from causing overflow */
-img,
-video,
-iframe,
-embed,
-object {
-  max-width: 100%;
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
 }
