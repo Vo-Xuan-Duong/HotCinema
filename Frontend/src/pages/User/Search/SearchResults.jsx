@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Building2, MapPin, Search } from 'lucide-react';
+import { Building2, MapPin, RefreshCw, Search } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import ContentLoader from '@/components/Loading/ContentLoader';
 import MovieCard from '@/components/MovieCard/MovieCard';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Empty } from '@/components/ui/empty';
@@ -28,6 +29,8 @@ const normalizeMovie = (movie) => ({
 const SearchResults = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const [retryKey, setRetryKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [searchType, setSearchType] = useState(searchParams.get('type') || 'all');
   const [results, setResults] = useState({ movies: [], cinemas: [], total: 0 });
@@ -39,6 +42,7 @@ const SearchResults = () => {
     setSearchType(type);
 
     if (!query) {
+      setSearchError('');
       setResults({ movies: [], cinemas: [], total: 0 });
       return;
     }
@@ -47,6 +51,7 @@ const SearchResults = () => {
 
     const performSearch = async () => {
       setLoading(true);
+      setSearchError('');
       try {
         const shouldSearchMovies = type === 'all' || type === 'movies';
         const shouldSearchCinemas = type === 'all' || type === 'cinemas';
@@ -74,7 +79,10 @@ const SearchResults = () => {
         });
       } catch (error) {
         console.error('Search error:', error);
-        if (!cancelled) setResults({ movies: [], cinemas: [], total: 0 });
+        if (!cancelled) {
+          setResults({ movies: [], cinemas: [], total: 0 });
+          setSearchError(error?.message || 'Không thể tải kết quả tìm kiếm.');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -84,11 +92,12 @@ const SearchResults = () => {
     return () => {
       cancelled = true;
     };
-  }, [searchParams]);
+  }, [searchParams, retryKey]);
 
   const submitSearch = () => {
     const query = searchQuery.trim();
     if (!query) return;
+    setSearchError('');
     setSearchParams({ q: query, type: searchType });
   };
 
@@ -99,7 +108,7 @@ const SearchResults = () => {
   };
 
   return (
-    <div className="min-h-dvh bg-background px-4 pb-8 pt-20 text-foreground sm:px-6 lg:px-8">
+    <main className="min-h-dvh bg-background px-4 pb-8 pt-20 text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-7xl">
         <header className="mb-4 flex flex-col gap-1 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
           <div>
@@ -114,6 +123,7 @@ const SearchResults = () => {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
+                aria-label="Từ khóa tìm kiếm"
                 placeholder="Tìm phim hoặc rạp chiếu..."
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
@@ -123,7 +133,7 @@ const SearchResults = () => {
             </div>
 
             <Select value={searchType} onValueChange={handleTypeChange}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Loại kết quả tìm kiếm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -133,20 +143,44 @@ const SearchResults = () => {
               </SelectContent>
             </Select>
 
-            <Button type="button" onClick={submitSearch} disabled={!searchQuery.trim()}>
+            <Button type="button" onClick={submitSearch} disabled={!searchQuery.trim() || loading}>
               <Search className="h-4 w-4" />
               Tìm kiếm
             </Button>
           </CardContent>
         </Card>
 
+        {searchError && (
+          <Alert
+            variant="destructive"
+            showIcon
+            message="Không thể hoàn tất tìm kiếm"
+            description={searchError}
+            className="mb-5"
+          />
+        )}
+
         {loading ? (
           <ContentLoader message="Đang tìm kiếm..." />
+        ) : searchError ? (
+          <Card>
+            <CardContent className="flex min-h-48 flex-col items-center justify-center gap-3 py-8 text-center">
+              <Search className="h-10 w-10 text-muted-foreground/35" />
+              <div>
+                <p className="text-sm font-medium">Kết quả tìm kiếm chưa khả dụng</p>
+                <p className="mt-1 text-sm text-muted-foreground">Thử lại truy vấn hiện tại hoặc thay đổi từ khóa.</p>
+              </div>
+              <Button type="button" variant="outline" onClick={() => setRetryKey((current) => current + 1)}>
+                <RefreshCw className="h-4 w-4" />
+                Thử lại
+              </Button>
+            </CardContent>
+          </Card>
         ) : searchParams.get('q') ? (
           <div className="space-y-5">
             <div className="flex flex-wrap items-end justify-between gap-2">
-              <h2 className="text-lg font-semibold">Kết quả cho “{searchParams.get('q')}”</h2>
-              <p className="text-sm text-muted-foreground">{results.total} kết quả</p>
+              <h2 className="min-w-0 break-words text-lg font-semibold">Kết quả cho “{searchParams.get('q')}”</h2>
+              <p className="shrink-0 text-sm text-muted-foreground">{results.total} kết quả</p>
             </div>
 
             {results.total === 0 ? (
@@ -158,9 +192,9 @@ const SearchResults = () => {
             ) : (
               <>
                 {results.movies.length > 0 && (
-                  <section>
-                    <h3 className="mb-3 text-base font-semibold">Phim ({results.movies.length})</h3>
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 items-stretch">
+                  <section aria-labelledby="search-movies-heading">
+                    <h3 id="search-movies-heading" className="mb-3 text-base font-semibold">Phim ({results.movies.length})</h3>
+                    <div className="grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
                       {results.movies.map((movie) => (
                         <MovieCard key={movie.id} movie={movie} className="h-full" />
                       ))}
@@ -169,8 +203,8 @@ const SearchResults = () => {
                 )}
 
                 {results.cinemas.length > 0 && (
-                  <section>
-                    <h3 className="mb-3 text-base font-semibold">Rạp chiếu ({results.cinemas.length})</h3>
+                  <section aria-labelledby="search-cinemas-heading">
+                    <h3 id="search-cinemas-heading" className="mb-3 text-base font-semibold">Rạp chiếu ({results.cinemas.length})</h3>
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                       {results.cinemas.map((cinema) => (
                         <Card key={cinema.id} className="flex h-full flex-col transition-colors hover:border-primary/40">
@@ -210,7 +244,7 @@ const SearchResults = () => {
           </Card>
         )}
       </div>
-    </div>
+    </main>
   );
 };
 
