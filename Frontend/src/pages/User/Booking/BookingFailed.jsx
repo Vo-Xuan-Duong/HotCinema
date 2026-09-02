@@ -1,20 +1,25 @@
 import { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import { Home, RotateCcw, XCircle } from 'lucide-react';
+import { History, Home, RotateCcw, XCircle } from 'lucide-react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import ContentLoader from '@/components/Loading/ContentLoader';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Empty } from '@/components/ui/empty';
 import { Separator } from '@/components/ui/separator';
 import bookingService from '@/services/bookingService';
 import paymentService from '@/services/paymentService';
 
-const formatAmount = (value) => {
-  if (typeof value === 'number') return `${value.toLocaleString('vi-VN')}đ`;
-  if (!value) return '0đ';
-  return String(value).includes('đ') ? String(value) : `${value}đ`;
+const toAmountNumber = (value) => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  if (!value) return 0;
+  const normalized = String(value).replace(/[^\d.-]/g, '');
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
 };
+
+const formatAmount = (value) => `${toAmountNumber(value).toLocaleString('vi-VN')}đ`;
 
 const BookingFailed = () => {
   const navigate = useNavigate();
@@ -39,6 +44,15 @@ const BookingFailed = () => {
       }
     };
 
+    const normalizeErrorData = (data = {}) => {
+      const totalAmountValue = toAmountNumber(data.totalAmountValue ?? data.totalAmount ?? data.finalAmount);
+      return {
+        ...data,
+        totalAmountValue,
+        totalAmount: formatAmount(totalAmountValue),
+      };
+    };
+
     const fetchBookingDetails = async () => {
       setLoading(true);
 
@@ -47,7 +61,7 @@ const BookingFailed = () => {
           const paymentData = await paymentService.getPaymentByTransactionId(transactionId);
           const bookingDetails = await bookingService.getBookingById(paymentData.bookingId);
 
-          setErrorData({
+          setErrorData(normalizeErrorData({
             errorMessage: location.state?.errorData?.errorMessage || 'Thanh toán không thành công',
             reason: location.state?.errorData?.reason || 'Lỗi không xác định',
             movieTitle: bookingDetails.movieTitle || bookingDetails.movie?.title,
@@ -55,30 +69,28 @@ const BookingFailed = () => {
             showTime: bookingDetails.showtimeTime || bookingDetails.showtime?.time,
             showDate: bookingDetails.showtimeDate || bookingDetails.showtime?.date,
             seatNumbers: bookingDetails.seatNames || bookingDetails.seats?.map((seat) => seat.name).join(', '),
-            totalAmount: formatAmount(bookingDetails.totalAmount),
+            totalAmount: bookingDetails.totalAmount,
             transactionId: paymentData.transactionId,
-            bookingCode: bookingDetails.code,
+            bookingCode: bookingDetails.code || bookingDetails.bookingCode,
             bookingId: bookingDetails.id,
             moviePoster: bookingDetails.moviePoster || bookingDetails.movie?.poster,
             cinemaAddress: bookingDetails.cinemaAddress || bookingDetails.cinema?.address,
             screen: bookingDetails.screenName || bookingDetails.screen?.name,
-          });
+          }));
         } else {
           const fallbackData = readFallbackData();
           const errorMessage = searchParams.get('error');
           const reason = searchParams.get('reason');
 
-          setErrorData({
+          setErrorData(normalizeErrorData({
             ...fallbackData,
             errorMessage: errorMessage ? decodeURIComponent(errorMessage) : fallbackData.errorMessage,
             reason: reason ? decodeURIComponent(reason) : fallbackData.reason,
-            totalAmount: formatAmount(fallbackData.totalAmount),
-          });
+          }));
         }
       } catch (error) {
         console.error('Error fetching booking details:', error);
-        const fallbackData = readFallbackData();
-        setErrorData({ ...fallbackData, totalAmount: formatAmount(fallbackData.totalAmount) });
+        setErrorData(normalizeErrorData(readFallbackData()));
       } finally {
         setLoading(false);
       }
@@ -87,7 +99,14 @@ const BookingFailed = () => {
     fetchBookingDetails();
   }, [transactionId, location.state, searchParams]);
 
+  const canRetry = Boolean(errorData.bookingId);
+
   const handleTryAgain = () => {
+    if (!canRetry) {
+      navigate('/history');
+      return;
+    }
+
     navigate('/booking/payment', {
       state: {
         bookingId: errorData.bookingId,
@@ -102,13 +121,13 @@ const BookingFailed = () => {
           : [],
         showDate: errorData.showDate,
         showTime: errorData.showTime,
-        totalAmount: errorData.totalAmount,
+        totalAmount: errorData.totalAmountValue,
       },
     });
   };
 
   if (loading) {
-    return <ContentLoader message="Đang tải thông tin..." />;
+    return <ContentLoader message="Đang tải thông tin giao dịch..." />;
   }
 
   const {
@@ -132,17 +151,17 @@ const BookingFailed = () => {
   ].filter(Boolean);
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-background px-4 py-16 text-foreground">
+    <main className="flex min-h-dvh items-center justify-center bg-background px-4 py-16 text-foreground">
       <div className="w-full max-w-2xl space-y-6">
-        <div className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+        <header className="text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-destructive/30 bg-destructive/10 text-destructive">
             <XCircle className="h-7 w-7" />
           </div>
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Thanh toán không thành công</h1>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
-            Đơn đặt vé chưa được thanh toán. Thông tin bên dưới được giữ lại để bạn có thể kiểm tra và thử lại.
+            Đơn đặt vé chưa được thanh toán. Thông tin bên dưới được giữ lại để bạn có thể kiểm tra và tiếp tục xử lý.
           </p>
-        </div>
+        </header>
 
         <Alert type="error" showIcon message="Giao dịch chưa hoàn tất" description={errorMessage} />
         {reason && reason !== 'Thanh toán không thành công.' && (
@@ -155,14 +174,16 @@ const BookingFailed = () => {
           </CardHeader>
 
           <CardContent className="space-y-4 pt-6">
-            {details.map(([label, value]) => (
+            {details.length > 0 ? details.map(([label, value]) => (
               <div key={label} className="flex items-start justify-between gap-6 text-sm">
                 <span className="shrink-0 text-muted-foreground">{label}</span>
-                <span className={label === 'Mã đặt vé' ? 'text-right font-mono font-medium' : 'text-right font-medium'}>
+                <span className={label === 'Mã đặt vé' ? 'break-all text-right font-mono font-medium' : 'min-w-0 text-right font-medium'}>
                   {value}
                 </span>
               </div>
-            ))}
+            )) : (
+              <Empty description="Không còn đủ dữ liệu đơn hàng để hiển thị. Bạn có thể kiểm tra lại trong lịch sử đặt vé." />
+            )}
 
             <Separator />
 
@@ -173,10 +194,17 @@ const BookingFailed = () => {
           </CardContent>
 
           <CardFooter className="flex-col items-stretch gap-3 border-t border-border pt-6 sm:flex-row">
-            <Button type="button" className="flex-1" onClick={handleTryAgain}>
-              <RotateCcw className="mr-2 h-4 w-4" />
-              Thử lại thanh toán
-            </Button>
+            {canRetry ? (
+              <Button type="button" className="flex-1" onClick={handleTryAgain}>
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Thử lại thanh toán
+              </Button>
+            ) : (
+              <Button type="button" className="flex-1" onClick={() => navigate('/history')}>
+                <History className="mr-2 h-4 w-4" />
+                Kiểm tra lịch sử vé
+              </Button>
+            )}
             <Button type="button" variant="outline" className="flex-1" onClick={() => navigate('/')}>
               <Home className="mr-2 h-4 w-4" />
               Về trang chủ
@@ -190,7 +218,7 @@ const BookingFailed = () => {
           description="Ghế chỉ được giữ trong thời gian giới hạn. Nếu thời gian giữ chỗ hết hạn, bạn cần chọn lại ghế trước khi thanh toán."
         />
       </div>
-    </div>
+    </main>
   );
 };
 
