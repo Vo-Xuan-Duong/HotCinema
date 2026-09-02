@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
+import { RefreshCw } from 'lucide-react';
 import FeaturesSection from '@/components/FeaturesSection/FeaturesSection';
 import HeroModern from '@/components/HeroSection/HeroModern';
 import MovieShowcase from '@/components/MovieShowcase/MovieShowcase';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import movieService from '@/services/movieService';
 
@@ -25,6 +28,8 @@ const processMovies = (data) => {
 
 const Home = () => {
   const [loading, setLoading] = useState(true);
+  const [loadWarning, setLoadWarning] = useState('');
+  const [retryKey, setRetryKey] = useState(0);
   const [movies, setMovies] = useState([]);
   const [upcomingMovies, setUpcomingMovies] = useState([]);
   const [nowShowingMovies, setNowShowingMovies] = useState([]);
@@ -34,6 +39,8 @@ const Home = () => {
     let cancelled = false;
 
     const loadData = async () => {
+      setLoading(true);
+      setLoadWarning('');
       try {
         const results = await Promise.allSettled([
           movieService.listPage({ page: 0, size: 20, sort: 'createdAt,desc' }),
@@ -43,16 +50,28 @@ const Home = () => {
 
         if (cancelled) return;
 
-        const allMoviesData = results[0].status === 'fulfilled' ? results[0].value : { content: [] };
-        const upcomingData = results[1].status === 'fulfilled' ? results[1].value : [];
-        const nowShowingData = results[2].status === 'fulfilled' ? results[2].value : [];
+        const apiNames = ['Danh sách phim', 'Phim sắp chiếu', 'Phim đang chiếu'];
+        const failedApis = results
+          .map((result, index) => result.status === 'rejected' ? apiNames[index] : null)
+          .filter(Boolean);
 
         results.forEach((result, index) => {
           if (result.status === 'rejected') {
-            const apiNames = ['listPage', 'getComingSoon', 'getNowShowing'];
             console.error(`API ${apiNames[index]} failed:`, result.reason);
           }
         });
+
+        if (failedApis.length > 0) {
+          setLoadWarning(
+            failedApis.length === results.length
+              ? 'Không thể tải dữ liệu phim từ hệ thống.'
+              : `Một phần dữ liệu chưa tải được: ${failedApis.join(', ')}.`
+          );
+        }
+
+        const allMoviesData = results[0].status === 'fulfilled' ? results[0].value : { content: [] };
+        const upcomingData = results[1].status === 'fulfilled' ? results[1].value : [];
+        const nowShowingData = results[2].status === 'fulfilled' ? results[2].value : [];
 
         const normalizedAllMovies = processMovies(allMoviesData);
         const normalizedUpcoming = processMovies(upcomingData);
@@ -68,6 +87,7 @@ const Home = () => {
         setTopRatedMovies(normalizedTopRated);
       } catch (error) {
         console.error('Failed to load movies from API', error);
+        if (!cancelled) setLoadWarning('Không thể tải dữ liệu phim từ hệ thống.');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -77,7 +97,7 @@ const Home = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [retryKey]);
 
   const heroMovies = upcomingMovies.length > 0
     ? upcomingMovies
@@ -90,7 +110,7 @@ const Home = () => {
       <div className="min-h-dvh bg-background pt-16 text-foreground">
         <div className="relative h-[56vh] w-full overflow-hidden">
           <Skeleton className="h-full w-full rounded-none" />
-          <div className="absolute inset-0 flex items-center bg-black/40">
+          <div className="absolute inset-0 flex items-center bg-media-overlay/40">
             <div className="mx-auto flex w-full max-w-7xl gap-5 px-4 sm:px-6 lg:px-8">
               <Skeleton className="hidden aspect-[2/3] w-60 rounded-md opacity-50 lg:block" />
               <div className="flex flex-1 flex-col justify-center gap-3">
@@ -127,6 +147,23 @@ const Home = () => {
       <section className="relative w-full overflow-hidden">
         <HeroModern movies={heroMovies} />
       </section>
+
+      {loadWarning && (
+        <div className="mx-auto w-full max-w-7xl px-4 pt-5 sm:px-6 lg:px-8">
+          <Alert
+            variant="warning"
+            showIcon
+            message="Dữ liệu trang chủ chưa đầy đủ"
+            description={loadWarning}
+          />
+          <div className="mt-2 flex justify-end">
+            <Button type="button" variant="outline" size="sm" onClick={() => setRetryKey((current) => current + 1)}>
+              <RefreshCw className="h-4 w-4" />
+              Tải lại dữ liệu phim
+            </Button>
+          </div>
+        </div>
+      )}
 
       <main className="w-full">
         <MovieShowcase movies={upcomingMovies} title="Phim sắp chiếu" category="upcoming" />
