@@ -6,19 +6,34 @@ import { StarRating } from '@/components/ui/star-rating';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { cn } from '@/lib/utils';
 
+const FALLBACK_POSTER = '/brand-placeholder.svg';
+
 const MovieRating = ({ rating = 0 }) => (
-  <div className="flex items-center gap-1.5">
+  <div className="flex items-center gap-1.5" aria-label={`Đánh giá ${rating} trên 10`}>
     <StarRating readOnly value={Number(rating) / 2} precision={0.5} />
-    <span className="text-xs sm:text-sm font-semibold" style={{ color: 'hsl(var(--warning))' }}>
+    <span className="text-xs font-semibold sm:text-sm" style={{ color: 'hsl(var(--warning))' }}>
       {rating}/10
     </span>
   </div>
 );
 
+const PosterImage = ({ poster, title, className }) => (
+  <img
+    alt={title}
+    src={poster || FALLBACK_POSTER}
+    className={className}
+    loading="lazy"
+    onError={(event) => {
+      event.currentTarget.onerror = null;
+      event.currentTarget.src = FALLBACK_POSTER;
+    }}
+  />
+);
+
 const MovieCard = ({ movie, onTrailerClick, viewMode = 'grid', className }) => {
   const {
     id,
-    title,
+    title = 'Phim chưa có tên',
     poster,
     rating = 0,
     genre,
@@ -26,7 +41,9 @@ const MovieCard = ({ movie, onTrailerClick, viewMode = 'grid', className }) => {
     ageLabel,
     duration,
     description,
-  } = movie;
+  } = movie || {};
+
+  const detailPath = id ? `/movies/${id}` : '/movies';
 
   const openTrailer = (event) => {
     event.preventDefault();
@@ -36,14 +53,14 @@ const MovieCard = ({ movie, onTrailerClick, viewMode = 'grid', className }) => {
 
   if (viewMode === 'list') {
     return (
-      <Card className={cn("mb-4 overflow-hidden shadow-sm transition-colors hover:border-primary/30", className)}>
+      <Card className={cn('mb-4 overflow-hidden transition-colors hover:border-primary/30', className)}>
         <div className="flex items-stretch max-md:flex-col">
           <div className="relative aspect-[2/3] w-36 shrink-0 overflow-hidden bg-muted max-md:h-64 max-md:w-full">
-            <Link to={`/movies/${id}`} className="block h-full w-full">
-              <img src={poster} alt={title} className="h-full w-full object-cover" loading="lazy" />
+            <Link to={detailPath} className="block h-full w-full" aria-label={`Xem chi tiết ${title}`}>
+              <PosterImage poster={poster} title={title} className="h-full w-full object-cover" />
             </Link>
             {ageLabel && (
-              <StatusBadge className="absolute left-2 top-2 z-[2] uppercase text-xs" tone="warning">
+              <StatusBadge className="absolute left-2 top-2 z-[2] text-xs uppercase" tone="warning">
                 {ageLabel}
               </StatusBadge>
             )}
@@ -53,30 +70,30 @@ const MovieCard = ({ movie, onTrailerClick, viewMode = 'grid', className }) => {
             <div className="flex items-start justify-between gap-4 max-md:flex-col">
               <div className="min-w-0 flex-1">
                 <Link
-                  to={`/movies/${id}`}
+                  to={detailPath}
                   title={title}
-                  className="line-clamp-2 text-lg sm:text-xl font-semibold tracking-tight text-foreground transition-colors hover:text-primary"
+                  className="line-clamp-2 text-lg font-semibold tracking-tight text-foreground transition-colors hover:text-primary sm:text-xl"
                 >
                   {title}
                 </Link>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   {genre && <StatusBadge tone="info" className="text-xs">{genre.split(', ')[0]}</StatusBadge>}
-                  {duration && <span className="text-xs sm:text-sm text-muted-foreground">{duration}</span>}
-                  {releaseDate && <span className="text-xs sm:text-sm text-muted-foreground">{releaseDate}</span>}
+                  {duration && <span className="text-xs text-muted-foreground sm:text-sm">{duration}</span>}
+                  {releaseDate && <span className="text-xs text-muted-foreground sm:text-sm">{releaseDate}</span>}
                 </div>
               </div>
               <MovieRating rating={rating} />
             </div>
 
             {description && (
-              <p className="mt-3 line-clamp-3 text-xs sm:text-sm leading-relaxed text-muted-foreground">
+              <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-muted-foreground sm:text-sm">
                 {description}
               </p>
             )}
 
             <div className="mt-4 flex flex-wrap gap-2 pt-1">
               <Button asChild size="sm">
-                <Link to={`/movies/${id}`}>
+                <Link to={detailPath}>
                   <Eye className="mr-2 h-4 w-4" />
                   Chi tiết
                 </Link>
@@ -95,30 +112,29 @@ const MovieCard = ({ movie, onTrailerClick, viewMode = 'grid', className }) => {
   }
 
   return (
-    <Card className={cn("group flex h-full flex-col overflow-hidden border-border/80 bg-card shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-md", className)}>
+    <Card className={cn('group flex h-full flex-col overflow-hidden border-border/80 bg-card transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-md', className)}>
       <div className="relative aspect-[2/3] w-full shrink-0 overflow-hidden bg-muted">
-        <Link to={`/movies/${id}`} className="block h-full w-full">
-          <img
-            alt={title}
-            src={poster}
+        <Link to={detailPath} className="block h-full w-full" aria-label={`Xem chi tiết ${title}`}>
+          <PosterImage
+            poster={poster}
+            title={title}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-            loading="lazy"
           />
         </Link>
 
         {ageLabel && (
-          <StatusBadge className="absolute left-2.5 top-2.5 z-[2] uppercase text-[11px]" tone="warning">
+          <StatusBadge className="absolute left-2.5 top-2.5 z-[2] text-[11px] uppercase" tone="warning">
             {ageLabel}
           </StatusBadge>
         )}
 
         {onTrailerClick && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/55 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/45 opacity-100 transition-opacity duration-200 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
             <Button
               type="button"
               variant="outline"
               size="icon"
-              className="h-11 w-11 rounded-full border-white/60 bg-black/25 text-white backdrop-blur-sm hover:border-white hover:bg-primary hover:text-primary-foreground"
+              className="pointer-events-auto h-11 w-11 rounded-full border-white/60 bg-black/30 text-white backdrop-blur-sm hover:border-white hover:bg-primary hover:text-primary-foreground focus-visible:opacity-100"
               onClick={openTrailer}
               aria-label={`Xem trailer ${title}`}
             >
@@ -129,11 +145,11 @@ const MovieCard = ({ movie, onTrailerClick, viewMode = 'grid', className }) => {
       </div>
 
       <CardContent className="flex flex-1 flex-col justify-between p-3 sm:p-3.5">
-        <div className="min-h-[2.5rem] flex items-start">
+        <div className="flex min-h-[2.5rem] items-start">
           <Link
-            to={`/movies/${id}`}
+            to={detailPath}
             title={title}
-            className="line-clamp-2 text-sm sm:text-base font-semibold leading-5 text-foreground transition-colors hover:text-primary"
+            className="line-clamp-2 text-sm font-semibold leading-5 text-foreground transition-colors hover:text-primary sm:text-base"
           >
             {title}
           </Link>
@@ -141,10 +157,10 @@ const MovieCard = ({ movie, onTrailerClick, viewMode = 'grid', className }) => {
 
         <div className="mt-auto space-y-2 pt-2.5">
           <MovieRating rating={rating} />
-          <div className="flex h-5 items-center overflow-hidden gap-1.5">
+          <div className="flex h-5 items-center gap-1.5 overflow-hidden">
             {genre ? (
               genre.split(', ').slice(0, 2).map((item) => (
-                <StatusBadge key={item} tone="info" className="truncate text-[11px] px-1.5 py-0 leading-4">
+                <StatusBadge key={item} tone="info" className="truncate px-1.5 py-0 text-[11px] leading-4">
                   {item}
                 </StatusBadge>
               ))
