@@ -60,12 +60,12 @@ const Register = () => {
 
       <aside className="relative hidden h-dvh overflow-hidden bg-muted lg:block lg:w-1/2">
         <img src={sideBannerImage} alt="Không gian HotCinema" className="absolute inset-0 h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-black/55" />
+        <div className="absolute inset-0 bg-media-overlay/55" />
         <div className="absolute inset-x-10 bottom-10 xl:inset-x-14 xl:bottom-14">
-          <div className="max-w-xl rounded-xl border border-white/20 bg-black/30 p-6 text-white backdrop-blur-md xl:p-8">
-            <p className="text-sm font-medium text-white/70">Bắt đầu với HotCinema</p>
+          <div className="max-w-xl rounded-xl border border-media-foreground/20 bg-media-overlay/30 p-6 text-media-foreground backdrop-blur-md xl:p-8">
+            <p className="text-sm font-medium text-media-foreground/70">Bắt đầu với HotCinema</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight xl:text-3xl">Đặt vé đơn giản, trải nghiệm nhất quán</h2>
-            <p className="mt-3 text-sm leading-6 text-white/75 xl:text-base">
+            <p className="mt-3 text-sm leading-6 text-media-foreground/75 xl:text-base">
               Tìm phim, chọn rạp, chọn ghế và quản lý vé của bạn trong cùng một tài khoản.
             </p>
           </div>
