@@ -224,6 +224,6 @@
   *,
   *::before,
   *::after {
-    scroll-behavior: auto !important;
+    scroll-behavior: auto;
   }
 }
