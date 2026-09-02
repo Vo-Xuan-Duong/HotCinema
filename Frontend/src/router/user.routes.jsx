@@ -10,6 +10,7 @@ const BookingDetail = React.lazy(() => import('@/pages/User/BookingDetail/Bookin
 const BookingHistory = React.lazy(() => import('@/pages/User/BookingHistory/BookingHistory'));
 const Movies = React.lazy(() => import('@/pages/User/Movies/Movies'));
 const MovieDetail = React.lazy(() => import('@/pages/User/Movies/MovieDetail'));
+const PeopleDetail = React.lazy(() => import('@/pages/User/People/PeopleDetail'));
 const Cinemas = React.lazy(() => import('@/pages/User/Cinemas/Cinemas'));
 const CinemaDetail = React.lazy(() => import('@/pages/User/Cinemas/CinemaDetail'));
 const Schedule = React.lazy(() => import('@/pages/User/Schedule/Schedule'));
@@ -39,6 +40,7 @@ export const userRoutes = {
     { path: 'history', element: protectedLazyElement(BookingHistory, 'ticket', 'Đang tải lịch sử đặt vé...') },
     { path: 'movies', element: lazyElement(Movies, 'movie', 'Đang tải danh sách phim...') },
     { path: 'movies/:id', element: lazyElement(MovieDetail, 'movie', 'Đang tải thông tin phim...') },
+    { path: 'people/:id', element: lazyElement(PeopleDetail, 'modern', 'Đang tải thông tin nhân sự...') },
     { path: 'cinemas', element: lazyElement(Cinemas, 'cinema', 'Đang tải danh sách rạp...') },
     { path: 'cinemas/:id', element: lazyElement(CinemaDetail, 'cinema', 'Đang tải thông tin rạp...') },
     { path: 'cinemas/:cinemaId/schedule', element: <CinemaScheduleRedirect /> },
@@ -50,6 +52,6 @@ export const userRoutes = {
     { path: 'booking/payment', element: protectedLazyElement(BookingPayment, 'ticket', 'Đang tải trang thanh toán...') },
     { path: 'booking/callback', element: lazyElement(PaymentCallback, 'ticket', 'Đang xử lý thanh toán...') },
     { path: 'booking/success', element: lazyElement(BookingSuccess, 'ticket', 'Đang xác nhận...') },
-    { path: 'booking/failed', element: lazyElement(BookingFailed, 'ticket', 'Đang tải...') },
+    { path: 'booking/failed', element: lazyElement(BookingFailed, 'ticket', 'Đang tải kết quả thanh toán...') },
   ],
 };
