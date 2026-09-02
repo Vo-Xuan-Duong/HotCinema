@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Bell, Check, Eye, Gift, Loader2, Settings, Ticket, Trash2 } from 'lucide-react';
+import { Bell, Check, Eye, Gift, Loader2, RefreshCw, Settings, Ticket, Trash2 } from 'lucide-react';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Empty } from '@/components/ui/empty';
@@ -24,22 +25,24 @@ const Notifications = () => {
   const notification = useNotification();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [busyId, setBusyId] = useState(null);
   const [markingAll, setMarkingAll] = useState(false);
 
   const loadNotifications = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadError('');
       const response = await notificationService.list({ page: 0, size: 100, sort: 'createdAt,desc' });
       setItems(extractItems(response));
     } catch (error) {
       console.error('Error loading notifications:', error);
       setItems([]);
-      notification.error(error?.message || 'Không tải được danh sách thông báo');
+      setLoadError(error?.message || 'Không tải được danh sách thông báo');
     } finally {
       setLoading(false);
     }
-  }, [notification]);
+  }, []);
 
   useEffect(() => {
     loadNotifications();
@@ -106,11 +109,17 @@ const Notifications = () => {
               <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Thông báo</h1>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              {unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : 'Tất cả thông báo đã được đọc'}
+              {loading
+                ? 'Đang đồng bộ thông báo...'
+                : loadError
+                  ? 'Không thể đồng bộ thông báo'
+                  : unreadCount > 0
+                    ? `${unreadCount} thông báo chưa đọc`
+                    : 'Tất cả thông báo đã được đọc'}
             </p>
           </div>
 
-          {unreadCount > 0 && (
+          {!loadError && unreadCount > 0 && (
             <Button size="sm" onClick={markAllAsRead} disabled={markingAll}>
               {markingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
               Đánh dấu tất cả đã đọc
@@ -118,12 +127,34 @@ const Notifications = () => {
           )}
         </header>
 
+        {loadError && (
+          <Alert
+            variant="destructive"
+            showIcon
+            message="Không thể tải thông báo"
+            description={loadError}
+            className="mb-4"
+          />
+        )}
+
         <Card>
           <CardContent className="p-0">
             {loading ? (
-              <div className="flex min-h-40 items-center justify-center gap-2 text-sm text-muted-foreground">
+              <div className="flex min-h-40 items-center justify-center gap-2 text-sm text-muted-foreground" role="status" aria-live="polite">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 Đang tải thông báo...
+              </div>
+            ) : loadError ? (
+              <div className="flex min-h-48 flex-col items-center justify-center gap-3 px-4 py-8 text-center">
+                <Bell className="h-10 w-10 text-muted-foreground/35" />
+                <div>
+                  <p className="text-sm font-medium">Danh sách thông báo chưa khả dụng</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Kiểm tra kết nối và thử tải lại.</p>
+                </div>
+                <Button type="button" variant="outline" onClick={loadNotifications}>
+                  <RefreshCw className="h-4 w-4" />
+                  Thử lại
+                </Button>
               </div>
             ) : items.length === 0 ? (
               <Empty description="Không có thông báo nào" className="min-h-40" />
