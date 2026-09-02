@@ -16,6 +16,14 @@
     --info: 221.2 83.2% 53.3%;
     --info-foreground: 210 40% 98%;
 
+    /* Media overlays intentionally remain neutral black/white for contrast over artwork/video. */
+    --media-overlay: 0 0% 0%;
+    --media-foreground: 0 0% 100%;
+
+    /* QR contrast is intentionally fixed so scanners receive a stable light surface. */
+    --qr-background: 0 0% 100%;
+    --qr-foreground: 0 0% 0%;
+
     --seat-normal: 142.1 70.6% 40%;
     --seat-vip: 38 92% 50%;
     --seat-couple: 330.4 81.2% 60.4%;
@@ -40,6 +48,11 @@
     --warning: 47.9 95.8% 53.1%;
     --warning-foreground: 26 83.3% 14.1%;
     --info: 217.2 91.2% 59.8%;
+
+    --media-overlay: 0 0% 0%;
+    --media-foreground: 0 0% 100%;
+    --qr-background: 0 0% 100%;
+    --qr-foreground: 0 0% 0%;
 
     --seat-normal: 142.1 70.6% 45.3%;
     --seat-vip: 47.9 95.8% 53.1%;
