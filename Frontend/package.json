@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "audit:ui": "node scripts/audit-shadcn.mjs",
     "audit:ui:strict": "node scripts/audit-shadcn.mjs --strict",
-    "check": "npm run audit:ui && npm run lint && npm test && npm run build"
+    "check:ui": "npm run audit:ui:strict && npm test && npm run build",
+    "check": "npm run audit:ui:strict && npm run lint && npm test && npm run build"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.1",
