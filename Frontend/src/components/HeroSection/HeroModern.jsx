@@ -101,12 +101,12 @@ const HeroModern = ({ movies = [] }) => {
             className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-[background-image] duration-700"
             style={{ backgroundImage: `url(${currentItem.image})` }}
           />
-          <div className="absolute inset-0 bg-black/65" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-black/35" />
+          <div className="absolute inset-0 bg-media-overlay/65" />
+          <div className="absolute inset-0 bg-gradient-to-r from-media-overlay/85 via-media-overlay/60 to-media-overlay/35" />
         </div>
       )}
 
-      <div className="relative z-10 mx-auto grid w-full max-w-7xl gap-8 px-4 py-8 sm:py-10 text-white sm:px-6 lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-12 lg:px-8">
+      <div className="relative z-10 mx-auto grid w-full max-w-7xl gap-8 px-4 py-8 text-media-foreground sm:py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_240px] lg:gap-12 lg:px-8">
         <div className="flex min-w-0 flex-col justify-center">
           <div>
             <StatusBadge tone={currentItem.badge === 'ĐANG CHIẾU' ? 'success' : 'warning'}>
@@ -119,22 +119,22 @@ const HeroModern = ({ movies = [] }) => {
             {currentItem.title}
           </h1>
           {currentItem.subtitle && currentItem.subtitle !== currentItem.title && (
-            <p className="mt-2 text-sm font-medium text-white/75 sm:text-base">{currentItem.subtitle}</p>
+            <p className="mt-2 text-sm font-medium text-media-foreground/75 sm:text-base">{currentItem.subtitle}</p>
           )}
-          <p className="mt-4 max-w-2xl line-clamp-3 text-sm leading-6 text-white/80 sm:text-base sm:leading-7">
+          <p className="mt-4 max-w-2xl line-clamp-3 text-sm leading-6 text-media-foreground/80 sm:text-base sm:leading-7">
             {currentItem.description}
           </p>
 
           <div className="mt-5 flex flex-wrap gap-2">
-            <Badge variant="secondary" className="border-white/15 bg-black/30 text-white backdrop-blur-sm">
+            <Badge variant="secondary" className="border-media-foreground/15 bg-media-overlay/30 text-media-foreground backdrop-blur-sm">
               <Clock className="mr-1.5 h-3.5 w-3.5" />
               {currentItem.duration}
             </Badge>
-            <Badge variant="secondary" className="border-white/15 bg-black/30 text-white backdrop-blur-sm">
+            <Badge variant="secondary" className="border-media-foreground/15 bg-media-overlay/30 text-media-foreground backdrop-blur-sm">
               <Star className="mr-1.5 h-3.5 w-3.5 fill-[hsl(var(--warning))] text-[hsl(var(--warning))]" />
               {currentItem.rating > 0 ? `${currentItem.rating}/10` : 'Chưa có đánh giá'}
             </Badge>
-            <Badge variant="secondary" className="border-white/15 bg-black/30 text-white backdrop-blur-sm">
+            <Badge variant="secondary" className="border-media-foreground/15 bg-media-overlay/30 text-media-foreground backdrop-blur-sm">
               <CalendarDays className="mr-1.5 h-3.5 w-3.5" />
               {currentItem.releaseDate}
             </Badge>
@@ -143,7 +143,7 @@ const HeroModern = ({ movies = [] }) => {
           {currentItem.features.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
               {currentItem.features.map((feature) => (
-                <Badge key={feature} variant="outline" className="border-white/20 bg-white/5 text-white">
+                <Badge key={feature} variant="outline" className="border-media-foreground/20 bg-media-foreground/5 text-media-foreground">
                   {feature}
                 </Badge>
               ))}
@@ -157,7 +157,7 @@ const HeroModern = ({ movies = [] }) => {
                 Xem chi tiết
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-white/30 bg-black/20 text-white hover:bg-white/10 hover:text-white">
+            <Button asChild size="lg" variant="outline" className="border-media-foreground/30 bg-media-overlay/20 text-media-foreground hover:bg-media-foreground/10 hover:text-media-foreground">
               <Link to="/movies">Khám phá phim</Link>
             </Button>
           </div>
@@ -165,7 +165,7 @@ const HeroModern = ({ movies = [] }) => {
 
         <div className="hidden items-center justify-center lg:flex">
           <Link to={`/movies/${currentItem.id}`} className="block w-full max-w-60">
-            <div className="overflow-hidden rounded-xl border border-white/15 bg-black/30 shadow-2xl">
+            <div className="overflow-hidden rounded-xl border border-media-foreground/15 bg-media-overlay/30 shadow-2xl">
               <img
                 src={currentItem.poster || currentItem.image || '/brand-placeholder.svg'}
                 alt={currentItem.title}
@@ -184,7 +184,7 @@ const HeroModern = ({ movies = [] }) => {
                 type="button"
                 aria-label={`Hiển thị ${movie.title}`}
                 aria-current={currentIndex === index ? 'true' : undefined}
-                className={`h-2 rounded-full transition-all ${currentIndex === index ? 'w-8 bg-primary' : 'w-2 bg-white/35 hover:bg-white/60'}`}
+                className={`h-2 rounded-full transition-all ${currentIndex === index ? 'w-8 bg-primary' : 'w-2 bg-media-foreground/35 hover:bg-media-foreground/60'}`}
                 onClick={() => setCurrentIndex(index)}
               />
             ))}
