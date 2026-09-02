@@ -11,6 +11,7 @@ const BookingHistory = React.lazy(() => import('@/pages/User/BookingHistory/Book
 const Movies = React.lazy(() => import('@/pages/User/Movies/Movies'));
 const MovieDetail = React.lazy(() => import('@/pages/User/Movies/MovieDetail'));
 const PeopleDetail = React.lazy(() => import('@/pages/User/People/PeopleDetail'));
+const InfoPage = React.lazy(() => import('@/pages/User/Info/InfoPage'));
 const Cinemas = React.lazy(() => import('@/pages/User/Cinemas/Cinemas'));
 const CinemaDetail = React.lazy(() => import('@/pages/User/Cinemas/CinemaDetail'));
 const Schedule = React.lazy(() => import('@/pages/User/Schedule/Schedule'));
@@ -27,6 +28,8 @@ const CinemaScheduleRedirect = () => {
   const { cinemaId } = useParams();
   return <Navigate to={`/cinemas/${cinemaId}`} replace />;
 };
+
+const infoRoutes = ['about', 'careers', 'news', 'contact', 'help', 'faq', 'booking-guide', 'terms', 'privacy', 'cookies'];
 
 export const userRoutes = {
   path: '/',
@@ -53,5 +56,9 @@ export const userRoutes = {
     { path: 'booking/callback', element: lazyElement(PaymentCallback, 'ticket', 'Đang xử lý thanh toán...') },
     { path: 'booking/success', element: lazyElement(BookingSuccess, 'ticket', 'Đang xác nhận...') },
     { path: 'booking/failed', element: lazyElement(BookingFailed, 'ticket', 'Đang tải kết quả thanh toán...') },
+    ...infoRoutes.map((path) => ({
+      path,
+      element: lazyElement(InfoPage, 'modern', 'Đang tải thông tin...'),
+    })),
   ],
 };
