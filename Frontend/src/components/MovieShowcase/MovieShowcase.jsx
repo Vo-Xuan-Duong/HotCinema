@@ -161,8 +161,8 @@ const MovieShowcase = ({
               <div
                 className={
                   enableSlider
-                    ? 'flex gap-3 items-stretch'
-                    : 'grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 items-stretch'
+                    ? 'flex items-stretch gap-3'
+                    : 'grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7'
                 }
               >
                 {filteredMovies.map((movie, index) => (
@@ -170,8 +170,8 @@ const MovieShowcase = ({
                     key={movie.id || `${movie.title}-${index}`}
                     className={
                       enableSlider
-                        ? 'w-[62vw] max-w-[220px] shrink-0 sm:w-[210px] lg:w-[200px] xl:w-[190px] flex flex-col'
-                        : 'min-w-0 flex flex-col'
+                        ? 'flex w-[62vw] max-w-[220px] shrink-0 flex-col sm:w-[210px] lg:w-[200px] xl:w-[190px]'
+                        : 'flex min-w-0 flex-col'
                     }
                   >
                     <MovieCard
@@ -213,7 +213,7 @@ const MovieShowcase = ({
         maxWidth={900}
       >
         {selectedMovie?.trailer && (
-          <div className="relative aspect-video w-full overflow-hidden rounded-md bg-black">
+          <div className="relative aspect-video w-full overflow-hidden rounded-md bg-media-overlay">
             <iframe
               className="absolute inset-0 h-full w-full border-0"
               src={`https://www.youtube.com/embed/${getYouTubeId(selectedMovie.trailer)}?autoplay=1`}
