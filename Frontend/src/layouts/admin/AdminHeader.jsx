@@ -1,6 +1,5 @@
 import { Bell, LogOut, Moon, Settings, Sun, User } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge-count';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -35,15 +34,19 @@ const AdminHeader = ({ user, onNavigate, onLogout }) => {
           {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
 
-        <Badge count={5} showZero={false}>
-          <Button type="button" variant="ghost" size="icon" aria-label="Thông báo">
-            <Bell className="h-4 w-4" />
-          </Button>
-        </Badge>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Mở quản lý thông báo"
+          onClick={() => onNavigate('/admin/notifications')}
+        >
+          <Bell className="h-4 w-4" />
+        </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button type="button" variant="ghost" className="h-9 gap-2 px-2">
+            <Button type="button" variant="ghost" className="h-9 gap-2 px-2" aria-label="Mở menu tài khoản quản trị">
               <Avatar className="h-7 w-7">
                 <AvatarFallback className="bg-muted text-muted-foreground">
                   <User className="h-4 w-4" />
