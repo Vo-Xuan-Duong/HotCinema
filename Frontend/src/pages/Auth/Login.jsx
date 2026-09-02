@@ -42,12 +42,12 @@ const Login = () => {
 
       <aside className="relative hidden h-dvh overflow-hidden bg-muted lg:block lg:w-1/2">
         <img src={sideBannerImage} alt="Không gian HotCinema" className="absolute inset-0 h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-black/55" />
+        <div className="absolute inset-0 bg-media-overlay/55" />
         <div className="absolute inset-x-10 bottom-10 xl:inset-x-14 xl:bottom-14">
-          <div className="max-w-xl rounded-xl border border-white/20 bg-black/30 p-6 text-white backdrop-blur-md xl:p-8">
-            <p className="text-sm font-medium text-white/70">Một tài khoản, mọi trải nghiệm</p>
+          <div className="max-w-xl rounded-xl border border-media-foreground/20 bg-media-overlay/30 p-6 text-media-foreground backdrop-blur-md xl:p-8">
+            <p className="text-sm font-medium text-media-foreground/70">Một tài khoản, mọi trải nghiệm</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight xl:text-3xl">Trải nghiệm điện ảnh liền mạch</h2>
-            <p className="mt-3 text-sm leading-6 text-white/75 xl:text-base">
+            <p className="mt-3 text-sm leading-6 text-media-foreground/75 xl:text-base">
               Quản lý vé đã đặt, lịch chiếu yêu thích và ưu đãi của bạn trong một nơi duy nhất.
             </p>
           </div>
