@@ -82,10 +82,10 @@ const TrailerModal = ({ isOpen, onClose, trailerUrl, movieTitle }) => {
           </div>
         </header>
 
-        <div className="relative aspect-video w-full bg-black">
+        <div className="relative aspect-video w-full bg-media-overlay">
           {isLoading && trailerUrl && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/75" role="status" aria-live="polite">
-              <div className="text-center text-white">
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-media-overlay/75" role="status" aria-live="polite">
+              <div className="text-center text-media-foreground">
                 <Loader2 className="mx-auto mb-3 h-8 w-8 animate-spin" aria-hidden="true" />
                 <p className="text-sm">Đang tải trailer...</p>
               </div>
@@ -103,10 +103,10 @@ const TrailerModal = ({ isOpen, onClose, trailerUrl, movieTitle }) => {
               onLoad={() => setIsLoading(false)}
             />
           ) : (
-            <div className="flex h-full min-h-48 flex-col items-center justify-center px-6 text-center text-white">
+            <div className="flex h-full min-h-48 flex-col items-center justify-center px-6 text-center text-media-foreground">
               <Play className="mb-3 h-10 w-10 opacity-70" aria-hidden="true" />
               <p className="text-base font-semibold">Trailer không khả dụng</p>
-              <span className="mt-1 text-sm text-white/65">Vui lòng thử lại sau</span>
+              <span className="mt-1 text-sm text-media-foreground/65">Vui lòng thử lại sau</span>
             </div>
           )}
         </div>
